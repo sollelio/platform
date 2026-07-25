@@ -88,6 +88,111 @@ function LinhaPagamento({ pagamento, onPedirApagar }) {
   );
 }
 
+// Um dos três números do topo. Em largura inteira é serif e grande —
+// é o primeiro sítio onde os olhos pousam ao abrir o separador.
+function Numero({ rotulo, valor, cor, rotuloCor, largo }) {
+  return (
+    <div style={largo ? undefined : { flex: "1 1 100px" }}>
+      <p
+        style={{
+          margin: largo ? "0 0 4px" : 0,
+          fontSize: "10px",
+          color: rotuloCor || (largo ? "#9B9B9B" : "var(--gray-mid)"),
+          textTransform: "uppercase",
+          letterSpacing: largo ? "0.14em" : undefined,
+        }}
+      >
+        {rotulo}
+      </p>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: largo ? "'Playfair Display', serif" : "inherit",
+          fontSize: largo ? "30px" : "16px",
+          fontWeight: largo ? "400" : "700",
+          lineHeight: largo ? 1 : undefined,
+          color: cor || "var(--charcoal)",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {valor}
+      </p>
+    </div>
+  );
+}
+
+// A barra do que entrou, com a legenda a dizer o que falta e até
+// quando. O prazo vem da parcela por pagar — nunca de uma conta feita
+// aqui.
+function BarraDoQueEntrou({ total, pago, falta, previstos, pagamentos }) {
+  const porCento = Math.min(100, Math.round((pago / total) * 100));
+
+  const proximaPorPagar = previstos.find((pv) => {
+    const jaPago = pagamentos
+      .filter((p) => p.previsto_id === pv.id)
+      .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+    return Number(pv.valor) - jaPago > 0;
+  });
+
+  const legenda =
+    falta <= 0
+      ? "está tudo recebido"
+      : proximaPorPagar
+        ? [
+            proximaPorPagar.descricao?.toLowerCase(),
+            proximaPorPagar.data_limite
+              ? `com prazo a ${formatarDataPT(proximaPorPagar.data_limite)}`
+              : "por receber",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : `${formatarEuros(falta)} por receber`;
+
+  return (
+    <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: "10px",
+          marginBottom: "7px",
+        }}
+      >
+        <span style={{ fontSize: "11.5px", color: "var(--gray-mid)" }}>
+          {legenda}
+        </span>
+        <span
+          style={{
+            fontSize: "11.5px",
+            color: "var(--gold-dark)",
+            fontWeight: "600",
+          }}
+        >
+          {porCento}%
+        </span>
+      </div>
+      <div
+        style={{
+          height: "5px",
+          borderRadius: "999px",
+          backgroundColor: "#F1EBDD",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${porCento}%`,
+            height: "5px",
+            backgroundColor: "var(--gold)",
+            transition: "width 240ms ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
   const [valor, setValor] = useState(sugestaoValor ? String(sugestaoValor) : "");
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
@@ -126,35 +231,36 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         borderRadius: "10px",
         padding: "14px",
         marginTop: "8px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
+        // Os quatro campos numa linha quando há largura para isso, dois
+        // a dois no drawer — sem prop nenhuma a dizer onde estamos.
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+        gap: "10px",
+        alignItems: "end",
       }}
     >
-      <div style={{ display: "flex", gap: "8px" }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
-            Valor (€)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
-            Data
-          </label>
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+      <div>
+        <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
+          Valor (€)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+      <div>
+        <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
+          Data
+        </label>
+        <input
+          type="date"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          style={inputStyle}
+        />
       </div>
       <div>
         <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
@@ -164,7 +270,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           list="metodos-pagamento-sugeridos"
           value={metodo}
           onChange={(e) => setMetodo(e.target.value)}
-          placeholder="MB Way, Transferência bancária, Numerário..."
+          placeholder="MB Way, Transferência..."
           style={inputStyle}
         />
         <datalist id="metodos-pagamento-sugeridos">
@@ -183,7 +289,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           style={inputStyle}
         />
       </div>
-      <div>
+      <div style={{ gridColumn: "1 / -1" }}>
         <label style={{ fontSize: "10px", color: "var(--gray-mid)" }}>
           Notas (opcional)
         </label>
@@ -194,9 +300,25 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         />
       </div>
       {erro && (
-        <p style={{ fontSize: "11px", color: "#B91C1C", margin: 0 }}>{erro}</p>
+        <p
+          style={{
+            gridColumn: "1 / -1",
+            fontSize: "11px",
+            color: "#B91C1C",
+            margin: 0,
+          }}
+        >
+          {erro}
+        </p>
       )}
-      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+      <div
+        style={{
+          gridColumn: "1 / -1",
+          display: "flex",
+          gap: "8px",
+          justifyContent: "flex-end",
+        }}
+      >
         <button
           onClick={onCancelar}
           disabled={aGuardar}
@@ -315,7 +437,7 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbr
   );
 }
 
-export default function PagamentosEvento({ submissao, onSaved }) {
+export default function PagamentosEvento({ submissao, onSaved, largo = false }) {
   const [previstos, setPrevistos] = useState([]);
   const [pagamentos, setPagamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -472,46 +594,44 @@ export default function PagamentosEvento({ submissao, onSaved }) {
     <div style={secaoWrap}>
       <p style={label}>Pagamentos</p>
 
-      {/* Totais */}
+      {/* Totais. Em largura inteira ganham a serif, o cartão e a barra
+          do que entrou ao lado; no drawer ficam como sempre foram. */}
       <div
         style={{
           display: "flex",
-          gap: "10px",
-          marginBottom: "14px",
+          gap: largo ? "48px" : "10px",
+          marginBottom: largo ? "18px" : "14px",
           flexWrap: "wrap",
+          alignItems: "flex-end",
+          backgroundColor: largo ? "white" : "transparent",
+          border: largo ? "1px solid #F0E6D0" : "none",
+          borderRadius: largo ? "14px" : 0,
+          padding: largo ? "20px 24px" : 0,
         }}
       >
-        <div style={{ flex: "1 1 100px" }}>
-          <p style={{ margin: 0, fontSize: "10px", color: "var(--gray-mid)", textTransform: "uppercase" }}>
-            Total
-          </p>
-          <p style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "var(--charcoal)" }}>
-            {formatarEuros(total)}
-          </p>
-        </div>
-        <div style={{ flex: "1 1 100px" }}>
-          <p style={{ margin: 0, fontSize: "10px", color: "var(--gray-mid)", textTransform: "uppercase" }}>
-            Recebido
-          </p>
-          <p style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#166534" }}>
-            {formatarEuros(pago)}
-          </p>
-        </div>
-        <div style={{ flex: "1 1 100px" }}>
-          <p style={{ margin: 0, fontSize: "10px", color: "var(--gray-mid)", textTransform: "uppercase" }}>
-            {falta > 0 ? "Falta" : falta < 0 ? "Pago a mais" : "Estado"}
-          </p>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "16px",
-              fontWeight: "700",
-              color: falta > 0 ? "var(--gold-dark)" : "#166534",
-            }}
-          >
-            {falta === 0 ? "✓ Completo" : formatarEuros(Math.abs(falta))}
-          </p>
-        </div>
+        <Numero rotulo="Total" valor={formatarEuros(total)} largo={largo} />
+        <Numero
+          rotulo="Recebido"
+          valor={formatarEuros(pago)}
+          cor="#166534"
+          largo={largo}
+        />
+        <Numero
+          rotulo={falta > 0 ? "Falta" : falta < 0 ? "Pago a mais" : "Estado"}
+          valor={falta === 0 ? "✓ Completo" : formatarEuros(Math.abs(falta))}
+          cor={falta > 0 ? "var(--gold-dark)" : "#166534"}
+          rotuloCor={falta > 0 ? "#B08A3C" : undefined}
+          largo={largo}
+        />
+        {largo && total > 0 && (
+          <BarraDoQueEntrou
+            total={total}
+            pago={pago}
+            falta={falta}
+            previstos={previstos}
+            pagamentos={pagamentos}
+          />
+        )}
       </div>
 
       {/* Plano — sinal + remanescente */}
@@ -565,6 +685,76 @@ export default function PagamentosEvento({ submissao, onSaved }) {
         >
           + Registar outro pagamento
         </button>
+      )}
+
+      {/* Os dois módulos que a arquitectura manda nascer AQUI, e não no
+          drawer — é por eles que o drawer não podia continuar a crescer.
+          Ficam anunciados enquanto não existem: o separador tem de
+          mostrar onde vão morar, não fingir que já lá estão. */}
+      {largo && (
+        <div
+          style={{
+            borderTop: "1px solid #F0E6D0",
+            marginTop: "22px",
+            paddingTop: "20px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "11px",
+              fontWeight: "600",
+              color: "var(--gray-mid)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              margin: "0 0 4px",
+            }}
+          >
+            Reservado neste separador
+          </p>
+          <p style={{ fontSize: "12px", color: "#9B9B9B", margin: "0 0 12px" }}>
+            Os dois módulos que a arquitectura manda nascer aqui — não no
+            drawer.
+          </p>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            {[
+              {
+                titulo: "Contribuição coletiva",
+                nota: "quem contribuiu, quanto, link partilhável",
+              },
+              {
+                titulo: "Gastos do evento",
+                nota: "flores, deslocação, equipa · margem real do evento",
+              },
+            ].map((bloco) => (
+              <div
+                key={bloco.titulo}
+                style={{
+                  flex: "1 1 260px",
+                  border: "1px dashed #DFD3B8",
+                  borderRadius: "12px",
+                  padding: "16px 18px",
+                  backgroundColor: "#FCFBF7",
+                }}
+              >
+                <p style={{ fontSize: "13.5px", margin: "0 0 4px" }}>
+                  {bloco.titulo}
+                </p>
+                <p
+                  style={{
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontSize: "10.5px",
+                    color: "#B3AB9C",
+                    letterSpacing: "0.04em",
+                    margin: 0,
+                  }}
+                >
+                  {bloco.nota}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Confirmação de remoção — nunca window.confirm */}

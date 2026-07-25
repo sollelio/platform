@@ -15,6 +15,7 @@ import { SidebarNav } from "../components/admin/Navegacao";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
 import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
+import NotasEvento from "../components/admin/NotasEvento";
 import { FichaMateriais } from "../components/admin/FichaEvento";
 
 // ============================================================
@@ -282,6 +283,7 @@ export default function EventoPage() {
           {activeAba === "pagamentos" && (
             <PagamentosEvento
               submissao={submissao}
+              largo
               onSaved={(atualizada) => {
                 if (atualizada) setSubmissao((s) => ({ ...s, ...atualizada }));
                 recarregarPlano();
@@ -290,9 +292,11 @@ export default function EventoPage() {
           )}
 
           {activeAba === "notas" && (
-            <PorConstruir
-              titulo="Notas"
-              descricao="o que foi combinado, por ordem inversa"
+            <NotasEvento
+              submissao={submissao}
+              pagamentos={plano.pagamentos}
+              previstos={plano.previstos}
+              invites={invites}
             />
           )}
         </div>
