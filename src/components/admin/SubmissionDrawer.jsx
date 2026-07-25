@@ -6,7 +6,6 @@ import {
   getValorAtual,
   getResumoSubmissao,
   seccoesDoModelo,
-  FIELD_MAP_INVERSO,
 } from "../../lib/submissionFields";
 import { iniciarTour, tourJaVista } from "../../lib/tour";
 import {
@@ -16,13 +15,10 @@ import {
   associarModeloAoEvento,
   criarModeloEAssociar,
 } from "../../lib/tipoEvento";
-import SeletorPaleta from "./SeletorPaleta";
 import MensagensSheet from "./MensagensSheet";
-import { linkWhatsApp } from "../../lib/mensagens";
 import { Icone } from "./Navegacao";
-import PagamentosEvento from "./PagamentosEvento";
 import Jornada from "./Jornada";
-import VisaoGeralEvento from "./VisaoGeralEvento";
+import { construirEtapas } from "./jornadaEtapas";
 import { getPagamentosEvento } from "../../lib/pagamentos";
 
 // ============================================================
@@ -65,17 +61,6 @@ const formatData = (d) => {
   });
 };
 
-// Mapa campo (camelCase) -> coluna antiga (snake_case), para sabermos
-// que campos têm coluna equivalente e gravar também lá (mantém
-// Casamento/briefings a funcionar).
-//
-// É o mapa partilhado de submissionFields.js MAIS uma entrada que só a
-// edição precisa: um modelo pode ter um campo com id "dataEvento" sem
-// o papel "data", e nesse caso a coluna data_evento tem de ser escrita
-// à mesma. Fora daqui, dataEvento não é um campo legado — por isso não
-// entra no FIELD_MAP global, onde mudaria o getValorAtual de toda a
-// gente.
-const FIELD_MAP_EDICAO = { ...FIELD_MAP_INVERSO, dataEvento: "data_evento" };
 
 export default function SubmissionDrawer({
   selected,
@@ -91,9 +76,6 @@ export default function SubmissionDrawer({
   onModeloCriado,
 }) {
   const [folhaMensagens, setFolhaMensagens] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState({});
-  const [saving, setSaving] = useState(false);
   const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
   const navigate = useNavigate();
 
@@ -199,83 +181,41 @@ export default function SubmissionDrawer({
     valor: selected.valor_acordado,
   };
 
+  // 3 · O GESTO. Um só, com o nome do que vem a seguir — o mesmo
+  // cálculo que alimenta a frase "→ A seguir" da Jornada, para as duas
+  // peças nunca discordarem.
+  //
+  // A excepção que a arquitectura abre: se o próximo passo É o sinal,
+  // o botão vive aqui. Os outros levam ao separador da página onde o
+  // gesto se faz de verdade — o drawer aponta, não trabalha.
+  const gesto = (() => {
+    if (selected.fase === "perdido") return null;
+    const { atual } = construirEtapas({
+      s: selected,
+      invites,
+      previstos: planoDoEvento?.previstos,
+      pagamentos: planoDoEvento?.pagamentos,
+    });
+    if (!atual) return null;
+    const ir = (aba) => () => navigate(`/evento/${selected.id}/${aba}`);
+    const porMapa = {
+      orcamento: { rotulo: "Preparar orçamento", aba: "documentos" },
+      sinal: {
+        rotulo: atual.sub
+          ? `Registar sinal · ${atual.sub.replace(" por receber", "")}`
+          : "Registar sinal",
+        aba: "pagamentos",
+      },
+      projecto: { rotulo: "Criar projecto", aba: "documentos" },
+      contrato: { rotulo: "Preparar contrato", aba: "documentos" },
+      preparacao: { rotulo: "Preparar o evento", aba: "materiais" },
+    }[atual.id];
+    if (!porMapa) return null;
+    return { rotulo: porMapa.rotulo, accao: ir(porMapa.aba) };
+  })();
 
-  // Abre o modo edição, pré-carregando editData com o valor atual de
-  // CADA campo do modelo (lido via getValorAtual — colunas ou respostas).
-  const abrirEdicao = () => {
-    const dados = {};
-    for (const sec of seccoes) {
-      for (const campo of sec.campos) {
-        const v = getValorAtual(selected, campo.id);
-        // arrays (checkbox) ficam array; resto fica string
-        if (Array.isArray(v)) dados[campo.id] = v;
-        else dados[campo.id] = v ?? "";
-      }
-    }
-    setEditData(dados);
-    setEditMode(true);
-  };
+  const fechar = () => onClose();
 
-  // Guarda: escreve no respostas (todos os campos) e também nas colunas
-  // antigas que existirem (via FIELD_MAP_EDICAO).
-  const guardar = async () => {
-    setSaving(true);
-
-    // 1) novo respostas = respostas atual + edições (por id de campo)
-    const novoRespostas = { ...(selected.respostas || {}) };
-    for (const [campoId, valor] of Object.entries(editData)) {
-      novoRespostas[campoId] = valor;
-    }
-
-    // 2) montar o update: respostas + colunas antigas equivalentes
-    const update = { respostas: novoRespostas };
-    for (const [campoId, valor] of Object.entries(editData)) {
-      const coluna = FIELD_MAP_EDICAO[campoId];
-      if (coluna) update[coluna] = valor;
-    }
-
-    // 2b) o campo do modelo marcado com "papel: data" É a data do
-    // evento, seja qual for o seu id (o modelo pode ter mais do que
-    // uma data — entrega, ensaio, etc. — só essa conta).
-    if (campoData && campoData.id in editData) {
-      update.data_evento = editData[campoData.id] || null;
-    }
-
-    const { error } = await supabase
-      .from("submissions")
-      .update(update)
-      .eq("id", selected.id);
-
-    if (!error) {
-      const atualizada = { ...selected, ...update };
-      if (onSaved) onSaved(atualizada);
-      setEditMode(false);
-    } else {
-      console.error(error);
-      alert("Erro ao guardar. Tenta novamente.");
-    }
-    setSaving(false);
-  };
-
-  const fechar = () => {
-    setEditMode(false);
-    onClose();
-  };
-
-  // Estilo partilhado dos botões de documento (outline dourado)
-  const btnDocumento = {
-    flex: 1,
-    padding: "9px 8px",
-    borderRadius: "10px",
-    fontSize: "12px",
-    fontWeight: "500",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    backgroundColor: "white",
-    color: "var(--gold)",
-    border: "1.5px solid var(--gold)",
-    whiteSpace: "nowrap",
-  };
 
   return (
     <AnimatePresence>
@@ -357,24 +297,6 @@ export default function SubmissionDrawer({
               <div
                 style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
-                {!editMode && (
-                  <button
-                    onClick={abrirEdicao}
-                    style={{
-                      padding: "7px 16px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      cursor: "pointer",
-                      border: "1.5px solid var(--gold)",
-                      color: "var(--gold)",
-                      backgroundColor: "white",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    ✏️ Editar
-                  </button>
-                )}
                 <button
                   onClick={fechar}
                   style={{
@@ -418,8 +340,12 @@ export default function SubmissionDrawer({
             />
 
             {/* ===== Classificação do tipo "Outro" (quando aplicável) =====
+                A única coisa fora dos quatro blocos, e de propósito: um
+                evento sem modelo não tem Jornada que se leia nem folha
+                que se imprima. Não é trabalho — é uma pergunta que
+                bloqueia a leitura, e o drawer é onde se lê.
                 key = id do evento: mudar de evento reinicia o estado */}
-            {!editMode && precisaClassificacao(selected) && (
+            {precisaClassificacao(selected) && (
               <ClassificacaoTipo
                 key={selected.id}
                 submissao={selected}
@@ -429,130 +355,76 @@ export default function SubmissionDrawer({
               />
             )}
 
-            {/* A saída: o drawer responde a perguntas, a página faz
-                trabalho — daqui vai-se para onde o trabalho se faz. */}
-            <button
-              onClick={() => navigate(`/evento/${selected.id}`)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "11px",
-                marginBottom: "14px",
-                borderRadius: "12px",
-                border: "1.5px solid var(--gold)",
-                backgroundColor: "white",
-                color: "var(--gold)",
-                fontSize: "13px",
-                fontWeight: "500",
-                cursor: "pointer",
-              }}
-            >
-              Abrir evento →
-            </button>
-
-            {/* Ações do evento: briefing em largura total (destaque) +
-                grelha 2×2 de formulário e documentos (outline) */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "8px",
-              }}
-            >
+            {/* 3 · O GESTO — um só, com o nome do que vem a seguir.
+                O gesto muda de nome, a estrutura não. */}
+            {gesto && (
               <button
-                onClick={() =>
-                  window.open(`/briefing/${selected.id}`, "_blank")
-                }
+                onClick={gesto.accao}
                 style={{
-                  gridColumn: "1 / -1",
-                  padding: "9px 8px",
-                  borderRadius: "10px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
+                  width: "100%",
+                  padding: "13px",
+                  marginBottom: "10px",
+                  borderRadius: "12px",
+                  border: "none",
                   backgroundColor: "var(--gold)",
                   color: "white",
-                  border: "none",
-                  whiteSpace: "nowrap",
+                  fontSize: "13.5px",
+                  fontWeight: "600",
+                  letterSpacing: "0.01em",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
                 }}
               >
-                📄 Briefing
+                {gesto.rotulo}
               </button>
+            )}
+
+            {/* 4 · A SAÍDA — o drawer responde a perguntas, a página faz
+                trabalho: daqui vai-se para onde o trabalho se faz. */}
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
-                onClick={abrirFormulario}
-                disabled={formularioSubmetido}
-                title={
-                  formularioSubmetido
-                    ? "O formulário deste evento já foi preenchido"
-                    : temConvitePendente
-                      ? "Abrir o formulário para preencher"
-                      : "Criar o formulário de onboarding deste evento"
-                }
-                style={
-                  formularioSubmetido
-                    ? { ...btnDocumento, opacity: 0.45, cursor: "not-allowed" }
-                    : btnDocumento
-                }
+                onClick={() => navigate(`/evento/${selected.id}`)}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: "12px",
+                  border: "1.5px solid var(--gold)",
+                  backgroundColor: "white",
+                  color: "var(--gold)",
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                }}
               >
-                {formularioSubmetido
-                  ? "✓ Formulário preenchido"
-                  : temConvitePendente
-                    ? "📋 Preencher formulário"
-                    : "📋 Formulário"}
-              </button>
-              <button
-                onClick={() =>
-                  onGerarDocumento && onGerarDocumento(selected, "proposta")
-                }
-                style={btnDocumento}
-              >
-                🎨 Projecto
-              </button>
-              <button
-                onClick={() =>
-                  onGerarDocumento && onGerarDocumento(selected, "orcamento")
-                }
-                style={btnDocumento}
-              >
-                💰 Orçamento
-              </button>
-              <button
-                onClick={() =>
-                  onGerarDocumento && onGerarDocumento(selected, "contrato")
-                }
-                style={btnDocumento}
-              >
-                📃 Contrato
+                Abrir evento →
               </button>
               <button
                 onClick={() => setFolhaMensagens(true)}
                 title={
-                  linkWhatsApp(numeroWhatsapp)
-                    ? "Escolher uma mensagem e abrir no WhatsApp"
-                    : "Mensagens-tipo (sem número de WhatsApp neste evento — só copiar)"
+                  numeroWhatsapp
+                    ? "Escolher uma mensagem e abrir a conversa"
+                    : "Sem número de WhatsApp neste evento"
                 }
                 style={{
-                  gridColumn: "1 / -1",
-                  padding: "9px 8px",
-                  borderRadius: "10px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "11px 14px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #BBF7D0",
                   backgroundColor: "#F0FDF4",
                   color: "#166534",
-                  border: "1.5px solid #BBF7D0",
-                  whiteSpace: "nowrap",
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  cursor: "pointer",
                 }}
               >
-                💬 Enviar por WhatsApp
+                <Icone nome="mensagens" tamanho={16} />
+                WhatsApp
               </button>
             </div>
           </div>
+
 
           {/* Folha de mensagens do evento — cada mensagem com Copiar e,
               havendo número, o botão que abre a conversa já escrita */}
@@ -564,105 +436,6 @@ export default function SubmissionDrawer({
             />
           )}
 
-          {/* Pagamentos — substitui o antigo botão único "Marcar pagamento
-              final recebido": agora é o painel que regista o dinheiro a
-              sério. Quando o remanescente fica completo (ou deixa de
-              estar, se um pagamento for apagado), sincroniza sozinho a
-              coluna pagamento_final — é ela que ainda alimenta o alerta
-              do Início, por isso tem de continuar certa. */}
-          <PagamentosEvento submissao={selected} onSaved={onSaved} />
-
-          {/* MODO LEITURA — secções geradas do modelo, só campos
-              preenchidos. O mesmo componente serve o separador Visão
-              geral da página, lá em mosaico. */}
-          {!editMode && (
-            <VisaoGeralEvento submissao={selected} seccoes={seccoes} />
-          )}
-
-          {/* MODO EDIÇÃO — todos os campos do modelo, gravados no respostas */}
-          {editMode && (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "20px" }}
-            >
-              {seccoes.map((sec) => {
-                if (sec.campos.length === 0) return null;
-                return (
-                  <div key={sec.titulo}>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        color: "var(--gold)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        borderBottom: "1px solid var(--gold-light)",
-                        paddingBottom: "6px",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {sec.titulo}
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                      }}
-                    >
-                      {sec.campos.map((campo) => (
-                        <CampoEdicao
-                          key={campo.id}
-                          campo={campo}
-                          valor={editData[campo.id]}
-                          onChange={(v) =>
-                            setEditData((prev) => ({ ...prev, [campo.id]: v }))
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div style={{ display: "flex", gap: "10px", paddingTop: "8px" }}>
-                <button
-                  onClick={() => setEditMode(false)}
-                  style={{
-                    flex: 1,
-                    padding: "11px",
-                    borderRadius: "10px",
-                    fontSize: "13px",
-                    border: "1.5px solid var(--gold-light)",
-                    color: "var(--gray-mid)",
-                    backgroundColor: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardar}
-                  disabled={saving}
-                  style={{
-                    flex: 2,
-                    padding: "11px",
-                    borderRadius: "10px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    cursor: saving ? "not-allowed" : "pointer",
-                    backgroundColor: saving
-                      ? "var(--gold-light)"
-                      : "var(--gold)",
-                    color: "white",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
-                  }}
-                >
-                  {saving ? "A guardar..." : "✓ Guardar alterações"}
-                </button>
-              </div>
-            </div>
-          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -983,179 +756,3 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
 }
 
 // Campo de edição genérico — adapta o input ao type do campo.
-function CampoEdicao({ campo, valor, onChange }) {
-  const label = (
-    <label
-      style={{
-        fontSize: "11px",
-        color: "var(--gray-mid)",
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        display: "block",
-        marginBottom: "4px",
-      }}
-    >
-      {campo.label}
-    </label>
-  );
-
-  const inputStyle = {
-    width: "100%",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    border: "1.5px solid var(--gold-light)",
-    fontSize: "13px",
-    outline: "none",
-    fontFamily: "Inter, sans-serif",
-    boxSizing: "border-box",
-  };
-
-  // Paleta de cores (catálogo visual clicável)
-  if (campo.type === "paleta") {
-    return (
-      <div>
-        {label}
-        <SeletorPaleta value={valor} onChange={onChange} compact />
-      </div>
-    );
-  }
-
-  // Morada (endereço partido nas partes que o compõem — ver src/lib/morada.js)
-  if (campo.type === "morada") {
-    const v = valor && typeof valor === "object" ? valor : {};
-    const atualizar = (parte, val) => onChange({ ...v, [parte]: val });
-    return (
-      <div>
-        {label}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <input
-              placeholder="Rua"
-              value={v.rua || ""}
-              onChange={(e) => atualizar("rua", e.target.value)}
-              style={{ ...inputStyle, flex: 2 }}
-            />
-            <input
-              placeholder="Nº porta"
-              value={v.numero || ""}
-              onChange={(e) => atualizar("numero", e.target.value)}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-          </div>
-          <input
-            placeholder="Andar / Fração (opcional)"
-            value={v.andar || ""}
-            onChange={(e) => atualizar("andar", e.target.value)}
-            style={inputStyle}
-          />
-          <div style={{ display: "flex", gap: "6px" }}>
-            <input
-              placeholder="Código postal"
-              value={v.codigoPostal || ""}
-              onChange={(e) => atualizar("codigoPostal", e.target.value)}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <input
-              placeholder="Localidade"
-              value={v.localidade || ""}
-              onChange={(e) => atualizar("localidade", e.target.value)}
-              style={{ ...inputStyle, flex: 2 }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Campos de múltipla escolha (checkbox): lista de botões toggle
-  if (campo.type === "checkbox" && Array.isArray(campo.options)) {
-    const selecionados = Array.isArray(valor) ? valor : [];
-    const toggle = (opt) => {
-      if (selecionados.includes(opt)) {
-        onChange(selecionados.filter((o) => o !== opt));
-      } else {
-        onChange([...selecionados, opt]);
-      }
-    };
-    return (
-      <div>
-        {label}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-          {campo.options.map((opt) => {
-            const ativo = selecionados.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => toggle(opt)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  fontSize: "12px",
-                  border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-                  backgroundColor: ativo ? "var(--gold)" : "white",
-                  color: ativo ? "white" : "var(--gray-mid)",
-                  cursor: "pointer",
-                }}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // Escolha única (radio/select)
-  if (
-    (campo.type === "radio" || campo.type === "select") &&
-    Array.isArray(campo.options)
-  ) {
-    return (
-      <div>
-        {label}
-        <select
-          value={valor || ""}
-          onChange={(e) => onChange(e.target.value)}
-          style={inputStyle}
-        >
-          <option value="">—</option>
-          {campo.options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
-  // Texto longo
-  if (campo.type === "textarea") {
-    return (
-      <div>
-        {label}
-        <textarea
-          rows={2}
-          value={valor || ""}
-          onChange={(e) => onChange(e.target.value)}
-          style={{ ...inputStyle, resize: "none" }}
-        />
-      </div>
-    );
-  }
-
-  // Input simples (text, tel, email, number, date, time...)
-  return (
-    <div>
-      {label}
-      <input
-        type={campo.type || "text"}
-        value={valor || ""}
-        onChange={(e) => onChange(e.target.value)}
-        style={inputStyle}
-      />
-    </div>
-  );
-}
