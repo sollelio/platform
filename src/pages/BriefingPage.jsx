@@ -6,6 +6,7 @@ import {
   normalizeSubmission,
   getValorAtual,
   getResumoSubmissao,
+  formatarDataISO,
 } from "../lib/submissionFields";
 import { normalizarCores } from "../components/admin/SeletorPaleta";
 import { formatarMorada } from "../lib/morada";
@@ -109,6 +110,8 @@ function paraTexto(valor) {
   }
   if (typeof valor === "boolean") return valor ? "Sim" : "Não";
   if (valor && typeof valor === "object") return formatarMorada(valor);
+  const data = formatarDataISO(valor);
+  if (data !== valor) return data;
   // Morada guardada como TEXTO JSON em vez de objecto (submissões
   // antigas e importadas). Na folha que ela leva para o evento, as
   // chavetas em bruto são o pior sítio possível para as deixar.

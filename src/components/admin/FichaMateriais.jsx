@@ -67,6 +67,21 @@ function PopoverCores({ valor, onEscolher, onFechar }) {
   const escolhidas = textoParaCores(valor);
   const temNome = (nome) => escolhidas.some((c) => c.nome === nome);
 
+  // Escape fecha. O clique fora já fechava, mas quem está a percorrer a
+  // linha com o teclado não tem para onde clicar — e o véu que apanha o
+  // clique fora cobre a página inteira, por isso um popover que só
+  // fecha ao rato deixa a ficha toda quieta até se acertar nele.
+  useEffect(() => {
+    const aoTeclar = (evento) => {
+      if (evento.key === "Escape") {
+        evento.stopPropagation();
+        onFechar();
+      }
+    };
+    document.addEventListener("keydown", aoTeclar, true);
+    return () => document.removeEventListener("keydown", aoTeclar, true);
+  }, [onFechar]);
+
   const alternar = (cor) => {
     const novas = temNome(cor.nome)
       ? escolhidas.filter((c) => c.nome !== cor.nome)

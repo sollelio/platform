@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import {
   getValorAtual,
@@ -72,6 +72,34 @@ function Campo({ submissao, campo, valor, editavel, onGuardar }) {
     if (ok) setAEditar(false);
   };
 
+  // O cursor entra no campo ao abrir. Sem isto era preciso clicar duas
+  // vezes — uma para abrir, outra para escrever — e o gesto que o
+  // desenho promete ("clica e corrige") ficava a meio.
+  const caixa = useRef(null);
+  useEffect(() => {
+    if (!aEditar) return;
+    caixa.current?.querySelector("input, textarea, select")?.focus();
+  }, [aEditar]);
+
+  // Enter confirma, Escape desiste — as mesmas duas teclas que a ficha
+  // de materiais já obedecia. Excepções: num textarea o Enter é
+  // parágrafo (confirma-se com Ctrl/Cmd+Enter), e num botão de escolha
+  // múltipla o Enter é do botão, senão alternar uma opção fechava o
+  // campo.
+  const aoTeclar = (evento) => {
+    if (evento.key === "Escape") {
+      evento.stopPropagation();
+      setAEditar(false);
+      return;
+    }
+    if (evento.key !== "Enter" || aGravar) return;
+    const alvo = evento.target.tagName;
+    if (alvo === "BUTTON") return;
+    if (alvo === "TEXTAREA" && !(evento.ctrlKey || evento.metaKey)) return;
+    evento.preventDefault();
+    confirmar();
+  };
+
   return (
     <div style={{ marginBottom: "10px" }}>
       <p
@@ -87,7 +115,11 @@ function Campo({ submissao, campo, valor, editavel, onGuardar }) {
       </p>
 
       {aEditar ? (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+        <div
+          ref={caixa}
+          onKeyDown={aoTeclar}
+          style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}
+        >
           <div style={{ flex: 1, minWidth: 0 }}>
             <CampoEdicao campo={campo} valor={rascunho} onChange={setRascunho} />
           </div>

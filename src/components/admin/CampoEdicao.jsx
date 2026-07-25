@@ -11,20 +11,11 @@ import SeletorPaleta from "./SeletorPaleta";
 // ============================================================
 
 export default function CampoEdicao({ campo, valor, onChange }) {
-  const label = (
-    <label
-      style={{
-        fontSize: "11px",
-        color: "var(--gray-mid)",
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        display: "block",
-        marginBottom: "4px",
-      }}
-    >
-      {campo.label}
-    </label>
-  );
+  // Sem etiqueta própria: quem chama (o Campo, na Visão geral) já
+  // escreveu a etiqueta por cima do valor e mantém-na no lugar ao
+  // passar para edição — é isso que faz o campo corrigir-se SEM a
+  // linha saltar. Uma etiqueta aqui aparecia a seguir à outra.
+  const label = null;
 
   const inputStyle = {
     width: "100%",

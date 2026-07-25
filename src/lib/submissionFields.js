@@ -105,9 +105,29 @@ export function seccoesDoModelo(tipo) {
 // Formata um valor para leitura (arrays viram lista separada por
 // vírgulas; objectos — hoje só a morada — viram a morada composta
 // numa linha).
+// "2026-09-12" → "12/09/2026". O valor de um campo `date` chega em ISO
+// e é assim que era mostrado — no ecrã e na folha impressa, que é onde
+// mais custa. timeZone UTC porque uma data sem hora interpretada no
+// fuso local salta um dia para trás a ocidente de Greenwich, que é
+// precisamente onde isto corre.
+export const formatarDataISO = (v) => {
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const d = new Date(`${v}T00:00:00Z`);
+  return Number.isNaN(d.getTime())
+    ? v
+    : d.toLocaleDateString("pt-PT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+};
+
 export function formatarValor(v) {
   if (Array.isArray(v)) return v.join(", ");
   if (v && typeof v === "object") return formatarMorada(v);
+  const data = formatarDataISO(v);
+  if (data !== v) return data;
   // Uma morada guardada como TEXTO JSON, e não como objecto — acontece
   // em submissões antigas e importadas. É a mesma morada, só mal
   // arrumada: mais vale compô-la do que despejar as chavetas no ecrã.
@@ -393,6 +413,30 @@ export function getResumoSubmissao(submissao, eventTypes) {
     .map((n) => (typeof n === "string" ? n.trim() : ""))
     .filter((n) => n !== "");
   let titulo = nomesFixos.join(" & ");
+
+  // 1.2) O CASAL, vindo do MODELO. As colunas acima só se preenchem em
+  // submissões antigas ou editadas à mão: o formulário de hoje escreve
+  // `nomeDoNoivo`/`nomeDaNoiva` no respostas, ids do modelo que não
+  // estão no FIELD_MAP (lá chamam-se nomeNoivo/nomeNoiva). Sem esta
+  // camada o casal nunca era lido, o `nomeDoCliente` da captação
+  // ganhava para sempre, e um casamento de duas pessoas ficava com o
+  // nome de quem fez o pedido — em toda a app, e já depois de o
+  // formulário estar preenchido.
+  //
+  // Exige "nome" E "noiv" na chave: apanha nomeDoNoivo/nomeDaNoiva e
+  // os canónicos nomeNoivo/nomeNoiva, e deixa de fora
+  // relacaoComOsNoivos, mesaDosNoivos e descricaoPretendidaParaAMesaDos-
+  // Noivos, que falam dos noivos sem serem o nome deles.
+  if (!titulo && campos.length) {
+    const doCasal = campos
+      .filter((f) => {
+        const chave = chaveDoCampo(f);
+        return chave.includes("nome") && chave.includes("noiv");
+      })
+      .map((f) => valorTexto(respostas, f.id))
+      .filter((s) => s !== "");
+    if (doCasal.length > 0) titulo = doCasal.join(" & ");
+  }
 
   // 1.5) chaves CANÓNICAS da captação/reserva (migração 011: a
   // prioridade é nomeNoivo & nomeNoiva → nomeDoCliente → ... →

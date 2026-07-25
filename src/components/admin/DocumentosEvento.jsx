@@ -23,6 +23,12 @@ const TIPOS = {
   contrato: { nome: "Contrato", icone: "contrato", ultimo: "assinado" },
 };
 
+// O passo por fazer diz o VERBO ("assinar"), o já feito diz o estado
+// ("assinado"). Cortar o "o" final e colar "ar" dava "assinadar" — o
+// português não se conjuga por aritmética de sufixos, por isso o par
+// vem escrito.
+const POR_FAZER = { assinado: "assinar", aceite: "aceitar" };
+
 // Que documento é o próximo gesto, a partir da fase do funil — o mesmo
 // eixo que a Jornada mostra, para as duas peças nunca discordarem.
 const DOC_DA_FASE = {
@@ -431,7 +437,11 @@ export default function DocumentosEvento({
                   onClick={doc ? () => alternarPasso(doc, "enviado") : undefined}
                 />
                 <Passo
-                  rotulo={doc?.assinado_em ? cfg.ultimo : cfg.ultimo.replace(/o$/, "ar")}
+                  rotulo={
+                    doc?.assinado_em
+                      ? cfg.ultimo
+                      : POR_FAZER[cfg.ultimo] || cfg.ultimo
+                  }
                   data={doc?.assinado_em ? dataCurta(doc.assinado_em) : null}
                   feito={!!doc?.assinado_em}
                   onClick={
