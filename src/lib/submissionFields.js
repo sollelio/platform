@@ -84,6 +84,56 @@ export function normalizeSubmission(s) {
 }
 
 // ============================================================
+// As secções do briefing — os campos do modelo agrupados pelo passo a
+// que pertencem, e o filtro do que está mesmo preenchido.
+//
+// Vivem aqui, e não no componente, porque a fonte é a mesma nos três
+// sítios que a leem: o drawer, o separador Visão geral da página e a
+// folha impressa. Uma "visão geral" desenhada à parte seria uma
+// segunda leitura dos mesmos dados, e duas leituras divergem sempre.
+// ============================================================
+
+// Junta os campos de um modelo, agrupados pelo título do passo.
+export function seccoesDoModelo(tipo) {
+  if (!tipo || !tipo.steps) return [];
+  return tipo.steps.map((step) => ({
+    titulo: step.title || "Detalhes",
+    campos: step.fields || [],
+  }));
+}
+
+// Formata um valor para leitura (arrays viram lista separada por
+// vírgulas; objectos — hoje só a morada — viram a morada composta
+// numa linha).
+export function formatarValor(v) {
+  if (Array.isArray(v)) return v.join(", ");
+  if (v && typeof v === "object") return formatarMorada(v);
+  return v;
+}
+
+const semValor = (v) =>
+  v === undefined ||
+  v === null ||
+  v === "" ||
+  (Array.isArray(v) && v.length === 0);
+
+// As secções que têm mesmo alguma coisa para mostrar, já com os
+// valores resolvidos — para quem desenha não repetir o filtro.
+export function seccoesPreenchidas(submissao, seccoes) {
+  return (seccoes || [])
+    .map((sec) => ({
+      titulo: sec.titulo,
+      campos: sec.campos
+        .map((campo) => ({
+          campo,
+          valor: formatarValor(getValorAtual(submissao, campo.id)),
+        }))
+        .filter(({ valor }) => !semValor(valor)),
+    }))
+    .filter((sec) => sec.campos.length > 0);
+}
+
+// ============================================================
 // getResumoSubmissao — título, data, LOCAL e MORADA de QUALQUER
 // submissão, independentemente do modelo de evento.
 //

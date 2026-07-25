@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { createInvite, getEventTypes } from "../lib/invites";
 import { validateField } from "../lib/validation";
@@ -224,11 +224,16 @@ function getCamposActivosInfo(eventTypes, newInvite) {
 }
 
 export default function AdminPage() {
+  const location = useLocation();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  // A app abre no Início — o assistente do dia (bloco 12b)
-  const [activeTab, setActiveTab] = useState("inicio");
+  // A app abre no Início — o assistente do dia (bloco 12b) — excepto
+  // ao voltar de /evento/:id, que diz por onde se entrou (o separador
+  // não vive no URL, por isso viaja no state da navegação).
+  const [activeTab, setActiveTab] = useState(
+    () => location.state?.tab || "inicio",
+  );
   const [invites, setInvites] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [showNewInvite, setShowNewInvite] = useState(false);

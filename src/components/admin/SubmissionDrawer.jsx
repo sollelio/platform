@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import {
   getValorAtual,
   getResumoSubmissao,
+  seccoesDoModelo,
   FIELD_MAP_INVERSO,
 } from "../../lib/submissionFields";
 import { iniciarTour, tourJaVista } from "../../lib/tour";
-import { formatarMorada } from "../../lib/morada";
 import {
   getTipoEventoLivre,
   precisaClassificacao,
@@ -15,12 +16,13 @@ import {
   associarModeloAoEvento,
   criarModeloEAssociar,
 } from "../../lib/tipoEvento";
-import SeletorPaleta, { AmostraPaleta } from "./SeletorPaleta";
+import SeletorPaleta from "./SeletorPaleta";
 import MensagensSheet from "./MensagensSheet";
 import { linkWhatsApp } from "../../lib/mensagens";
 import { Icone } from "./Navegacao";
 import PagamentosEvento from "./PagamentosEvento";
 import Jornada from "./Jornada";
+import VisaoGeralEvento from "./VisaoGeralEvento";
 import { getPagamentosEvento } from "../../lib/pagamentos";
 
 // ============================================================
@@ -75,23 +77,6 @@ const formatData = (d) => {
 // gente.
 const FIELD_MAP_EDICAO = { ...FIELD_MAP_INVERSO, dataEvento: "data_evento" };
 
-// Junta os campos de um modelo, agrupados pelo título do passo.
-function seccoesDoModelo(tipo) {
-  if (!tipo || !tipo.steps) return [];
-  return tipo.steps.map((step) => ({
-    titulo: step.title || "Detalhes",
-    campos: step.fields || [],
-  }));
-}
-
-// Formata um valor para leitura (arrays viram lista separada por vírgulas;
-// objectos — hoje só a morada — viram a morada composta numa linha).
-function formatarValor(v) {
-  if (Array.isArray(v)) return v.join(", ");
-  if (v && typeof v === "object") return formatarMorada(v);
-  return v;
-}
-
 export default function SubmissionDrawer({
   selected,
   eventTypes,
@@ -110,6 +95,7 @@ export default function SubmissionDrawer({
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
+  const navigate = useNavigate();
 
   // Guia interativo — a dica visual (sublinhado + hover) sozinha não
   // estava a ser óbvia o suficiente; isto aponta mesmo para o campo, uma
@@ -443,6 +429,30 @@ export default function SubmissionDrawer({
               />
             )}
 
+            {/* A saída: o drawer responde a perguntas, a página faz
+                trabalho — daqui vai-se para onde o trabalho se faz. */}
+            <button
+              onClick={() => navigate(`/evento/${selected.id}`)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "11px",
+                marginBottom: "14px",
+                borderRadius: "12px",
+                border: "1.5px solid var(--gold)",
+                backgroundColor: "white",
+                color: "var(--gold)",
+                fontSize: "13px",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
+            >
+              Abrir evento →
+            </button>
+
             {/* Ações do evento: briefing em largura total (destaque) +
                 grelha 2×2 de formulário e documentos (outline) */}
             <div
@@ -562,101 +572,11 @@ export default function SubmissionDrawer({
               do Início, por isso tem de continuar certa. */}
           <PagamentosEvento submissao={selected} onSaved={onSaved} />
 
-          {/* MODO LEITURA — secções geradas do modelo, só campos preenchidos */}
+          {/* MODO LEITURA — secções geradas do modelo, só campos
+              preenchidos. O mesmo componente serve o separador Visão
+              geral da página, lá em mosaico. */}
           {!editMode && (
-            <>
-              {seccoes.map((sec) => {
-                // filtra campos com valor
-                const camposComValor = sec.campos
-                  .map((campo) => ({
-                    campo,
-                    valor: formatarValor(getValorAtual(selected, campo.id)),
-                  }))
-                  .filter(
-                    ({ valor }) =>
-                      valor !== undefined &&
-                      valor !== null &&
-                      valor !== "" &&
-                      !(Array.isArray(valor) && valor.length === 0),
-                  );
-
-                if (camposComValor.length === 0) return null;
-
-                return (
-                  <div key={sec.titulo} style={{ marginBottom: "24px" }}>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        color: "var(--gold)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        borderBottom: "1px solid var(--gold-light)",
-                        paddingBottom: "6px",
-                        margin: "0 0 12px 0",
-                      }}
-                    >
-                      {sec.titulo}
-                    </p>
-                    {camposComValor.map(({ campo, valor }) => (
-                      <div key={campo.id} style={{ marginBottom: "10px" }}>
-                        <p
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--gray-mid)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            margin: "0 0 2px 0",
-                          }}
-                        >
-                          {campo.label}
-                        </p>
-                        {campo.type === "paleta" ? (
-                          <AmostraPaleta
-                            value={getValorAtual(selected, campo.id)}
-                          />
-                        ) : (
-                          <p
-                            style={{
-                              fontSize: "14px",
-                              color: "var(--charcoal)",
-                              margin: 0,
-                            }}
-                          >
-                            {valor}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-
-              {/* Se o modelo não tem secções com dados nenhuns */}
-              {seccoes.every((sec) =>
-                sec.campos.every((campo) => {
-                  const v = getValorAtual(selected, campo.id);
-                  return (
-                    v === undefined ||
-                    v === null ||
-                    v === "" ||
-                    (Array.isArray(v) && v.length === 0)
-                  );
-                }),
-              ) && (
-                <p
-                  style={{
-                    fontSize: "13px",
-                    color: "var(--gray-mid)",
-                    fontStyle: "italic",
-                    textAlign: "center",
-                    padding: "20px",
-                  }}
-                >
-                  Este evento ainda não tem detalhes preenchidos.
-                </p>
-              )}
-            </>
+            <VisaoGeralEvento submissao={selected} seccoes={seccoes} />
           )}
 
           {/* MODO EDIÇÃO — todos os campos do modelo, gravados no respostas */}

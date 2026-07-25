@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BriefingPage from "./pages/BriefingPage";
+import EventoPage from "./pages/EventoPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
@@ -45,6 +46,16 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* A casa própria do evento. A aba vai no URL para cada área
+            ter link directo e posição de scroll própria. */}
+        <Route
+          path="/evento/:id/:aba?"
+          element={
+            <ProtectedRoute>
+              <EventoPage />
             </ProtectedRoute>
           }
         />

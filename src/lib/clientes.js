@@ -410,10 +410,10 @@ export const updateFase = async (submissionId, fase) => {
 };
 
 // Estados operacionais (Em Preparação/Confirmado/Concluído) só fazem
-// sentido DEPOIS do sinal — a Jornada da ficha do evento já assume
-// isso (SubmissionDrawer.jsx: só chega a "Preparação"/"Grande dia"
-// depois do sinal), mas nada impedia a coluna `status` de os ter antes
-// disso. "Recebido" é o estado neutro de partida e continua livre em
+// sentido DEPOIS do sinal — a Jornada já assume isso (Jornada.jsx: os
+// passos "Preparação"/"Grande dia" só ficam clicáveis depois do
+// sinal), mas nada impedia a coluna `status` de os ter antes disso.
+// "Recebido" é o estado neutro de partida e continua livre em
 // qualquer fase.
 //
 // FASES_POS_SINAL espelha components/admin/faseConfig.js — lib/ não
