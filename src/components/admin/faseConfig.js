@@ -68,3 +68,31 @@ export const AVANCO_LABEL = {
   cliente: "Projecto",
   projecto: "Contrato",
 };
+
+// ============================================================
+// O ESTADO do evento — o OUTRO eixo, operacional, que corre em
+// paralelo à fase comercial acima. A fase responde a "em que ponto
+// está o negócio"; o estado responde a "em que ponto está o trabalho".
+//
+// Ficam os dois no mesmo ficheiro de propósito: são duas taxonomias a
+// coexistir, e quem mexer numa tem de ver a outra. A Jornada mostra a
+// fase e edita o estado (nos passos Preparação e O grande dia).
+//
+// Só se pode pôr um estado pós-sinal num evento cuja fase já é
+// pós-sinal — a regra vive em updateStatus (lib/clientes.js), aqui só
+// o vocabulário. Antes disto, estas duas constantes estavam copiadas
+// à letra em SubmissionDrawer, DocumentosLista e DashboardTab.
+// ============================================================
+export const STATUS_OPTIONS = [
+  "Recebido",
+  "Em Preparação",
+  "Confirmado",
+  "Concluído",
+];
+
+export const STATUS_COLORS = {
+  Recebido: { bg: "#FEF9EC", color: "#C9A84C", border: "#E8D5A3" },
+  "Em Preparação": { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
+  Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
+  Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
+};

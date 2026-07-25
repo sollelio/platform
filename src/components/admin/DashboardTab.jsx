@@ -1,17 +1,12 @@
 import { getResumoSubmissao, getValorAtual } from "../../lib/submissionFields";
-import { FASES_POS_SINAL } from "./faseConfig";
+import {
+  FASES_POS_SINAL,
+  STATUS_OPTIONS,
+  STATUS_COLORS,
+} from "./faseConfig";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
-
-const STATUS_OPTIONS = ["Recebido", "Em Preparação", "Confirmado", "Concluído"];
-
-const STATUS_COLORS = {
-  Recebido: { bg: "#FEF9EC", color: "#C9A84C", border: "#E8D5A3" },
-  "Em Preparação": { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
-  Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
-  Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
-};
 
 const GOLD_SHADES = ["#C9A84C", "#A07830", "#E8D5A3", "#7A5C20", "#F5ECD7"];
 

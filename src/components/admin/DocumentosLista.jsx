@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { listarDocumentos } from "../../lib/documentos";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { Icone } from "./Navegacao";
+import { STATUS_COLORS } from "./faseConfig";
 
 // ============================================================
 // DocumentosLista — a entrada principal da secção Documentos.
@@ -34,13 +35,6 @@ const TIPO_DOC = {
   contrato: { label: "Contrato", icone: "contrato" },
   // chave interna 'proposta'; na UI é "Projecto"
   proposta: { label: "Projecto", icone: "proposta" },
-};
-
-const STATUS_COLORS = {
-  Recebido: { bg: "#FEF9EC", color: "#C9A84C", border: "#E8D5A3" },
-  "Em Preparação": { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
-  Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
-  Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
 };
 
 const DIA_MS = 24 * 60 * 60 * 1000;

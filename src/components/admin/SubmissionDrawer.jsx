@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase";
-import { getValorAtual, getResumoSubmissao } from "../../lib/submissionFields";
+import {
+  getValorAtual,
+  getResumoSubmissao,
+  FIELD_MAP_INVERSO,
+} from "../../lib/submissionFields";
 import { iniciarTour, tourJaVista } from "../../lib/tour";
 import { formatarMorada } from "../../lib/morada";
 import {
@@ -11,13 +15,13 @@ import {
   associarModeloAoEvento,
   criarModeloEAssociar,
 } from "../../lib/tipoEvento";
-import { FASES_POS_SINAL } from "./faseConfig";
-import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import SeletorPaleta, { AmostraPaleta } from "./SeletorPaleta";
 import MensagensSheet from "./MensagensSheet";
 import { linkWhatsApp } from "../../lib/mensagens";
 import { Icone } from "./Navegacao";
 import PagamentosEvento from "./PagamentosEvento";
+import Jornada from "./Jornada";
+import { getPagamentosEvento } from "../../lib/pagamentos";
 
 // ============================================================
 // SubmissionDrawer — painel lateral de detalhes de um evento.
@@ -59,64 +63,17 @@ const formatData = (d) => {
   });
 };
 
-const STATUS_OPTIONS = ["Recebido", "Em Preparação", "Confirmado", "Concluído"];
-
-const STATUS_COLORS = {
-  Recebido: { bg: "#FEF9EC", color: "#C9A84C", border: "#E8D5A3" },
-  "Em Preparação": { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
-  Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
-  Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
-};
-
-// Mapa campo (camelCase) -> coluna antiga (snake_case). Igual ao de
-// submissionFields.js, para sabermos que campos têm coluna equivalente
-// e gravar também lá (mantém Casamento/briefings a funcionar).
-const FIELD_MAP_INVERSO = {
-  nomeNoivo: "nome_noivo",
-  nomeNoiva: "nome_noiva",
-  contactoPrincipal: "contacto_principal",
-  email: "email",
-  morada: "morada",
-  localEvento: "local_evento",
-  numeroConvidados: "numero_convidados",
-  horaInicio: "hora_inicio",
-  horaTermino: "hora_termino",
-  horaMontagem: "hora_montagem",
-  horaLimiteMontagem: "hora_limite_montagem",
-  horaRecolha: "hora_recolha",
-  recolhaDiaSeguinte: "recolha_dia_seguinte",
-  nomeResponsavel: "nome_responsavel",
-  contactoResponsavel: "contacto_responsavel",
-  relacaoResponsavel: "relacao_responsavel",
-  estiloEvento: "estilo_evento",
-  estiloOutro: "estilo_outro",
-  paletaCores: "paleta_cores",
-  paletaObservacoes: "paleta_observacoes",
-  mesaNoivos: "mesa_noivos",
-  cartoesPratos: "cartoes_pratos",
-  observacoesCartoes: "observacoes_cartoes",
-  descricaoMesaNoivos: "descricao_mesa_noivos",
-  cenarioPalco: "cenario_palco",
-  descricaoCenario: "descricao_cenario",
-  medidasEspaco: "medidas_espaco",
-  centrosMesa: "centros_mesa",
-  tipoFlores: "tipo_flores",
-  numeroMesas: "numero_mesas",
-  formatoMesas: "formato_mesas",
-  lugaresporMesa: "lugares_por_mesa",
-  observacoesMesas: "observacoes_mesas",
-  textoPrincipalPlaca: "texto_principal_placa",
-  textoSecundarioPlaca: "texto_secundario_placa",
-  estiloPlaca: "estilo_placa",
-  notasPlaca: "notas_placa",
-  moradaExacta: "morada_exacta",
-  pessoaAbreEspaco: "pessoa_abre_espaco",
-  contactoPessoaAbre: "contacto_pessoa_abre",
-  acessoLocal: "acesso_local",
-  notasAcesso: "notas_acesso",
-  observacoesGerais: "observacoes_gerais",
-  dataEvento: "data_evento",
-};
+// Mapa campo (camelCase) -> coluna antiga (snake_case), para sabermos
+// que campos têm coluna equivalente e gravar também lá (mantém
+// Casamento/briefings a funcionar).
+//
+// É o mapa partilhado de submissionFields.js MAIS uma entrada que só a
+// edição precisa: um modelo pode ter um campo com id "dataEvento" sem
+// o papel "data", e nesse caso a coluna data_evento tem de ser escrita
+// à mesma. Fora daqui, dataEvento não é um campo legado — por isso não
+// entra no FIELD_MAP global, onde mudaria o getValorAtual de toda a
+// gente.
+const FIELD_MAP_EDICAO = { ...FIELD_MAP_INVERSO, dataEvento: "data_evento" };
 
 // Junta os campos de um modelo, agrupados pelo título do passo.
 function seccoesDoModelo(tipo) {
@@ -152,6 +109,7 @@ export default function SubmissionDrawer({
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
 
   // Guia interativo — a dica visual (sublinhado + hover) sozinha não
   // estava a ser óbvia o suficiente; isto aponta mesmo para o campo, uma
@@ -176,7 +134,30 @@ export default function SubmissionDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
+  // O plano (pagamentos_previstos) e o que já entrou — só para a
+  // Jornada poder dizer a verdade no passo "Sinal": previsto menos
+  // recebido, em vez de metade do valor acordado. Guarda o id junto
+  // dos dados para se saber de quem eles são; se falhar, fica sem
+  // plano e a Jornada cai na estimativa de sempre — nunca vale a pena
+  // estragar o drawer por causa disto.
+  useEffect(() => {
+    const id = selected?.id;
+    if (!id) return;
+    let cancelado = false;
+    getPagamentosEvento(id)
+      .then((dados) => !cancelado && setPagamentosDoEvento({ id, ...dados }))
+      .catch(() => !cancelado && setPagamentosDoEvento({ id }));
+    return () => {
+      cancelado = true;
+    };
+  }, [selected?.id]);
+
   if (!selected) return <AnimatePresence />;
+
+  // Ao saltar de um evento para outro o pedido novo ainda vem a
+  // caminho — os números do anterior não valem para este.
+  const planoDoEvento =
+    pagamentosDoEvento?.id === selected.id ? pagamentosDoEvento : null;
 
   const tipo = eventTypes?.find((et) => et.id === selected.event_type_id);
   const seccoes = seccoesDoModelo(tipo);
@@ -250,7 +231,7 @@ export default function SubmissionDrawer({
   };
 
   // Guarda: escreve no respostas (todos os campos) e também nas colunas
-  // antigas que existirem (via FIELD_MAP_INVERSO).
+  // antigas que existirem (via FIELD_MAP_EDICAO).
   const guardar = async () => {
     setSaving(true);
 
@@ -263,7 +244,7 @@ export default function SubmissionDrawer({
     // 2) montar o update: respostas + colunas antigas equivalentes
     const update = { respostas: novoRespostas };
     for (const [campoId, valor] of Object.entries(editData)) {
-      const coluna = FIELD_MAP_INVERSO[campoId];
+      const coluna = FIELD_MAP_EDICAO[campoId];
       if (coluna) update[coluna] = valor;
     }
 
@@ -425,12 +406,15 @@ export default function SubmissionDrawer({
 
             {/* ===== A JORNADA — a linha de vida do evento =====
                 Também é aqui que o estado (Recebido/Em Preparação/
-                Confirmado/Concluído) se edita agora — nos passos
-                "Preparação" e "Grande dia", em vez de num bloco à
-                parte sem ligação visual. Ver Jornada() mais abaixo. */}
+                Confirmado/Concluído) se edita — nos passos "Preparação"
+                e "Grande dia", em vez de num bloco à parte sem ligação
+                visual. Vive em Jornada.jsx desde que passou a aparecer
+                também no cabeçalho da página do evento. */}
             <Jornada
               submissao={selected}
               invites={invites}
+              previstos={planoDoEvento?.previstos}
+              pagamentos={planoDoEvento?.pagamentos}
               onStatusChange={onStatusChange}
               onEtapa={(id) => {
                 if (id === "orcamento")
@@ -1252,367 +1236,6 @@ function CampoEdicao({ campo, valor, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         style={inputStyle}
       />
-    </div>
-  );
-}
-
-// ============================================================
-// A JORNADA — a linha de vida do evento, do primeiro "olá" ao
-// grande dia. Oito etapas derivadas da fase comercial, do estado
-// operacional e dos formulários — zero queries novas.
-// Três estados: feito (dourado, ✓) · atual (anel dourado) ·
-// futuro (cinza). O Formulário é independente da ordem (acende
-// quando o cliente responde, seja quando for): ✓ preenchido,
-// ◐ criado por preencher, ○ nem criado.
-// ============================================================
-const FASE_ORDEM_JORNADA = [
-  "interessado",
-  "orcamento",
-  "sinal",
-  "cliente",
-  "projecto",
-  "contrato",
-];
-
-function Jornada({ submissao, invites = [], onEtapa, onStatusChange }) {
-  // O estado (Recebido/Em Preparação/Confirmado/Concluído) edita-se
-  // aqui dentro agora — nos passos "Preparação" e "Grande dia" — em
-  // vez de num bloco à parte sem ligação visual à Jornada. Hook antes
-  // de qualquer return condicional (fase "perdido" também usa isto).
-  const [popoverEtapa, setPopoverEtapa] = useState(null);
-
-  const s = submissao;
-  if (!s) return null;
-
-  // Percurso terminado — sem jornada, só a lápide discreta
-  if (s.fase === "perdido") {
-    return (
-      <div
-        style={{
-          backgroundColor: "#F9FAFB",
-          border: "1px solid #E5E7EB",
-          borderRadius: "12px",
-          padding: "10px 14px",
-          marginBottom: "14px",
-          fontSize: "12px",
-          color: "var(--gray-mid)",
-        }}
-      >
-        Percurso terminado (perdido) — pode ser recuperado no funil.
-      </div>
-    );
-  }
-
-  const idxFase = FASE_ORDEM_JORNADA.indexOf(s.fase);
-  const posSinal = FASES_POS_SINAL.includes(s.fase);
-  const valor = Number(s.valor_acordado) || 0;
-  const concluido = s.status === "Concluído";
-  const emPreparacao =
-    ["Em Preparação", "Confirmado"].includes(s.status) || concluido;
-
-  // Formulário: ✓ preenchido · ◐ criado por preencher · ○ nem criado
-  const invitesDoEvento = (invites || []).filter(
-    (i) => i.submission_id === s.id || i.submission_alvo_id === s.id,
-  );
-  const formularioFeito = invitesDoEvento.some((i) => i.submission_id);
-  const formularioAMeio = !formularioFeito && invitesDoEvento.length > 0;
-
-  const dataCurta = (d) =>
-    d
-      ? new Date(d).toLocaleDateString("pt-PT", {
-          day: "numeric",
-          month: "short",
-        })
-      : null;
-
-  const etapas = [
-    {
-      id: "interessado",
-      rotulo: "Interessada",
-      feito: true,
-      sub: dataCurta(s.created_at),
-    },
-    {
-      id: "orcamento",
-      rotulo: "Orçamento",
-      feito: idxFase >= 1,
-      sub: valor > 0 ? formatarEuros(valor) : null,
-      clicavel: true,
-    },
-    {
-      id: "sinal",
-      rotulo: "Sinal",
-      feito: posSinal,
-      sub:
-        !posSinal && s.fase === "sinal" && valor > 0
-          ? `${formatarEuros(valor / 2)} por receber`
-          : posSinal && valor > 0
-            ? formatarEuros(valor / 2)
-            : null,
-    },
-    {
-      id: "formulario",
-      rotulo: "Formulário",
-      feito: formularioFeito,
-      aMeio: formularioAMeio,
-      // Submetido (✓) = morto; pendente (◐) preenche; ausente (○) cria
-      clicavel: !formularioFeito,
-    },
-    {
-      id: "projecto",
-      rotulo: "Projecto",
-      feito: idxFase >= 4,
-      clicavel: true,
-    },
-    {
-      id: "contrato",
-      rotulo: "Contrato",
-      feito: idxFase >= 5,
-      clicavel: true,
-    },
-    {
-      id: "preparacao",
-      rotulo: "Preparação",
-      feito: emPreparacao,
-      // Só se edita depois do sinal (ver updateStatus em
-      // lib/clientes.js — o mesmo limite, aqui como afordância).
-      clicavel: posSinal,
-      tituloBloqueado: "Só depois do sinal recebido",
-    },
-    {
-      id: "grandeDia",
-      rotulo: "O grande dia",
-      feito: concluido,
-      emoji: "🥂",
-      sub: dataCurta(s.data_evento),
-      clicavel: posSinal,
-      tituloBloqueado: "Só depois do sinal recebido",
-    },
-  ];
-
-  // Preparação/Grande dia abrem o escolhedor de estado ali mesmo; os
-  // restantes continuam a delegar no onEtapa do pai (gerar documento,
-  // preencher formulário).
-  const aoClicarEtapa = (id) => {
-    if (id === "preparacao" || id === "grandeDia") {
-      setPopoverEtapa((atual) => (atual === id ? null : id));
-    } else if (onEtapa) {
-      onEtapa(id);
-    }
-  };
-
-  // A etapa ATUAL: a primeira por fazer na cadeia (o Formulário fica
-  // de fora — é independente da ordem)
-  const atual = etapas.find((e) => e.id !== "formulario" && !e.feito);
-
-  // A frase "→ A seguir" — a app a apontar o próximo gesto
-  const proximoGesto = (() => {
-    if (!atual) return null;
-    if (atual.id === "orcamento") return "enviar o orçamento";
-    if (atual.id === "sinal")
-      return valor > 0
-        ? `registar o sinal (${formatarEuros(valor / 2)})`
-        : "registar o sinal";
-    if (atual.id === "projecto") return "criar o projecto";
-    if (atual.id === "contrato") return "preparar o contrato";
-    if (atual.id === "preparacao") return "preparar o evento (Logística)";
-    if (atual.id === "grandeDia") return "está tudo pronto — falta o grande dia 🥂";
-    return null;
-  })();
-
-  return (
-    <div
-      style={{
-        backgroundColor: "#FBF7EF",
-        border: "1px solid var(--gold-light)",
-        borderRadius: "12px",
-        padding: "14px 10px 10px",
-        marginBottom: "14px",
-      }}
-    >
-      <p
-        style={{
-          fontSize: "9px",
-          fontWeight: "700",
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "var(--gold-dark)",
-          margin: "0 4px 12px",
-        }}
-      >
-        A Jornada
-      </p>
-      <div style={{ display: "flex", alignItems: "flex-start" }}>
-        {etapas.map((e, i) => {
-          const ehAtual = atual && atual.id === e.id;
-          const corBola = e.feito
-            ? "var(--gold)"
-            : e.aMeio
-              ? "#EAD9AC"
-              : "#F1EBDD";
-          return (
-            <div
-              key={e.id}
-              onClick={e.clicavel ? () => aoClicarEtapa(e.id) : undefined}
-              title={e.clicavel ? "Abrir" : e.tituloBloqueado}
-              style={{
-                flex: 1,
-                textAlign: "center",
-                position: "relative",
-                cursor: e.clicavel ? "pointer" : "default",
-                minWidth: 0,
-              }}
-            >
-              {i < etapas.length - 1 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "10px",
-                    left: "50%",
-                    right: "-50%",
-                    height: "2px",
-                    backgroundColor: e.feito ? "var(--gold)" : "#E5DCC3",
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  position: "relative",
-                  width: ehAtual ? "24px" : "21px",
-                  height: ehAtual ? "24px" : "21px",
-                  borderRadius: "50%",
-                  backgroundColor: ehAtual ? "white" : corBola,
-                  border: ehAtual ? "2.5px solid var(--gold)" : "none",
-                  boxShadow: ehAtual
-                    ? "0 0 0 4px rgba(201,168,76,0.22)"
-                    : "none",
-                  margin: `${ehAtual ? "-1px" : "0"} auto 5px`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: e.emoji ? "11px" : "10px",
-                  color: e.feito ? "white" : "var(--gray-mid)",
-                  fontWeight: "700",
-                }}
-              >
-                {e.emoji ? e.emoji : e.feito ? "✓" : ehAtual ? "●" : "○"}
-              </div>
-              <p
-                style={{
-                  fontSize: "8.5px",
-                  fontWeight: e.feito || ehAtual ? "600" : "400",
-                  color: ehAtual
-                    ? "var(--gold-dark)"
-                    : e.feito
-                      ? "var(--charcoal)"
-                      : "var(--gray-mid)",
-                  margin: "0 2px",
-                  lineHeight: 1.25,
-                  overflowWrap: "break-word",
-                }}
-              >
-                {e.rotulo}
-              </p>
-              {e.sub && (
-                <p
-                  style={{
-                    fontSize: "8.5px",
-                    color: ehAtual ? "#B45309" : "var(--gray-mid)",
-                    fontWeight: ehAtual ? "600" : "400",
-                    margin: 0,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {e.sub}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {popoverEtapa && (
-        <div
-          style={{
-            marginTop: "10px",
-            backgroundColor: "white",
-            border: "1px solid var(--gold-light)",
-            borderRadius: "10px",
-            padding: "10px 12px",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "10px",
-              fontWeight: "700",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              color: "var(--gold-dark)",
-              margin: "0 0 8px",
-            }}
-          >
-            Estado do evento
-          </p>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {STATUS_OPTIONS.map((status) => {
-              const colors = STATUS_COLORS[status];
-              const isActive = s.status === status;
-              return (
-                <button
-                  key={status}
-                  onClick={() => {
-                    onStatusChange && onStatusChange(s.id, status, s.fase);
-                    setPopoverEtapa(null);
-                  }}
-                  style={{
-                    padding: "5px 12px",
-                    borderRadius: "999px",
-                    fontSize: "11.5px",
-                    fontWeight: "600",
-                    border: `1px solid ${colors.border}`,
-                    backgroundColor: isActive ? colors.color : colors.bg,
-                    color: isActive ? "white" : colors.color,
-                    cursor: "pointer",
-                  }}
-                >
-                  {status}
-                </button>
-              );
-            })}
-          </div>
-          {popoverEtapa === "preparacao" && onEtapa && (
-            <button
-              onClick={() => {
-                onEtapa("preparacao");
-                setPopoverEtapa(null);
-              }}
-              style={{
-                marginTop: "8px",
-                fontSize: "11px",
-                border: "none",
-                background: "none",
-                color: "var(--gold-dark)",
-                cursor: "pointer",
-                padding: 0,
-                textDecoration: "underline",
-              }}
-            >
-              Abrir Logística →
-            </button>
-          )}
-        </div>
-      )}
-      {proximoGesto && (
-        <p
-          style={{
-            fontSize: "11px",
-            fontStyle: "italic",
-            color: "var(--gold-dark)",
-            margin: "10px 4px 0",
-          }}
-        >
-          → A seguir: {proximoGesto}
-        </p>
-      )}
     </div>
   );
 }
