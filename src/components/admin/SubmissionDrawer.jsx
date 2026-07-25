@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import { getValorAtual, getResumoSubmissao } from "../../lib/submissionFields";
-import { marcarPagamentoFinal } from "../../lib/clientes";
 import { iniciarTour, tourJaVista } from "../../lib/tour";
 import { formatarMorada } from "../../lib/morada";
 import {
@@ -18,6 +17,7 @@ import SeletorPaleta, { AmostraPaleta } from "./SeletorPaleta";
 import MensagensSheet from "./MensagensSheet";
 import { linkWhatsApp } from "../../lib/mensagens";
 import { Icone } from "./Navegacao";
+import PagamentosEvento from "./PagamentosEvento";
 
 // ============================================================
 // SubmissionDrawer — painel lateral de detalhes de um evento.
@@ -148,7 +148,6 @@ export default function SubmissionDrawer({
   onNavegar,
   onModeloCriado,
 }) {
-  const [aMarcarPagamento, setAMarcarPagamento] = useState(false);
   const [folhaMensagens, setFolhaMensagens] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
@@ -610,72 +609,15 @@ export default function SubmissionDrawer({
                 })}
               </div>
             </div>
-
-            {/* Pagamento — o sinal de 50% é a fase (Cliente); o resto
-                paga-se até 48H ANTES do evento. Este botão marca o
-                pagamento final e desliga o alerta do Início. */}
-            <div style={{ marginTop: "14px" }}>
-              <p
-                style={{
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: "var(--gold-dark)",
-                  margin: "0 0 8px 0",
-                }}
-              >
-                Pagamento
-              </p>
-              <button
-                onClick={async () => {
-                  setAMarcarPagamento(true);
-                  try {
-                    const atualizado = await marcarPagamentoFinal(
-                      selected.id,
-                      !selected.pagamento_final,
-                    );
-                    if (onSaved) onSaved(atualizado);
-                  } catch (e) {
-                    console.error(e);
-                    alert("Não foi possível guardar. Tenta novamente.");
-                  }
-                  setAMarcarPagamento(false);
-                }}
-                disabled={aMarcarPagamento}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "999px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  cursor: aMarcarPagamento ? "wait" : "pointer",
-                  border: selected.pagamento_final
-                    ? "1.5px solid #16A34A"
-                    : "1.5px solid var(--gold)",
-                  backgroundColor: selected.pagamento_final
-                    ? "#DCFCE7"
-                    : "white",
-                  color: selected.pagamento_final ? "#166534" : "var(--gold-dark)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {aMarcarPagamento
-                  ? "..."
-                  : selected.pagamento_final
-                    ? "✓ Pagamento final recebido"
-                    : "💶 Marcar pagamento final recebido"}
-              </button>
-              <p
-                style={{
-                  fontSize: "11px",
-                  color: "var(--gray-mid)",
-                  margin: "6px 0 0 0",
-                }}
-              >
-                Sinal de 50% na reserva · restante até 48h antes do evento.
-              </p>
-            </div>
           </div>
+
+          {/* Pagamentos — substitui o antigo botão único "Marcar pagamento
+              final recebido": agora é o painel que regista o dinheiro a
+              sério. Quando o remanescente fica completo (ou deixa de
+              estar, se um pagamento for apagado), sincroniza sozinho a
+              coluna pagamento_final — é ela que ainda alimenta o alerta
+              do Início, por isso tem de continuar certa. */}
+          <PagamentosEvento submissao={selected} onSaved={onSaved} />
 
           {/* MODO LEITURA — secções geradas do modelo, só campos preenchidos */}
           {!editMode && (

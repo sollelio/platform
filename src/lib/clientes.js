@@ -5,6 +5,7 @@ import {
   getResumoSubmissao,
   FIELD_MAP_INVERSO,
 } from "./submissionFields";
+import { gerarPrevistos } from "./pagamentos";
 
 // ============================================================
 // Clientes — a pessoa (separada do evento desde a migração 010).
@@ -76,24 +77,41 @@ export const updateCliente = async (id, dados) => {
 //   invites.submission_alvo_id    → SET NULL  (convite por preencher perde o alvo)
 //   invites.submission_id         → NO ACTION (BLOQUEIA: convite já preenchido aponta cá)
 export const getVinculosEvento = async (submissionId) => {
-  const [{ data: documentos, error: erroDocs }, { data: reservas, error: erroRes }] =
-    await Promise.all([
-      supabase.from("documentos").select("tipo").eq("submission_id", submissionId),
-      supabase
-        .from("reservas")
-        .select("id, estado")
-        .eq("submission_id", submissionId),
-    ]);
+  const [
+    { data: documentos, error: erroDocs },
+    { data: reservas, error: erroRes },
+    { data: pagamentos, error: erroPag },
+  ] = await Promise.all([
+    supabase.from("documentos").select("tipo").eq("submission_id", submissionId),
+    supabase
+      .from("reservas")
+      .select("id, estado")
+      .eq("submission_id", submissionId),
+    supabase
+      .from("pagamentos")
+      .select("id, valor, data, reconstituido")
+      .eq("submission_id", submissionId),
+  ]);
   if (erroDocs) throw erroDocs;
   if (erroRes) throw erroRes;
-  return { documentos: documentos || [], reservas: reservas || [] };
+  if (erroPag) throw erroPag;
+  return {
+    documentos: documentos || [],
+    reservas: reservas || [],
+    pagamentos: pagamentos || [],
+  };
 };
 
 // Remove um evento (submission) — para os casos criados por engano.
-// Bloqueado pela BD (FK NO ACTION) só quando já existe um convite
-// preenchido a apontar para este evento (invites.submission_id); quem
-// chama trata o erro (código 23503). Documentos e reservas NÃO
-// bloqueiam — ver getVinculosEvento para avisar antes de apagar.
+// Bloqueado pela BD (FK NO ACTION/RESTRICT) em dois casos, cada um com
+// a sua constraint nomeada (para o código distinguir qual foi, ver
+// handleConfirmarRemocaoEvento em ClientesLista.jsx):
+//   invites.submission_id      → convite já preenchido ligado ao evento
+//   pagamentos_submission_fk   → há dinheiro registado (RESTRICT
+//     deliberado — ver docs/migracoes/025_pagamentos.sql)
+// Documentos, reservas e pagamentos_previstos NÃO bloqueiam (CASCADE/
+// SET NULL) — ver getVinculosEvento para avisar do que se perde antes
+// de apagar, e do que impede a remoção (pagamentos reais).
 export const deleteEvento = async (submissionId) => {
   const { error } = await supabase
     .from("submissions")
@@ -288,6 +306,13 @@ export const submeterFormulario = async (invite, payload) => {
 // este campo que alimenta o "sinal (50%)" do funil e o {VALOR}/
 // {SINAL} das mensagens-tipo. Chamado pelo botão no gerador de
 // orçamento (quando o documento vem de um evento).
+//
+// Também gera o plano de pagamento (sinal + remanescente) sozinho —
+// gerarPrevistos é idempotente, por isso guardar o valor várias vezes
+// não duplica o plano. Uma falha aqui não deve impedir o valor de
+// ficar guardado (é a acção que a Nádia estava mesmo a fazer); o
+// painel de pagamentos sabe recuperar (botão "Gerar plano") se isto
+// falhar silenciosamente.
 export const guardarValorAcordado = async (submissionId, valor) => {
   const v = Number(valor);
   if (!submissionId || !Number.isFinite(v)) {
@@ -300,6 +325,13 @@ export const guardarValorAcordado = async (submissionId, valor) => {
     .select()
     .single();
   if (error) throw error;
+  if (v > 0) {
+    try {
+      await gerarPrevistos(submissionId, v, data.data_evento);
+    } catch (e) {
+      console.error("gerarPrevistos falhou após guardarValorAcordado:", e);
+    }
+  }
   return data;
 };
 

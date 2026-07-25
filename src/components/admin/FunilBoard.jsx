@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getEventosFunil, updateFase } from "../../lib/clientes";
+import { registarSinalDoFunil, METODOS_SUGERIDOS } from "../../lib/pagamentos";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import {
@@ -80,6 +81,7 @@ export default function FunilBoard({
   const [erro, setErro] = useState(null);
   const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
   const [confirmandoPerda, setConfirmandoPerda] = useState(null); // id do evento
+  const [confirmandoSinal, setConfirmandoSinal] = useState(null); // id do evento
   const [atualizando, setAtualizando] = useState(null); // id do evento
   const [novoInteressado, setNovoInteressado] = useState(false); // modal aberto
   const [avisoErro, setAvisoErro] = useState(null); // toast discreto (adeus alert)
@@ -125,6 +127,42 @@ export default function FunilBoard({
     }
     setAtualizando(null);
     setConfirmandoPerda(null);
+  };
+
+  // "Sinal recebido →" é a ÚNICA transição de fase que move dinheiro a
+  // sério — por isso é a única que pede método + data antes de avançar
+  // (ver FormularioSinalInline). A fase avança mesmo que o registo do
+  // pagamento falhe (são coisas decoupled: fase é funil, pagamento é
+  // dinheiro) — só avisa a Nádia para o registar à mão na ficha.
+  const confirmarSinalRecebido = async (ev, { metodo, data }) => {
+    setAtualizando(ev.id);
+    try {
+      await updateFase(ev.id, "cliente");
+      setEventos((prev) =>
+        prev.map((e) => (e.id === ev.id ? { ...e, fase: "cliente" } : e)),
+      );
+      try {
+        await registarSinalDoFunil(ev.id, ev.valor_acordado, ev.data_evento, {
+          metodo,
+          data,
+        });
+      } catch (e2) {
+        console.error("registarSinalDoFunil falhou:", e2);
+        setAvisoErro(
+          "A fase avançou, mas não foi possível registar o pagamento do sinal — regista-o na ficha do evento.",
+        );
+        setTimeout(() => setAvisoErro(null), 6000);
+      }
+      if (onDadosMudaram) onDadosMudaram();
+    } catch (e) {
+      console.error(e);
+      setAvisoErro(
+        "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
+      );
+      setTimeout(() => setAvisoErro(null), 4500);
+    }
+    setAtualizando(null);
+    setConfirmandoSinal(null);
   };
 
   const nomeTipo = (ev) => {
@@ -346,12 +384,16 @@ export default function FunilBoard({
                   tipo={nomeTipo(ev)}
                   aAtualizar={atualizando === ev.id}
                   aConfirmarPerda={confirmandoPerda === ev.id}
+                  aConfirmarSinal={confirmandoSinal === ev.id}
                   onAbrir={() => onAbrirEvento && onAbrirEvento(ev)}
                   onAvancar={() => mudarFase(ev, PROXIMA_FASE[faseDe(ev)])}
                   onPedirPerda={() => setConfirmandoPerda(ev.id)}
                   onCancelarPerda={() => setConfirmandoPerda(null)}
                   onConfirmarPerda={() => mudarFase(ev, "perdido")}
                   onRecuperar={() => mudarFase(ev, "interessado")}
+                  onPedirSinal={() => setConfirmandoSinal(ev.id)}
+                  onCancelarSinal={() => setConfirmandoSinal(null)}
+                  onConfirmarSinal={(dados) => confirmarSinalRecebido(ev, dados)}
                 />
               ))
             )}
@@ -496,6 +538,88 @@ export default function FunilBoard({
 }
 
 // ------------------------------------------------------------
+// Método + data do sinal — a única pergunta que "Sinal recebido →"
+// faz antes de avançar (é dinheiro a sério, ver registarSinalDoFunil).
+// Vive dentro do card (onClick já para de propagar por causa do wrap).
+// ------------------------------------------------------------
+function FormularioSinalInline({ valorSinal, aAtualizar, onConfirmar, onCancelar }) {
+  const [metodo, setMetodo] = useState("");
+  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const inputStyle = {
+    width: "100%",
+    padding: "6px 8px",
+    borderRadius: "6px",
+    border: "1.5px solid var(--gold-light)",
+    fontSize: "12px",
+    marginBottom: "6px",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <p style={{ fontSize: "11px", color: "var(--gray-mid)", margin: "0 0 6px 0" }}>
+        Sinal recebido — {formatarEuros(valorSinal)}
+      </p>
+      <input
+        list="metodos-pagamento-funil"
+        placeholder="Método de pagamento"
+        value={metodo}
+        onChange={(e) => setMetodo(e.target.value)}
+        style={inputStyle}
+      />
+      <datalist id="metodos-pagamento-funil">
+        {METODOS_SUGERIDOS.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+      <input
+        type="date"
+        value={data}
+        onChange={(e) => setData(e.target.value)}
+        style={{ ...inputStyle, marginBottom: "8px" }}
+      />
+      <div style={{ display: "flex", gap: "6px" }}>
+        <button
+          onClick={() => metodo && onConfirmar({ metodo, data })}
+          disabled={aAtualizar || !metodo}
+          style={{
+            flex: 1,
+            padding: "7px 8px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: "600",
+            border: "none",
+            backgroundColor: "var(--gold)",
+            color: "white",
+            cursor: aAtualizar || !metodo ? "not-allowed" : "pointer",
+          }}
+        >
+          {aAtualizar ? "..." : "Confirmar"}
+        </button>
+        <button
+          onClick={onCancelar}
+          disabled={aAtualizar}
+          style={{
+            flex: 1,
+            padding: "7px 8px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            border: "1px solid #E5E7EB",
+            backgroundColor: "white",
+            color: "var(--gray-mid)",
+            cursor: "pointer",
+          }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // Card de um evento no funil
 // ------------------------------------------------------------
 function CardEvento({
@@ -505,12 +629,16 @@ function CardEvento({
   tipo,
   aAtualizar,
   aConfirmarPerda,
+  aConfirmarSinal,
   onAbrir,
   onAvancar,
   onPedirPerda,
   onCancelarPerda,
   onConfirmarPerda,
   onRecuperar,
+  onPedirSinal,
+  onCancelarSinal,
+  onConfirmarSinal,
 }) {
   const proxima = PROXIMA_FASE[fase];
   const ehPerdido = fase === "perdido";
@@ -660,6 +788,13 @@ function CardEvento({
             </button>
           </div>
         </div>
+      ) : aConfirmarSinal ? (
+        <FormularioSinalInline
+          valorSinal={(Number(evento.valor_acordado) || 0) / 2}
+          aAtualizar={aAtualizar}
+          onConfirmar={onConfirmarSinal}
+          onCancelar={onCancelarSinal}
+        />
       ) : ehPerdido ? (
         <button
           onClick={(e) => {
@@ -687,7 +822,11 @@ function CardEvento({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAvancar();
+                if (fase === "sinal" && temValor) {
+                  onPedirSinal();
+                } else {
+                  onAvancar();
+                }
               }}
               disabled={aAtualizar}
               style={{

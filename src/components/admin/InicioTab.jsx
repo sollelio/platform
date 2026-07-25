@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getResumoSubmissao } from "../../lib/submissionFields";
+import { getPagamentosVarios, saldoSinalPendente } from "../../lib/pagamentos";
 import { FASES_POS_SINAL } from "./faseConfig";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import CaptacaoForm from "../captacao/CaptacaoForm";
@@ -90,6 +91,33 @@ export default function InicioTab({
   const titulo = (s) => getResumoSubmissao(s, eventTypes).titulo;
   const vivos = submissions.filter((s) => s.fase !== "perdido");
 
+  // O sinal "à porta" lê o PLANO real (pagamentos_previstos menos
+  // pagamentos), nunca uma divisão por dois — assim reflecte sinais
+  // pagos parcialmente antes de a fase avançar no Funil. Chave estável
+  // (ids ordenados) para o efeito não refazer o pedido em todos os
+  // renders só porque o array de eventos mudou de referência.
+  const idsEmSinal = vivos
+    .filter((s) => s.fase === "sinal")
+    .map((s) => s.id)
+    .sort()
+    .join(",");
+  const [dadosSinal, setDadosSinal] = useState({ previstos: [], pagamentos: [] });
+  useEffect(() => {
+    // Nada para ir buscar: com a lista de "à espera do sinal" vazia, o
+    // reduce do valorSinaisAPorta nem chega a olhar para dadosSinal —
+    // não há necessidade de o repor.
+    if (!idsEmSinal) return;
+    let cancelado = false;
+    getPagamentosVarios(idsEmSinal.split(","))
+      .then((dados) => {
+        if (!cancelado) setDadosSinal(dados);
+      })
+      .catch((e) => console.error("getPagamentosVarios falhou:", e));
+    return () => {
+      cancelado = true;
+    };
+  }, [idsEmSinal]);
+
   // Procura rápida — da chamada telefónica à ficha em dois segundos.
   // Procura no título (nome da pessoa), tipo e local, sobre os dados
   // que o Início já tem em memória. Máximo 7 resultados.
@@ -143,8 +171,14 @@ export default function InicioTab({
 
   const listaAEsperaDoSinal = vivos.filter((s) => s.fase === "sinal");
   const aEsperaDoSinal = listaAEsperaDoSinal.length;
-  // "à porta" = os sinais (50%) por receber
-  const valorSinaisAPorta = somaValores(listaAEsperaDoSinal) / 2;
+  // "à porta" = o saldo real do plano de sinal (nunca uma divisão por
+  // dois) — soma o que falta de cada evento, já a descontar qualquer
+  // pagamento parcial registado antes de a fase ter avançado.
+  const valorSinaisAPorta = listaAEsperaDoSinal.reduce(
+    (acc, s) =>
+      acc + saldoSinalPendente(s.id, dadosSinal.previstos, dadosSinal.pagamentos),
+    0,
+  );
 
   // O garantido — o mesmo recorte do funil: pós-sinal, sem Concluídos
   const listaGarantidos = vivos.filter(

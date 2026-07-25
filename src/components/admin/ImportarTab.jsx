@@ -598,6 +598,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                   <Pill ok texto={`${relatorio.eventos} eventos`} />
                   <Pill ok texto={`${relatorio.documentos} documentos`} />
                   <Pill ok texto={`${relatorio.formularios} formulários`} />
+                  {relatorio.pagamentos > 0 && (
+                    <Pill ok texto={`${relatorio.pagamentos} pagamentos`} />
+                  )}
                   {relatorio.modelosCriados > 0 && (
                     <Pill
                       ok

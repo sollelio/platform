@@ -107,6 +107,7 @@ export async function executarPlano(
     eventos: 0,
     documentos: 0,
     formularios: 0,
+    pagamentos: 0,
     duracaoMs: 0,
   };
 
@@ -131,6 +132,7 @@ export async function executarPlano(
       relatorio.eventos += data?.eventos ?? 0;
       relatorio.documentos += data?.documentos ?? 0;
       relatorio.formularios += data?.formularios ?? 0;
+      relatorio.pagamentos += data?.pagamentos ?? 0;
     }
   }
 

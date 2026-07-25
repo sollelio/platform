@@ -10,6 +10,7 @@ import {
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import FunilBoard from "./FunilBoard";
 import { Icone } from "./Navegacao";
+import { formatarEuros } from "./orcamentos/orcamentoConfig";
 
 // Memória da última vista escolhida (dura a sessão): se a Nádia
 // estava no funil, voltar aos Clientes volta ao FUNIL, não à lista.
@@ -246,7 +247,7 @@ export default function ClientesLista({
       console.error(e);
       // Sem a lista de vínculos, mostra o aviso genérico à mesma —
       // não bloqueia a remoção por a verificação ter falhado.
-      setVinculosEvento({ documentos: [], reservas: [] });
+      setVinculosEvento({ documentos: [], reservas: [], pagamentos: [] });
     }
   };
 
@@ -263,11 +264,17 @@ export default function ClientesLista({
       if (onDadosMudaram) onDadosMudaram();
     } catch (e) {
       console.error(e);
-      // Código 23503 = violação de chave estrangeira — só acontece por
-      // um CONVITE já preenchido a apontar para este evento
-      // (invites.submission_id é NO ACTION; documentos e reservas já
-      // não bloqueiam, ver getVinculosEvento).
-      if (e.code === "23503") {
+      // Código 23503 = violação de chave estrangeira — duas causas
+      // possíveis, cada uma com a sua constraint nomeada (ver
+      // getVinculosEvento em lib/clientes.js). Esta apanha só o caso
+      // raro de um pagamento ter sido registado ENTRE abrir este
+      // diálogo e clicar Remover — o aviso normal já bloqueia o botão
+      // antes disso (ver o JSX do diálogo).
+      if (e.code === "23503" && e.message?.includes("pagamentos_submission_fk")) {
+        setErroRemoverEvento(
+          "Não é possível remover: entretanto ficou um pagamento registado neste evento. Fecha e volta a tentar.",
+        );
+      } else if (e.code === "23503") {
         setErroRemoverEvento(
           "Não é possível remover: há um convite/formulário já preenchido ligado a este evento.",
         );
@@ -867,6 +874,47 @@ export default function ClientesLista({
               </p>
             ) : (
               <>
+                {vinculosEvento.pagamentos.length > 0 && (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#7F1D1D",
+                      backgroundColor: "#FEF2F2",
+                      border: "1.5px solid #EF4444",
+                      borderRadius: "8px",
+                      padding: "12px 14px",
+                      margin: "0 0 10px 0",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    <p style={{ margin: "0 0 6px 0", fontWeight: "700" }}>
+                      🛑 Isto impede a remoção
+                    </p>
+                    <p style={{ margin: "0 0 6px 0" }}>
+                      Este evento tem{" "}
+                      {vinculosEvento.pagamentos.length === 1
+                        ? "um pagamento registado"
+                        : `${vinculosEvento.pagamentos.length} pagamentos registados`}{" "}
+                      — dinheiro real não se apaga junto com o evento. Apaga
+                      primeiro{" "}
+                      {vinculosEvento.pagamentos.length === 1
+                        ? "esse pagamento"
+                        : "esses pagamentos"}{" "}
+                      no separador Pagamentos da ficha do evento; só depois
+                      este evento fica livre para remover.
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                      {vinculosEvento.pagamentos.map((p) => (
+                        <li key={p.id}>
+                          {formatarEuros(p.valor)}
+                          {p.data
+                            ? ` · ${formatarData(p.data)}`
+                            : " · data desconhecida (reconstituído)"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {vinculosEvento.documentos.length > 0 && (
                   <p
                     style={{
@@ -951,32 +999,43 @@ export default function ClientesLista({
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirmarRemocaoEvento}
-                disabled={removendoEvento || vinculosEvento === null}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  backgroundColor:
-                    removendoEvento || vinculosEvento === null
-                      ? "#FCA5A5"
-                      : "#EF4444",
-                  color: "white",
-                  cursor:
-                    removendoEvento || vinculosEvento === null
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                {removendoEvento
-                  ? "A remover..."
-                  : vinculosEvento === null
-                    ? "A verificar..."
-                    : "Remover"}
-              </button>
+              {(() => {
+                const bloqueadoPorPagamentos =
+                  (vinculosEvento?.pagamentos?.length || 0) > 0;
+                const desativado =
+                  removendoEvento ||
+                  vinculosEvento === null ||
+                  bloqueadoPorPagamentos;
+                return (
+                  <button
+                    onClick={handleConfirmarRemocaoEvento}
+                    disabled={desativado}
+                    title={
+                      bloqueadoPorPagamentos
+                        ? "Apaga primeiro os pagamentos deste evento"
+                        : undefined
+                    }
+                    style={{
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      border: "none",
+                      backgroundColor: desativado ? "#FCA5A5" : "#EF4444",
+                      color: "white",
+                      cursor: desativado ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {removendoEvento
+                      ? "A remover..."
+                      : vinculosEvento === null
+                        ? "A verificar..."
+                        : bloqueadoPorPagamentos
+                          ? "Remoção bloqueada"
+                          : "Remover"}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
