@@ -17,7 +17,7 @@ import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
 import DocumentosEvento from "../components/admin/DocumentosEvento";
-import { FichaMateriais } from "../components/admin/FichaEvento";
+import FichaMateriais from "../components/admin/FichaMateriais";
 
 // ============================================================
 // EventoPage — /evento/:id/:aba?
@@ -267,12 +267,7 @@ export default function EventoPage() {
           )}
 
           {activeAba === "materiais" && (
-            <FichaMateriais
-              submissionId={id}
-              submissao={submissao}
-              eventTypes={eventTypes}
-              dentroDaPagina
-            />
+            <FichaMateriais submissionId={id} submissao={submissao} />
           )}
 
           {activeAba === "pagamentos" && (
