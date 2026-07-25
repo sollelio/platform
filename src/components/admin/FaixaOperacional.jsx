@@ -1,5 +1,4 @@
-import { getValorAtual } from "../../lib/submissionFields";
-import { formatarMorada } from "../../lib/morada";
+import { getFaixaOperacional } from "../../lib/submissionFields";
 
 // ============================================================
 // FaixaOperacional — as quatro respostas que ela procura com o carro à
@@ -10,12 +9,14 @@ import { formatarMorada } from "../../lib/morada";
 // têm hora marcada. O resto do briefing lê-se sentada; isto lê-se de
 // pé. Os campos são os mesmos do modelo — nada aqui é uma segunda
 // fonte, é só a mesma folha com o que urge em primeiro lugar.
+//
+// "Os mesmos do modelo" passou a ser verdade em código e não só em
+// intenção: quem resolve cada resposta é o getFaixaOperacional, contra
+// os passos do modelo. Aqui só se desenha o que ele devolver.
 // ============================================================
 
 const texto = (v) => {
   if (v === null || v === undefined || v === "") return null;
-  if (Array.isArray(v)) return v.length ? v.join(", ") : null;
-  if (typeof v === "object") return formatarMorada(v) || null;
   return String(v);
 };
 
@@ -47,23 +48,23 @@ const sub = {
   textWrap: "pretty",
 };
 
-export default function FaixaOperacional({ submissao }) {
-  const v = (campo) => texto(getValorAtual(submissao, campo));
+export default function FaixaOperacional({ submissao, seccoes }) {
+  const f = getFaixaOperacional(submissao, seccoes);
 
-  const montagem = v("horaMontagem");
-  const limiteMontagem = v("horaLimiteMontagem");
-  const recolha = v("horaRecolha");
-  const diaSeguinte = v("recolhaDiaSeguinte");
-  const responsavel = v("nomeResponsavel");
-  const relacao = v("relacaoResponsavel");
-  const contactoResp = v("contactoResponsavel");
-  const abre = v("pessoaAbreEspaco");
-  const contactoAbre = v("contactoPessoaAbre");
-  const morada = v("moradaExacta") || v("localEvento");
-  const acessos = v("acessoLocal");
-  const notasAcesso = v("notasAcesso");
-  const inicio = v("horaInicio");
-  const fim = v("horaTermino");
+  const montagem = texto(f.montagem);
+  const limiteMontagem = texto(f.limiteMontagem);
+  const recolha = texto(f.recolha);
+  const diaSeguinte = texto(f.diaSeguinte);
+  const responsavel = texto(f.responsavel);
+  const relacao = texto(f.relacao);
+  const contactoResp = texto(f.contactoResponsavel);
+  const abre = texto(f.abre);
+  const contactoAbre = texto(f.contactoAbre);
+  const morada = texto(f.morada);
+  const acessos = texto(f.acessos);
+  const notasAcesso = texto(f.notasAcesso);
+  const inicio = texto(f.inicio);
+  const fim = texto(f.fim);
 
   // Sem nenhuma destas respostas não há faixa nenhuma para mostrar —
   // um evento acabado de criar não deve abrir com uma caixa vazia.

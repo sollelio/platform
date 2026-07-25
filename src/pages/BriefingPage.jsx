@@ -109,6 +109,17 @@ function paraTexto(valor) {
   }
   if (typeof valor === "boolean") return valor ? "Sim" : "Não";
   if (valor && typeof valor === "object") return formatarMorada(valor);
+  // Morada guardada como TEXTO JSON em vez de objecto (submissões
+  // antigas e importadas). Na folha que ela leva para o evento, as
+  // chavetas em bruto são o pior sítio possível para as deixar.
+  if (typeof valor === "string" && valor.trim().startsWith("{")) {
+    try {
+      const composta = formatarMorada(JSON.parse(valor));
+      if (composta) return composta;
+    } catch {
+      /* não era JSON — segue como texto normal */
+    }
+  }
   return String(valor);
 }
 

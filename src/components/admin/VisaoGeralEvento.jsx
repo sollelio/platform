@@ -220,7 +220,7 @@ export default function VisaoGeralEvento({
   if (preenchidas.length === 0) {
     return (
       <>
-        {mosaico && <FaixaOperacional submissao={submissao} />}
+        {mosaico && <FaixaOperacional submissao={submissao} seccoes={seccoes} />}
         <p
           style={{
             fontSize: "13px",
@@ -357,7 +357,7 @@ export default function VisaoGeralEvento({
 
   return (
     <>
-      <FaixaOperacional submissao={submissao} />
+      <FaixaOperacional submissao={submissao} seccoes={seccoes} />
 
       {erro && (
         <p

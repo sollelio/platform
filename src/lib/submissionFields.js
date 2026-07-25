@@ -108,6 +108,17 @@ export function seccoesDoModelo(tipo) {
 export function formatarValor(v) {
   if (Array.isArray(v)) return v.join(", ");
   if (v && typeof v === "object") return formatarMorada(v);
+  // Uma morada guardada como TEXTO JSON, e não como objecto — acontece
+  // em submissões antigas e importadas. É a mesma morada, só mal
+  // arrumada: mais vale compô-la do que despejar as chavetas no ecrã.
+  if (typeof v === "string" && v.trim().startsWith("{")) {
+    try {
+      const composta = formatarMorada(JSON.parse(v));
+      if (composta) return composta;
+    } catch {
+      /* não era JSON — segue como texto normal */
+    }
+  }
   return v;
 }
 
@@ -131,6 +142,207 @@ export function seccoesPreenchidas(submissao, seccoes) {
         .filter(({ valor }) => !semValor(valor)),
     }))
     .filter((sec) => sec.campos.length > 0);
+}
+
+// ============================================================
+// getFaixaOperacional — as respostas que ela procura com o carro à
+// porta, resolvidas CONTRA O MODELO e não contra as colunas antigas.
+//
+// A faixa pedia ids canónicos (horaMontagem, nomeResponsavel, …), e
+// esses só existem nas colunas escritas à medida do Casamento original.
+// Nenhum modelo os usa: o Casamento de hoje chama-lhes
+// horaDisponivelParaMontagem e nomeDoResponsavelNoDia. O resultado era
+// a faixa a mostrar a coluna antiga enquanto a folha logo por baixo
+// mostrava o campo do modelo — duas respostas diferentes à mesma
+// pergunta, no sítio onde ela lê de pé. E uma correcção feita no lugar
+// escrevia no campo do modelo sem a faixa mexer.
+//
+// Mesma escada do getResumoSubmissao, e pela mesma razão:
+//   1. o campo marcado com PAPEL no modelo — explícito ganha sempre;
+//   2. o campo do modelo encontrado por palavra-chave no id/etiqueta;
+//   3. o id canónico (coluna antiga) — retrocompatibilidade.
+//
+// A camada 2 é o que faz isto funcionar hoje, sem obrigar a voltar a
+// todos os modelos já criados para marcar papéis. A 3 garante que as
+// submissões antigas, as que só têm colunas, continuam a mostrar
+// exactamente o que sempre mostraram.
+// ============================================================
+
+const semAcentos = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+
+// Procura-se no id E na etiqueta: um modelo importado pode ter o id em
+// código e a etiqueta em português, ou o contrário.
+const chaveDoCampo = (campo) =>
+  semAcentos(`${campo?.id || ""} ${campo?.label || ""}`);
+
+const temTudo = (...palavras) => (campo) => {
+  const chave = chaveDoCampo(campo);
+  return palavras.every((p) => chave.includes(p));
+};
+const semNenhuma = (...palavras) => (campo) => {
+  const chave = chaveDoCampo(campo);
+  return !palavras.some((p) => chave.includes(p));
+};
+const doTipo = (...tipos) => (campo) => tipos.includes(campo?.type);
+const tudo = (...criterios) => (campo) => criterios.every((c) => c(campo));
+
+// O primeiro campo de todos os passos que satisfaz o critério. Devolve
+// também o passo, porque há campos que só se identificam pela
+// vizinhança — ver os contactos, mais abaixo.
+function acharCampo(seccoes, criterio) {
+  for (const seccao of seccoes || []) {
+    for (const campo of seccao.campos || []) {
+      if (criterio(campo)) return { campo, seccao };
+    }
+  }
+  return null;
+}
+
+// "10:00:00" → "10:00". As colunas antigas são `time` do Postgres e
+// chegam com os segundos; os campos do modelo já vêm "10:00". Só mexe
+// em valores que são exactamente uma hora — nunca em texto livre.
+const horaCurta = (v) =>
+  typeof v === "string" && /^\d{2}:\d{2}:\d{2}$/.test(v) ? v.slice(0, 5) : v;
+
+function resolverCampo(submissao, seccoes, { papel, criterios, canonico }) {
+  let achado = papel ? acharCampo(seccoes, (c) => c.papel === papel) : null;
+  for (const criterio of criterios || []) {
+    if (achado) break;
+    achado = acharCampo(seccoes, criterio);
+  }
+  if (achado) {
+    const v = getValorAtual(submissao, achado.campo.id);
+    if (!semValor(v)) return { valor: v, seccao: achado.seccao };
+  }
+  // Sem campo no modelo (ou com o campo vazio) cai-se na coluna antiga,
+  // que é o que estas submissões têm.
+  const v = canonico ? getValorAtual(submissao, canonico) : undefined;
+  return semValor(v) ? null : { valor: v, seccao: null };
+}
+
+export function getFaixaOperacional(submissao, seccoes) {
+  if (!submissao) return {};
+
+  const ler = (spec) => resolverCampo(submissao, seccoes, spec);
+  const valor = (r) => (r ? formatarValor(r.valor) : null);
+  const hora = (r) => (r ? formatarValor(horaCurta(r.valor)) : null);
+
+  // O contacto de uma pessoa não tem nome próprio no modelo — chama-se
+  // "Contacto" ou "Contacto Telefónico" e o que o liga ao responsável (ou
+  // a quem abre o espaço) é estar no MESMO passo. É assim que se
+  // distingue o telefone do responsável do telefone de quem abre a porta.
+  const contactoDe = (dono) => {
+    if (!dono?.seccao) return null;
+    const achado = acharCampo(
+      [dono.seccao],
+      tudo(doTipo("tel", "text", "number"), temTudo("contacto"), semNenhuma("principal")),
+    );
+    if (!achado) return null;
+    const v = getValorAtual(submissao, achado.campo.id);
+    return semValor(v) ? null : formatarValor(v);
+  };
+
+  const responsavel = ler({
+    papel: "responsavel",
+    criterios: [tudo(temTudo("responsavel"), semNenhuma("contacto", "relacao"))],
+    canonico: "nomeResponsavel",
+  });
+
+  const abre = ler({
+    papel: "abreEspaco",
+    criterios: [tudo(temTudo("abre"), semNenhuma("contacto"))],
+    canonico: "pessoaAbreEspaco",
+  });
+
+  return {
+    montagem: hora(
+      ler({
+        papel: "montagem",
+        criterios: [tudo(doTipo("time"), temTudo("montagem"), semNenhuma("limite"))],
+        canonico: "horaMontagem",
+      }),
+    ),
+    limiteMontagem: hora(
+      ler({
+        papel: "limiteMontagem",
+        criterios: [tudo(doTipo("time"), temTudo("montagem", "limite"))],
+        canonico: "horaLimiteMontagem",
+      }),
+    ),
+    recolha: hora(
+      ler({
+        papel: "recolha",
+        criterios: [tudo(doTipo("time"), temTudo("recolha"))],
+        canonico: "horaRecolha",
+      }),
+    ),
+    diaSeguinte: valor(
+      ler({
+        papel: "recolhaDiaSeguinte",
+        criterios: [tudo(temTudo("recolha", "seguinte"))],
+        canonico: "recolhaDiaSeguinte",
+      }),
+    ),
+    responsavel: valor(responsavel),
+    relacao: valor(
+      ler({
+        papel: "relacaoResponsavel",
+        criterios: [temTudo("relacao")],
+        canonico: "relacaoResponsavel",
+      }),
+    ),
+    contactoResponsavel:
+      contactoDe(responsavel) ||
+      valor(ler({ criterios: [], canonico: "contactoResponsavel" })),
+    abre: valor(abre),
+    contactoAbre:
+      contactoDe(abre) ||
+      valor(ler({ criterios: [], canonico: "contactoPessoaAbre" })),
+    morada:
+      valor(
+        ler({
+          papel: "morada",
+          criterios: [
+            temTudo("morada", "exacta"),
+            doTipo("morada"),
+            temTudo("morada"),
+          ],
+          canonico: "moradaExacta",
+        }),
+      ) || valor(ler({ papel: "local", criterios: [temTudo("local")], canonico: "localEvento" })),
+    acessos: valor(
+      ler({
+        papel: "acessoLocal",
+        criterios: [tudo(doTipo("checkbox"), temTudo("acesso"))],
+        canonico: "acessoLocal",
+      }),
+    ),
+    notasAcesso: valor(
+      ler({
+        papel: "notasAcesso",
+        criterios: [tudo(doTipo("textarea"), temTudo("acesso"))],
+        canonico: "notasAcesso",
+      }),
+    ),
+    inicio: hora(
+      ler({
+        papel: "horaInicio",
+        criterios: [tudo(doTipo("time"), temTudo("inicio"))],
+        canonico: "horaInicio",
+      }),
+    ),
+    fim: hora(
+      ler({
+        papel: "horaTermino",
+        criterios: [tudo(doTipo("time"), temTudo("termino")), tudo(doTipo("time"), temTudo("fim"))],
+        canonico: "horaTermino",
+      }),
+    ),
+  };
 }
 
 // ============================================================

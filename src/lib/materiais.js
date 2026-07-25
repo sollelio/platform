@@ -184,7 +184,11 @@ export const getEventoMateriais = async (submissionId) => {
   const { data, error } = await supabase
     .from("evento_materiais")
     .select(
-      "*, material:materiais(id, categoria, nome, unidade, ordem, ativo, def_carga, def_montagem, def_higienizacao)",
+      // quantidade_total e por_confirmar vêm porque a ficha avisa NA LINHA
+      // quando se pede mais do que há (ver `disponivel` em FichaMateriais).
+      // Sem elas o cálculo do disponível dava sempre null e o aviso, que
+      // existe e está escrito, nunca chegava a aparecer.
+      "*, material:materiais(id, categoria, nome, unidade, ordem, ativo, quantidade_total, por_confirmar, def_carga, def_montagem, def_higienizacao)",
     )
     .eq("submission_id", submissionId);
   if (error) throw error;
