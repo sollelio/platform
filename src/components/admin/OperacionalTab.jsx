@@ -15,7 +15,7 @@ import {
   calcularAlertas,
   calcularAlertasReposicao,
 } from "../../lib/stock";
-import FichaEvento from "./FichaEvento";
+import ConferenciaPeriodo from "./ConferenciaPeriodo";
 import AlertasTab from "./AlertasTab";
 import MateriaisInventario from "./MateriaisInventario";
 
@@ -23,10 +23,20 @@ import MateriaisInventario from "./MateriaisInventario";
 const UNIDADES = ["un", "mt", "cx", "kg", "par", "conj"];
 
 // ============================================================
-// OperacionalTab — Fase B
+// OperacionalTab — Logística.
 // Sub-navegação interna:
-//   • Materiais → catálogo (CRUD)  ← construído agora
-//   • Fichas    → ficha por evento ← placeholder (próximo bloco)
+//   • Materiais  → o catálogo e o stock (CRUD)
+//   • O que sai  → a conferência do período, somando todos os eventos
+//   • Alertas    → onde é que o stock vai rebentar
+//
+// O separador "Fichas" saiu: a ficha de materiais passou para dentro do
+// evento (/evento/:id → Materiais), e deixava de fazer sentido haver um
+// sítio onde se volta a PROCURAR o evento que já estava aberto. No lugar
+// dele entra a vista que faltava — transversal, não por evento: «tenho
+// material para tudo o que sai este fim de semana?».
+//
+// Este componente é o dono dos dados (materiais, fichas, buffer): carrega
+// uma vez e partilha pelos três.
 // ============================================================
 export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
   const [subTab, setSubTab] = useState("materiais");
@@ -107,7 +117,7 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
       >
         {[
           { id: "materiais", label: "Materiais" },
-          { id: "fichas", label: "Fichas" },
+          { id: "conferencia", label: "O que sai" },
           { id: "alertas", label: "Alertas" },
         ].map((st) => {
           const ativo = subTab === st.id;
@@ -165,12 +175,12 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
       {subTab === "materiais" && (
         <MateriaisInventario onStockAlterado={recarregarDados} />
       )}
-      {subTab === "fichas" && (
-        <FichaEvento
+      {subTab === "conferencia" && (
+        <ConferenciaPeriodo
+          materiais={materiais}
           submissions={submissions}
-          eventTypes={eventTypes}
           todasFichas={todasFichas}
-          onFichaAlterada={recarregarDados}
+          eventTypes={eventTypes}
         />
       )}
       {subTab === "alertas" && (

@@ -440,3 +440,176 @@ export const calcularAlertasReposicao = ({ materiais }) => {
     return b.falta - a.falta;
   });
 };
+
+// ---------------------------------------------------------------------
+// 6. Conferência do período — "o que sai de casa"
+// ---------------------------------------------------------------------
+
+// A pergunta é outra e por isso a função é outra: os alertas respondem
+// a "onde é que isto vai rebentar?" e por isso só devolvem o que falta
+// (calcularAlertas descarta tudo com falta <= 0). A conferência
+// responde a "tenho material para tudo o que sai este fim de semana?",
+// e para isso precisa da lista TODA — o que chega também tem de estar
+// lá, para se poder conferir no armazém.
+//
+// A outra diferença: o período é ESCOLHIDO (esta semana, o fim de
+// semana, 15 dias, datas à mão) em vez de deduzido dos clusters. Dois
+// eventos afastados que caiam no mesmo intervalo aparecem juntos aqui,
+// e é isso que se quer — a carrinha é a mesma.
+//
+// Usa stockParaConflitos (total − por confirmar), não disponivelHoje:
+// isto é uma pergunta sobre o FUTURO, e o que está em higienização hoje
+// volta a estar disponível até lá.
+//
+// Devolve:
+//   { eventos: [{ submissionId, dataEvento, total }],
+//     linhas:  [{ materialId, material, categoria, porEvento: Map,
+//                 necessario, stock, saldo, estado }],
+//     porCategoria: [{ categoria, linhas, total }],
+//     totais: { eventos, materiais, unidades, ruturas } }
+//
+// estado: "rutura" | "no-limite" | "sem-stock" | "ok"
+export const calcularConferencia = ({
+  materiais,
+  submissions,
+  todasFichas,
+  periodo,
+}) => {
+  const vazio = {
+    eventos: [],
+    linhas: [],
+    porCategoria: [],
+    totais: { eventos: 0, materiais: 0, unidades: 0, ruturas: 0 },
+  };
+  if (!periodo || !periodo.inicio || !periodo.fim) return vazio;
+
+  const inicio = aoDia(periodo.inicio);
+  const fim = aoDia(periodo.fim);
+  if (!inicio || !fim) return vazio;
+
+  // Os eventos do período — pela data do evento (o dia em que as coisas
+  // saem mesmo de casa), não pela janela alargada pelo buffer: quem
+  // confere no armazém pensa em dias de evento, não em ocupação.
+  const eventos = (submissions || [])
+    .filter((s) => {
+      if (!s || !s.data_evento) return false;
+      if (s.fase === "perdido") return false;
+      const d = aoDia(s.data_evento);
+      return d && d >= inicio && d <= fim;
+    })
+    .sort((a, b) => a.data_evento.localeCompare(b.data_evento));
+
+  if (eventos.length === 0) return vazio;
+
+  const idsNoPeriodo = new Set(eventos.map((s) => s.id));
+  const materiaisPorEvento = construirMateriaisPorEvento(todasFichas);
+  const catalogo = new Map((materiais || []).map((m) => [m.id, m]));
+
+  // material_id → { submissionId → quantidade }
+  const pedidos = new Map();
+  for (const [submissionId, linhas] of materiaisPorEvento.entries()) {
+    if (!idsNoPeriodo.has(submissionId)) continue;
+    for (const linha of linhas) {
+      if (!linha.quantidade) continue;
+      if (!pedidos.has(linha.material_id)) pedidos.set(linha.material_id, new Map());
+      const porEvento = pedidos.get(linha.material_id);
+      porEvento.set(
+        submissionId,
+        (porEvento.get(submissionId) || 0) + linha.quantidade,
+      );
+    }
+  }
+
+  const linhas = [];
+  for (const [materialId, porEvento] of pedidos.entries()) {
+    const material = catalogo.get(materialId);
+    if (!material || material.ativo === false) continue;
+
+    const necessario = [...porEvento.values()].reduce((a, b) => a + b, 0);
+    if (necessario <= 0) continue;
+
+    // Sem stock registado, o saldo não se pode calcular — e um zero
+    // seria mentira. A UI diz "sem stock definido", como nos Alertas.
+    const semStock =
+      material.quantidade_total == null || Number(material.quantidade_total) <= 0;
+    const stock = semStock ? null : stockParaConflitos(material);
+    const saldo = semStock ? null : stock - necessario;
+
+    linhas.push({
+      materialId,
+      material,
+      categoria: material.categoria || "Sem categoria",
+      porEvento,
+      necessario,
+      stock,
+      saldo,
+      estado: semStock
+        ? "sem-stock"
+        : saldo < 0
+          ? "rutura"
+          : saldo === 0
+            ? "no-limite"
+            : "ok",
+    });
+  }
+
+  linhas.sort((a, b) => (a.material.nome || "").localeCompare(b.material.nome || ""));
+
+  // Agrupadas por categoria, com subtotal — o agrupamento já existe no
+  // sistema (ver CATEGORIAS_ORDEM em materiais.js); aqui ganha o total.
+  const mapaCategorias = new Map();
+  for (const linha of linhas) {
+    if (!mapaCategorias.has(linha.categoria))
+      mapaCategorias.set(linha.categoria, []);
+    mapaCategorias.get(linha.categoria).push(linha);
+  }
+  const porCategoria = [...mapaCategorias.entries()]
+    .map(([categoria, ls]) => ({
+      categoria,
+      linhas: ls,
+      total: ls.reduce((acc, l) => acc + l.necessario, 0),
+    }))
+    .sort((a, b) => a.categoria.localeCompare(b.categoria));
+
+  const totaisPorEvento = eventos.map((s) => {
+    let total = 0;
+    for (const linha of linhas) total += linha.porEvento.get(s.id) || 0;
+    return { submissionId: s.id, submissao: s, dataEvento: s.data_evento, total };
+  });
+
+  return {
+    eventos: totaisPorEvento,
+    linhas,
+    porCategoria,
+    totais: {
+      eventos: eventos.length,
+      materiais: linhas.length,
+      unidades: linhas.reduce((acc, l) => acc + l.necessario, 0),
+      ruturas: linhas.filter((l) => l.estado === "rutura").length,
+    },
+  };
+};
+
+// Os períodos que se escolhem com um clique. "Fim de semana" é o
+// próximo sexta→domingo (incluindo hoje, se hoje já for fim de semana).
+export const periodosPredefinidos = (hoje = new Date()) => {
+  const base = aoDia(hoje.toISOString().slice(0, 10));
+  const diaSemana = base.getUTCDay(); // 0 = domingo
+
+  const sextaProxima = somaDias(base, diaSemana === 0 ? -2 : 5 - diaSemana);
+  return [
+    {
+      id: "semana",
+      label: "Esta semana",
+      inicio: base,
+      fim: somaDias(base, 6),
+    },
+    {
+      id: "fimDeSemana",
+      label: "Fim de semana",
+      inicio: sextaProxima,
+      fim: somaDias(sextaProxima, 2),
+    },
+    { id: "quinzena", label: "15 dias", inicio: base, fim: somaDias(base, 14) },
+  ];
+};
