@@ -261,10 +261,199 @@ const CAMPOS_CAPTACAO = [
   ["mensagemInicial", "Notas da Primeira Conversa", true],
 ];
 
+// ------------------------------------------------------------
+// A ficha de materiais impressa. UMA tabela, não três folhas: até aqui
+// o imprimirFicha.js gerava uma folha por lista (carga, montagem,
+// higienização) numa janela à parte. No terreno é o contrário do útil —
+// o mesmo material aparecia em três sítios e nenhum deles mostrava o
+// conjunto. Aqui é uma linha por material, com as letras C · M · H a
+// dizer em que listas entra.
+// ------------------------------------------------------------
+// evento_materiais.cores é TEXTO ("Marfim, Dourado"), não array — o
+// normalizarCores só aceita array (mesma conversão que a ficha faz em
+// FichaEvento.jsx e o imprimirFicha.js).
+const coresDaLinha = (texto) =>
+  normalizarCores(
+    String(texto || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+  );
+
+function FichaImpressa({ materiais }) {
+  if (!materiais || materiais.length === 0) return null;
+
+  const grupos = [];
+  for (const m of materiais) {
+    const cat = m.categoria || "Sem categoria";
+    let grupo = grupos.find((g) => g.categoria === cat);
+    if (!grupo) {
+      grupo = { categoria: cat, itens: [] };
+      grupos.push(grupo);
+    }
+    grupo.itens.push(m);
+  }
+
+  const totalUn = materiais.reduce(
+    (acc, m) => acc + (Number(m.quantidade) || 0),
+    0,
+  );
+
+  const letra = (activa, texto) => (
+    <span
+      style={{
+        display: "inline-block",
+        width: "15px",
+        textAlign: "center",
+        fontSize: "10px",
+        fontWeight: activa ? "700" : "400",
+        color: activa ? "#A07830" : "#D8D2C4",
+      }}
+    >
+      {texto}
+    </span>
+  );
+
+  return (
+    <div className="ficha-materiais" style={{ padding: "32px 40px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          borderBottom: "2px solid #C9A84C",
+          paddingBottom: "8px",
+          marginBottom: "4px",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "Playfair Display, serif",
+            fontSize: "17px",
+            fontWeight: "600",
+            color: "#1A1A1A",
+          }}
+        >
+          Ficha de Materiais
+        </h2>
+        <span style={{ fontSize: "11px", color: "#6B6B6B" }}>
+          {materiais.length}{" "}
+          {materiais.length === 1 ? "material" : "materiais"} · {totalUn} un
+        </span>
+      </div>
+      <p
+        style={{
+          fontSize: "10px",
+          color: "#9B9B9B",
+          letterSpacing: "0.04em",
+          margin: "0 0 14px",
+        }}
+      >
+        C carga · M montagem · H higienização
+      </p>
+
+      {grupos.map((grupo) => (
+        <div
+          key={grupo.categoria}
+          className="ficha-grupo"
+          style={{ marginBottom: "16px" }}
+        >
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: "700",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "#A07830",
+              backgroundColor: "#FBF7EF",
+              padding: "4px 8px",
+              marginBottom: "2px",
+            }}
+          >
+            {grupo.categoria}
+          </p>
+          {grupo.itens.map((m) => (
+            <div
+              key={m.id}
+              className="ficha-linha"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "16px 1fr 52px 96px 52px",
+                gap: "8px",
+                alignItems: "start",
+                padding: "6px 8px",
+                borderBottom: "1px solid #F5ECD7",
+                fontSize: "11.5px",
+              }}
+            >
+              {/* a caixa para riscar no terreno */}
+              <span
+                className="cor-bolinha"
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  border: "1.5px solid #C9A84C",
+                  borderRadius: "3px",
+                  marginTop: "1px",
+                  display: "block",
+                }}
+              />
+              <span>
+                {m.nome}
+                {m.observacoes && (
+                  <span
+                    style={{
+                      display: "block",
+                      fontStyle: "italic",
+                      fontSize: "10px",
+                      color: "#6B6B6B",
+                    }}
+                  >
+                    {m.observacoes}
+                  </span>
+                )}
+              </span>
+              <span
+                style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+              >
+                {m.quantidade ?? "—"}
+                {m.unidade ? ` ${m.unidade}` : ""}
+              </span>
+              <span style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                {coresDaLinha(m.cores).map((c) => (
+                  <span
+                    key={c.nome || c.hex}
+                    title={c.nome}
+                    className="cor-bolinha"
+                    style={{
+                      width: "11px",
+                      height: "11px",
+                      borderRadius: "50%",
+                      backgroundColor: c.hex,
+                      border: "1px solid rgba(0,0,0,0.12)",
+                      display: "block",
+                    }}
+                  />
+                ))}
+              </span>
+              <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                {letra(m.lista_carga, "C")}
+                {letra(m.lista_montagem, "M")}
+                {letra(m.lista_higienizacao, "H")}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function BriefingPage() {
   const { id } = useParams();
   const [submission, setSubmission] = useState(null);
   const [tipoEvento, setTipoEvento] = useState(null);
+  const [materiais, setMateriais] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -300,6 +489,35 @@ export default function BriefingPage() {
       // O modelo do evento — é dele que nascem as secções
       setTipoEvento(tipo || null);
       setLoading(false);
+
+      // A ficha de materiais vai no fim da folha. Mesma porta do
+      // briefing: RPC security definer (migração 031), porque esta rota
+      // é pública e evento_materiais está fechada a authenticated. Com
+      // sessão aberta a query directa também serve; sem RPC nem sessão,
+      // a folha sai sem ficha em vez de não sair de todo.
+      const rpcMat = await supabase.rpc("briefing_materiais", { p_id: id });
+      if (!rpcMat.error && Array.isArray(rpcMat.data)) {
+        setMateriais(rpcMat.data);
+      } else {
+        const { data: linhas } = await supabase
+          .from("evento_materiais")
+          .select("*, material:materiais(nome, categoria, unidade, ordem)")
+          .eq("submission_id", id);
+        setMateriais(
+          (linhas || []).map((l) => ({
+            id: l.id,
+            nome: l.material?.nome,
+            categoria: l.material?.categoria,
+            unidade: l.material?.unidade,
+            quantidade: l.quantidade,
+            cores: l.cores,
+            observacoes: l.observacoes,
+            lista_carga: l.lista_carga,
+            lista_montagem: l.lista_montagem,
+            lista_higienizacao: l.lista_higienizacao,
+          })),
+        );
+      }
     };
     fetch();
   }, [id]);
@@ -453,9 +671,32 @@ export default function BriefingPage() {
         }
 
         @media print {
+          /* @page com margem 0 mata o cabeçalho e o URL que o browser
+             imprime por cima da folha — mesmo tratamento do orçamento e
+             da proposta (ver GerarProposta.jsx). */
+          @page { size: A4; margin: 0; }
           body { background: white; }
           .no-print { display: none !important; }
-          .page { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; max-width: 100% !important; }
+          .briefing-outer { padding: 0 !important; }
+          .page {
+            box-shadow: none !important; margin: 0 !important;
+            border-radius: 0 !important; max-width: 100% !important;
+            /* o overflow:hidden do ecrã cortava a saída multi-página */
+            overflow: visible !important;
+          }
+          /* O dourado do cabeçalho e do rodapé é identidade, não
+             decoração: tem de sair impresso mesmo com "gráficos de
+             fundo" desligado, como já acontecia com as bolinhas da
+             paleta. */
+          .briefing-header, .briefing-footer, .ficha-lista, .cor-bolinha {
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          /* A ficha de materiais começa em página nova: é o que vai para
+             o terreno, e quem confere não quer o briefing pelo meio. */
+          .ficha-materiais { page-break-before: always; }
+          .ficha-grupo { break-inside: avoid; }
+          .ficha-linha { break-inside: avoid; }
         }
       `}</style>
 
@@ -686,6 +927,13 @@ export default function BriefingPage() {
               </p>
             )}
           </div>
+
+          {/* A ficha de materiais, no fim — é o que ela consulta no dia:
+              uma caixa por linha para riscar, as cores impressas a cor,
+              e as letras C · M · H a dizer em que lista cada material
+              entra. Pagamentos não entram: não servem no local, e a
+              folha anda com a equipa. */}
+          <FichaImpressa materiais={materiais} />
 
           {/* Rodapé */}
           <div
