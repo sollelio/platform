@@ -16,6 +16,7 @@ import CabecalhoEvento from "../components/admin/CabecalhoEvento";
 import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
+import DocumentosEvento from "../components/admin/DocumentosEvento";
 import { FichaMateriais } from "../components/admin/FichaEvento";
 
 // ============================================================
@@ -58,35 +59,6 @@ function Centrado({ children }) {
       }}
     >
       {children}
-    </div>
-  );
-}
-
-// Placeholder honesto: o separador existe e diz o que lá vai estar, em
-// vez de fingir que já está feito. Sai à medida que as fases avançam.
-function PorConstruir({ titulo, descricao }) {
-  return (
-    <div
-      style={{
-        border: "1px dashed #DFD3B8",
-        borderRadius: "12px",
-        padding: "28px 24px",
-        backgroundColor: "#FCFBF7",
-        textAlign: "center",
-      }}
-    >
-      <p style={{ fontSize: "14px", margin: "0 0 6px" }}>{titulo}</p>
-      <p
-        style={{
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-          fontSize: "11px",
-          color: "#B3AB9C",
-          letterSpacing: "0.04em",
-          margin: 0,
-        }}
-      >
-        {descricao}
-      </p>
     </div>
   );
 }
@@ -265,9 +237,23 @@ export default function EventoPage() {
           )}
 
           {activeAba === "documentos" && (
-            <PorConstruir
-              titulo="Documentos"
-              descricao="briefing · formulário · orçamento · projecto · contrato, com estado e data"
+            <DocumentosEvento
+              submissao={submissao}
+              invites={invites}
+              onGerarDocumento={(evento, tipoDoc) =>
+                navigate("/admin", {
+                  state: {
+                    tab: "orcamentos",
+                    gerarDoc: { submissionId: evento.id, tipoDoc },
+                  },
+                })
+              }
+              onVerFormulario={() =>
+                navigate("/admin", { state: { tab: "convites" } })
+              }
+              onCriarFormulario={() =>
+                navigate("/admin", { state: { tab: "convites" } })
+              }
             />
           )}
 

@@ -83,6 +83,33 @@ export async function listarDocumentos() {
   return data || [];
 }
 
+// Os documentos de UM evento, com o percurso (migração 030). O
+// separador Documentos da página do evento lê daqui.
+export async function documentosDoEvento(submissionId) {
+  if (!submissionId) return [];
+  const { data, error } = await supabase
+    .from("documentos")
+    .select("id, tipo, created_at, updated_at, enviado_em, assinado_em")
+    .eq("submission_id", submissionId);
+  if (error) throw error;
+  return data || [];
+}
+
+// Marca (ou desmarca) um passo do percurso. `quando` a null desfaz —
+// enganar-se a carregar num botão não devia ser irreversível.
+export async function marcarPassoDocumento(id, passo, quando = new Date()) {
+  const coluna = { enviado: "enviado_em", assinado: "assinado_em" }[passo];
+  if (!coluna) throw new Error(`Passo desconhecido: ${passo}`);
+  const { data, error } = await supabase
+    .from("documentos")
+    .update({ [coluna]: quando ? new Date(quando).toISOString() : null })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 // ---------- Rascunho local (localStorage) ----------
 
 // Monta o objecto `dados` a partir das keys fragmentadas do useRascunho

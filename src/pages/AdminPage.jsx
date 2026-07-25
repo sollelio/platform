@@ -352,6 +352,38 @@ export default function AdminPage() {
     }
   };
 
+  // A página do evento não tem o editor de documentos dentro dela —
+  // vive neste separador. Ao carregar em "Preparar orçamento" lá, a
+  // navegação traz o pedido no state e é aqui que ele se cumpre,
+  // quando as submissions já estão carregadas (o handler precisa da
+  // linha completa e dos eventTypes).
+  const pedidoDeDocumento = location.state?.gerarDoc;
+  useEffect(() => {
+    if (!pedidoDeDocumento || submissions.length === 0 || eventTypes.length === 0)
+      return;
+    const evento = submissions.find(
+      (s) => s.id === pedidoDeDocumento.submissionId,
+    );
+    if (!evento) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const dados = await getDadosParaDocumento(evento, eventTypes);
+        if (cancelado) return;
+        // Consome o pedido para não voltar a disparar ao recarregar.
+        window.history.replaceState({ tab: "orcamentos" }, "");
+        setDocumentoContexto({ ...dados, tipoDoc: pedidoDeDocumento.tipoDoc });
+        setActiveTab("orcamentos");
+      } catch (e) {
+        console.error("Erro ao preparar o documento:", e);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoDeDocumento, submissions.length, eventTypes.length]);
+
   // Chamado pela Lista de Documentos ao clicar num documento: o mesmo
   // caminho do drawer (contexto pré-preenchido do evento). A lista só
   // mostra documentos de eventos — no domínio, um documento nunca
