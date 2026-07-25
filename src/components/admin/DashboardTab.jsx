@@ -268,9 +268,15 @@ export default function DashboardTab({
     };
   };
 
+  // "Pipeline de Estados" é operacional (Recebido→Concluído) — só faz
+  // sentido pós-sinal. Antes disso o status fica sempre em "Recebido"
+  // por defeito (ver updateStatus em lib/clientes.js), o que inflava
+  // esta barra com leads que ainda nem venderam, não com trabalho por
+  // fazer.
+  const posSinalAtivos = ativos.filter((s) => FASES_POS_SINAL.includes(s.fase));
   const pipelineData = STATUS_OPTIONS.map((status) => ({
     status,
-    total: ativos.filter((s) => s.status === status).length,
+    total: posSinalAtivos.filter((s) => s.status === status).length,
   })).filter((p) => p.total > 0);
 
   return (
@@ -775,8 +781,8 @@ export default function DashboardTab({
             }}
           >
             {STATUS_OPTIONS.map((status) => {
-              const total = ativos.filter((s) => s.status === status).length;
-              const max = ativos.length || 1;
+              const total = posSinalAtivos.filter((s) => s.status === status).length;
+              const max = posSinalAtivos.length || 1;
               const pct = Math.round((total / max) * 100);
               const colors = STATUS_COLORS[status];
               return (

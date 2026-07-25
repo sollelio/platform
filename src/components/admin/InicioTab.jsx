@@ -266,9 +266,16 @@ export default function InicioTab({
       }
     });
 
-  // d) Evento em ≤7 dias ainda "Recebido" (por preparar)
+  // d) Evento em ≤7 dias ainda "Recebido" (por preparar) — só faz
+  // sentido pós-sinal; "Recebido" pré-sinal é só o estado neutro de
+  // partida, não "por preparar" (ver updateStatus em lib/clientes.js).
   vivos
-    .filter((s) => s.data_evento && s.status === "Recebido")
+    .filter(
+      (s) =>
+        FASES_POS_SINAL.includes(s.fase) &&
+        s.data_evento &&
+        s.status === "Recebido",
+    )
     .forEach((s) => {
       const dias = diasAte(s.data_evento);
       if (dias !== null && dias >= 0 && dias <= 7) {

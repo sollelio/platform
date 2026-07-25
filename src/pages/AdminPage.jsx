@@ -8,7 +8,7 @@ import {
   getValorAtual,
   getResumoSubmissao,
 } from "../lib/submissionFields";
-import { getDadosParaDocumento } from "../lib/clientes";
+import { getDadosParaDocumento, updateStatus } from "../lib/clientes";
 import EventTypesTab from "../components/admin/EventTypesTab";
 import CampoSeletor from "../components/admin/CampoSeletor";
 import SubmissionDrawer from "../components/admin/SubmissionDrawer";
@@ -682,17 +682,18 @@ export default function AdminPage() {
     setLoadingInvites(false);
   };
 
-  const handleStatusChange = async (id, newStatus) => {
-    await supabase
-      .from("submissions")
-      .update({ status: newStatus })
-      .eq("id", id);
-    setSubmissions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
-    );
-    if (selected?.id === id)
-      setSelected((prev) => ({ ...prev, status: newStatus }));
-    setFunilVersao((v) => v + 1);
+  const handleStatusChange = async (id, newStatus, fase) => {
+    try {
+      const atualizado = await updateStatus(id, newStatus, fase);
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === id ? atualizado : s)),
+      );
+      if (selected?.id === id) setSelected(atualizado);
+      setFunilVersao((v) => v + 1);
+    } catch (e) {
+      console.error(e);
+      alert(e.message);
+    }
   };
 
   const handleLogout = async () => {

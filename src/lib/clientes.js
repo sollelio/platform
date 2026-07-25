@@ -391,6 +391,40 @@ export const updateFase = async (submissionId, fase) => {
   return data;
 };
 
+// Estados operacionais (Em Preparação/Confirmado/Concluído) só fazem
+// sentido DEPOIS do sinal — a Jornada da ficha do evento já assume
+// isso (SubmissionDrawer.jsx: só chega a "Preparação"/"Grande dia"
+// depois do sinal), mas nada impedia a coluna `status` de os ter antes
+// disso. "Recebido" é o estado neutro de partida e continua livre em
+// qualquer fase.
+//
+// FASES_POS_SINAL espelha components/admin/faseConfig.js — lib/ não
+// importa de components/ (mesma razão da FASES_VALIDAS acima: evitar
+// a dependência ao contrário).
+const FASES_POS_SINAL = ["cliente", "projecto", "contrato"];
+const STATUS_POS_SINAL = ["Em Preparação", "Confirmado", "Concluído"];
+const FASE_LABEL_PRE_SINAL = {
+  interessado: "Interessada",
+  orcamento: "Orçamento enviado",
+  sinal: "A aguardar sinal",
+};
+
+export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
+  if (STATUS_POS_SINAL.includes(novoStatus) && !FASES_POS_SINAL.includes(faseAtual)) {
+    throw new Error(
+      `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL_PRE_SINAL[faseAtual] || faseAtual}".`,
+    );
+  }
+  const { data, error } = await supabase
+    .from("submissions")
+    .update({ status: novoStatus })
+    .eq("id", submissionId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 // ============================================================
 // Documentos pré-preenchidos — junta os dados do CLIENTE (pessoa) e
 // do EVENTO (submission) num objeto pronto a alimentar os formulários

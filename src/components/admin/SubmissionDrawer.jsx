@@ -423,10 +423,15 @@ export default function SubmissionDrawer({
               </div>
             </div>
 
-            {/* ===== A JORNADA — a linha de vida do evento ===== */}
+            {/* ===== A JORNADA — a linha de vida do evento =====
+                Também é aqui que o estado (Recebido/Em Preparação/
+                Confirmado/Concluído) se edita agora — nos passos
+                "Preparação" e "Grande dia", em vez de num bloco à
+                parte sem ligação visual. Ver Jornada() mais abaixo. */}
             <Jornada
               submissao={selected}
               invites={invites}
+              onStatusChange={onStatusChange}
               onEtapa={(id) => {
                 if (id === "orcamento")
                   onGerarDocumento && onGerarDocumento(selected, "orcamento");
@@ -564,52 +569,6 @@ export default function SubmissionDrawer({
               onFechar={() => setFolhaMensagens(false)}
             />
           )}
-
-          {/* Estado do evento */}
-          <div style={{ marginBottom: "28px" }}>
-            <p
-              style={{
-                fontSize: "11px",
-                fontWeight: "600",
-                color: "var(--gray-mid)",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: "10px",
-              }}
-            >
-              Estado do Evento
-            </p>
-            <div className="filter-wrap">
-              <div
-                className="h-scroll"
-                style={{ gap: "8px", paddingRight: "32px" }}
-              >
-                {STATUS_OPTIONS.map((status) => {
-                  const colors = STATUS_COLORS[status];
-                  const isActive = selected.status === status;
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => onStatusChange(selected.id, status)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "999px",
-                        fontSize: "12px",
-                        whiteSpace: "nowrap",
-                        border: `1px solid ${colors.border}`,
-                        backgroundColor: isActive ? colors.color : colors.bg,
-                        color: isActive ? "white" : colors.color,
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      {status}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
 
           {/* Pagamentos — substitui o antigo botão único "Marcar pagamento
               final recebido": agora é o painel que regista o dinheiro a
@@ -1315,7 +1274,13 @@ const FASE_ORDEM_JORNADA = [
   "contrato",
 ];
 
-function Jornada({ submissao, invites = [], onEtapa }) {
+function Jornada({ submissao, invites = [], onEtapa, onStatusChange }) {
+  // O estado (Recebido/Em Preparação/Confirmado/Concluído) edita-se
+  // aqui dentro agora — nos passos "Preparação" e "Grande dia" — em
+  // vez de num bloco à parte sem ligação visual à Jornada. Hook antes
+  // de qualquer return condicional (fase "perdido" também usa isto).
+  const [popoverEtapa, setPopoverEtapa] = useState(null);
+
   const s = submissao;
   if (!s) return null;
 
@@ -1409,7 +1374,10 @@ function Jornada({ submissao, invites = [], onEtapa }) {
       id: "preparacao",
       rotulo: "Preparação",
       feito: emPreparacao,
-      clicavel: true,
+      // Só se edita depois do sinal (ver updateStatus em
+      // lib/clientes.js — o mesmo limite, aqui como afordância).
+      clicavel: posSinal,
+      tituloBloqueado: "Só depois do sinal recebido",
     },
     {
       id: "grandeDia",
@@ -1417,8 +1385,21 @@ function Jornada({ submissao, invites = [], onEtapa }) {
       feito: concluido,
       emoji: "🥂",
       sub: dataCurta(s.data_evento),
+      clicavel: posSinal,
+      tituloBloqueado: "Só depois do sinal recebido",
     },
   ];
+
+  // Preparação/Grande dia abrem o escolhedor de estado ali mesmo; os
+  // restantes continuam a delegar no onEtapa do pai (gerar documento,
+  // preencher formulário).
+  const aoClicarEtapa = (id) => {
+    if (id === "preparacao" || id === "grandeDia") {
+      setPopoverEtapa((atual) => (atual === id ? null : id));
+    } else if (onEtapa) {
+      onEtapa(id);
+    }
+  };
 
   // A etapa ATUAL: a primeira por fazer na cadeia (o Formulário fica
   // de fora — é independente da ordem)
@@ -1472,8 +1453,8 @@ function Jornada({ submissao, invites = [], onEtapa }) {
           return (
             <div
               key={e.id}
-              onClick={e.clicavel && onEtapa ? () => onEtapa(e.id) : undefined}
-              title={e.clicavel ? "Abrir" : undefined}
+              onClick={e.clicavel ? () => aoClicarEtapa(e.id) : undefined}
+              title={e.clicavel ? "Abrir" : e.tituloBloqueado}
               style={{
                 flex: 1,
                 textAlign: "center",
@@ -1549,6 +1530,77 @@ function Jornada({ submissao, invites = [], onEtapa }) {
           );
         })}
       </div>
+      {popoverEtapa && (
+        <div
+          style={{
+            marginTop: "10px",
+            backgroundColor: "white",
+            border: "1px solid var(--gold-light)",
+            borderRadius: "10px",
+            padding: "10px 12px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "var(--gold-dark)",
+              margin: "0 0 8px",
+            }}
+          >
+            Estado do evento
+          </p>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {STATUS_OPTIONS.map((status) => {
+              const colors = STATUS_COLORS[status];
+              const isActive = s.status === status;
+              return (
+                <button
+                  key={status}
+                  onClick={() => {
+                    onStatusChange && onStatusChange(s.id, status, s.fase);
+                    setPopoverEtapa(null);
+                  }}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: "999px",
+                    fontSize: "11.5px",
+                    fontWeight: "600",
+                    border: `1px solid ${colors.border}`,
+                    backgroundColor: isActive ? colors.color : colors.bg,
+                    color: isActive ? "white" : colors.color,
+                    cursor: "pointer",
+                  }}
+                >
+                  {status}
+                </button>
+              );
+            })}
+          </div>
+          {popoverEtapa === "preparacao" && onEtapa && (
+            <button
+              onClick={() => {
+                onEtapa("preparacao");
+                setPopoverEtapa(null);
+              }}
+              style={{
+                marginTop: "8px",
+                fontSize: "11px",
+                border: "none",
+                background: "none",
+                color: "var(--gold-dark)",
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              Abrir Logística →
+            </button>
+          )}
+        </div>
+      )}
       {proximoGesto && (
         <p
           style={{
