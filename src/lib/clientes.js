@@ -3,6 +3,7 @@ import { ehFuncaoRpcEmFalta } from "./rpc";
 import {
   getValorAtual,
   getResumoSubmissao,
+  normalizeSubmission,
   FIELD_MAP_INVERSO,
 } from "./submissionFields";
 import { gerarPrevistos } from "./pagamentos";
@@ -48,6 +49,23 @@ export const getClienteComEventos = async (clienteId) => {
     (a.data_evento || "9999").localeCompare(b.data_evento || "9999"),
   );
   return { ...data, eventos };
+};
+
+// UM evento pelo seu id, com o cliente ligado — a porta de entrada da
+// página /evento/:id, que ao contrário de todos os outros ecrãs não
+// recebe o evento de uma lista já carregada: chega-lhe só o id do URL.
+// Passa pelo normalizeSubmission como o resto da app, para as colunas
+// antigas e o respostas ficarem alinhados.
+export const getEventoCompleto = async (id) => {
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("*, clientes(*)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const { clientes: cliente, ...submissao } = data;
+  return { ...normalizeSubmission(submissao), cliente: cliente || null };
 };
 
 // Atualiza os dados da pessoa (nome, contacto, email, nif, morada, notas).

@@ -358,12 +358,21 @@ export default function FichaEvento({
 
 // ------------------------------------------------------------
 // A ficha propriamente dita: materiais na ficha + adicionar
+//
+// Exportada porque vive em dois sítios: aqui, debaixo do selector de
+// eventos da Logística, e como separador "Materiais" da página do
+// evento. Nesse segundo caso passa `dentroDaPagina`, que desliga a
+// barra sticky (o cabeçalho da página já é sticky e já diz de que
+// evento se trata — duas barras coladas ao topo brigavam pelo mesmo
+// espaço) e as margens negativas, que só compensam o padding do
+// container do AdminPage.
 // ------------------------------------------------------------
-function FichaMateriais({
+export function FichaMateriais({
   submissionId,
   submissao,
   eventTypes = [],
   onFichaAlterada,
+  dentroDaPagina = false,
 }) {
   const [catalogo, setCatalogo] = useState([]);
   const [linhas, setLinhas] = useState([]); // evento_materiais (com .material)
@@ -466,10 +475,11 @@ function FichaMateriais({
 
   return (
     <div>
-      {/* Barra de estado + adicionar — sticky no topo enquanto rola */}
+      {/* Barra de estado + adicionar — sticky no topo enquanto rola
+          (na página do evento não, ver o comentário em FichaMateriais) */}
       <div
         style={{
-          position: "sticky",
+          position: dentroDaPagina ? "static" : "sticky",
           top: 0,
           zIndex: 20,
           display: "flex",
@@ -480,26 +490,29 @@ function FichaMateriais({
           // margens negativas para colar de ponta a ponta (compensa o
           // padding do container do AdminPage) e um fundo opaco para os
           // materiais não se verem por trás ao rolar
-          margin: "0 -16px 16px",
-          padding: "12px 16px",
-          backgroundColor: "var(--cream)",
+          margin: dentroDaPagina ? "0 0 16px" : "0 -16px 16px",
+          padding: dentroDaPagina ? "0 0 12px" : "12px 16px",
+          backgroundColor: dentroDaPagina ? "transparent" : "var(--cream)",
           borderBottom: "1px solid var(--gold-light)",
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: "13px",
-              fontWeight: "600",
-              color: "var(--charcoal)",
-              margin: 0,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {tituloSubmissao(submissao, eventTypes)}
-          </p>
+          {/* Na página, o nome do evento já está no cabeçalho */}
+          {!dentroDaPagina && (
+            <p
+              style={{
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "var(--charcoal)",
+                margin: 0,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {tituloSubmissao(submissao, eventTypes)}
+            </p>
+          )}
           <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0 }}>
             {totalNaFicha === 0
               ? "Ainda sem materiais"
