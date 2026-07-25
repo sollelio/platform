@@ -17,7 +17,6 @@ import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
 import DocumentosEvento from "../components/admin/DocumentosEvento";
-import EditarEvento from "../components/admin/EditarEvento";
 import { FichaMateriais } from "../components/admin/FichaEvento";
 
 // ============================================================
@@ -73,9 +72,6 @@ export default function EventoPage() {
   const [invites, setInvites] = useState([]);
   const [plano, setPlano] = useState({ previstos: [], pagamentos: [] });
   const [estado, setEstado] = useState("a-carregar");
-  // Editar deixou de ser um modo do drawer: corrige-se onde os valores
-  // se leem, na Visão geral.
-  const [aEditar, setAEditar] = useState(false);
 
   const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;
 
@@ -144,14 +140,6 @@ export default function EventoPage() {
     const tipo = eventTypes.find((et) => et.id === submissao?.event_type_id);
     return seccoesDoModelo(tipo);
   }, [eventTypes, submissao?.event_type_id]);
-
-  // O campo do modelo marcado como "a data do evento" (papel: "data") —
-  // qualquer edição da data tem de escrever também nele, não só na
-  // coluna data_evento (mesmo critério da leitura em getResumoSubmissao).
-  const campoData = useMemo(
-    () => seccoes.flatMap((sec) => sec.campos).find((c) => c.papel === "data"),
-    [seccoes],
-  );
 
   if (estado === "a-carregar") return <Centrado>A abrir o evento…</Centrado>;
   if (estado === "nao-encontrado")
@@ -227,10 +215,7 @@ export default function EventoPage() {
           onAba={irParaAba}
           onVoltar={() => voltarAoAdmin("clientes")}
           onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
-          onEditar={() => {
-            setAEditar(true);
-            if (activeAba !== "visao-geral") irParaAba("visao-geral");
-          }}
+          onEditar={() => irParaAba("visao-geral")}
           onWhatsApp={
             ligacaoWhatsApp
               ? () => window.open(ligacaoWhatsApp, "_blank")
@@ -248,24 +233,17 @@ export default function EventoPage() {
         />
 
         <div style={{ padding: "24px 40px 60px" }}>
-          {activeAba === "visao-geral" &&
-            (aEditar ? (
-              <EditarEvento
-                submissao={submissao}
-                seccoes={seccoes}
-                campoData={campoData}
-                onSaved={(atualizada) =>
-                  setSubmissao((s) => ({ ...s, ...atualizada }))
-                }
-                onFechar={() => setAEditar(false)}
-              />
-            ) : (
-              <VisaoGeralEvento
-                submissao={submissao}
-                seccoes={seccoes}
-                mosaico
-              />
-            ))}
+          {activeAba === "visao-geral" && (
+            <VisaoGeralEvento
+              submissao={submissao}
+              seccoes={seccoes}
+              mosaico
+              onSaved={(atualizada) =>
+                setSubmissao((s) => ({ ...s, ...atualizada }))
+              }
+              onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
+            />
+          )}
 
           {activeAba === "documentos" && (
             <DocumentosEvento
