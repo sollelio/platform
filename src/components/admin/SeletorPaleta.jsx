@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { GRUPOS_PALETA, corTextoSobre, hexDaCor } from "../../lib/paletaCores";
+import {
+  COR_NEUTRA,
+  GRUPOS_PALETA,
+  corTextoSobre,
+  hexDaCor,
+} from "../../lib/paletaCores";
 
 // ============================================================
 // SeletorPaleta — grelha de cores clicáveis (dois grupos) +
@@ -14,9 +19,11 @@ import { GRUPOS_PALETA, corTextoSobre, hexDaCor } from "../../lib/paletaCores";
 //   value      — array de {nome,hex} OU array de strings (antigo)
 //   onChange(novoArray)  — devolve sempre array de {nome,hex}
 //   compact    — amostras mais pequenas (drawer estreito)
+//   extras     — cores personalizadas a mostrar mesmo por escolher.
+//                É para a ficha de materiais: inventa-se "Verde Tiffany"
+//                numa linha e quer-se a mesma nas cinco seguintes, sem
+//                a voltar a misturar no color picker.
 // ============================================================
-
-const COR_NEUTRA = "#DDDDDD";
 
 // Normaliza qualquer formato de valor para array de { nome, hex }.
 export function normalizarCores(value) {
@@ -38,7 +45,12 @@ export function normalizarCores(value) {
     .filter(Boolean);
 }
 
-export default function SeletorPaleta({ value, onChange, compact = false }) {
+export default function SeletorPaleta({
+  value,
+  onChange,
+  compact = false,
+  extras = [],
+}) {
   const selecionadas = normalizarCores(value);
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [corTemp, setCorTemp] = useState("#C9A84C");
@@ -103,16 +115,23 @@ export default function SeletorPaleta({ value, onChange, compact = false }) {
         </div>
       ))}
 
-      {/* Cores personalizadas já escolhidas (fora do catálogo) */}
+      {/* Cores fora do catálogo: as escolhidas aqui e as que já andam
+          pela ficha (extras). Clicam-se como as outras — a diferença é
+          só de onde vieram. */}
       {(() => {
         const nomesCatalogo = new Set(
           GRUPOS_PALETA.flatMap((g) =>
             g.cores.map((c) => c.nome.toLowerCase()),
           ),
         );
-        const personalizadas = selecionadas.filter(
-          (c) => !nomesCatalogo.has(c.nome.toLowerCase()),
-        );
+        const personalizadas = [];
+        const vistas = new Set();
+        for (const cor of [...selecionadas, ...normalizarCores(extras)]) {
+          const chave = cor.nome.toLowerCase();
+          if (nomesCatalogo.has(chave) || vistas.has(chave)) continue;
+          vistas.add(chave);
+          personalizadas.push(cor);
+        }
         if (personalizadas.length === 0) return null;
         return (
           <div>
@@ -128,16 +147,10 @@ export default function SeletorPaleta({ value, onChange, compact = false }) {
                 <BolaCor
                   key={cor.nome}
                   cor={cor}
-                  ativo={true}
+                  ativo={estaSelecionada(cor.nome)}
                   amostra={amostra}
                   compact={compact}
-                  onClick={() =>
-                    onChange(
-                      selecionadas.filter(
-                        (c) => c.nome.toLowerCase() !== cor.nome.toLowerCase(),
-                      ),
-                    )
-                  }
+                  onClick={() => toggle(cor)}
                 />
               ))}
             </div>

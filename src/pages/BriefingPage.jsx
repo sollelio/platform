@@ -9,6 +9,7 @@ import {
   formatarDataISO,
 } from "../lib/submissionFields";
 import { normalizarCores } from "../components/admin/SeletorPaleta";
+import { coresDeTexto } from "../lib/paletaCores";
 import { formatarMorada } from "../lib/morada";
 
 // ============================================================
@@ -283,17 +284,6 @@ const CAMPOS_CAPTACAO = [
 // conjunto. Aqui é uma linha por material, com as letras C · M · H a
 // dizer em que listas entra.
 // ------------------------------------------------------------
-// evento_materiais.cores é TEXTO ("Marfim, Dourado"), não array — o
-// normalizarCores só aceita array (mesma conversão que a ficha faz em
-// FichaEvento.jsx e o imprimirFicha.js).
-const coresDaLinha = (texto) =>
-  normalizarCores(
-    String(texto || "")
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean),
-  );
-
 function FichaImpressa({ materiais }) {
   if (!materiais || materiais.length === 0) return null;
 
@@ -434,7 +424,7 @@ function FichaImpressa({ materiais }) {
                 {m.unidade ? ` ${m.unidade}` : ""}
               </span>
               <span style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
-                {coresDaLinha(m.cores).map((c) => (
+                {coresDeTexto(m.cores).map((c) => (
                   <span
                     key={c.nome || c.hex}
                     title={c.nome}

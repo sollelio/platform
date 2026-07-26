@@ -8,8 +8,8 @@ import {
   agruparPorCategoria,
 } from "../../lib/materiais";
 import { imprimirFicha } from "../../lib/imprimirFicha";
-import { normalizarCores } from "./SeletorPaleta";
-import { GRUPOS_PALETA, corTextoSobre } from "../../lib/paletaCores";
+import SeletorPaleta from "./SeletorPaleta";
+import { coresDeTexto, textoDeCores } from "../../lib/paletaCores";
 
 // ============================================================
 // FichaMateriais — a ficha do evento, em tabela.
@@ -52,20 +52,18 @@ const disponivel = (material) => {
   return Math.max(0, total - (Number(material?.por_confirmar) || 0));
 };
 
-const textoParaCores = (txt) =>
-  normalizarCores(
-    String(txt || "")
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean),
-  );
-
-const coresParaTexto = (arr) => (arr || []).map((c) => c.nome).join(", ");
-
 // ---------- Cores em popover ----------
-function PopoverCores({ valor, onEscolher, onFechar }) {
-  const escolhidas = textoParaCores(valor);
-  const temNome = (nome) => escolhidas.some((c) => c.nome === nome);
+//
+// É o SeletorPaleta do formulário, tal e qual — catálogo, cor
+// personalizada com color picker, e as personalizadas que já andam pela
+// ficha à mão para as repetir noutra linha. Havia aqui uma segunda
+// grelha de cores, só com o catálogo: quem inventava uma cor no
+// onboarding não a conseguia pôr no material que a leva.
+//
+// Só o formato muda: aqui a coluna é TEXTO, e é o paletaCores que sabe
+// escrevê-la e lê-la sem perder o hex das cores inventadas.
+function PopoverCores({ valor, extras, posicao, onEscolher, onFechar }) {
+  const escolhidas = coresDeTexto(valor);
 
   // Escape fecha. O clique fora já fechava, mas quem está a percorrer a
   // linha com o teclado não tem para onde clicar — e o véu que apanha o
@@ -82,13 +80,6 @@ function PopoverCores({ valor, onEscolher, onFechar }) {
     return () => document.removeEventListener("keydown", aoTeclar, true);
   }, [onFechar]);
 
-  const alternar = (cor) => {
-    const novas = temNome(cor.nome)
-      ? escolhidas.filter((c) => c.nome !== cor.nome)
-      : [...escolhidas, cor];
-    onEscolher(coresParaTexto(novas));
-  };
-
   return (
     <>
       <div
@@ -98,10 +89,17 @@ function PopoverCores({ valor, onEscolher, onFechar }) {
       <div
         style={{
           position: "absolute",
-          top: "calc(100% + 6px)",
+          // Abre para baixo, ou para cima nas linhas do fundo da ficha:
+          // com o catálogo todo à vista o painel é alto, e uma linha
+          // baixa mandava metade dele para fora da janela.
+          ...(posicao.acima
+            ? { bottom: "calc(100% + 6px)" }
+            : { top: "calc(100% + 6px)" }),
           left: 0,
           zIndex: 61,
-          width: "260px",
+          width: "296px",
+          maxHeight: `${posicao.altura}px`,
+          overflowY: "auto",
           backgroundColor: "white",
           border: "1px solid var(--gold-light)",
           borderRadius: "12px",
@@ -109,49 +107,12 @@ function PopoverCores({ valor, onEscolher, onFechar }) {
           padding: "12px",
         }}
       >
-        {GRUPOS_PALETA.map((grupo) => (
-          <div key={grupo.titulo} style={{ marginBottom: "10px" }}>
-            <p
-              style={{
-                fontSize: "9px",
-                fontWeight: "700",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--gold-dark)",
-                margin: "0 0 6px",
-              }}
-            >
-              {grupo.titulo}
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {grupo.cores.map((cor) => {
-                const activa = temNome(cor.nome);
-                return (
-                  <button
-                    key={cor.nome}
-                    onClick={() => alternar(cor)}
-                    title={cor.nome}
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                      backgroundColor: cor.hex,
-                      border: activa
-                        ? "2px solid var(--gold-dark)"
-                        : "1px solid rgba(0,0,0,0.12)",
-                      cursor: "pointer",
-                      fontSize: "10px",
-                      color: corTextoSobre(cor.hex),
-                      lineHeight: 1,
-                    }}
-                  >
-                    {activa ? "✓" : ""}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <SeletorPaleta
+          value={escolhidas}
+          extras={extras}
+          onChange={(cores) => onEscolher(textoDeCores(cores))}
+          compact
+        />
       </div>
     </>
   );
@@ -164,10 +125,14 @@ function Linha({
   onSeleccionar,
   onActualizar,
   aoTabular,
+  coresDaFicha = [],
 }) {
-  const [popover, setPopover] = useState(false);
+  // O popover das cores guarda para que lado abriu e com que altura —
+  // medido no clique, que é o único momento em que a linha está no sítio
+  // onde vai ficar.
+  const [popover, setPopover] = useState(null);
   const material = linha.material || {};
-  const cores = textoParaCores(linha.cores);
+  const cores = coresDeTexto(linha.cores);
   const stock = disponivel(material);
   const quantidade = Number(linha.quantidade) || 0;
   const semQuantidade = quantidade <= 0;
@@ -239,7 +204,20 @@ function Linha({
 
       <div style={{ position: "relative" }}>
         <button
-          onClick={() => setPopover((p) => !p)}
+          onClick={(evento) => {
+            if (popover) {
+              setPopover(null);
+              return;
+            }
+            const caixa = evento.currentTarget.getBoundingClientRect();
+            const abaixo = window.innerHeight - caixa.bottom - 16;
+            const acima = caixa.top - 16;
+            const paraCima = abaixo < 340 && acima > abaixo;
+            setPopover({
+              acima: paraCima,
+              altura: Math.max(220, Math.min(480, paraCima ? acima : abaixo)),
+            });
+          }}
           title="Cores"
           style={{
             display: "flex",
@@ -274,8 +252,10 @@ function Linha({
         {popover && (
           <PopoverCores
             valor={linha.cores}
+            extras={coresDaFicha}
+            posicao={popover}
             onEscolher={(texto) => onActualizar({ cores: texto })}
-            onFechar={() => setPopover(false)}
+            onFechar={() => setPopover(null)}
           />
         )}
       </div>
@@ -515,6 +495,18 @@ export default function FichaMateriais({
     () => new Set(linhas.map((l) => l.material_id)),
     [linhas],
   );
+
+  // Todas as cores já usadas nesta ficha, para o seletor as oferecer em
+  // qualquer linha: uma cor inventada uma vez raramente é para uma linha
+  // só, e reinventá-la no color picker nunca daria o mesmo hex.
+  const coresDaFicha = useMemo(() => {
+    const porNome = new Map();
+    for (const linha of linhas)
+      for (const cor of coresDeTexto(linha.cores))
+        if (!porNome.has(cor.nome.toLowerCase()))
+          porNome.set(cor.nome.toLowerCase(), cor);
+    return [...porNome.values()];
+  }, [linhas]);
 
   const contagens = useMemo(() => {
     const conta = (f) => linhas.filter(f).length;
@@ -849,6 +841,7 @@ export default function FichaMateriais({
                       }
                       onActualizar={(campos) => actualizar(linha.id, campos)}
                       aoTabular={aoTabular}
+                      coresDaFicha={coresDaFicha}
                     />
                   ))}
                   {filtro === "tudo" && (

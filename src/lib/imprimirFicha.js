@@ -1,4 +1,4 @@
-import { hexDaCor } from "./paletaCores";
+import { coresDeTexto } from "./paletaCores";
 
 // ============================================================
 // imprimirFicha — gera as TRÊS listas operacionais de um evento
@@ -28,16 +28,13 @@ const formatarDataPT = (data) => {
 
 // "Camel, Verde Esmeralda" → bolinhas + nomes (HTML)
 const coresHtml = (texto) => {
-  const nomes = String(texto || "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-  if (nomes.length === 0) return "";
-  return nomes
-    .map((nome) => {
-      const hex = hexDaCor(nome) || "#E5E7EB";
-      return `<span class="cor"><span class="bola" style="background:${hex}"></span>${escapar(nome)}</span>`;
-    })
+  const cores = coresDeTexto(texto);
+  if (cores.length === 0) return "";
+  return cores
+    .map(
+      ({ nome, hex }) =>
+        `<span class="cor"><span class="bola" style="background:${hex}"></span>${escapar(nome)}</span>`,
+    )
     .join("");
 };
 
