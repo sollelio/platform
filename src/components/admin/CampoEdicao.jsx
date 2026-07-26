@@ -157,6 +157,7 @@ export default function CampoEdicao({ campo, valor, onChange }) {
         <textarea
           rows={2}
           value={valor || ""}
+          placeholder={campo.placeholder || ""}
           onChange={(e) => onChange(e.target.value)}
           style={{ ...inputStyle, resize: "none" }}
         />
@@ -165,12 +166,16 @@ export default function CampoEdicao({ campo, valor, onChange }) {
   }
 
   // Input simples (text, tel, email, number, date, time...)
+  // O placeholder do modelo vale sobretudo no modo de edição, onde
+  // aparecem os campos que ainda ninguém respondeu: é a única pista do
+  // que lá se espera ver escrito.
   return (
     <div>
       {label}
       <input
         type={campo.type || "text"}
         value={valor || ""}
+        placeholder={campo.placeholder || ""}
         onChange={(e) => onChange(e.target.value)}
         style={inputStyle}
       />

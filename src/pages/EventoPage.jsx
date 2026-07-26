@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
@@ -9,6 +9,7 @@ import {
   getValorAtual,
   seccoesDoModelo,
 } from "../lib/submissionFields";
+import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import { SidebarNav } from "../components/admin/Navegacao";
@@ -44,6 +45,18 @@ const ABAS = [
 
 const ABA_PREDEFINIDA = "visao-geral";
 
+const botaoSaida = (perigo) => ({
+  padding: "9px 16px",
+  borderRadius: "10px",
+  border: `1.5px solid ${perigo ? "#FECACA" : "var(--gold)"}`,
+  backgroundColor: perigo ? "white" : "var(--gold)",
+  color: perigo ? "#B91C1C" : "white",
+  fontSize: "12.5px",
+  fontWeight: "500",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+});
+
 function Centrado({ children }) {
   return (
     <div
@@ -72,6 +85,28 @@ export default function EventoPage() {
   const [invites, setInvites] = useState([]);
   const [plano, setPlano] = useState({ previstos: [], pagamentos: [] });
   const [estado, setEstado] = useState("a-carregar");
+
+  // A EDIÇÃO DO BRIEFING vive aqui inteira — o modo E os rascunhos —
+  // porque é aqui que sobrevive a tudo o que a página faz. Dentro da
+  // Visão geral, ir a Documentos e voltar deitava fora o que estivesse
+  // escrito: mudar de separador desmonta-a. Um andar acima, os
+  // separadores deixam de ser uma fronteira.
+  //
+  // Guarda-se o ID do evento em edição, e não um sim/não: trocar de
+  // evento não remonta a página, e assim o modo fecha-se sozinho ao
+  // mudar de :id, sem efeito nenhum pelo meio. Os rascunhos ficam a
+  // `null` até alguém escrever a primeira letra — quem os desenha sabe
+  // ler os valores guardados sozinho.
+  //
+  // O ref é o fio por onde o "Concluir edição" do cabeçalho guarda pela
+  // mão da Visão geral (é ela que fala com a base de dados).
+  const [edicao, setEdicao] = useState(null);
+  const controloEdicaoRef = useRef(null);
+  const aEditar = edicao?.id === id;
+
+  // Uma saída da página com trabalho por guardar pede confirmação. Guarda
+  // o separador do painel a que se ia, para o levar lá depois.
+  const [saidaPendente, setSaidaPendente] = useState(null);
 
   const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;
 
@@ -141,6 +176,22 @@ export default function EventoPage() {
     return seccoesDoModelo(tipo);
   }, [eventTypes, submissao?.event_type_id]);
 
+  // Quanto está por guardar, visto de fora da Visão geral: é o que põe o
+  // ponto dourado no separador (de qualquer outro se vê que ficou
+  // trabalho a meio) e o que faz a saída da página perguntar antes.
+  const porGuardar = useMemo(
+    () => (aEditar ? contarAlteracoes(submissao, seccoes, edicao.rascunhos) : 0),
+    [aEditar, edicao, submissao, seccoes],
+  );
+
+  const abasComAviso = useMemo(
+    () =>
+      porGuardar > 0
+        ? ABAS.map((a) => (a.id === "visao-geral" ? { ...a, porGuardar } : a))
+        : ABAS,
+    [porGuardar],
+  );
+
   if (estado === "a-carregar") return <Centrado>A abrir o evento…</Centrado>;
   if (estado === "nao-encontrado")
     return (
@@ -171,14 +222,47 @@ export default function EventoPage() {
     null;
   const ligacaoWhatsApp = numeroWhatsapp ? linkWhatsApp(numeroWhatsapp) : null;
 
-  const irParaAba = (novaAba) =>
+  // Mudar de separador não mexe na edição: ela fica onde estava, e a
+  // Visão geral encontra-a intacta quando se voltar.
+  const irParaAba = (novaAba) => {
     navigate(`/evento/${id}/${novaAba}`, { replace: false });
+  };
+
+  // "Editar" abre o briefing todo em campos de escrita; o mesmo botão,
+  // já aberto, é "Concluir edição" e guarda o que estiver por guardar.
+  const alternarEdicao = () => {
+    // Noutro separador o botão é o caminho de volta: retoma a edição que
+    // ficou a meio (ou abre uma nova) e leva ao sítio onde ela se vê.
+    if (activeAba !== "visao-geral") {
+      if (!aEditar) setEdicao({ id, rascunhos: null });
+      irParaAba("visao-geral");
+      return;
+    }
+    if (!aEditar) {
+      setEdicao({ id, rascunhos: null });
+      return;
+    }
+    // Sem nada montado do outro lado (um evento sem modelo associado
+    // não tem campos para editar), "Concluir" é só fechar.
+    const controlo = controloEdicaoRef.current;
+    if (controlo?.guardar) controlo.guardar();
+    else setEdicao(null);
+  };
 
   // O drawer manda para tabs do admin por callback; aqui a navegação é
   // mesmo navegação. O `state` diz ao AdminPage em que separador abrir
   // (ele não lê o tab do URL — ver o risco assumido no plano).
-  const voltarAoAdmin = (tab = "clientes") =>
+  //
+  // Sair da página é a única saída que ainda deita rascunhos fora (a ida
+  // a outro separador já não), por isso é a única que pergunta — e
+  // pergunta aqui no ecrã, nunca num diálogo do browser.
+  const voltarAoAdmin = (tab = "clientes") => {
+    if (porGuardar > 0) {
+      setSaidaPendente(tab);
+      return;
+    }
     navigate("/admin", { state: { tab } });
+  };
 
   const aoMudarEstado = async (submissionId, novoStatus, fase) => {
     try {
@@ -210,12 +294,14 @@ export default function EventoPage() {
           previstos={plano.previstos}
           pagamentos={plano.pagamentos}
           resumoDinheiro={resumoDinheiro}
-          abas={ABAS}
+          abas={abasComAviso}
           activeAba={activeAba}
           onAba={irParaAba}
           onVoltar={() => voltarAoAdmin("clientes")}
           onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
-          onEditar={() => irParaAba("visao-geral")}
+          onEditar={alternarEdicao}
+          editando={aEditar}
+          edicaoNoutroSeparador={aEditar && activeAba !== "visao-geral"}
           onWhatsApp={
             ligacaoWhatsApp
               ? () => window.open(ligacaoWhatsApp, "_blank")
@@ -238,6 +324,13 @@ export default function EventoPage() {
               submissao={submissao}
               seccoes={seccoes}
               mosaico
+              editando={aEditar}
+              rascunhos={edicao?.rascunhos ?? null}
+              onRascunhos={(novos) =>
+                setEdicao((atual) => (atual ? { ...atual, rascunhos: novos } : atual))
+              }
+              controloEdicaoRef={controloEdicaoRef}
+              onFecharEdicao={() => setEdicao(null)}
               onSaved={(atualizada) =>
                 setSubmissao((s) => ({ ...s, ...atualizada }))
               }
@@ -291,6 +384,69 @@ export default function EventoPage() {
           )}
         </div>
       </div>
+
+      {/* Sair da página com o briefing a meio: pergunta-se no lugar,
+          como na remoção em lote. Não há "guardar e sair" aqui de
+          propósito — a barra da edição, a dois passos, é que guarda, e
+          duas maneiras de guardar são uma a mais. */}
+      {/* O `porGuardar > 0` também é o desfazer: se entretanto guardares
+          pela barra da edição, a pergunta deixa de fazer sentido e sai
+          do ecrã sozinha. */}
+      {saidaPendente && porGuardar > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            // Acima da barra da edição, não em cima dela: as duas falam
+            // do mesmo trabalho e sobrepostas liam-se mal.
+            bottom: "96px",
+            transform: "translateX(-50%)",
+            zIndex: 40,
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            flexWrap: "wrap",
+            width: "min(680px, calc(100vw - 48px))",
+            backgroundColor: "white",
+            border: "1.5px solid var(--gold)",
+            borderRadius: "14px",
+            padding: "12px 16px",
+            boxShadow: "0 14px 36px rgba(26,26,26,0.18)",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "var(--charcoal)" }}>
+            Tens {porGuardar}{" "}
+            {porGuardar === 1 ? "alteração" : "alterações"} por guardar no
+            briefing.
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => {
+              setSaidaPendente(null);
+              if (activeAba !== "visao-geral") irParaAba("visao-geral");
+            }}
+            style={{
+              ...botaoSaida(false),
+              backgroundColor: "white",
+              borderColor: "var(--gold-light)",
+              color: "var(--gray-mid)",
+            }}
+          >
+            Continuar a editar
+          </button>
+          <button
+            onClick={() => {
+              const destino = saidaPendente;
+              setSaidaPendente(null);
+              setEdicao(null);
+              navigate("/admin", { state: { tab: destino } });
+            }}
+            style={botaoSaida(true)}
+          >
+            Sair sem guardar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

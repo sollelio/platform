@@ -76,6 +76,7 @@ const botao = (cor) => ({
 
 const CORES_BOTAO = {
   ouro: { borda: "var(--gold)", fundo: "white", texto: "var(--gold)" },
+  ouroCheio: { borda: "var(--gold)", fundo: "var(--gold)", texto: "white" },
   verde: { borda: "#BBF7D0", fundo: "#F0FDF4", texto: "#166534" },
   neutro: { borda: "var(--gold-light)", fundo: "white", texto: "var(--gray-mid)" },
 };
@@ -185,6 +186,23 @@ function Separadores({ abas, activeAba, onAba }) {
                 {aba.contagem}
               </span>
             )}
+            {/* O mesmo ponto dourado que marca um campo por guardar,
+                aqui a dizer o mesmo de outro separador: ficou trabalho
+                à espera na Visão geral. */}
+            {aba.porGuardar > 0 && (
+              <span
+                title={`${aba.porGuardar} ${
+                  aba.porGuardar === 1 ? "alteração" : "alterações"
+                } por guardar`}
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: ativo ? "white" : "var(--gold)",
+                  flexShrink: 0,
+                }}
+              />
+            )}
           </button>
         );
       })}
@@ -207,6 +225,8 @@ export default function CabecalhoEvento({
   onImprimir,
   onWhatsApp,
   onEditar,
+  editando = false,
+  edicaoNoutroSeparador = false,
   onEtapa,
   onStatusChange,
 }) {
@@ -235,23 +255,70 @@ export default function CabecalhoEvento({
 
   const quantoFalta = contagem(resumoEvento.data);
 
+  // Condensado E a editar, a régua fica curta e três botões não cabem em
+  // ecrãs estreitos — a saída da edição é a que não pode faltar, as
+  // outras duas voltam mal se pare de rolar (ou se conclua).
+  const soEdicao = condensado && editando;
+
   const acoes = (
     <div style={{ display: "flex", gap: "8px" }}>
-      <button onClick={onImprimir} style={botao(CORES_BOTAO.ouro)}>
-        {condensado ? "Imprimir" : "Imprimir / Guardar PDF"}
-      </button>
-      {onWhatsApp && (
+      {!soEdicao && (
+        <button onClick={onImprimir} style={botao(CORES_BOTAO.ouro)}>
+          {condensado ? "Imprimir" : "Imprimir / Guardar PDF"}
+        </button>
+      )}
+      {onWhatsApp && !soEdicao && (
         <button onClick={onWhatsApp} style={botao(CORES_BOTAO.verde)}>
           <Icone nome="mensagens" tamanho={15} />
           WhatsApp
         </button>
       )}
-      {!condensado && onEditar && (
-        <button onClick={onEditar} style={botao(CORES_BOTAO.neutro)}>
-          <span style={{ color: "var(--gold)", display: "flex" }}>
-            <Icone nome="lapis" tamanho={14} />
-          </span>
-          Editar
+      {/* Editar → abre o briefing inteiro em campos de escrita, na Visão
+          geral. Três estados, porque a edição sobrevive a uma ida a
+          outro separador:
+            fechado  — "Editar", e abre;
+            a editar — "Concluir edição", e guarda;
+            noutro separador — "Voltar à edição", e traz de volta ao
+              sítio onde os rascunhos estão à espera (guardar daqui era
+              impossível: os campos nem sequer estão montados).
+          Fica visível mesmo com o cabeçalho condensado, senão a saída
+          desaparecia ao rolar. */}
+      {onEditar && (!condensado || editando) && (
+        <button
+          onClick={onEditar}
+          title={
+            !editando
+              ? "Editar os dados do briefing"
+              : edicaoNoutroSeparador
+                ? "Voltar à Visão geral, onde ficou a edição a meio"
+                : "Guardar as alterações e voltar à leitura"
+          }
+          style={botao(
+            !editando
+              ? CORES_BOTAO.neutro
+              : edicaoNoutroSeparador
+                ? CORES_BOTAO.ouro
+                : CORES_BOTAO.ouroCheio,
+          )}
+        >
+          {editando && !edicaoNoutroSeparador ? (
+            <span style={{ display: "flex", fontSize: "13px", lineHeight: 1 }}>
+              ✓
+            </span>
+          ) : (
+            <span style={{ color: "var(--gold)", display: "flex" }}>
+              <Icone nome="lapis" tamanho={14} />
+            </span>
+          )}
+          {!editando
+            ? "Editar"
+            : edicaoNoutroSeparador
+              ? condensado
+                ? "Voltar"
+                : "Voltar à edição"
+              : condensado
+                ? "Concluir"
+                : "Concluir edição"}
         </button>
       )}
     </div>
