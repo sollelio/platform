@@ -158,7 +158,7 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
         : "registar o sinal";
     if (atual.id === "projecto") return "criar o projecto";
     if (atual.id === "contrato") return "preparar o contrato";
-    if (atual.id === "preparacao") return "preparar o evento (Logística)";
+    if (atual.id === "preparacao") return "preparar o evento (Materiais)";
     if (atual.id === "grandeDia")
       return "está tudo pronto — falta o grande dia 🥂";
     return null;

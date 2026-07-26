@@ -1434,7 +1434,6 @@ export default function AdminPage() {
         onVerFormulario={handleVerFormularioDoEvento}
         onModeloCriado={fetchEventTypes}
         invites={invites}
-        onNavegar={handleNavegar}
       />
 
       {/* Modal de partilha */}

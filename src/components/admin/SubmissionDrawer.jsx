@@ -72,7 +72,6 @@ export default function SubmissionDrawer({
   onFormulario,
   onVerFormulario,
   invites = [],
-  onNavegar,
   onModeloCriado,
 }) {
   const [folhaMensagens, setFolhaMensagens] = useState(false);
@@ -332,10 +331,14 @@ export default function SubmissionDrawer({
                 else if (id === "contrato")
                   onGerarDocumento && onGerarDocumento(selected, "contrato");
                 else if (id === "formulario") abrirFormulario();
-                else if (id === "preparacao" && onNavegar) {
-                  onClose();
-                  onNavegar("operacional");
-                }
+                // A ficha de materiais deste evento — o mesmo destino do
+                // "→ A seguir" aqui ao lado. Mandava para a Logística de
+                // quando a ficha vivia lá; desde que ela passou para
+                // dentro do evento, ir à Logística era chegar a um sítio
+                // onde é preciso procurar outra vez o evento que já está
+                // aberto à frente.
+                else if (id === "preparacao")
+                  navigate(`/evento/${selected.id}/materiais`);
               }}
             />
 

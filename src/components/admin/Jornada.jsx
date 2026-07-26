@@ -312,6 +312,14 @@ export default function Jornada({
               );
             })}
           </div>
+          {/* Preparar o evento é mexer na ficha de materiais DELE — e é
+              para lá que os dois sítios que usam a Jornada mandam. Dizia
+              "Abrir Logística" desde que a ficha vivia lá dentro, num
+              sub-separador "Fichas" que deixou de existir quando ela
+              passou para o evento; o rótulo ficou a apontar para uma
+              casa que já não guarda o que prometia. Se algum dia um
+              destes sítios mandar para outro lado, é este texto que tem
+              de mudar com ele. */}
           {popoverEtapa === "preparacao" && onEtapa && (
             <button
               onClick={() => {
@@ -329,7 +337,7 @@ export default function Jornada({
                 textDecoration: "underline",
               }}
             >
-              Abrir Logística →
+              Abrir a ficha de materiais →
             </button>
           )}
         </div>
