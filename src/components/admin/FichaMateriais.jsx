@@ -9,7 +9,11 @@ import {
 } from "../../lib/materiais";
 import { imprimirFicha } from "../../lib/imprimirFicha";
 import SeletorPaleta from "./SeletorPaleta";
-import { coresDeTexto, textoDeCores } from "../../lib/paletaCores";
+import {
+  GRUPOS_PALETA,
+  coresDeTexto,
+  textoDeCores,
+} from "../../lib/paletaCores";
 
 // ============================================================
 // FichaMateriais — a ficha do evento, em tabela.
@@ -62,6 +66,21 @@ const disponivel = (material) => {
 //
 // Só o formato muda: aqui a coluna é TEXTO, e é o paletaCores que sabe
 // escrevê-la e lê-la sem perder o hex das cores inventadas.
+//
+// O painel ALARGA em vez de ganhar barra de scroll: uma paleta é para se
+// ver de uma vez, e rolar para procurar uma cor é o contrário disso.
+// Quantas cabem por linha é o espaço que decide — daí a largura sair de
+// uma conta e não de um número fixo. Em oito por linha o catálogo inteiro
+// cabe em três linhas e a caixa da cor personalizada deixa de partir ao
+// meio. A altura máxima fica como rede: com muitas personalizadas, ou
+// numa janela baixa, mais vale rolar do que transbordar.
+// Cada amostra compacta ocupa 52px, com 6px de gap entre elas; mais os
+// 24px de padding do painel. Os 6 de folga não são enfeite: sem eles a
+// conta dá a largura exacta, e uma fracção de pixel manda a última cor
+// para a linha seguinte — que era justamente o que se queria evitar.
+const CORES_POR_LINHA = 8;
+const larguraDoPainel = (colunas) => 58 * colunas + 24;
+
 function PopoverCores({ valor, extras, posicao, onEscolher, onFechar }) {
   const escolhidas = coresDeTexto(valor);
 
@@ -95,9 +114,11 @@ function PopoverCores({ valor, extras, posicao, onEscolher, onFechar }) {
           ...(posicao.acima
             ? { bottom: "calc(100% + 6px)" }
             : { top: "calc(100% + 6px)" }),
-          left: 0,
+          // Alinhado pela esquerda da célula, ou pela direita quando é
+          // desse lado que há espaço para o painel abrir.
+          ...(posicao.aDireita ? { right: 0 } : { left: 0 }),
           zIndex: 61,
-          width: "296px",
+          width: `${posicao.largura}px`,
           maxHeight: `${posicao.altura}px`,
           overflowY: "auto",
           backgroundColor: "white",
@@ -209,13 +230,39 @@ function Linha({
               setPopover(null);
               return;
             }
+            // A janela é a mesma para todos, mas a linha não: a medição
+            // faz-se aqui, com a célula no sítio onde vai ficar.
             const caixa = evento.currentTarget.getBoundingClientRect();
+
+            const aDireita = window.innerWidth - caixa.left - 16;
+            const aEsquerda = caixa.right - 16;
+            const espaco = Math.max(aDireita, aEsquerda);
+            const colunas = Math.max(
+              4,
+              Math.min(CORES_POR_LINHA, Math.floor((espaco - 18) / 58)),
+            );
+            const largura = larguraDoPainel(colunas);
+
             const abaixo = window.innerHeight - caixa.bottom - 16;
             const acima = caixa.top - 16;
-            const paraCima = abaixo < 340 && acima > abaixo;
+            // Quanto ocupa o painel nesta largura: cada grupo do
+            // catálogo mais o rodapé (botão da cor personalizada,
+            // resumo, margens). Serve para escolher o lado, não para
+            // fixar a altura.
+            const alto =
+              GRUPOS_PALETA.reduce(
+                (linhas, g) => linhas + Math.ceil(g.cores.length / colunas),
+                0,
+              ) *
+                52 +
+              170;
+
+            const paraCima = abaixo < alto && acima > abaixo;
             setPopover({
               acima: paraCima,
-              altura: Math.max(220, Math.min(480, paraCima ? acima : abaixo)),
+              aDireita: aDireita < largura && aEsquerda >= largura,
+              largura,
+              altura: Math.max(240, paraCima ? acima : abaixo),
             });
           }}
           title="Cores"
