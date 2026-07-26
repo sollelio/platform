@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  getPagamentosEvento,
   registarPagamento,
   apagarPagamento,
   gerarPrevistos,
@@ -9,18 +9,24 @@ import {
 } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
 import { marcarPagamentoFinal } from "../../lib/clientes";
+import { Icone } from "./Navegacao";
+import { Convite, useContagemAnimada } from "./acabamento";
+import ContribuicaoColetiva from "./ContribuicaoColetiva";
 
 // ============================================================
-// PagamentosEvento — o separador de pagamentos da ficha de evento.
+// PagamentosEvento — o separador de pagamentos da página de evento
+// (desde o redesenho, o único sítio onde isto vive — o drawer ficou
+// espreitadela e deixou de o chamar).
 // Mostra o TOTAL acordado, o que já entrou, o que falta, e o plano
 // (sinal + remanescente) linha a linha — cada linha com o seu próprio
-// "Registar pagamento". Lê e escreve via lib/pagamentos.js; nunca
-// guarda um saldo — soma sempre os `pagamentos` reais na hora.
+// "Registar pagamento".
 //
-// Convive, por agora, com o botão antigo "Marcar pagamento final
-// recebido" mais acima na drawer (ainda não escreve aqui) — a
-// substituição desse botão é um passo à parte, só depois deste painel
-// confirmado a funcionar.
+// O PLANO DESCE POR PROPS: quem o busca (e mantém fresco) é a
+// EventoPage, que já precisava dele para o cabeçalho, a Jornada e as
+// Notas — aqui repeti-lo era uma segunda query a piscar "A carregar…"
+// a cada visita. Registar/apagar devolve a lista nova pelo
+// onPagamentos, e o cabeçalho vê o dinheiro mudar no instante.
+// Nunca se guarda um saldo — soma-se sempre os `pagamentos` na hora.
 // ============================================================
 
 const label = {
@@ -47,9 +53,10 @@ const formatarDataPagamento = (p) => {
   return "sem data";
 };
 
-function LinhaPagamento({ pagamento, onPedirApagar }) {
+function LinhaPagamento({ pagamento, nova, onPedirApagar }) {
   return (
     <div
+      className={nova ? "linha-nova" : undefined}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -72,34 +79,34 @@ function LinhaPagamento({ pagamento, onPedirApagar }) {
       <button
         onClick={() => onPedirApagar(pagamento)}
         title="Apagar este pagamento"
+        className="icone-botao icone-botao--perigo"
         style={{
-          border: "none",
-          background: "none",
           color: "#B91C1C",
-          cursor: "pointer",
-          fontSize: "13px",
           padding: "4px 6px",
           flexShrink: 0,
         }}
       >
-        🗑
+        <Icone nome="lixo" tamanho={15} />
       </button>
     </div>
   );
 }
 
-// Um dos três números do topo. Em largura inteira é serif e grande —
-// é o primeiro sítio onde os olhos pousam ao abrir o separador.
-function Numero({ rotulo, valor, cor, rotuloCor, largo }) {
+// Um dos três números do topo, serif e grande — é o primeiro sítio
+// onde os olhos pousam ao abrir o separador. Quando o valor muda à
+// frente dos olhos, CONTA até lá (o tabular-nums segura a largura);
+// `texto` sobrepõe-se ao número para casos como "✓ Completo".
+function Numero({ rotulo, valor, texto, cor, rotuloCor }) {
+  const animado = useContagemAnimada(valor);
   return (
-    <div style={largo ? undefined : { flex: "1 1 100px" }}>
+    <div>
       <p
         style={{
-          margin: largo ? "0 0 4px" : 0,
+          margin: "0 0 4px",
           fontSize: "10px",
-          color: rotuloCor || (largo ? "#9B9B9B" : "var(--gray-mid)"),
+          color: rotuloCor || "#9B9B9B",
           textTransform: "uppercase",
-          letterSpacing: largo ? "0.14em" : undefined,
+          letterSpacing: "0.14em",
         }}
       >
         {rotulo}
@@ -107,15 +114,15 @@ function Numero({ rotulo, valor, cor, rotuloCor, largo }) {
       <p
         style={{
           margin: 0,
-          fontFamily: largo ? "'Playfair Display', serif" : "inherit",
-          fontSize: largo ? "30px" : "16px",
-          fontWeight: largo ? "400" : "700",
-          lineHeight: largo ? 1 : undefined,
+          fontFamily: "'Playfair Display', serif",
+          fontSize: "30px",
+          fontWeight: "400",
+          lineHeight: 1,
           color: cor || "var(--charcoal)",
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {valor}
+        {texto ?? formatarEuros(animado)}
       </p>
     </div>
   );
@@ -248,6 +255,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           step="0.01"
           value={valor}
           onChange={(e) => setValor(e.target.value)}
+          className="caixa-texto"
           style={inputStyle}
         />
       </div>
@@ -259,6 +267,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           type="date"
           value={data}
           onChange={(e) => setData(e.target.value)}
+          className="caixa-texto"
           style={inputStyle}
         />
       </div>
@@ -271,6 +280,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           value={metodo}
           onChange={(e) => setMetodo(e.target.value)}
           placeholder="MB Way, Transferência..."
+          className="caixa-texto"
           style={inputStyle}
         />
         <datalist id="metodos-pagamento-sugeridos">
@@ -286,6 +296,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         <input
           value={contribuinte}
           onChange={(e) => setContribuinte(e.target.value)}
+          className="caixa-texto"
           style={inputStyle}
         />
       </div>
@@ -296,6 +307,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         <input
           value={notas}
           onChange={(e) => setNotas(e.target.value)}
+          className="caixa-texto"
           style={inputStyle}
         />
       </div>
@@ -322,14 +334,11 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         <button
           onClick={onCancelar}
           disabled={aGuardar}
+          className="acao acao--neutra"
           style={{
             padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
-            border: "1.5px solid var(--gold-light)",
-            backgroundColor: "white",
-            color: "var(--gray-mid)",
-            cursor: "pointer",
           }}
         >
           Cancelar
@@ -337,15 +346,12 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
         <button
           onClick={submeter}
           disabled={aGuardar}
+          className="acao acao--cheia"
           style={{
             padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
             fontWeight: "600",
-            border: "none",
-            backgroundColor: "var(--gold)",
-            color: "white",
-            cursor: aGuardar ? "wait" : "pointer",
           }}
         >
           {aGuardar ? "A guardar..." : "Registar"}
@@ -355,10 +361,29 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
   );
 }
 
-function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbrirFormulario, onFecharFormulario, onGuardarPagamento, onPedirApagar }) {
+function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, novoId, onAbrirFormulario, onFecharFormulario, onGuardarPagamento, onPedirApagar }) {
   const pago = pagamentosDoPrevisto.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
   const falta = Math.round((Number(previsto.valor) - pago) * 100) / 100;
   const completo = falta <= 0;
+  // As contribuições SOMAM aqui (a parcela fica satisfeita) mas as
+  // linhas delas vivem na secção da campanha, não duplicadas nos dois
+  // sítios — aqui fica só a nota do quanto veio de lá.
+  const daCampanha = Math.round(
+    pagamentosDoPrevisto
+      .filter((p) => p.origem === "contribuicao")
+      .reduce((acc, p) => acc + (Number(p.valor) || 0), 0) * 100,
+  ) / 100;
+  const linhasProprias = pagamentosDoPrevisto.filter(
+    (p) => p.origem !== "contribuicao",
+  );
+
+  // O "✓ Recebido" entra com mola quando a parcela SE COMPLETA à
+  // frente dos olhos — nunca ao abrir a página com ela já completa.
+  const primeiraPintura = useRef(true);
+  useEffect(() => {
+    primeiraPintura.current = false;
+  }, []);
+  const reduzirMovimento = useReducedMotion();
 
   return (
     <div
@@ -385,10 +410,23 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbr
           <p style={{ margin: "2px 0 0 0", fontSize: "11px", color: "var(--gray-mid)" }}>
             {formatarEuros(previsto.valor)}
             {previsto.data_limite ? ` · prazo ${formatarDataPT(previsto.data_limite)}` : ""}
+            {daCampanha > 0 && (
+              <span style={{ color: "var(--gold-dark)" }}>
+                {" "}
+                · {formatarEuros(daCampanha)} da contribuição coletiva
+              </span>
+            )}
           </p>
         </div>
         {completo ? (
-          <span
+          <motion.span
+            initial={
+              primeiraPintura.current || reduzirMovimento
+                ? false
+                : { scale: 0.5, opacity: 0 }
+            }
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 26 }}
             style={{
               fontSize: "11px",
               fontWeight: "600",
@@ -400,19 +438,16 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbr
             }}
           >
             ✓ Recebido
-          </span>
+          </motion.span>
         ) : (
           <button
             onClick={() => onAbrirFormulario(previsto.id, falta)}
+            className="acao acao--ouro"
             style={{
               fontSize: "11px",
               fontWeight: "600",
-              border: "1.5px solid var(--gold)",
-              backgroundColor: "white",
-              color: "var(--gold-dark)",
               borderRadius: "999px",
               padding: "5px 12px",
-              cursor: "pointer",
             }}
           >
             {pago > 0
@@ -422,8 +457,13 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbr
         )}
       </div>
 
-      {pagamentosDoPrevisto.map((p) => (
-        <LinhaPagamento key={p.id} pagamento={p} onPedirApagar={onPedirApagar} />
+      {linhasProprias.map((p) => (
+        <LinhaPagamento
+          key={p.id}
+          pagamento={p}
+          nova={p.id === novoId}
+          onPedirApagar={onPedirApagar}
+        />
       ))}
 
       {formularioAberto === previsto.id && (
@@ -437,38 +477,48 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, onAbr
   );
 }
 
-export default function PagamentosEvento({ submissao, onSaved, largo = false }) {
-  const [previstos, setPrevistos] = useState([]);
-  const [pagamentos, setPagamentos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function PagamentosEvento({
+  submissao,
+  previstos = [],
+  pagamentos = [],
+  onPagamentos,
+  onRecarregar,
+  onSaved,
+  realce = null,
+  onRealceConsumido,
+  onIrParaOrcamento,
+}) {
   const [aGerarPlano, setAGerarPlano] = useState(false);
+  // O pagamento acabado de registar chega com brilho (ver .linha-nova)
+  const [novoId, setNovoId] = useState(null);
+  const [erroPlano, setErroPlano] = useState(null);
   const [formularioAberto, setFormularioAberto] = useState(null); // id do previsto, "avulso", ou null
   const [pagamentoParaApagar, setPagamentoParaApagar] = useState(null);
   const [aApagar, setAApagar] = useState(false);
-  // Bumped para forçar um refetch (ex: depois de gerar o plano) sem
-  // precisar de expor uma função "carregar" memoizada.
-  const [chaveRecarga, setChaveRecarga] = useState(0);
+  const [erroApagar, setErroApagar] = useState(null);
+  // A aterragem da pílula "registar o sinal": a parcela acende (pulso)
+  // e o formulário abre-se já — a promessa cumpre-se, ela não procura.
+  const [pulsando, setPulsando] = useState(null); // id do previsto
+  const blocoRefs = useRef({});
 
   useEffect(() => {
-    if (!submissao?.id) return;
-    let cancelado = false;
-    setCarregando(true);
-    (async () => {
-      try {
-        const dados = await getPagamentosEvento(submissao.id);
-        if (!cancelado) {
-          setPrevistos(dados.previstos);
-          setPagamentos(dados.pagamentos);
-        }
-      } catch (e) {
-        console.error("getPagamentosEvento falhou:", e);
-      }
-      if (!cancelado) setCarregando(false);
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, [submissao?.id, chaveRecarga]);
+    if (!realce || realce.alvo !== "sinal") return;
+    const sinal = previstos.find((p) => p.ordem === 1);
+    if (sinal) {
+      const pago = pagamentos
+        .filter((p) => p.previsto_id === sinal.id)
+        .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+      if (Number(sinal.valor) - pago > 0) setFormularioAberto(sinal.id);
+      setPulsando(sinal.id);
+      blocoRefs.current[sinal.id]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setTimeout(() => setPulsando(null), 2600);
+    }
+    if (onRealceConsumido) onRealceConsumido();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realce]);
 
   const valorAcordado = Number(submissao?.valor_acordado) || 0;
 
@@ -478,21 +528,12 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
     return (
       <div style={secaoWrap}>
         <p style={label}>Pagamentos</p>
-        <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0 }}>
-          Define o valor no orçamento para gerar o plano de pagamento (sinal +
-          remanescente).
-        </p>
-      </div>
-    );
-  }
-
-  if (carregando) {
-    return (
-      <div style={secaoWrap}>
-        <p style={label}>Pagamentos</p>
-        <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0 }}>
-          A carregar...
-        </p>
+        <Convite
+          titulo="Ainda não há valor acordado."
+          texto="O plano de pagamento (sinal + remanescente) nasce do valor do orçamento — é por lá que se começa."
+          accao="Preparar o orçamento →"
+          onAccao={onIrParaOrcamento}
+        />
       </div>
     );
   }
@@ -507,35 +548,43 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
         <button
           onClick={async () => {
             setAGerarPlano(true);
+            setErroPlano(null);
             try {
               await gerarPrevistos(submissao.id, valorAcordado, submissao.data_evento);
-              setChaveRecarga((n) => n + 1);
+              // quem guarda o plano é a página — pede-se-lhe que o releia
+              if (onRecarregar) await onRecarregar();
             } catch (e) {
               console.error(e);
-              alert("Não foi possível gerar o plano. Tenta novamente.");
+              setErroPlano("Não foi possível gerar o plano. Tenta novamente.");
             }
             setAGerarPlano(false);
           }}
           disabled={aGerarPlano}
+          className="acao acao--ouro"
           style={{
             padding: "8px 16px",
             borderRadius: "999px",
             fontSize: "12px",
             fontWeight: "600",
-            border: "1.5px solid var(--gold)",
-            backgroundColor: "white",
-            color: "var(--gold-dark)",
-            cursor: aGerarPlano ? "wait" : "pointer",
           }}
         >
           {aGerarPlano ? "A gerar..." : "Gerar plano de pagamento"}
         </button>
+        {erroPlano && (
+          <p style={{ fontSize: "12px", color: "#B91C1C", margin: "10px 0 0" }}>
+            {erroPlano}
+          </p>
+        )}
       </div>
     );
   }
 
   const { total, pago, falta } = resumoPagamentos(valorAcordado, pagamentos);
-  const avulsos = pagamentos.filter((p) => !p.previsto_id);
+  // As contribuições (incluindo um excedente sem previsto) vivem na
+  // secção da campanha — os "outros pagamentos" são os avulsos dela.
+  const avulsos = pagamentos.filter(
+    (p) => !p.previsto_id && p.origem !== "contribuicao",
+  );
 
   // O remanescente é quem decide pagamento_final — é a coluna que o
   // alerta "falta o pagamento final" do Início ainda lê, por isso tem
@@ -569,23 +618,31 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
       notas: dados.notas,
     });
     const novaLista = [...pagamentos, registo];
-    setPagamentos(novaLista);
+    if (onPagamentos) onPagamentos(novaLista);
     setFormularioAberto(null);
+    setNovoId(registo.id);
+    setTimeout(() => setNovoId(null), 1300);
     await sincronizarPagamentoFinal(novaLista);
+  };
+
+  const fecharConfirmacaoApagar = () => {
+    setPagamentoParaApagar(null);
+    setErroApagar(null);
   };
 
   const confirmarApagar = async () => {
     if (!pagamentoParaApagar) return;
     setAApagar(true);
+    setErroApagar(null);
     try {
       await apagarPagamento(pagamentoParaApagar.id);
       const novaLista = pagamentos.filter((p) => p.id !== pagamentoParaApagar.id);
-      setPagamentos(novaLista);
-      setPagamentoParaApagar(null);
+      if (onPagamentos) onPagamentos(novaLista);
+      fecharConfirmacaoApagar();
       await sincronizarPagamentoFinal(novaLista);
     } catch (e) {
       console.error(e);
-      alert("Não foi possível apagar. Tenta novamente.");
+      setErroApagar("Não foi possível apagar. Tenta novamente.");
     }
     setAApagar(false);
   };
@@ -594,36 +651,30 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
     <div style={secaoWrap}>
       <p style={label}>Pagamentos</p>
 
-      {/* Totais. Em largura inteira ganham a serif, o cartão e a barra
-          do que entrou ao lado; no drawer ficam como sempre foram. */}
+      {/* Os três números em serif, com a barra do que entrou ao lado. */}
       <div
         style={{
           display: "flex",
-          gap: largo ? "48px" : "10px",
-          marginBottom: largo ? "18px" : "14px",
+          gap: "48px",
+          marginBottom: "18px",
           flexWrap: "wrap",
           alignItems: "flex-end",
-          backgroundColor: largo ? "white" : "transparent",
-          border: largo ? "1px solid #F0E6D0" : "none",
-          borderRadius: largo ? "14px" : 0,
-          padding: largo ? "20px 24px" : 0,
+          backgroundColor: "white",
+          border: "1px solid #F0E6D0",
+          borderRadius: "14px",
+          padding: "20px 24px",
         }}
       >
-        <Numero rotulo="Total" valor={formatarEuros(total)} largo={largo} />
-        <Numero
-          rotulo="Recebido"
-          valor={formatarEuros(pago)}
-          cor="#166534"
-          largo={largo}
-        />
+        <Numero rotulo="Total" valor={total} />
+        <Numero rotulo="Recebido" valor={pago} cor="#166534" />
         <Numero
           rotulo={falta > 0 ? "Falta" : falta < 0 ? "Pago a mais" : "Estado"}
-          valor={falta === 0 ? "✓ Completo" : formatarEuros(Math.abs(falta))}
+          valor={Math.abs(falta)}
+          texto={falta === 0 ? "✓ Completo" : undefined}
           cor={falta > 0 ? "var(--gold-dark)" : "#166534"}
           rotuloCor={falta > 0 ? "#B08A3C" : undefined}
-          largo={largo}
         />
-        {largo && total > 0 && (
+        {total > 0 && (
           <BarraDoQueEntrou
             total={total}
             pago={pago}
@@ -636,19 +687,26 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
 
       {/* Plano — sinal + remanescente */}
       {previstos.map((previsto) => (
-        <BlocoPrevisto
+        <div
           key={previsto.id}
-          previsto={previsto}
-          pagamentosDoPrevisto={pagamentos.filter((p) => p.previsto_id === previsto.id)}
-          formularioAberto={formularioAberto}
-          onAbrirFormulario={(id) => setFormularioAberto(id)}
-          onFecharFormulario={() => setFormularioAberto(null)}
-          onGuardarPagamento={(previstoId, dados) => {
-            const origem = previsto.ordem === 1 ? "sinal" : "remanescente";
-            return guardarPagamento(previstoId, origem, dados);
-          }}
-          onPedirApagar={setPagamentoParaApagar}
-        />
+          ref={(el) => (blocoRefs.current[previsto.id] = el)}
+          className={pulsando === previsto.id ? "realce-pulso" : undefined}
+          style={{ borderRadius: "10px" }}
+        >
+          <BlocoPrevisto
+            previsto={previsto}
+            pagamentosDoPrevisto={pagamentos.filter((p) => p.previsto_id === previsto.id)}
+            formularioAberto={formularioAberto}
+            novoId={novoId}
+            onAbrirFormulario={(id) => setFormularioAberto(id)}
+            onFecharFormulario={() => setFormularioAberto(null)}
+            onGuardarPagamento={(previstoId, dados) => {
+              const origem = previsto.ordem === 1 ? "sinal" : "remanescente";
+              return guardarPagamento(previstoId, origem, dados);
+            }}
+            onPedirApagar={setPagamentoParaApagar}
+          />
+        </div>
       ))}
 
       {/* Avulsos — pagamentos sem previsto associado */}
@@ -658,7 +716,12 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
             Outros pagamentos
           </p>
           {avulsos.map((p) => (
-            <LinhaPagamento key={p.id} pagamento={p} onPedirApagar={setPagamentoParaApagar} />
+            <LinhaPagamento
+              key={p.id}
+              pagamento={p}
+              nova={p.id === novoId}
+              onPedirApagar={setPagamentoParaApagar}
+            />
           ))}
         </div>
       )}
@@ -672,14 +735,11 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
       ) : (
         <button
           onClick={() => setFormularioAberto("avulso")}
+          className="ligacao"
           style={{
             marginTop: "4px",
             fontSize: "11px",
-            border: "none",
-            background: "none",
             color: "var(--gold-dark)",
-            cursor: "pointer",
-            padding: 0,
             textDecoration: "underline",
           }}
         >
@@ -687,80 +747,70 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
         </button>
       )}
 
-      {/* Os dois módulos que a arquitectura manda nascer AQUI, e não no
-          drawer — é por eles que o drawer não podia continuar a crescer.
-          Ficam anunciados enquanto não existem: o separador tem de
-          mostrar onde vão morar, não fingir que já lá estão. */}
-      {largo && (
-        <div
+      {/* A CONTRIBUIÇÃO COLETIVA — o módulo que faz a casa ganhar
+          dinheiro. Regista/apaga pela mesma mão que os pagamentos
+          (onPagamentos), e sincroniza o pagamento_final como eles. */}
+      <ContribuicaoColetiva
+        submissao={submissao}
+        previstos={previstos}
+        pagamentos={pagamentos}
+        faltaEvento={falta}
+        onPagamentos={(lista) => {
+          if (onPagamentos) onPagamentos(lista);
+          sincronizarPagamentoFinal(lista);
+        }}
+      />
+
+      {/* O módulo que ainda vai nascer aqui — anunciado na língua dela. */}
+      <div
+        style={{
+          borderTop: "1px solid #F0E6D0",
+          marginTop: "22px",
+          paddingTop: "20px",
+        }}
+      >
+        <p
           style={{
-            borderTop: "1px solid #F0E6D0",
-            marginTop: "22px",
-            paddingTop: "20px",
+            fontSize: "11px",
+            fontWeight: "600",
+            color: "var(--gray-mid)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            margin: "0 0 12px",
           }}
         >
+          Em preparação
+        </p>
+        <div
+          style={{
+            flex: "1 1 260px",
+            border: "1px dashed #DFD3B8",
+            borderRadius: "12px",
+            padding: "16px 18px",
+            backgroundColor: "#FCFBF7",
+          }}
+        >
+          <p style={{ fontSize: "13.5px", margin: "0 0 4px" }}>
+            Gastos do evento
+          </p>
           <p
             style={{
-              fontSize: "11px",
-              fontWeight: "600",
-              color: "var(--gray-mid)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              margin: "0 0 4px",
+              fontSize: "12px",
+              color: "#9B9B9B",
+              lineHeight: 1.55,
+              margin: 0,
             }}
           >
-            Reservado neste separador
+            Flores, deslocação, equipa — o que o evento custou, ao lado do
+            que rendeu.
           </p>
-          <p style={{ fontSize: "12px", color: "#9B9B9B", margin: "0 0 12px" }}>
-            Os dois módulos que a arquitectura manda nascer aqui — não no
-            drawer.
-          </p>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            {[
-              {
-                titulo: "Contribuição coletiva",
-                nota: "quem contribuiu, quanto, link partilhável",
-              },
-              {
-                titulo: "Gastos do evento",
-                nota: "flores, deslocação, equipa · margem real do evento",
-              },
-            ].map((bloco) => (
-              <div
-                key={bloco.titulo}
-                style={{
-                  flex: "1 1 260px",
-                  border: "1px dashed #DFD3B8",
-                  borderRadius: "12px",
-                  padding: "16px 18px",
-                  backgroundColor: "#FCFBF7",
-                }}
-              >
-                <p style={{ fontSize: "13.5px", margin: "0 0 4px" }}>
-                  {bloco.titulo}
-                </p>
-                <p
-                  style={{
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: "10.5px",
-                    color: "#B3AB9C",
-                    letterSpacing: "0.04em",
-                    margin: 0,
-                  }}
-                >
-                  {bloco.nota}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Confirmação de remoção — nunca window.confirm */}
       {pagamentoParaApagar && (
         <div
-          onClick={() => setPagamentoParaApagar(null)}
+          onClick={fecharConfirmacaoApagar}
           style={{
             position: "fixed",
             inset: 0,
@@ -801,18 +851,30 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
                 : " sem data (reconstituído)"}
               . Esta ação não pode ser anulada.
             </p>
+            {erroApagar && (
+              <p
+                style={{
+                  fontSize: "12.5px",
+                  color: "#B91C1C",
+                  backgroundColor: "#FEF2F2",
+                  border: "1px solid #FECACA",
+                  borderRadius: "10px",
+                  padding: "8px 12px",
+                  margin: "0 0 14px",
+                }}
+              >
+                {erroApagar}
+              </p>
+            )}
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button
-                onClick={() => setPagamentoParaApagar(null)}
+                onClick={fecharConfirmacaoApagar}
                 disabled={aApagar}
+                className="acao acao--neutra"
                 style={{
                   padding: "10px 20px",
                   borderRadius: "8px",
                   fontSize: "13px",
-                  border: "1.5px solid var(--gold-light)",
-                  color: "var(--gray-mid)",
-                  backgroundColor: "white",
-                  cursor: "pointer",
                 }}
               >
                 Cancelar
@@ -820,15 +882,12 @@ export default function PagamentosEvento({ submissao, onSaved, largo = false }) 
               <button
                 onClick={confirmarApagar}
                 disabled={aApagar}
+                className="acao acao--perigo-cheia"
                 style={{
                   padding: "10px 20px",
                   borderRadius: "8px",
                   fontSize: "13px",
                   fontWeight: "600",
-                  border: "none",
-                  backgroundColor: aApagar ? "#FCA5A5" : "#EF4444",
-                  color: "white",
-                  cursor: aApagar ? "not-allowed" : "pointer",
                 }}
               >
                 {aApagar ? "A apagar..." : "Apagar"}

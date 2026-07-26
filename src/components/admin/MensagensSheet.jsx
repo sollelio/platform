@@ -162,7 +162,7 @@ export function MensagensConteudo({
       setTimeout(() => setCopiadoId(null), 1600);
     } catch (e) {
       console.error(e);
-      alert("Não foi possível copiar. Tenta novamente.");
+      setErro("Não foi possível copiar. Tenta novamente.");
     }
   };
 
@@ -182,7 +182,7 @@ export function MensagensConteudo({
       await carregar();
     } catch (e) {
       console.error(e);
-      alert("Não foi possível guardar. Tenta novamente.");
+      setErro("Não foi possível guardar. Tenta novamente.");
     }
     setGuardando(false);
   };
@@ -194,7 +194,7 @@ export function MensagensConteudo({
       await carregar();
     } catch (e) {
       console.error(e);
-      alert("Não foi possível remover. Tenta novamente.");
+      setErro("Não foi possível remover. Tenta novamente.");
     }
   };
 

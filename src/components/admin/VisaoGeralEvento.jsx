@@ -7,6 +7,7 @@ import {
   vazio,
 } from "../../lib/briefingEdicao";
 import { AmostraPaleta, normalizarCores } from "./SeletorPaleta";
+import { Convite } from "./acabamento";
 import CampoEdicao from "./CampoEdicao";
 import FaixaOperacional from "./FaixaOperacional";
 
@@ -45,9 +46,9 @@ import FaixaOperacional from "./FaixaOperacional";
 // "Concluir edição" e guarda (daí o ref: o cabeçalho não conhece os
 // rascunhos, mas tem de guardar exactamente o mesmo que a barra).
 //
-// No drawer continua a servir em coluna e só de leitura (`mosaico` e
-// `onSaved` desligados) — lá é uma vista rápida, não um sítio de
-// trabalho.
+// Serviu o drawer em coluna até ao redesenho; desde que o drawer
+// ficou espreitadela, só a página chama isto — a variante `mosaico`
+// deixou de ser variante e passou a ser a única forma.
 // ============================================================
 
 const ABERTAS_POR_OMISSAO = 2;
@@ -102,30 +103,24 @@ const tituloSeccao = (aberta, interactivo) => ({
   marginBottom: aberta ? "12px" : "8px",
 });
 
-const botaoMini = (fundo, cor) => ({
+// A identidade dos botões (cor, hover, foco) vive nas classes .acao--*
+// do index.css; aqui ficam só as medidas.
+const medidaBotaoMini = {
   width: "26px",
   height: "26px",
   borderRadius: "7px",
-  border:
-    fundo === "white" ? "1px solid var(--gold-light)" : "1px solid var(--gold)",
-  backgroundColor: fundo,
-  color: cor,
+  padding: 0,
   fontSize: "12px",
-  cursor: "pointer",
   flexShrink: 0,
-});
+};
 
-const botaoBarra = (principal) => ({
+const medidaBotaoBarra = {
   padding: "9px 16px",
   borderRadius: "10px",
-  border: `1.5px solid ${principal ? "var(--gold)" : "var(--gold-light)"}`,
-  backgroundColor: principal ? "var(--gold)" : "white",
-  color: principal ? "white" : "var(--gray-mid)",
   fontSize: "12.5px",
   fontWeight: "500",
-  cursor: "pointer",
   whiteSpace: "nowrap",
-});
+};
 
 const caixaErro = {
   fontSize: "12.5px",
@@ -227,7 +222,8 @@ function Campo({ submissao, campo, valor, editavel, onGuardar }) {
               onClick={confirmar}
               disabled={aGravar}
               title="Guardar"
-              style={botaoMini("var(--gold)", "white")}
+              className="acao acao--cheia"
+              style={medidaBotaoMini}
             >
               ✓
             </button>
@@ -235,34 +231,27 @@ function Campo({ submissao, campo, valor, editavel, onGuardar }) {
               onClick={() => setAEditar(false)}
               disabled={aGravar}
               title="Cancelar"
-              style={botaoMini("white", "var(--gray-mid)")}
+              className="acao acao--neutra"
+              style={medidaBotaoMini}
             >
               ✕
             </button>
           </div>
         </div>
       ) : campo.type === "paleta" ? (
-        <div onClick={abrir} style={{ cursor: editavel ? "pointer" : "default" }}>
+        <div onClick={abrir} className={editavel ? "toca" : undefined}>
           <AmostraPaleta value={valorBruto} />
         </div>
       ) : (
         <p
           onClick={abrir}
           title={editavel ? "Clica para corrigir" : undefined}
+          className={editavel ? "campo-editavel" : undefined}
           style={{
             fontSize: "14px",
             color: "var(--charcoal)",
             margin: 0,
             textWrap: "pretty",
-            cursor: editavel ? "pointer" : "default",
-            borderBottom: editavel ? "1px dotted transparent" : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (editavel) e.currentTarget.style.borderBottomColor =
-              "var(--gold-light)";
-          }}
-          onMouseLeave={(e) => {
-            if (editavel) e.currentTarget.style.borderBottomColor = "transparent";
           }}
         >
           {valor}
@@ -321,7 +310,7 @@ function CampoEmEdicao({ campo, valor, alterado, porPreencher, onChange }) {
 // ============================================================
 function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota }) {
   return (
-    <div style={{ width: "220px", flexShrink: 0, position: "sticky", top: "180px" }}>
+    <div className="coluna-lateral">
       <p
         style={{
           fontSize: "9px",
@@ -346,6 +335,7 @@ function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota })
           <button
             key={item.titulo}
             onClick={() => onIr(item.titulo)}
+            className={`indice-item${item.activa ? " indice-item--activa" : ""}`}
             style={{
               display: "flex",
               alignItems: "baseline",
@@ -353,9 +343,6 @@ function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota })
               gap: "8px",
               padding: "6px 9px",
               borderRadius: "7px",
-              border: "none",
-              backgroundColor: item.activa ? "#FBF7EF" : "transparent",
-              cursor: "pointer",
               textAlign: "left",
             }}
           >
@@ -377,16 +364,13 @@ function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota })
       {onImprimir && (
         <button
           onClick={onImprimir}
+          className="acao acao--ouro"
           style={{
             width: "100%",
             padding: "9px 14px",
             borderRadius: "10px",
-            border: "1.5px solid var(--gold)",
-            backgroundColor: "white",
-            color: "var(--gold)",
             fontSize: "12px",
             fontWeight: "500",
-            cursor: "pointer",
             marginBottom: "10px",
           }}
         >
@@ -573,7 +557,11 @@ function BriefingEmEdicao({
               {alterados.length === 1 ? "alteração" : "alterações"}?
             </span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => setADescartar(false)} style={botaoBarra(false)}>
+            <button
+              onClick={() => setADescartar(false)}
+              className="acao acao--neutra"
+              style={medidaBotaoBarra}
+            >
               Continuar a editar
             </button>
             <button
@@ -581,11 +569,8 @@ function BriefingEmEdicao({
                 setADescartar(false);
                 onFechar?.();
               }}
-              style={{
-                ...botaoBarra(false),
-                borderColor: "#FECACA",
-                color: "#B91C1C",
-              }}
+              className="acao acao--perigo"
+              style={medidaBotaoBarra}
             >
               Descartar
             </button>
@@ -621,18 +606,16 @@ function BriefingEmEdicao({
                 alterados.length ? setADescartar(true) : onFechar?.()
               }
               disabled={aGravar}
-              style={botaoBarra(false)}
+              className="acao acao--neutra"
+              style={medidaBotaoBarra}
             >
               Cancelar
             </button>
             <button
               onClick={guardar}
               disabled={aGravar}
-              style={{
-                ...botaoBarra(true),
-                opacity: aGravar ? 0.7 : 1,
-                cursor: aGravar ? "wait" : "pointer",
-              }}
+              className="acao acao--cheia"
+              style={medidaBotaoBarra}
             >
               {aGravar
                 ? "A guardar…"
@@ -650,12 +633,12 @@ function BriefingEmEdicao({
 export default function VisaoGeralEvento({
   submissao,
   seccoes,
-  mosaico = false,
   editando = false,
   rascunhos = null,
   onRascunhos,
   controloEdicaoRef,
   onFecharEdicao,
+  onAbrirEdicao,
   onSaved,
   onImprimir,
 }) {
@@ -668,7 +651,7 @@ export default function VisaoGeralEvento({
   );
   const [erro, setErro] = useState(null);
 
-  const editavel = mosaico && typeof onSaved === "function";
+  const editavel = typeof onSaved === "function";
   const emEdicao = editavel && editando;
 
   // Em edição são TODAS as secções do modelo, e não só as que já têm
@@ -735,7 +718,11 @@ export default function VisaoGeralEvento({
             modelo não há o que preencher. Associa um modelo ao evento e volta
             aqui.
           </p>
-          <button onClick={() => onFecharEdicao?.()} style={botaoBarra(false)}>
+          <button
+            onClick={() => onFecharEdicao?.()}
+            className="acao acao--neutra"
+            style={medidaBotaoBarra}
+          >
             Voltar à leitura
           </button>
         </div>
@@ -744,37 +731,22 @@ export default function VisaoGeralEvento({
   }
 
   if (!emEdicao && preenchidas.length === 0) {
+    const podeEditar = editavel && seccoesModelo.length > 0 && onAbrirEdicao;
     return (
       <>
-        {mosaico && <FaixaOperacional submissao={submissao} seccoes={seccoes} />}
-        <p
-          style={{
-            fontSize: "13px",
-            color: "var(--gray-mid)",
-            fontStyle: "italic",
-            textAlign: "center",
-            padding: "20px 20px 0",
-          }}
-        >
-          Este evento ainda não tem detalhes preenchidos.
-        </p>
-        {/* Havendo modelo há sempre o que preencher — e é o "Editar" do
-            cabeçalho que abre os campos todos. */}
-        {editavel && seccoesModelo.length > 0 && (
-          <p
-            style={{
-              fontSize: "12.5px",
-              color: "#9B9B9B",
-              textAlign: "center",
-              padding: "6px 20px 20px",
-              margin: 0,
-            }}
-          >
-            Carrega em{" "}
-            <strong style={{ color: "var(--gold-dark)" }}>Editar</strong>, no
-            canto superior direito, para preencher o briefing aqui mesmo.
-          </p>
-        )}
+        <FaixaOperacional submissao={submissao} seccoes={seccoes} />
+        {/* Havendo modelo há sempre o que preencher — e o convite abre
+            a edição aqui mesmo, em vez de apontar para um botão longe. */}
+        <Convite
+          titulo="O briefing está por preencher."
+          texto={
+            podeEditar
+              ? "Todos os campos do modelo abrem-se de uma vez, em caixas de escrita — o que souberes agora, guarda-se agora."
+              : "As respostas do formulário e o que fores combinando com a cliente vão aparecer aqui."
+          }
+          accao="Preencher o briefing"
+          onAccao={podeEditar ? onAbrirEdicao : undefined}
+        />
       </>
     );
   }
@@ -786,18 +758,17 @@ export default function VisaoGeralEvento({
       <div
         key={sec.titulo}
         id={`seccao-${slug(sec.titulo)}`}
-        style={mosaico ? cartao(aberta) : { marginBottom: "24px" }}
+        style={cartao(aberta)}
       >
         <button
-          onClick={() => mosaico && alternar(sec.titulo)}
-          style={tituloSeccao(aberta, mosaico)}
+          onClick={() => alternar(sec.titulo)}
+          className="toca"
+          style={tituloSeccao(aberta, true)}
         >
           <span>{sec.titulo}</span>
-          {mosaico && (
-            <span style={{ color: "var(--gold-light)", fontSize: "10px" }}>
-              {aberta ? "▾" : "▸"}
-            </span>
-          )}
+          <span style={{ color: "var(--gold-light)", fontSize: "10px" }}>
+            {aberta ? "▾" : "▸"}
+          </span>
         </button>
 
         {aberta ? (
@@ -865,9 +836,6 @@ export default function VisaoGeralEvento({
       </div>
     );
   });
-
-  // No drawer é só a coluna, como sempre foi.
-  if (!mosaico) return <>{seccoesRender}</>;
 
   return (
     <>

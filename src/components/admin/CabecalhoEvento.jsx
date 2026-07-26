@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import Jornada from "./Jornada";
 import { Icone } from "./Navegacao";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
+import { useContagemAnimada } from "./acabamento";
 
 // ============================================================
 // CabecalhoEvento — a moldura da página /evento/:id, que nunca
@@ -13,6 +15,12 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 //   condensado — 92 px a partir de 120 px de scroll: nome, régua sem
 //                rótulos, o que falta, imprimir, e os separadores
 // Nunca se perde o contexto nem a navegação.
+//
+// A passagem entre os dois é uma MORFOSE, não uma troca: o título, o
+// "Falta" e os botões são os mesmos elementos nos dois estados
+// (layoutId) e viajam para o novo lugar; o resto desvanece em 180 ms.
+// O utilizador vê o título encolher para o canto — nunca vê outro
+// título aparecer.
 //
 // O dinheiro aqui são TRÊS NÚMEROS e mais nada — as parcelas e o
 // registo vivem no separador Pagamentos. E a frase «→ A seguir» da
@@ -59,30 +67,37 @@ const pastilha = {
   whiteSpace: "nowrap",
 };
 
-const botao = (cor) => ({
+// A identidade (cor, borda, hover) vive nas classes .acao--* do
+// index.css; aqui fica só a medida, que é desta moldura.
+const medidaBotao = {
   display: "flex",
   alignItems: "center",
   gap: "7px",
   padding: "8px 14px",
   borderRadius: "10px",
-  border: `1.5px solid ${cor.borda}`,
-  backgroundColor: cor.fundo,
-  color: cor.texto,
   fontSize: "12px",
   fontWeight: "500",
-  cursor: "pointer",
   whiteSpace: "nowrap",
-});
-
-const CORES_BOTAO = {
-  ouro: { borda: "var(--gold)", fundo: "white", texto: "var(--gold)" },
-  ouroCheio: { borda: "var(--gold)", fundo: "var(--gold)", texto: "white" },
-  verde: { borda: "#BBF7D0", fundo: "#F0FDF4", texto: "#166534" },
-  neutro: { borda: "var(--gold-light)", fundo: "white", texto: "var(--gray-mid)" },
 };
 
-// Total · Recebido · Falta. Três números, sem parcelas.
+const CLASSE_BOTAO = {
+  ouro: "acao acao--ouro",
+  ouroCheio: "acao acao--cheia",
+  verde: "acao acao--verde",
+  neutro: "acao acao--neutra",
+};
+
+// Total · Recebido · Falta. Três números, sem parcelas. O valor do
+// "Falta" — o número operativo do negócio — é o MESMO elemento nos
+// dois estados do cabeçalho (layoutId): ao condensar não desaparece,
+// viaja para o seu lugar na linha.
 function LinhaDinheiro({ resumo, compacta = false }) {
+  // Os números contam quando mudam à frente dos olhos (registar um
+  // pagamento no separador vê-se aqui no mesmo instante, a contar).
+  const totalAnim = useContagemAnimada(resumo.total);
+  const pagoAnim = useContagemAnimada(resumo.pago);
+  const faltaAnim = useContagemAnimada(resumo.falta);
+
   if (compacta) {
     return (
       <span
@@ -93,15 +108,17 @@ function LinhaDinheiro({ resumo, compacta = false }) {
         }}
       >
         Falta{" "}
-        <span
+        <motion.span
+          layoutId="cab-falta"
           style={{
+            display: "inline-block",
             fontWeight: "600",
             color: "var(--gold-dark)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {formatarEuros(resumo.falta)}
-        </span>
+          {formatarEuros(faltaAnim)}
+        </motion.span>
       </span>
     );
   }
@@ -119,16 +136,31 @@ function LinhaDinheiro({ resumo, compacta = false }) {
       >
         {rotulo}
       </span>
-      <span
-        style={{
-          fontSize: "15px",
-          fontWeight: destaque ? "600" : "500",
-          color: destaque ? "var(--gold-dark)" : "var(--charcoal)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {formatarEuros(valor)}
-      </span>
+      {destaque ? (
+        <motion.span
+          layoutId="cab-falta"
+          style={{
+            display: "inline-block",
+            fontSize: "17px",
+            fontWeight: "600",
+            color: "var(--gold-dark)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatarEuros(valor)}
+        </motion.span>
+      ) : (
+        <span
+          style={{
+            fontSize: "15px",
+            fontWeight: "500",
+            color: "var(--charcoal)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatarEuros(valor)}
+        </span>
+      )}
     </>
   );
 
@@ -141,11 +173,11 @@ function LinhaDinheiro({ resumo, compacta = false }) {
         flexWrap: "wrap",
       }}
     >
-      {par("Total", resumo.total, false)}
+      {par("Total", totalAnim, false)}
       <span style={{ fontSize: "12px", color: "#E4DCCB" }}>·</span>
-      {par("Recebido", resumo.pago, false)}
+      {par("Recebido", pagoAnim, false)}
       <span style={{ fontSize: "12px", color: "#E4DCCB" }}>·</span>
-      {par("Falta", resumo.falta, true)}
+      {par("Falta", faltaAnim, true)}
     </div>
   );
 }
@@ -159,50 +191,70 @@ function Separadores({ abas, activeAba, onAba }) {
           <button
             key={aba.id}
             onClick={() => onAba(aba.id)}
+            className={`separador-aba${ativo ? " separador-aba--activa" : ""}`}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
+              position: "relative",
               padding: "9px 16px",
-              border: "none",
               borderRadius: "10px 10px 0 0",
-              backgroundColor: ativo ? "var(--gold)" : "transparent",
-              color: ativo ? "white" : "var(--gray-mid)",
               fontSize: "12.5px",
               fontWeight: ativo ? "500" : "400",
               letterSpacing: "0.02em",
-              cursor: "pointer",
               whiteSpace: "nowrap",
             }}
           >
-            {aba.label}
-            {aba.contagem != null && (
-              <span
+            {/* A pastilha dourada é UMA só, que desliza de separador
+                em separador (layoutId) — a troca vê-se acontecer, em
+                vez de uma pastilha apagar-se e outra acender-se. */}
+            {ativo && (
+              <motion.span
+                layoutId="separadores-pastilha"
+                transition={{ type: "spring", stiffness: 600, damping: 42 }}
                 style={{
-                  fontSize: "10px",
-                  color: ativo ? "rgba(255,255,255,0.75)" : "#B0A88F",
-                }}
-              >
-                {aba.contagem}
-              </span>
-            )}
-            {/* O mesmo ponto dourado que marca um campo por guardar,
-                aqui a dizer o mesmo de outro separador: ficou trabalho
-                à espera na Visão geral. */}
-            {aba.porGuardar > 0 && (
-              <span
-                title={`${aba.porGuardar} ${
-                  aba.porGuardar === 1 ? "alteração" : "alterações"
-                } por guardar`}
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  backgroundColor: ativo ? "white" : "var(--gold)",
-                  flexShrink: 0,
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "10px 10px 0 0",
+                  backgroundColor: "var(--gold)",
                 }}
               />
             )}
+            <span
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+              }}
+            >
+              {aba.label}
+              {aba.contagem != null && (
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: ativo ? "rgba(255,255,255,0.75)" : "#B0A88F",
+                  }}
+                >
+                  {aba.contagem}
+                </span>
+              )}
+              {/* O mesmo ponto dourado que marca um campo por guardar,
+                  aqui a dizer o mesmo de outro separador: ficou trabalho
+                  à espera na Visão geral. */}
+              {aba.porGuardar > 0 && (
+                <span
+                  title={`${aba.porGuardar} ${
+                    aba.porGuardar === 1 ? "alteração" : "alterações"
+                  } por guardar`}
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    backgroundColor: ativo ? "white" : "var(--gold)",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </span>
           </button>
         );
       })}
@@ -228,6 +280,7 @@ export default function CabecalhoEvento({
   editando = false,
   edicaoNoutroSeparador = false,
   onEtapa,
+  onProximoGesto,
   onStatusChange,
 }) {
   const [condensado, setCondensado] = useState(false);
@@ -260,15 +313,25 @@ export default function CabecalhoEvento({
   // outras duas voltam mal se pare de rolar (ou se conclua).
   const soEdicao = condensado && editando;
 
+  // layoutId: os botões são os mesmos nos dois estados do cabeçalho —
+  // ao condensar, viajam para a linha em vez de piscar.
   const acoes = (
-    <div style={{ display: "flex", gap: "8px" }}>
+    <motion.div layoutId="cab-acoes" style={{ display: "flex", gap: "8px" }}>
       {!soEdicao && (
-        <button onClick={onImprimir} style={botao(CORES_BOTAO.ouro)}>
+        <button
+          onClick={onImprimir}
+          className={CLASSE_BOTAO.ouro}
+          style={medidaBotao}
+        >
           {condensado ? "Imprimir" : "Imprimir / Guardar PDF"}
         </button>
       )}
       {onWhatsApp && !soEdicao && (
-        <button onClick={onWhatsApp} style={botao(CORES_BOTAO.verde)}>
+        <button
+          onClick={onWhatsApp}
+          className={CLASSE_BOTAO.verde}
+          style={medidaBotao}
+        >
           <Icone nome="mensagens" tamanho={15} />
           WhatsApp
         </button>
@@ -299,13 +362,16 @@ export default function CabecalhoEvento({
                 ? "Voltar à Visão geral, onde ficou a edição a meio"
                 : "Guardar as alterações e voltar à leitura"
           }
-          style={botao(
-            !editando
-              ? CORES_BOTAO.neutro
-              : edicaoNoutroSeparador
-                ? CORES_BOTAO.ouro
-                : CORES_BOTAO.ouroCheio,
-          )}
+          className={
+            CLASSE_BOTAO[
+              !editando
+                ? "neutro"
+                : edicaoNoutroSeparador
+                  ? "ouro"
+                  : "ouroCheio"
+            ]
+          }
+          style={medidaBotao}
         >
           {editando && !edicaoNoutroSeparador ? (
             <span style={{ display: "flex", fontSize: "13px", lineHeight: 1 }}>
@@ -327,7 +393,7 @@ export default function CabecalhoEvento({
                 : "Concluir edição"}
         </button>
       )}
-    </div>
+    </motion.div>
   );
 
   return (
@@ -342,174 +408,196 @@ export default function CabecalhoEvento({
           ? "0 2px 10px rgba(26,26,26,0.06)"
           : "0 1px 0 rgba(240,230,208,0.6)",
         padding: condensado ? "12px 40px 0" : "18px 40px 0",
-        transition: "padding 160ms ease",
+        transition: "padding 180ms ease, box-shadow 180ms ease",
       }}
     >
-      {condensado ? (
-        <div style={{ display: "flex", alignItems: "center", gap: "22px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              minWidth: 0,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "17px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
+      <MotionConfig
+        reducedMotion="user"
+        transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          {condensado ? (
+            <motion.div
+              key="condensado"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ display: "flex", alignItems: "center", gap: "22px" }}
             >
-              {resumoEvento.titulo}
-            </span>
-            {quantoFalta && (
-              <span
-                style={{
-                  fontSize: "11.5px",
-                  color: "var(--gray-mid)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {quantoFalta}
-              </span>
-            )}
-          </div>
-          <div style={{ flexShrink: 0 }}>
-            <Jornada
-              submissao={submissao}
-              invites={invites}
-              previstos={previstos}
-              pagamentos={pagamentos}
-              compacta
-            />
-          </div>
-          <div style={{ flex: 1 }} />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              flexShrink: 0,
-            }}
-          >
-            <LinhaDinheiro resumo={resumoDinheiro} compacta />
-            {acoes}
-          </div>
-        </div>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: "40px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  marginBottom: "7px",
+                  alignItems: "baseline",
+                  gap: "10px",
+                  minWidth: 0,
                 }}
               >
-                <button
-                  onClick={onVoltar}
+                <motion.span
+                  layoutId="cab-titulo"
                   style={{
-                    border: "none",
-                    background: "none",
-                    padding: 0,
-                    fontSize: "11px",
-                    color: "var(--gold-dark)",
-                    letterSpacing: "0.04em",
-                    cursor: "pointer",
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: "17px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  ← Clientes
-                </button>
-                <span style={{ fontSize: "11px", color: "#C4C4C4" }}>/</span>
-                <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
-                  Evento
-                </span>
+                  {resumoEvento.titulo}
+                </motion.span>
+                {quantoFalta && (
+                  <span
+                    style={{
+                      fontSize: "11.5px",
+                      color: "var(--gray-mid)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {quantoFalta}
+                  </span>
+                )}
               </div>
-              <h2
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "28px",
-                  fontWeight: "400",
-                  margin: "0 0 7px",
-                  letterSpacing: "-0.01em",
-                  lineHeight: 1.1,
-                }}
-              >
-                {resumoEvento.titulo}
-              </h2>
+              <div style={{ flexShrink: 0 }}>
+                <Jornada
+                  submissao={submissao}
+                  invites={invites}
+                  previstos={previstos}
+                  pagamentos={pagamentos}
+                  compacta
+                />
+              </div>
+              <div style={{ flex: 1 }} />
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "9px",
+                  gap: "14px",
+                  flexShrink: 0,
+                }}
+              >
+                <LinhaDinheiro resumo={resumoDinheiro} compacta />
+                {acoes}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="repouso"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "40px",
                   flexWrap: "wrap",
                 }}
               >
-                {meta.map((m, i) => (
-                  <span
-                    key={m}
-                    style={{ display: "flex", alignItems: "center", gap: "9px" }}
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginBottom: "7px",
+                    }}
                   >
-                    {i > 0 && (
-                      <span style={{ fontSize: "13px", color: "#DCD3C0" }}>
-                        ·
-                      </span>
-                    )}
-                    <span
-                      style={{ fontSize: "13px", color: "var(--gray-mid)" }}
+                    <button
+                      onClick={onVoltar}
+                      className="ligacao"
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--gold-dark)",
+                        letterSpacing: "0.04em",
+                      }}
                     >
-                      {m}
+                      ← Clientes
+                    </button>
+                    <span style={{ fontSize: "11px", color: "#C4C4C4" }}>/</span>
+                    <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
+                      Evento
                     </span>
-                  </span>
-                ))}
-                {quantoFalta && <span style={pastilha}>{quantoFalta}</span>}
+                  </div>
+                  <motion.h2
+                    layoutId="cab-titulo"
+                    style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: "28px",
+                      fontWeight: "400",
+                      margin: "0 0 7px",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {resumoEvento.titulo}
+                  </motion.h2>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "9px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {meta.map((m, i) => (
+                      <span
+                        key={m}
+                        style={{ display: "flex", alignItems: "center", gap: "9px" }}
+                      >
+                        {i > 0 && (
+                          <span style={{ fontSize: "13px", color: "#DCD3C0" }}>
+                            ·
+                          </span>
+                        )}
+                        <span
+                          style={{ fontSize: "13px", color: "var(--gray-mid)" }}
+                        >
+                          {m}
+                        </span>
+                      </span>
+                    ))}
+                    {quantoFalta && <span style={pastilha}>{quantoFalta}</span>}
+                  </div>
+                </div>
+
+                {/* O dinheiro ANCORADO: primeiro os três números — o
+                    contrapeso do título, a resposta que ela procura ao
+                    abrir — e só depois os botões. Antes era ao
+                    contrário, e o "Falta" lia-se como rodapé. */}
+                <div
+                  style={{
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: "12px",
+                  }}
+                >
+                  <LinhaDinheiro resumo={resumoDinheiro} />
+                  {acoes}
+                </div>
               </div>
-            </div>
 
-            <div
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: "12px",
-              }}
-            >
-              {acoes}
-              <LinhaDinheiro resumo={resumoDinheiro} />
-            </div>
-          </div>
+              <div style={{ marginTop: "16px" }}>
+                <Jornada
+                  submissao={submissao}
+                  invites={invites}
+                  previstos={previstos}
+                  pagamentos={pagamentos}
+                  onEtapa={onEtapa}
+                  onProximoGesto={onProximoGesto}
+                  onStatusChange={onStatusChange}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <div style={{ marginTop: "16px" }}>
-            <Jornada
-              submissao={submissao}
-              invites={invites}
-              previstos={previstos}
-              pagamentos={pagamentos}
-              onEtapa={onEtapa}
-              onStatusChange={onStatusChange}
-            />
-          </div>
-        </>
-      )}
-
-      <div style={{ marginTop: condensado ? "10px" : "0" }}>
-        <Separadores abas={abas} activeAba={activeAba} onAba={onAba} />
-      </div>
+        <div style={{ marginTop: condensado ? "10px" : "0" }}>
+          <Separadores abas={abas} activeAba={activeAba} onAba={onAba} />
+        </div>
+      </MotionConfig>
     </div>
   );
 }

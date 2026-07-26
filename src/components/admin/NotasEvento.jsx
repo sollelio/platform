@@ -9,6 +9,7 @@ import {
   construirHistorico,
   contarHistorico,
 } from "../../lib/notas";
+import { Esqueleto } from "./acabamento";
 
 // ============================================================
 // NotasEvento — o separador Notas: o histórico de interação por ordem
@@ -173,10 +174,18 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
               <span style={{ fontSize: "11.5px", color: "var(--gray-mid)" }}>
                 Apagar esta nota?
               </span>
-              <button onClick={onCancelar} style={ligacao("var(--gray-mid)")}>
+              <button
+                onClick={onCancelar}
+                className="ligacao"
+                style={{ fontSize: "11.5px", color: "var(--gray-mid)" }}
+              >
                 Cancelar
               </button>
-              <button onClick={onApagar} style={ligacao("#B91C1C")}>
+              <button
+                onClick={onApagar}
+                className="ligacao"
+                style={{ fontSize: "11.5px", color: "#B91C1C" }}
+              >
                 Apagar
               </button>
             </span>
@@ -184,7 +193,8 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
             <button
               onClick={onPedirApagar}
               title="Apagar esta nota"
-              style={ligacao("#C4C4C4")}
+              className="ligacao"
+              style={{ fontSize: "11.5px", color: "#C4C4C4" }}
             >
               ✕
             </button>
@@ -206,14 +216,6 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
   );
 }
 
-const ligacao = (cor) => ({
-  border: "none",
-  background: "none",
-  padding: 0,
-  fontSize: "11.5px",
-  color: cor,
-  cursor: "pointer",
-});
 
 // A caixa de escrita — a primeira coisa que se vê.
 function Escrever({ onGuardar, aGuardar }) {
@@ -228,10 +230,8 @@ function Escrever({ onGuardar, aGuardar }) {
 
   return (
     <div
+      className="cartao-escrita"
       style={{
-        backgroundColor: "white",
-        border: "1.5px solid var(--gold-light)",
-        borderRadius: "14px",
         padding: "14px 16px",
         marginBottom: "22px",
       }}
@@ -269,15 +269,14 @@ function Escrever({ onGuardar, aGuardar }) {
             <button
               key={t.id}
               onClick={() => setTipo(t.id)}
+              className={`pastilha-escolha${
+                ativo ? " pastilha-escolha--activa" : ""
+              }`}
               style={{
                 padding: "5px 12px",
                 borderRadius: "999px",
                 fontSize: "11.5px",
                 fontWeight: ativo ? "500" : "400",
-                border: ativo ? "1px solid var(--gold)" : "1px solid var(--gold-light)",
-                backgroundColor: ativo ? "var(--gold)" : "white",
-                color: ativo ? "white" : "var(--gray-mid)",
-                cursor: "pointer",
               }}
             >
               {t.label}
@@ -288,15 +287,12 @@ function Escrever({ onGuardar, aGuardar }) {
         <button
           onClick={guardar}
           disabled={!corpo.trim() || aGuardar}
+          className="acao acao--cheia"
           style={{
             padding: "8px 16px",
             borderRadius: "10px",
-            border: "none",
-            backgroundColor: corpo.trim() ? "var(--gold)" : "#E8DFC9",
-            color: "white",
             fontSize: "12.5px",
             fontWeight: "600",
-            cursor: corpo.trim() ? "pointer" : "default",
             boxShadow: corpo.trim() ? "0 4px 12px rgba(201,168,76,0.30)" : "none",
           }}
         >
@@ -312,6 +308,7 @@ export default function NotasEvento({
   pagamentos = [],
   previstos = [],
   invites = [],
+  onContagem,
 }) {
   const [notas, setNotas] = useState([]);
   const [documentos, setDocumentos] = useState([]);
@@ -349,6 +346,13 @@ export default function NotasEvento({
       cancelado = true;
     };
   }, [submissionId]);
+
+  // A contagem do separador: as notas que ELA escreveu — as entradas
+  // do sistema não contam, escrevem-se sozinhas.
+  useEffect(() => {
+    if (carregado && onContagem) onContagem(notas.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carregado, notas]);
 
   const historico = useMemo(
     () =>
@@ -402,9 +406,23 @@ export default function NotasEvento({
 
   if (!carregado) {
     return (
-      <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>
-        A carregar o histórico…
-      </p>
+      <div style={{ maxWidth: "780px" }}>
+        <Esqueleto h={104} r={14} style={{ marginBottom: 22 }} />
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "92px 1fr",
+              gap: "16px",
+              marginBottom: "14px",
+            }}
+          >
+            <Esqueleto w={64} h={12} style={{ justifySelf: "end" }} />
+            <Esqueleto h={i === 1 ? 72 : 18} r={i === 1 ? 14 : 8} />
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -459,7 +477,7 @@ export default function NotasEvento({
         </div>
       </div>
 
-      <div style={{ width: "220px", flexShrink: 0, position: "sticky", top: "180px" }}>
+      <div className="coluna-lateral">
         <p
           style={{
             fontSize: "9px",
@@ -486,6 +504,7 @@ export default function NotasEvento({
               <button
                 key={f.id}
                 onClick={() => setFiltro(f.id)}
+                className={`indice-item${ativo ? " indice-item--activa" : ""}`}
                 style={{
                   display: "flex",
                   alignItems: "baseline",
@@ -493,9 +512,6 @@ export default function NotasEvento({
                   gap: "8px",
                   padding: "6px 9px",
                   borderRadius: "7px",
-                  border: "none",
-                  backgroundColor: ativo ? "#FBF7EF" : "transparent",
-                  cursor: "pointer",
                   textAlign: "left",
                 }}
               >

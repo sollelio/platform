@@ -119,6 +119,22 @@ export default function SubmissionDrawer({
     };
   }, [selected?.id]);
 
+  // Escape fecha — primeiro a folha de mensagens, depois o drawer. E
+  // nunca rouba a tecla a um campo com o cursor lá dentro: aí o Escape
+  // é do campo (desistir do que se estava a escrever), não da moldura.
+  useEffect(() => {
+    if (!selected) return;
+    const aoTeclar = (evento) => {
+      if (evento.key !== "Escape") return;
+      const tag = evento.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (folhaMensagens) setFolhaMensagens(false);
+      else onClose();
+    };
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [selected, folhaMensagens, onClose]);
+
   if (!selected) return <AnimatePresence />;
 
   // Ao saltar de um evento para outro o pedido novo ainda vem a
@@ -196,21 +212,28 @@ export default function SubmissionDrawer({
       pagamentos: planoDoEvento?.pagamentos,
     });
     if (!atual) return null;
-    const ir = (aba) => () => navigate(`/evento/${selected.id}/${aba}`);
+    // O botão promete um gesto concreto — a navegação leva a intenção
+    // (realce) consigo, e o separador aterra com a parcela/linha em
+    // evidência. A EventoPage consome o state uma única vez.
+    const ir = (aba, alvo) => () =>
+      navigate(`/evento/${selected.id}/${aba}`, {
+        state: { realce: { alvo, n: Date.now() } },
+      });
     const porMapa = {
-      orcamento: { rotulo: "Preparar orçamento", aba: "documentos" },
+      orcamento: { rotulo: "Preparar orçamento", aba: "documentos", alvo: "orcamento" },
       sinal: {
         rotulo: atual.sub
           ? `Registar sinal · ${atual.sub.replace(" por receber", "")}`
           : "Registar sinal",
         aba: "pagamentos",
+        alvo: "sinal",
       },
-      projecto: { rotulo: "Criar projecto", aba: "documentos" },
-      contrato: { rotulo: "Preparar contrato", aba: "documentos" },
-      preparacao: { rotulo: "Preparar o evento", aba: "materiais" },
+      projecto: { rotulo: "Criar projecto", aba: "documentos", alvo: "proposta" },
+      contrato: { rotulo: "Preparar contrato", aba: "documentos", alvo: "contrato" },
+      preparacao: { rotulo: "Preparar o evento", aba: "materiais", alvo: "ficha" },
     }[atual.id];
     if (!porMapa) return null;
-    return { rotulo: porMapa.rotulo, accao: ir(porMapa.aba) };
+    return { rotulo: porMapa.rotulo, accao: ir(porMapa.aba, porMapa.alvo) };
   })();
 
   const fechar = () => onClose();
@@ -298,12 +321,12 @@ export default function SubmissionDrawer({
               >
                 <button
                   onClick={fechar}
+                  title="Fechar (Esc)"
+                  className="icone-botao"
                   style={{
                     fontSize: "20px",
                     color: "var(--gray-mid)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
+                    padding: "2px 8px",
                   }}
                 >
                   ✕
@@ -338,7 +361,9 @@ export default function SubmissionDrawer({
                 // onde é preciso procurar outra vez o evento que já está
                 // aberto à frente.
                 else if (id === "preparacao")
-                  navigate(`/evento/${selected.id}/materiais`);
+                  navigate(`/evento/${selected.id}/materiais`, {
+                    state: { realce: { alvo: "ficha", n: Date.now() } },
+                  });
               }}
             />
 
@@ -363,18 +388,15 @@ export default function SubmissionDrawer({
             {gesto && (
               <button
                 onClick={gesto.accao}
+                className="acao acao--cheia"
                 style={{
                   width: "100%",
                   padding: "13px",
                   marginBottom: "10px",
                   borderRadius: "12px",
-                  border: "none",
-                  backgroundColor: "var(--gold)",
-                  color: "white",
                   fontSize: "13.5px",
                   fontWeight: "600",
                   letterSpacing: "0.01em",
-                  cursor: "pointer",
                   boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
                 }}
               >
@@ -387,16 +409,13 @@ export default function SubmissionDrawer({
             <div style={{ display: "flex", gap: "8px" }}>
               <button
                 onClick={() => navigate(`/evento/${selected.id}`)}
+                className="acao acao--ouro"
                 style={{
                   flex: 1,
                   padding: "11px",
                   borderRadius: "12px",
-                  border: "1.5px solid var(--gold)",
-                  backgroundColor: "white",
-                  color: "var(--gold)",
                   fontSize: "13px",
                   fontWeight: "500",
-                  cursor: "pointer",
                 }}
               >
                 Abrir evento →
@@ -408,18 +427,15 @@ export default function SubmissionDrawer({
                     ? "Escolher uma mensagem e abrir a conversa"
                     : "Sem número de WhatsApp neste evento"
                 }
+                className="acao acao--verde"
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "7px",
                   padding: "11px 14px",
                   borderRadius: "12px",
-                  border: "1.5px solid #BBF7D0",
-                  backgroundColor: "#F0FDF4",
-                  color: "#166534",
                   fontSize: "13px",
                   fontWeight: "500",
-                  cursor: "pointer",
                 }}
               >
                 <Icone nome="mensagens" tamanho={16} />
@@ -458,9 +474,11 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
   const [aEditar, setAEditar] = useState(false);
   const [valor, setValor] = useState(submissao.data_evento || "");
   const [aGuardar, setAGuardar] = useState(false);
+  const [erro, setErro] = useState(null);
 
   const guardar = async () => {
     setAGuardar(true);
+    setErro(null);
     // Além da coluna, escreve também no campo do modelo marcado como
     // "papel: data" (se existir) — é dali que o briefing e o
     // formulário completo leem a data; sem isto, ficam presos no
@@ -481,7 +499,7 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
     setAGuardar(false);
     if (error) {
       console.error(error);
-      alert("Não foi possível guardar a data. Tenta novamente.");
+      setErro("Não guardou — tenta outra vez.");
       return;
     }
     if (onSaved) onSaved({ ...submissao, ...data });
@@ -499,6 +517,7 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           onChange={(e) => setValor(e.target.value)}
           disabled={aGuardar}
           autoFocus
+          className="caixa-texto"
           style={{
             fontSize: "12px",
             padding: "3px 6px",
@@ -512,13 +531,11 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           onClick={guardar}
           disabled={aGuardar}
           title="Guardar"
+          className="icone-botao"
           style={{
             fontSize: "13px",
             color: "#16A34A",
-            background: "none",
-            border: "none",
-            cursor: aGuardar ? "wait" : "pointer",
-            padding: "2px",
+            padding: "2px 5px",
             lineHeight: 1,
           }}
         >
@@ -527,22 +544,24 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
         <button
           onClick={() => {
             setValor(submissao.data_evento || "");
+            setErro(null);
             setAEditar(false);
           }}
           disabled={aGuardar}
           title="Cancelar"
+          className="icone-botao"
           style={{
             fontSize: "13px",
             color: "var(--gray-mid)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "2px",
+            padding: "2px 5px",
             lineHeight: 1,
           }}
         >
           ✕
         </button>
+        {erro && (
+          <span style={{ fontSize: "11px", color: "#B91C1C" }}>{erro}</span>
+        )}
       </span>
     );
   }
@@ -556,6 +575,7 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
       id="tour-data-evento"
       onClick={() => setAEditar(true)}
       title="Editar a data do evento"
+      className="foco"
       initial="rest"
       whileHover="hover"
       whileTap={{ scale: 0.97 }}
@@ -690,6 +710,7 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
         <select
           value={modeloId}
           onChange={(e) => setModeloId(e.target.value)}
+          className="caixa-texto"
           style={{
             flex: "1 1 180px",
             minWidth: 0,
@@ -712,18 +733,14 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
         <button
           onClick={guardar}
           disabled={aGuardar}
+          className={`acao ${modeloId ? "acao--cheia" : "acao--ouro"}`}
           style={{
             flexShrink: 0,
             padding: "8px 14px",
             borderRadius: "8px",
             fontSize: "12px",
             fontWeight: "600",
-            border: "1.5px solid var(--gold)",
-            backgroundColor: modeloId ? "var(--gold)" : "white",
-            color: modeloId ? "white" : "var(--gold-dark)",
-            cursor: aGuardar ? "wait" : "pointer",
             whiteSpace: "nowrap",
-            transition: "all 0.15s",
           }}
         >
           {aGuardar

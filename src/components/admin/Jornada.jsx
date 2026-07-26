@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { STATUS_OPTIONS, STATUS_COLORS } from "./faseConfig";
 import { construirEtapas } from "./jornadaEtapas";
 
@@ -24,6 +25,10 @@ import { construirEtapas } from "./jornadaEtapas";
 //   pagamentos     — pagamentos reais deste evento (opcional)
 //   onEtapa(id)    — clique numa etapa que não seja de estado
 //   onStatusChange(id, status, fase) — mudar o estado do evento
+//   onProximoGesto(id) — quando dado, a frase "A seguir" vira PÍLULA
+//     accionável (a página passa-o; o drawer não — lá o gesto já tem
+//     o seu botão grande, e duas chamadas iguais eram uma a mais).
+//     Nunca no "grande dia": frase celebratória não é botão.
 //   compacta       — régua sem rótulos, para o cabeçalho condensado
 // ============================================================
 
@@ -96,13 +101,23 @@ export default function Jornada({
   pagamentos = null,
   onEtapa,
   onStatusChange,
+  onProximoGesto,
   compacta = false,
 }) {
   // O estado (Recebido/Em Preparação/Confirmado/Concluído) edita-se
   // aqui dentro — nos passos "Preparação" e "Grande dia" — em vez de
-  // num bloco à parte sem ligação visual à Jornada. Hook antes de
+  // num bloco à parte sem ligação visual à Jornada. Hooks antes de
   // qualquer return condicional (fase "perdido" também usa isto).
   const [popoverEtapa, setPopoverEtapa] = useState(null);
+
+  // O ✓ salta com mola quando uma etapa SE CONCLUI à frente dos olhos
+  // — mas nunca ao abrir a página, senão o passado inteiro "acontecia"
+  // a cada visita. O ref distingue a primeira pintura das seguintes.
+  const primeiraPintura = useRef(true);
+  useEffect(() => {
+    primeiraPintura.current = false;
+  }, []);
+  const reduzirMovimento = useReducedMotion();
 
   const s = submissao;
   if (!s) return null;
@@ -184,15 +199,19 @@ export default function Jornada({
               ? "#EAD9AC"
               : "#F1EBDD";
           return (
-            <div
+            // Botão a sério: responde ao rato, ao Tab e ao Enter — uma
+            // div com onClick não respondia a nada disto.
+            <button
               key={e.id}
+              type="button"
+              disabled={!e.clicavel}
               onClick={e.clicavel ? () => aoClicarEtapa(e.id) : undefined}
               title={e.clicavel ? "Abrir" : e.tituloBloqueado}
+              className="etapa-jornada"
               style={{
                 flex: 1,
                 textAlign: "center",
                 position: "relative",
-                cursor: e.clicavel ? "pointer" : "default",
                 minWidth: 0,
               }}
             >
@@ -204,11 +223,27 @@ export default function Jornada({
                     left: "50%",
                     right: "-50%",
                     height: "2px",
-                    backgroundColor: e.feito ? "var(--gold)" : "#E5DCC3",
+                    backgroundColor: "#E5DCC3",
+                    overflow: "hidden",
                   }}
-                />
+                >
+                  {/* O fio ENCHE-SE da esquerda para a direita quando a
+                      etapa se conclui — o avanço vê-se a acontecer. */}
+                  <motion.div
+                    initial={false}
+                    animate={{ scaleX: e.feito ? 1 : 0 }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      transformOrigin: "left center",
+                      backgroundColor: "var(--gold)",
+                    }}
+                  />
+                </div>
               )}
               <div
+                className="jornada-bola"
                 style={{
                   position: "relative",
                   width: ehAtual ? "24px" : "21px",
@@ -216,9 +251,6 @@ export default function Jornada({
                   borderRadius: "50%",
                   backgroundColor: ehAtual ? "white" : corBola,
                   border: ehAtual ? "2.5px solid var(--gold)" : "none",
-                  boxShadow: ehAtual
-                    ? "0 0 0 4px rgba(201,168,76,0.22)"
-                    : "none",
                   margin: `${ehAtual ? "-1px" : "0"} auto 5px`,
                   display: "flex",
                   alignItems: "center",
@@ -228,11 +260,56 @@ export default function Jornada({
                   fontWeight: "700",
                 }}
               >
-                {e.emoji ? e.emoji : e.feito ? "✓" : ehAtual ? "●" : "○"}
+                {/* O anel do passo actual respira — lentíssimo, só
+                    opacidade; parado de todo para quem pediu movimento
+                    reduzido. */}
+                {ehAtual && (
+                  <motion.span
+                    aria-hidden
+                    initial={false}
+                    animate={
+                      reduzirMovimento
+                        ? { opacity: 1 }
+                        : { opacity: [1, 0.45, 1] }
+                    }
+                    transition={
+                      reduzirMovimento
+                        ? { duration: 0 }
+                        : { duration: 3.6, repeat: Infinity, ease: "easeInOut" }
+                    }
+                    style={{
+                      position: "absolute",
+                      inset: "-2.5px",
+                      borderRadius: "50%",
+                      boxShadow: "0 0 0 4px rgba(201,168,76,0.22)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+                {e.emoji ? (
+                  e.emoji
+                ) : e.feito ? (
+                  <motion.span
+                    initial={
+                      primeiraPintura.current || reduzirMovimento
+                        ? false
+                        : { scale: 0 }
+                    }
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                    style={{ display: "inline-flex" }}
+                  >
+                    ✓
+                  </motion.span>
+                ) : ehAtual ? (
+                  "●"
+                ) : (
+                  "○"
+                )}
               </div>
               <p
                 style={{
-                  fontSize: "8.5px",
+                  fontSize: ehAtual ? "10px" : "9.5px",
                   fontWeight: e.feito || ehAtual ? "600" : "400",
                   color: ehAtual
                     ? "var(--gold-dark)"
@@ -249,7 +326,7 @@ export default function Jornada({
               {e.sub && (
                 <p
                   style={{
-                    fontSize: "8.5px",
+                    fontSize: "9px",
                     color: ehAtual ? "#B45309" : "var(--gray-mid)",
                     fontWeight: ehAtual ? "600" : "400",
                     margin: 0,
@@ -259,12 +336,15 @@ export default function Jornada({
                   {e.sub}
                 </p>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
       {popoverEtapa && (
-        <div
+        <motion.div
+          initial={reduzirMovimento ? false : { opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.14, ease: [0.32, 0.72, 0, 1] }}
           style={{
             marginTop: "10px",
             backgroundColor: "white",
@@ -296,6 +376,7 @@ export default function Jornada({
                     onStatusChange && onStatusChange(s.id, status, s.fase);
                     setPopoverEtapa(null);
                   }}
+                  className="toca foco"
                   style={{
                     padding: "5px 12px",
                     borderRadius: "999px",
@@ -304,7 +385,6 @@ export default function Jornada({
                     border: `1px solid ${colors.border}`,
                     backgroundColor: isActive ? colors.color : colors.bg,
                     color: isActive ? "white" : colors.color,
-                    cursor: "pointer",
                   }}
                 >
                   {status}
@@ -326,34 +406,57 @@ export default function Jornada({
                 onEtapa("preparacao");
                 setPopoverEtapa(null);
               }}
+              className="ligacao"
               style={{
                 marginTop: "8px",
                 fontSize: "11px",
-                border: "none",
-                background: "none",
                 color: "var(--gold-dark)",
-                cursor: "pointer",
-                padding: 0,
                 textDecoration: "underline",
               }}
             >
               Abrir a ficha de materiais →
             </button>
           )}
-        </div>
+        </motion.div>
       )}
-      {proximoGesto && (
-        <p
-          style={{
-            fontSize: "11px",
-            fontStyle: "italic",
-            color: "var(--gold-dark)",
-            margin: "10px 4px 0",
-          }}
-        >
-          → A seguir: {proximoGesto}
-        </p>
-      )}
+      {/* O próximo gesto. Na página é uma PÍLULA que age — clica e
+          aterra no separador com a parcela/linha em evidência; no
+          drawer (sem onProximoGesto) fica a frase, porque o botão
+          grande ali ao lado já faz o gesto. No "grande dia" é sempre
+          frase: celebração não é botão. */}
+      {proximoGesto &&
+        (onProximoGesto && atual && atual.id !== "grandeDia" ? (
+          <button
+            onClick={() => onProximoGesto(atual.id)}
+            className="acao acao--ouro pilula-gesto"
+            style={{
+              marginTop: "10px",
+              padding: "7px 14px",
+              borderRadius: "999px",
+              fontSize: "12.5px",
+              fontWeight: "500",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+            }}
+          >
+            <span>A seguir: {proximoGesto}</span>
+            <span className="pilula-seta" aria-hidden>
+              →
+            </span>
+          </button>
+        ) : (
+          <p
+            style={{
+              fontSize: "11px",
+              fontStyle: "italic",
+              color: "var(--gold-dark)",
+              margin: "10px 4px 0",
+            }}
+          >
+            → A seguir: {proximoGesto}
+          </p>
+        ))}
     </div>
   );
 }

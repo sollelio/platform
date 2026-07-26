@@ -50,6 +50,11 @@ export function toEditingSteps(steps) {
     subtitle: step.subtitle || "",
     fields: (step.fields || []).map((field) => ({
       uid: makeUid(),
+      // O id GRAVADO viaja com o campo e nunca se regenera: é a chave
+      // das respostas já dadas (respostas[campo.id]) em todos os
+      // eventos deste modelo. Descartá-lo aqui e regenerá-lo do rótulo
+      // ao gravar foi o que desligou respostas reais em produção.
+      id: field.id || null,
       label: field.label || "",
       type: field.type || "text",
       required: !!field.required,
@@ -105,15 +110,30 @@ function generateUniqueFieldId(label, idsJaUsados) {
 }
 
 function buildStepsForSave(steps) {
-  const idsJaUsados = [];
+  // IDS ESTÁVEIS: um campo que já tem id gravado mantém-no tal e qual —
+  // renomear o rótulo, reordenar passos ou mexer no resto do modelo
+  // nunca lhe toca. Só um campo NOVO ganha id, derivado do rótulo
+  // (recriar um campo com o rótulo exacto de um removido regenera o id
+  // antigo — e as respostas órfãs dele voltam a aparecer sozinhas).
+  //
+  // A unicidade confere-se contra TODOS os ids do modelo, preservados
+  // incluídos — não só os já percorridos. Senão, um campo novo em cima
+  // podia gerar o id de um campo existente mais abaixo, e o modelo
+  // ficava com dois campos a ler e escrever a mesma resposta.
+  const idsJaUsados = steps
+    .flatMap((s) => s.fields.map((f) => f.id))
+    .filter(Boolean);
   return steps.map((step, stepIndex) => ({
     id: stepIndex + 1,
     title: step.title.trim(),
     subtitle: step.subtitle.trim(),
     icon: "user",
     fields: step.fields.map((field) => {
-      const id = generateUniqueFieldId(field.label, idsJaUsados);
-      idsJaUsados.push(id);
+      let id = field.id;
+      if (!id) {
+        id = generateUniqueFieldId(field.label, idsJaUsados);
+        idsJaUsados.push(id);
+      }
       let validate;
       if (field.type === "tel") validate = "phone";
       else if (field.type === "email") validate = "email";
@@ -896,6 +916,9 @@ export default function EventTypeEditor({
                 ...s.fields,
                 {
                   uid: makeUid(),
+                  // Novo: sem id até à gravação — é lá que o ganha,
+                  // derivado do rótulo que entretanto lhe derem.
+                  id: null,
                   label: "",
                   type: "text",
                   required: true,

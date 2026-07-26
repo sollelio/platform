@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { documentosDoEvento, marcarPassoDocumento } from "../../lib/documentos";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { Icone } from "./Navegacao";
+import { Esqueleto } from "./acabamento";
 
 // ============================================================
 // DocumentosEvento — o separador Documentos da página do evento.
@@ -57,7 +59,15 @@ const desdeQuando = (iso) => {
 };
 
 // Uma bolinha do percurso: cheia (feito), anel (a seguir), vazia.
+// O visto salta com mola quando se marca À FRENTE DOS OLHOS — marcar
+// "assinado" é um marco do negócio, merece confirmação à altura.
 function Passo({ rotulo, feito, aSeguir, data, onClick }) {
+  const primeiraPintura = useRef(true);
+  useEffect(() => {
+    primeiraPintura.current = false;
+  }, []);
+  const reduzirMovimento = useReducedMotion();
+
   const conteudo = (
     <>
       <span
@@ -72,19 +82,31 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
           flexShrink: 0,
           backgroundColor: feito ? "var(--gold)" : aSeguir ? "white" : "#F1EBDD",
           border: aSeguir ? "2px solid var(--gold)" : "none",
+          transition: "background-color 300ms ease",
         }}
       >
         {feito && (
-          <svg width="8" height="8" viewBox="0 0 24 24">
-            <path
-              d="M4.5 12.5l5 5 10-10"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <motion.span
+            initial={
+              primeiraPintura.current || reduzirMovimento
+                ? false
+                : { scale: 0, opacity: 0 }
+            }
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 520, damping: 26 }}
+            style={{ display: "inline-flex" }}
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24">
+              <path
+                d="M4.5 12.5l5 5 10-10"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </motion.span>
         )}
       </span>
       <span
@@ -116,6 +138,7 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
     <button
       onClick={onClick}
       title={feito ? "Desmarcar" : `Marcar como ${rotulo}`}
+      className="toca"
       style={{
         display: "flex",
         alignItems: "center",
@@ -123,7 +146,6 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
         border: "none",
         background: "none",
         padding: 0,
-        cursor: "pointer",
       }}
     >
       {conteudo}
@@ -200,31 +222,24 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom }) {
   );
 }
 
-const botao = (variante) => ({
+// A identidade (cor, hover, foco) vive nas classes .acao--* do
+// index.css; aqui fica a medida — e o realce do botão principal.
+const classeBotao = (variante) =>
+  variante === "principal"
+    ? "acao acao--cheia"
+    : variante === "ouro"
+      ? "acao acao--ouro"
+      : "acao acao--neutra";
+
+const medidaBotao = (variante) => ({
   padding: variante === "principal" ? "9px 16px" : "8px 14px",
   borderRadius: "10px",
   fontSize: variante === "principal" ? "12.5px" : "12px",
   fontWeight: variante === "principal" ? "600" : "500",
-  cursor: "pointer",
   whiteSpace: "nowrap",
   ...(variante === "principal"
-    ? {
-        border: "none",
-        backgroundColor: "var(--gold)",
-        color: "white",
-        boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
-      }
-    : variante === "ouro"
-      ? {
-          border: "1.5px solid var(--gold)",
-          backgroundColor: "white",
-          color: "var(--gold)",
-        }
-      : {
-          border: "1.5px solid var(--gold-light)",
-          backgroundColor: "white",
-          color: "var(--gray-mid)",
-        }),
+    ? { boxShadow: "0 4px 12px rgba(201,168,76,0.30)" }
+    : {}),
 });
 
 export default function DocumentosEvento({
@@ -233,12 +248,47 @@ export default function DocumentosEvento({
   onGerarDocumento,
   onVerFormulario,
   onCriarFormulario,
+  realce = null,
+  onRealceConsumido,
+  onContagem,
 }) {
   const [documentos, setDocumentos] = useState([]);
   const [carregado, setCarregado] = useState(false);
   const [erro, setErro] = useState(null);
+  // A aterragem da pílula/etapa da Jornada: a linha em causa acende —
+  // gerada ou por gerar, é a mesma linha (a afordância de criação é o
+  // caso normal: o próximo gesto é quase sempre criar o que falta).
+  const [pulsando, setPulsando] = useState(null); // "orcamento"|"proposta"|"contrato"|"formulario"
+  const linhaRefs = useRef({});
 
   const submissionId = submissao?.id;
+
+  useEffect(() => {
+    if (!realce || !carregado) return;
+    // Um realce de OUTRO separador não se consome aqui — com os
+    // separadores todos montados em simultâneo, roubá-lo era apagar a
+    // aterragem antes de o destino certo a fazer.
+    const alvo = ["orcamento", "proposta", "contrato", "formulario"].includes(
+      realce.alvo,
+    )
+      ? realce.alvo
+      : null;
+    if (!alvo) return;
+    setPulsando(alvo);
+    linhaRefs.current[alvo]?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    setTimeout(() => setPulsando(null), 2600);
+    if (onRealceConsumido) onRealceConsumido();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realce, carregado]);
+
+  // A contagem do separador: quantos documentos já foram gerados.
+  useEffect(() => {
+    if (carregado && onContagem) onContagem(documentos.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carregado, documentos]);
 
   useEffect(() => {
     let cancelado = false;
@@ -294,9 +344,11 @@ export default function DocumentosEvento({
 
   if (!carregado) {
     return (
-      <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>
-        A ler os documentos…
-      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Esqueleto key={i} h={74} r={14} />
+        ))}
+      </div>
     );
   }
 
@@ -345,7 +397,8 @@ export default function DocumentosEvento({
         accoes={
           <button
             onClick={() => window.open(`/briefing/${submissionId}`, "_blank")}
-            style={botao("ouro")}
+            className={classeBotao("ouro")}
+            style={medidaBotao("ouro")}
           >
             Abrir folha →
           </button>
@@ -353,6 +406,11 @@ export default function DocumentosEvento({
       />
 
       {/* Formulário — o percurso vive nos convites, não em `documentos` */}
+      <div
+        ref={(el) => (linhaRefs.current.formulario = el)}
+        className={pulsando === "formulario" ? "realce-pulso" : undefined}
+        style={{ borderRadius: "14px" }}
+      >
       <Linha
         icone="formularios"
         titulo="Formulário"
@@ -379,20 +437,23 @@ export default function DocumentosEvento({
           !convite ? (
             <button
               onClick={() => onCriarFormulario && onCriarFormulario(submissao)}
-              style={botao("ouro")}
+              className={classeBotao("ouro")}
+              style={medidaBotao("ouro")}
             >
               Enviar formulário
             </button>
           ) : (
             <button
               onClick={() => onVerFormulario && onVerFormulario(submissao)}
-              style={botao("ouro")}
+              className={classeBotao("ouro")}
+              style={medidaBotao("ouro")}
             >
               {formularioFeito ? "Ver respostas" : "Preencher"}
             </button>
           )
         }
       />
+      </div>
 
       {Object.entries(TIPOS).map(([tipo, cfg]) => {
         const doc = porTipo[tipo];
@@ -400,8 +461,13 @@ export default function DocumentosEvento({
         const tom = eProximo ? "destaque" : !doc ? "adormecido" : undefined;
 
         return (
-          <Linha
+          <div
             key={tipo}
+            ref={(el) => (linhaRefs.current[tipo] = el)}
+            className={pulsando === tipo ? "realce-pulso" : undefined}
+            style={{ borderRadius: "14px" }}
+          >
+          <Linha
             icone={cfg.icone}
             titulo={cfg.nome}
             descricao={
@@ -455,12 +521,18 @@ export default function DocumentosEvento({
                 onClick={() =>
                   onGerarDocumento && onGerarDocumento(submissao, tipo)
                 }
-                style={botao(eProximo ? "principal" : doc ? "ouro" : "neutro")}
+                className={classeBotao(
+                  eProximo ? "principal" : doc ? "ouro" : "neutro",
+                )}
+                style={medidaBotao(
+                  eProximo ? "principal" : doc ? "ouro" : "neutro",
+                )}
               >
                 {doc ? "Abrir" : `Preparar ${cfg.nome.toLowerCase()}`}
               </button>
             }
           />
+          </div>
         );
       })}
     </div>

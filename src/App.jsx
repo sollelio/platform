@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BriefingPage from "./pages/BriefingPage";
+import ContribuirPage from "./pages/ContribuirPage";
 import EventoPage from "./pages/EventoPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import CaptacaoPage from "./pages/CaptacaoPage";
@@ -60,6 +61,9 @@ function App() {
           }
         />
         <Route path="/briefing/:id" element={<BriefingPage />} />
+        {/* A página pública da contribuição coletiva — por token
+            aleatório e revogável, leitura via RPC (034), sem login. */}
+        <Route path="/contribuir/:token" element={<ContribuirPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

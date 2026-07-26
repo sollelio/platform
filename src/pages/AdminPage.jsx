@@ -719,6 +719,11 @@ export default function AdminPage() {
     setLoadingInvites(false);
   };
 
+  // Um erro de mudança de estado (a Jornada do drawer chama isto)
+  // responde no ecrã, nunca num diálogo do browser — o mesmo registo
+  // da página de evento.
+  const [erroEstado, setErroEstado] = useState(null);
+
   const handleStatusChange = async (id, newStatus, fase) => {
     try {
       const atualizado = await updateStatus(id, newStatus, fase);
@@ -727,9 +732,10 @@ export default function AdminPage() {
       );
       if (selected?.id === id) setSelected(atualizado);
       setFunilVersao((v) => v + 1);
+      setErroEstado(null);
     } catch (e) {
       console.error(e);
-      alert(e.message);
+      setErroEstado(e.message || "Não foi possível mudar o estado.");
     }
   };
 
@@ -1471,6 +1477,41 @@ export default function AdminPage() {
         }}
         onFechar={notificacoes.limparNova}
       />
+
+      {/* Erro de mudança de estado — acima do drawer (z 50), no mesmo
+          registo da barra de erro da página de evento. */}
+      {erroEstado && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "24px",
+            transform: "translateX(-50%)",
+            zIndex: 120,
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            width: "min(560px, calc(100vw - 48px))",
+            backgroundColor: "white",
+            border: "1.5px solid #FECACA",
+            borderRadius: "14px",
+            padding: "12px 16px",
+            boxShadow: "0 14px 36px rgba(26,26,26,0.18)",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#B91C1C" }}>
+            {erroEstado}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setErroEstado(null)}
+            className="ligacao"
+            style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}
+          >
+            Fechar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

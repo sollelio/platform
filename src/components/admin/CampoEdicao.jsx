@@ -51,12 +51,14 @@ export default function CampoEdicao({ campo, valor, onChange }) {
               placeholder="Rua"
               value={v.rua || ""}
               onChange={(e) => atualizar("rua", e.target.value)}
+              className="caixa-texto"
               style={{ ...inputStyle, flex: 2 }}
             />
             <input
               placeholder="Nº porta"
               value={v.numero || ""}
               onChange={(e) => atualizar("numero", e.target.value)}
+              className="caixa-texto"
               style={{ ...inputStyle, flex: 1 }}
             />
           </div>
@@ -64,6 +66,7 @@ export default function CampoEdicao({ campo, valor, onChange }) {
             placeholder="Andar / Fração (opcional)"
             value={v.andar || ""}
             onChange={(e) => atualizar("andar", e.target.value)}
+            className="caixa-texto"
             style={inputStyle}
           />
           <div style={{ display: "flex", gap: "6px" }}>
@@ -71,12 +74,14 @@ export default function CampoEdicao({ campo, valor, onChange }) {
               placeholder="Código postal"
               value={v.codigoPostal || ""}
               onChange={(e) => atualizar("codigoPostal", e.target.value)}
+              className="caixa-texto"
               style={{ ...inputStyle, flex: 1 }}
             />
             <input
               placeholder="Localidade"
               value={v.localidade || ""}
               onChange={(e) => atualizar("localidade", e.target.value)}
+              className="caixa-texto"
               style={{ ...inputStyle, flex: 2 }}
             />
           </div>
@@ -106,14 +111,13 @@ export default function CampoEdicao({ campo, valor, onChange }) {
                 key={opt}
                 type="button"
                 onClick={() => toggle(opt)}
+                className={`pastilha-escolha${
+                  ativo ? " pastilha-escolha--activa" : ""
+                }`}
                 style={{
                   padding: "6px 12px",
                   borderRadius: "999px",
                   fontSize: "12px",
-                  border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-                  backgroundColor: ativo ? "var(--gold)" : "white",
-                  color: ativo ? "white" : "var(--gray-mid)",
-                  cursor: "pointer",
                 }}
               >
                 {opt}
@@ -136,6 +140,7 @@ export default function CampoEdicao({ campo, valor, onChange }) {
         <select
           value={valor || ""}
           onChange={(e) => onChange(e.target.value)}
+          className="caixa-texto"
           style={inputStyle}
         >
           <option value="">—</option>
@@ -159,6 +164,7 @@ export default function CampoEdicao({ campo, valor, onChange }) {
           value={valor || ""}
           placeholder={campo.placeholder || ""}
           onChange={(e) => onChange(e.target.value)}
+          className="caixa-texto"
           style={{ ...inputStyle, resize: "none" }}
         />
       </div>
@@ -177,6 +183,7 @@ export default function CampoEdicao({ campo, valor, onChange }) {
         value={valor || ""}
         placeholder={campo.placeholder || ""}
         onChange={(e) => onChange(e.target.value)}
+        className="caixa-texto"
         style={inputStyle}
       />
     </div>

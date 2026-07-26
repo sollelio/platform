@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
 import { getEventTypes } from "../lib/invites";
@@ -13,6 +20,7 @@ import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import { SidebarNav } from "../components/admin/Navegacao";
+import { Esqueleto } from "../components/admin/acabamento";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
 import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
@@ -45,17 +53,27 @@ const ABAS = [
 
 const ABA_PREDEFINIDA = "visao-geral";
 
-const botaoSaida = (perigo) => ({
+const medidaBotaoSaida = {
   padding: "9px 16px",
   borderRadius: "10px",
-  border: `1.5px solid ${perigo ? "#FECACA" : "var(--gold)"}`,
-  backgroundColor: perigo ? "white" : "var(--gold)",
-  color: perigo ? "#B91C1C" : "white",
   fontSize: "12.5px",
   fontWeight: "500",
-  cursor: "pointer",
   whiteSpace: "nowrap",
-});
+};
+
+// Um painel de separador: visitado uma vez, fica montado — esconder é
+// display:none, nunca desmontar. O reaparecer reencena a entrada (a
+// animação CSS reinicia quando o display volta a block).
+function Painel({ visivel, children }) {
+  return (
+    <div
+      className="painel-aba"
+      style={{ display: visivel ? undefined : "none" }}
+    >
+      {children}
+    </div>
+  );
+}
 
 function Centrado({ children }) {
   return (
@@ -79,6 +97,7 @@ function Centrado({ children }) {
 export default function EventoPage() {
   const { id, aba } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [submissao, setSubmissao] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
@@ -108,7 +127,67 @@ export default function EventoPage() {
   // o separador do painel a que se ia, para o levar lá depois.
   const [saidaPendente, setSaidaPendente] = useState(null);
 
+  // Um erro de acção responde no ecrã, nunca num diálogo do browser —
+  // a mesma regra da confirmação de saída.
+  const [erroAccao, setErroAccao] = useState(null);
+
+  // A pílula do próximo gesto (e o botão do drawer) navegam COM a
+  // intenção: o separador de destino recebe este realce e cumpre a
+  // promessa — a parcela/linha em causa acende, ou a acção abre já.
+  // Consome-se UMA vez: o state da rota é logo substituído por vazio,
+  // para o back/forward não repetirem o acontecimento.
+  const [realce, setRealce] = useState(null);
+  useEffect(() => {
+    const r = location.state?.realce;
+    if (!r) return;
+    setRealce(r);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
+
   const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;
+
+  // MONTAGEM PERSISTENTE: um separador visitado fica montado (escondido,
+  // não desmontado). É o que torna a troca instantânea — sem refetch a
+  // piscar — e o que preserva o estado interno de cada um (selecções da
+  // ficha, filtros das notas, formulários a meio). Mudar de EVENTO
+  // limpa tudo: outra entidade, outra vida.
+  const visitadas = useRef(new Set());
+  const eventoDasVisitas = useRef(id);
+  if (eventoDasVisitas.current !== id) {
+    eventoDasVisitas.current = id;
+    visitadas.current = new Set();
+  }
+  visitadas.current.add(activeAba);
+
+  // MEMÓRIA DE SCROLL por separador: cada um lembra onde estava — a
+  // promessa do comentário lá em cima passa a ser verdade. O listener
+  // grava a posição do separador activo; ao trocar, repõe-se a do que
+  // entra (ou o topo, na primeira visita).
+  const scrollPorAba = useRef({});
+  useEffect(() => {
+    scrollPorAba.current = {};
+  }, [id]);
+  useEffect(() => {
+    const guardar = () => {
+      scrollPorAba.current[activeAba] = window.scrollY;
+    };
+    window.addEventListener("scroll", guardar, { passive: true });
+    return () => window.removeEventListener("scroll", guardar);
+  }, [activeAba]);
+  useLayoutEffect(() => {
+    window.scrollTo(0, scrollPorAba.current[activeAba] ?? 0);
+  }, [activeAba]);
+
+  // As contagens dos separadores — cada separador reporta a sua quando
+  // monta e quando muda (documentos gerados, linhas da ficha, notas
+  // escritas); a de pagamentos sai do plano que já vive aqui.
+  const [contagens, setContagens] = useState({});
+  const reportarContagem = useCallback((abaId, n) => {
+    setContagens((c) => (c[abaId] === n ? c : { ...c, [abaId]: n }));
+  }, []);
+  useEffect(() => {
+    setContagens({});
+  }, [id]);
 
   // Tudo o que a página precisa, de uma vez: o evento com o cliente, os
   // modelos (o getResumoSubmissao e o getNomeTipoEvento precisam da
@@ -163,6 +242,12 @@ export default function EventoPage() {
     }
   }, [id]);
 
+  // A contagem de Pagamentos sai do plano que já vive aqui — sem
+  // esperar que o separador seja visitado.
+  useEffect(() => {
+    reportarContagem("pagamentos", plano.pagamentos.length);
+  }, [plano.pagamentos.length, reportarContagem]);
+
   const resumoEvento = useMemo(
     () => getResumoSubmissao(submissao, eventTypes),
     [submissao, eventTypes],
@@ -186,13 +271,55 @@ export default function EventoPage() {
 
   const abasComAviso = useMemo(
     () =>
-      porGuardar > 0
-        ? ABAS.map((a) => (a.id === "visao-geral" ? { ...a, porGuardar } : a))
-        : ABAS,
-    [porGuardar],
+      ABAS.map((a) => ({
+        ...a,
+        porGuardar:
+          a.id === "visao-geral" && porGuardar > 0 ? porGuardar : undefined,
+        // 0 não é etiqueta — só se mostra contagem quando há o que contar
+        contagem: contagens[a.id] > 0 ? contagens[a.id] : undefined,
+      })),
+    [porGuardar, contagens],
   );
 
-  if (estado === "a-carregar") return <Centrado>A abrir o evento…</Centrado>;
+  // A entrada da página mais importante do sistema não é uma frase
+  // nua: é a forma do que vem, em blocos calmos — cabeçalho, Jornada,
+  // separadores, conteúdo.
+  if (estado === "a-carregar")
+    return (
+      <div style={{ display: "flex", backgroundColor: "var(--cream)", minHeight: "100vh" }}>
+        <SidebarNav
+          activeTab="clientes"
+          onNavegar={(tab) => navigate("/admin", { state: { tab } })}
+          onSair={async () => {
+            await supabase.auth.signOut();
+            navigate("/admin/login");
+          }}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              backgroundColor: "white",
+              borderBottom: "1px solid #F0E6D0",
+              padding: "18px 40px 0",
+            }}
+          >
+            <Esqueleto w={92} h={10} style={{ marginBottom: 14 }} />
+            <Esqueleto w={320} h={26} style={{ marginBottom: 12 }} />
+            <Esqueleto w={250} h={12} style={{ marginBottom: 18 }} />
+            <Esqueleto h={88} r={12} style={{ marginBottom: 14 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              {[78, 96, 82, 100, 62].map((w, i) => (
+                <Esqueleto key={i} w={w} h={34} r="10px 10px 0 0" />
+              ))}
+            </div>
+          </div>
+          <div style={{ padding: "24px 40px" }}>
+            <Esqueleto h={110} r={14} style={{ marginBottom: 16 }} />
+            <Esqueleto h={230} r={14} />
+          </div>
+        </div>
+      </div>
+    );
   if (estado === "nao-encontrado")
     return (
       <Centrado>
@@ -200,11 +327,9 @@ export default function EventoPage() {
           <p style={{ margin: "0 0 10px" }}>Este evento já não existe.</p>
           <button
             onClick={() => navigate("/admin")}
+            className="ligacao"
             style={{
-              border: "none",
-              background: "none",
               color: "var(--gold-dark)",
-              cursor: "pointer",
               textDecoration: "underline",
             }}
           >
@@ -264,14 +389,39 @@ export default function EventoPage() {
     navigate("/admin", { state: { tab } });
   };
 
+  // OPTIMISTA: o estado novo pinta-se no gesto (o ✓ da Jornada salta
+  // já); o servidor confirma a seguir. Se recusar, volta-se ao que
+  // era e o erro responde na barra — nunca se fica a olhar para um
+  // estado que não existe.
   const aoMudarEstado = async (submissionId, novoStatus, fase) => {
+    const anterior = submissao;
+    setSubmissao((s) => ({ ...s, status: novoStatus }));
     try {
       const atualizada = await updateStatus(submissionId, novoStatus, fase);
       setSubmissao((s) => ({ ...s, ...atualizada }));
+      setErroAccao(null);
     } catch (erro) {
       console.error(erro);
-      alert(erro.message || "Não foi possível mudar o estado.");
+      setSubmissao(anterior);
+      setErroAccao(erro.message || "Não foi possível mudar o estado.");
     }
+  };
+
+  // O clique numa etapa da Jornada ou na pílula do próximo gesto leva
+  // ao separador onde o gesto se faz — e leva a intenção consigo.
+  const irComGesto = (etapaId) => {
+    const destino = {
+      orcamento: { aba: "documentos", alvo: "orcamento" },
+      formulario: { aba: "documentos", alvo: "formulario" },
+      projecto: { aba: "documentos", alvo: "proposta" },
+      contrato: { aba: "documentos", alvo: "contrato" },
+      sinal: { aba: "pagamentos", alvo: "sinal" },
+      preparacao: { aba: "materiais", alvo: "ficha" },
+    }[etapaId];
+    if (!destino) return;
+    navigate(`/evento/${id}/${destino.aba}`, {
+      state: { realce: { alvo: destino.alvo, n: Date.now() } },
+    });
   };
 
   return (
@@ -307,80 +457,105 @@ export default function EventoPage() {
               ? () => window.open(ligacaoWhatsApp, "_blank")
               : undefined
           }
-          onEtapa={(etapa) => {
-            // A frase "→ A seguir" aponta, não age: leva ao separador
-            // onde o gesto se faz.
-            if (etapa === "orcamento" || etapa === "projecto" || etapa === "contrato")
-              irParaAba("documentos");
-            else if (etapa === "formulario") irParaAba("documentos");
-            else if (etapa === "preparacao") irParaAba("materiais");
-          }}
+          onEtapa={irComGesto}
+          onProximoGesto={irComGesto}
           onStatusChange={aoMudarEstado}
         />
 
-        <div style={{ padding: "24px 40px 60px" }}>
-          {activeAba === "visao-geral" && (
-            <VisaoGeralEvento
-              submissao={submissao}
-              seccoes={seccoes}
-              mosaico
-              editando={aEditar}
-              rascunhos={edicao?.rascunhos ?? null}
-              onRascunhos={(novos) =>
-                setEdicao((atual) => (atual ? { ...atual, rascunhos: novos } : atual))
-              }
-              controloEdicaoRef={controloEdicaoRef}
-              onFecharEdicao={() => setEdicao(null)}
-              onSaved={(atualizada) =>
-                setSubmissao((s) => ({ ...s, ...atualizada }))
-              }
-              onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
-            />
+        <div key={id} style={{ padding: "24px 40px 60px" }}>
+          {visitadas.current.has("visao-geral") && (
+            <Painel visivel={activeAba === "visao-geral"}>
+              <VisaoGeralEvento
+                submissao={submissao}
+                seccoes={seccoes}
+                editando={aEditar}
+                rascunhos={edicao?.rascunhos ?? null}
+                onRascunhos={(novos) =>
+                  setEdicao((atual) => (atual ? { ...atual, rascunhos: novos } : atual))
+                }
+                controloEdicaoRef={controloEdicaoRef}
+                onFecharEdicao={() => setEdicao(null)}
+                onAbrirEdicao={() => setEdicao({ id, rascunhos: null })}
+                onSaved={(atualizada) =>
+                  setSubmissao((s) => ({ ...s, ...atualizada }))
+                }
+                onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
+              />
+            </Painel>
           )}
 
-          {activeAba === "documentos" && (
-            <DocumentosEvento
-              submissao={submissao}
-              invites={invites}
-              onGerarDocumento={(evento, tipoDoc) =>
-                navigate("/admin", {
-                  state: {
-                    tab: "orcamentos",
-                    gerarDoc: { submissionId: evento.id, tipoDoc },
-                  },
-                })
-              }
-              onVerFormulario={() =>
-                navigate("/admin", { state: { tab: "convites" } })
-              }
-              onCriarFormulario={() =>
-                navigate("/admin", { state: { tab: "convites" } })
-              }
-            />
+          {visitadas.current.has("documentos") && (
+            <Painel visivel={activeAba === "documentos"}>
+              <DocumentosEvento
+                submissao={submissao}
+                invites={invites}
+                realce={realce}
+                onRealceConsumido={() => setRealce(null)}
+                onContagem={(n) => reportarContagem("documentos", n)}
+                onGerarDocumento={(evento, tipoDoc) =>
+                  navigate("/admin", {
+                    state: {
+                      tab: "orcamentos",
+                      gerarDoc: { submissionId: evento.id, tipoDoc },
+                    },
+                  })
+                }
+                onVerFormulario={() =>
+                  navigate("/admin", { state: { tab: "convites" } })
+                }
+                onCriarFormulario={() =>
+                  navigate("/admin", { state: { tab: "convites" } })
+                }
+              />
+            </Painel>
           )}
 
-          {activeAba === "materiais" && (
-            <FichaMateriais submissionId={id} submissao={submissao} />
+          {visitadas.current.has("materiais") && (
+            <Painel visivel={activeAba === "materiais"}>
+              <FichaMateriais
+                submissionId={id}
+                submissao={submissao}
+                realce={realce}
+                onRealceConsumido={() => setRealce(null)}
+                onContagem={(n) => reportarContagem("materiais", n)}
+              />
+            </Painel>
           )}
 
-          {activeAba === "pagamentos" && (
-            <PagamentosEvento
-              submissao={submissao}
-              largo
-              onSaved={(atualizada) => {
-                if (atualizada) setSubmissao((s) => ({ ...s, ...atualizada }));
-                recarregarPlano();
-              }}
-            />
+          {visitadas.current.has("pagamentos") && (
+            <Painel visivel={activeAba === "pagamentos"}>
+              {/* O plano desce por props — o separador deixou de repetir
+                  a query que a página já fez (era o refetch que fazia a
+                  troca piscar). Registar/apagar sobe pela mesma mão, e o
+                  cabeçalho vê o dinheiro mudar no instante. */}
+              <PagamentosEvento
+                submissao={submissao}
+                previstos={plano.previstos}
+                pagamentos={plano.pagamentos}
+                onPagamentos={(lista) =>
+                  setPlano((p) => ({ ...p, pagamentos: lista }))
+                }
+                onRecarregar={recarregarPlano}
+                realce={realce}
+                onRealceConsumido={() => setRealce(null)}
+                onIrParaOrcamento={() => irComGesto("orcamento")}
+                onSaved={(atualizada) => {
+                  if (atualizada) setSubmissao((s) => ({ ...s, ...atualizada }));
+                }}
+              />
+            </Painel>
           )}
 
-          {activeAba === "notas" && (
-            <NotasEvento
-              submissao={submissao}
-              pagamentos={plano.pagamentos}
-              previstos={plano.previstos}
-              invites={invites}
-            />
+          {visitadas.current.has("notas") && (
+            <Painel visivel={activeAba === "notas"}>
+              <NotasEvento
+                submissao={submissao}
+                pagamentos={plano.pagamentos}
+                previstos={plano.previstos}
+                invites={invites}
+                onContagem={(n) => reportarContagem("notas", n)}
+              />
+            </Painel>
           )}
         </div>
       </div>
@@ -425,12 +600,8 @@ export default function EventoPage() {
               setSaidaPendente(null);
               if (activeAba !== "visao-geral") irParaAba("visao-geral");
             }}
-            style={{
-              ...botaoSaida(false),
-              backgroundColor: "white",
-              borderColor: "var(--gold-light)",
-              color: "var(--gray-mid)",
-            }}
+            className="acao acao--neutra"
+            style={medidaBotaoSaida}
           >
             Continuar a editar
           </button>
@@ -441,9 +612,46 @@ export default function EventoPage() {
               setEdicao(null);
               navigate("/admin", { state: { tab: destino } });
             }}
-            style={botaoSaida(true)}
+            className="acao acao--perigo"
+            style={medidaBotaoSaida}
           >
             Sair sem guardar
+          </button>
+        </div>
+      )}
+
+      {/* O erro de uma acção do cabeçalho (mudar o estado na Jornada)
+          mostra-se aqui em baixo, no mesmo registo da confirmação de
+          saída — e sai do ecrã à mão, quando ela o tiver lido. */}
+      {erroAccao && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "24px",
+            transform: "translateX(-50%)",
+            zIndex: 40,
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            width: "min(560px, calc(100vw - 48px))",
+            backgroundColor: "white",
+            border: "1.5px solid #FECACA",
+            borderRadius: "14px",
+            padding: "12px 16px",
+            boxShadow: "0 14px 36px rgba(26,26,26,0.18)",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#B91C1C" }}>
+            {erroAccao}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setErroAccao(null)}
+            className="ligacao"
+            style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}
+          >
+            Fechar
           </button>
         </div>
       )}

@@ -8,6 +8,7 @@ import {
   agruparPorCategoria,
 } from "../../lib/materiais";
 import { imprimirFicha } from "../../lib/imprimirFicha";
+import { Convite, Esqueleto } from "./acabamento";
 import SeletorPaleta from "./SeletorPaleta";
 import {
   GRUPOS_PALETA,
@@ -207,22 +208,13 @@ function Linha({
         <button
           onClick={() => setATrocar(true)}
           title="Trocar de material — a quantidade, as cores e as observações ficam"
+          className="campo-editavel"
           style={{
             minWidth: 0,
             textAlign: "left",
-            border: "none",
-            background: "none",
             padding: 0,
             font: "inherit",
             color: "inherit",
-            cursor: "pointer",
-            borderBottom: "1px dotted transparent",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderBottomColor = "var(--gold-light)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderBottomColor = "transparent";
           }}
         >
           {material.nome}
@@ -241,6 +233,7 @@ function Linha({
         value={linha.quantidade ?? ""}
         onChange={(e) => onActualizar({ quantidade: Number(e.target.value) })}
         onKeyDown={aoTabular}
+        className="caixa-texto"
         style={{
           width: "100%",
           padding: "5px 7px",
@@ -346,22 +339,13 @@ function Linha({
           value={linha.observacoes || ""}
           onChange={(e) => onActualizar({ observacoes: e.target.value })}
           placeholder="—"
+          className="caixa-fantasma"
           style={{
             width: "100%",
             padding: "5px 7px",
             borderRadius: "6px",
-            border: "1.5px solid transparent",
             fontSize: "12px",
             fontFamily: "inherit",
-            backgroundColor: "transparent",
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "var(--gold-light)";
-            e.target.style.backgroundColor = "white";
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = "transparent";
-            e.target.style.backgroundColor = "transparent";
           }}
         />
         {aviso && (
@@ -385,15 +369,12 @@ function Linha({
             key={l.campo}
             onClick={() => onActualizar({ [l.campo]: !activa })}
             title={l.label}
+            className={`alternador${activa ? " alternador--activo" : ""}`}
             style={{
               padding: "4px 0",
               borderRadius: "6px",
               fontSize: "10.5px",
               fontWeight: activa ? "600" : "400",
-              border: activa ? "none" : "1px solid #F0E6D0",
-              backgroundColor: activa ? "var(--gold)" : "white",
-              color: activa ? "white" : "#C0B79F",
-              cursor: "pointer",
             }}
           >
             {l.curto}
@@ -544,6 +525,7 @@ function TrocaDeMaterial({ actual, catalogo, idsNaFicha, onTrocar, onFechar }) {
           }
         }}
         placeholder={`trocar ${actual} por…`}
+        className="caixa-texto"
         style={{
           width: "100%",
           padding: "4px 8px",
@@ -569,10 +551,16 @@ function TrocaDeMaterial({ actual, catalogo, idsNaFicha, onTrocar, onFechar }) {
   );
 }
 
-function Typeahead({ categoria, catalogo, idsNaFicha, onAdicionar }) {
+function Typeahead({ categoria, catalogo, idsNaFicha, onAdicionar, autoFoco }) {
   const [texto, setTexto] = useState("");
   const [indice, setIndice] = useState(0);
   const inputRef = useRef(null);
+
+  // A aterragem da pílula "preparar o evento" numa ficha vazia: o
+  // cursor já está na procura — o primeiro material está a uma tecla.
+  useEffect(() => {
+    if (autoFoco) inputRef.current?.focus();
+  }, [autoFoco]);
 
   const sugestoes = useMemo(
     () => sugerirMateriais(catalogo, idsNaFicha, texto),
@@ -611,6 +599,7 @@ function Typeahead({ categoria, catalogo, idsNaFicha, onAdicionar }) {
           }
         }}
         placeholder={`＋  adicionar material em ${categoria}`}
+        className="caixa-texto"
         style={{
           width: "100%",
           maxWidth: "340px",
@@ -640,6 +629,9 @@ export default function FichaMateriais({
   submissionId,
   submissao,
   onFichaAlterada,
+  realce = null,
+  onRealceConsumido,
+  onContagem,
 }) {
   const [catalogo, setCatalogo] = useState([]);
   const [linhas, setLinhas] = useState([]);
@@ -649,6 +641,24 @@ export default function FichaMateriais({
   const [recolhidas, setRecolhidas] = useState([]);
   const [seleccao, setSeleccao] = useState([]);
   const [aRemover, setARemover] = useState(false);
+  // Contador, não booleano: cada pedido de foco (aterragem da pílula,
+  // botão do convite) volta a pôr o cursor na procura, vezes sem conta.
+  const [focarProcura, setFocarProcura] = useState(0);
+
+  // A ficha inteira é o destino do gesto "preparar o evento" — só numa
+  // ficha vazia há um sítio melhor para pousar: a caixa de procura.
+  useEffect(() => {
+    if (!realce || realce.alvo !== "ficha" || loading) return;
+    if (linhas.length === 0) setFocarProcura((n) => n + 1);
+    if (onRealceConsumido) onRealceConsumido();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realce, loading]);
+
+  // A contagem do separador: quantas linhas tem a ficha.
+  useEffect(() => {
+    if (!loading && onContagem) onContagem(linhas.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, linhas]);
 
   useEffect(() => {
     let cancelado = false;
@@ -829,9 +839,17 @@ export default function FichaMateriais({
 
   if (loading) {
     return (
-      <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>
-        A carregar a ficha…
-      </p>
+      <div>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+          {[72, 68, 84, 92, 104].map((w, i) => (
+            <Esqueleto key={i} w={w} h={30} r={999} />
+          ))}
+        </div>
+        <Esqueleto h={38} r="14px 14px 0 0" style={{ marginBottom: 2 }} />
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <Esqueleto key={i} h={44} r={0} style={{ marginBottom: 2 }} />
+        ))}
+      </div>
     );
   }
 
@@ -870,17 +888,16 @@ export default function FichaMateriais({
             <button
               key={f.id}
               onClick={() => setFiltro(f.id)}
+              className={`pastilha-escolha${
+                activo ? " pastilha-escolha--activa" : ""
+              }`}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
                 padding: "6px 13px",
                 borderRadius: "999px",
-                border: `1px solid ${activo ? "var(--gold)" : "#F0E6D0"}`,
-                backgroundColor: activo ? "var(--gold)" : "white",
-                color: activo ? "white" : "var(--gray-mid)",
                 fontSize: "12px",
-                cursor: "pointer",
               }}
             >
               {f.label}
@@ -918,15 +935,12 @@ export default function FichaMateriais({
         {linhas.length > 0 && (
           <button
             onClick={() => imprimirFicha(linhas, submissao)}
+            className="acao acao--ouro"
             style={{
               padding: "7px 14px",
               borderRadius: "10px",
-              border: "1.5px solid var(--gold)",
-              backgroundColor: "white",
-              color: "var(--gold)",
               fontSize: "12px",
               fontWeight: "500",
-              cursor: "pointer",
             }}
           >
             Imprimir listas
@@ -967,21 +981,27 @@ export default function FichaMateriais({
           <span />
         </div>
 
-        {grupos.length === 0 && (
-          <p
-            style={{
-              fontSize: "13px",
-              color: "var(--gray-mid)",
-              fontStyle: "italic",
-              padding: "24px",
-              textAlign: "center",
-            }}
-          >
-            {filtro === "tudo"
-              ? "Ainda sem materiais nesta ficha."
-              : "Nenhum material com este filtro."}
-          </p>
-        )}
+        {grupos.length === 0 &&
+          (filtro === "tudo" ? (
+            <Convite
+              titulo="A ficha está por compor."
+              texto="Procura o primeiro material — o Enter adiciona e deixa o cursor na quantidade, pronto para o seguinte."
+              accao="Procurar material"
+              onAccao={() => setFocarProcura((n) => n + 1)}
+            />
+          ) : (
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--gray-mid)",
+                fontStyle: "italic",
+                padding: "24px",
+                textAlign: "center",
+              }}
+            >
+              Nenhum material com este filtro.
+            </p>
+          ))}
 
         {grupos.map((grupo) => {
           const fechada = recolhidas.includes(grupo.categoria);
@@ -999,6 +1019,7 @@ export default function FichaMateriais({
                       : [...r, grupo.categoria],
                   )
                 }
+                className="toca"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1010,7 +1031,6 @@ export default function FichaMateriais({
                   borderTop: "1px solid #F0E6D0",
                   borderBottom: "1px solid #F0E6D0",
                   backgroundColor: "#FBF7EF",
-                  cursor: "pointer",
                 }}
               >
                 <span
@@ -1079,6 +1099,7 @@ export default function FichaMateriais({
             catalogo={catalogo}
             idsNaFicha={idsNaFicha}
             onAdicionar={adicionar}
+            autoFoco={focarProcura}
           />
         )}
       </div>
@@ -1115,12 +1136,17 @@ export default function FichaMateriais({
               <span style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}>
                 Remover da ficha?
               </span>
-              <button onClick={() => setARemover(false)} style={btnBarra()}>
+              <button
+                onClick={() => setARemover(false)}
+                className="acao acao--neutra"
+                style={medidaBtnBarra}
+              >
                 Cancelar
               </button>
               <button
                 onClick={removerSeleccionadas}
-                style={btnBarra("#B91C1C", true)}
+                className="acao acao--perigo-cheia"
+                style={{ ...medidaBtnBarra, fontWeight: "600" }}
               >
                 Remover {seleccao.length}
               </button>
@@ -1132,15 +1158,24 @@ export default function FichaMateriais({
                 <button
                   key={l.campo}
                   onClick={() => aplicarLista(l.campo, true)}
-                  style={btnBarra()}
+                  className="acao acao--neutra"
+                  style={medidaBtnBarra}
                 >
                   {l.label}
                 </button>
               ))}
-              <button onClick={() => setARemover(true)} style={btnBarra("#B91C1C")}>
+              <button
+                onClick={() => setARemover(true)}
+                className="acao acao--perigo"
+                style={medidaBtnBarra}
+              >
                 Remover
               </button>
-              <button onClick={() => setSeleccao([])} style={btnBarra()}>
+              <button
+                onClick={() => setSeleccao([])}
+                className="acao acao--neutra"
+                style={medidaBtnBarra}
+              >
                 ✕
               </button>
             </>
@@ -1159,13 +1194,10 @@ const cabecalho = {
   color: "#9B9B9B",
 };
 
-const btnBarra = (cor = "var(--gray-mid)", solido = false) => ({
+// A identidade dos botões da barra vive nas classes .acao--* do
+// index.css; aqui fica só a medida.
+const medidaBtnBarra = {
   padding: "6px 12px",
   borderRadius: "8px",
-  border: solido ? "none" : `1px solid ${cor === "#B91C1C" ? "#FECACA" : "#F0E6D0"}`,
-  backgroundColor: solido ? cor : "white",
-  color: solido ? "white" : cor,
   fontSize: "12px",
-  fontWeight: solido ? "600" : "400",
-  cursor: "pointer",
-});
+};

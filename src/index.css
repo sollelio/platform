@@ -180,3 +180,420 @@ h3 {
     justify-content: center;
   }
 }
+
+/* ============================================================
+   Camada de interacção — nenhum elemento accionável sem hover, foco
+   e toque resolvidos. As variantes carregam a identidade (cor, borda,
+   fundo), para o hover poder responder sem lutar com estilos inline;
+   tamanho e disposição ficam no sítio de uso, que é onde variam.
+   ============================================================ */
+
+.acao,
+.toca,
+.ligacao,
+.icone-botao,
+.pastilha-escolha,
+.alternador,
+.separador-aba,
+.indice-item,
+.campo-editavel,
+.caixa-texto,
+.caixa-fantasma,
+.cartao-escrita {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    filter 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.acao,
+.toca,
+.ligacao,
+.icone-botao,
+.pastilha-escolha,
+.alternador,
+.separador-aba,
+.indice-item,
+.campo-editavel {
+  cursor: pointer;
+}
+
+.acao,
+.ligacao,
+.icone-botao,
+.pastilha-escolha,
+.alternador,
+.separador-aba,
+.indice-item {
+  font-family: inherit;
+}
+
+.acao:focus-visible,
+.toca:focus-visible,
+.ligacao:focus-visible,
+.icone-botao:focus-visible,
+.pastilha-escolha:focus-visible,
+.alternador:focus-visible,
+.separador-aba:focus-visible,
+.indice-item:focus-visible,
+.campo-editavel:focus-visible,
+.foco:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.acao:active:not(:disabled),
+.pastilha-escolha:active,
+.alternador:active,
+.separador-aba:active {
+  transform: scale(0.98);
+}
+.icone-botao:active {
+  transform: scale(0.92);
+}
+
+.acao:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* --- Botões com identidade --- */
+.acao--cheia {
+  border: 1.5px solid var(--gold);
+  background-color: var(--gold);
+  color: #fff;
+}
+.acao--cheia:hover:not(:disabled) {
+  background-color: #b9973e;
+  border-color: #b9973e;
+}
+
+.acao--ouro {
+  border: 1.5px solid var(--gold);
+  background-color: #fff;
+  color: var(--gold-dark);
+}
+.acao--ouro:hover:not(:disabled) {
+  background-color: #fbf7ef;
+}
+
+.acao--neutra {
+  border: 1.5px solid var(--gold-light);
+  background-color: #fff;
+  color: var(--gray-mid);
+}
+.acao--neutra:hover:not(:disabled) {
+  border-color: var(--gold);
+  background-color: #fcfbf7;
+  color: var(--gold-dark);
+}
+
+.acao--verde {
+  border: 1.5px solid #bbf7d0;
+  background-color: #f0fdf4;
+  color: #166534;
+}
+.acao--verde:hover:not(:disabled) {
+  background-color: #dcfce7;
+}
+
+.acao--perigo {
+  border: 1.5px solid #fecaca;
+  background-color: #fff;
+  color: #b91c1c;
+}
+.acao--perigo:hover:not(:disabled) {
+  background-color: #fef2f2;
+}
+
+.acao--perigo-cheia {
+  border: 1.5px solid #ef4444;
+  background-color: #ef4444;
+  color: #fff;
+}
+.acao--perigo-cheia:hover:not(:disabled) {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* --- Elementos com identidade própria no sítio de uso: só resposta --- */
+.toca:hover {
+  filter: brightness(0.96);
+}
+
+.ligacao {
+  border: none;
+  background: none;
+  padding: 0;
+}
+.ligacao:hover {
+  filter: brightness(0.7);
+}
+
+.icone-botao {
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.icone-botao:hover {
+  background-color: #f5efe0;
+}
+.icone-botao--perigo:hover {
+  background-color: #fef2f2;
+}
+
+/* --- Pastilhas de escolha (filtros, tipos, opções) --- */
+.pastilha-escolha {
+  border: 1px solid #f0e6d0;
+  background-color: #fff;
+  color: var(--gray-mid);
+}
+.pastilha-escolha:hover:not(.pastilha-escolha--activa) {
+  border-color: var(--gold-light);
+  background-color: #fbf7ef;
+  color: var(--gold-dark);
+}
+.pastilha-escolha--activa {
+  border-color: var(--gold);
+  background-color: var(--gold);
+  color: #fff;
+}
+
+/* --- Os três alternadores C/M/H da ficha de materiais --- */
+.alternador {
+  border: 1px solid #f0e6d0;
+  background-color: #fff;
+  color: #c0b79f;
+}
+.alternador:hover:not(.alternador--activo) {
+  border-color: var(--gold-light);
+  background-color: #fcfbf7;
+  color: var(--gold-dark);
+}
+.alternador--activo {
+  border: 1px solid var(--gold);
+  background-color: var(--gold);
+  color: #fff;
+}
+
+/* --- Os separadores da página de evento --- */
+.separador-aba {
+  border: none;
+  background-color: transparent;
+  color: var(--gray-mid);
+}
+.separador-aba:hover:not(.separador-aba--activa) {
+  background-color: #fbf7ef;
+  color: var(--gold-dark);
+}
+/* O fundo dourado do separador activo é pintado pela pastilha que
+   DESLIZA (motion.span com layoutId, em CabecalhoEvento) — a classe
+   só trata da cor do texto. */
+.separador-aba--activa {
+  color: #fff;
+}
+
+/* --- Itens dos índices laterais (Nesta folha, Mostrar) --- */
+.indice-item {
+  border: none;
+  background-color: transparent;
+}
+.indice-item:hover,
+.indice-item--activa {
+  background-color: #fbf7ef;
+}
+
+/* --- Texto que se edita ao clicar (briefing, nome do material) --- */
+.campo-editavel {
+  background: none;
+  border: none;
+  border-bottom: 1px dotted transparent;
+}
+.campo-editavel:hover {
+  border-bottom-color: var(--gold-light);
+}
+
+/* --- Caixas de escrita: o foco vê-se sem lutar com a borda inline --- */
+.caixa-texto:focus {
+  outline: none;
+  box-shadow: 0 0 0 2.5px rgba(201, 168, 76, 0.28);
+}
+
+/* A caixa invisível até se lhe tocar (observações da ficha) */
+.caixa-fantasma {
+  background-color: transparent;
+  border: 1.5px solid transparent;
+}
+.caixa-fantasma:hover {
+  border-color: #f0e6d0;
+}
+.caixa-fantasma:focus {
+  outline: none;
+  border-color: var(--gold-light);
+  background-color: #fff;
+}
+
+/* O cartão que acorda inteiro quando se escreve lá dentro (Notas) */
+.cartao-escrita {
+  background-color: #fff;
+  border: 1.5px solid var(--gold-light);
+  border-radius: 14px;
+}
+.cartao-escrita:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+}
+
+/* A coluna fixa dos índices laterais (Visão geral, Notas). O top é a
+   altura do cabeçalho condensado + separadores + folga — se o
+   cabeçalho mudar de altura, acerta-se AQUI, num sítio só. */
+.coluna-lateral {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 180px;
+}
+
+/* --- A Jornada: cada etapa é um botão a sério --- */
+.etapa-jornada {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+.etapa-jornada:not(:disabled) {
+  cursor: pointer;
+}
+.etapa-jornada:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.jornada-bola {
+  transition:
+    transform 140ms ease,
+    background-color 300ms ease,
+    color 300ms ease;
+}
+.etapa-jornada:not(:disabled):hover .jornada-bola {
+  transform: translateY(-1.5px);
+}
+
+/* A seta da pílula do próximo gesto avança 2px no hover */
+.pilula-seta {
+  display: inline-block;
+  transition: transform 140ms ease;
+}
+.pilula-gesto:hover .pilula-seta {
+  transform: translateX(2px);
+}
+
+/* --- A entrada de um painel de separador: o conteúdo assenta no
+   lugar (5px, 160ms). A animação reinicia sempre que o display volta
+   a block — cada regresso ao separador reencena a chegada. --- */
+@keyframes painel-entra {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.painel-aba {
+  animation: painel-entra 160ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* --- O esqueleto de carregamento: blocos com a forma do que vem,
+   numa ondulação calma nas cores da casa --- */
+@keyframes esqueleto-ondula {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+.esqueleto {
+  background: linear-gradient(90deg, #f3eee1 40%, #faf6ec 50%, #f3eee1 60%);
+  background-size: 300% 100%;
+  animation: esqueleto-ondula 1.6s ease-in-out infinite;
+}
+
+/* --- Um pagamento acabado de registar chega a deslizar, com um
+   brilho dourado que se apaga — o dinheiro entra com cerimónia --- */
+@keyframes linha-chega {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    background-color: rgba(201, 168, 76, 0.16);
+  }
+  55% {
+    opacity: 1;
+    transform: none;
+    background-color: rgba(201, 168, 76, 0.16);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.linha-nova {
+  animation: linha-chega 1.1s ease-out;
+}
+
+/* --- O pulso de aterragem: a pílula promete, o separador cumpre —
+   o elemento em causa acende e apaga-se, duas vezes, e fica quieto --- */
+@keyframes realce-pulso {
+  0% {
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0);
+  }
+}
+.realce-pulso {
+  animation: realce-pulso 1.2s ease-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jornada-bola,
+  .pilula-seta {
+    transition: none;
+  }
+  .painel-aba {
+    animation: none;
+  }
+  .esqueleto,
+  .linha-nova {
+    animation: none;
+  }
+  .realce-pulso {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acao,
+  .toca,
+  .ligacao,
+  .icone-botao,
+  .pastilha-escolha,
+  .alternador,
+  .separador-aba,
+  .indice-item,
+  .campo-editavel,
+  .caixa-texto,
+  .caixa-fantasma,
+  .cartao-escrita {
+    transition: none;
+  }
+}
