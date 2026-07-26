@@ -227,9 +227,15 @@ export const addEventoMaterial = async (
   return data;
 };
 
-// Actualiza uma linha de evento_materiais (quantidade, cores, obs, flags).
+// Actualiza uma linha de evento_materiais (quantidade, cores, obs, flags)
+// — e o próprio material, quando se escolheu o errado. Trocar não é
+// remover e voltar a pôr: a linha fica, com a quantidade, as cores e as
+// observações que já lá estavam certas. O UNIQUE (submission_id,
+// material_id) trata de recusar uma troca para um material que já esteja
+// na ficha.
 export const updateEventoMaterial = async (id, campos) => {
   const permitidos = [
+    "material_id",
     "quantidade",
     "cores",
     "observacoes",

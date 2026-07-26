@@ -273,10 +273,16 @@ export default function CabecalhoEvento({
           WhatsApp
         </button>
       )}
-      {/* Editar → abre o briefing inteiro em campos de escrita, na Visão
-          geral. Três estados, porque a edição sobrevive a uma ida a
-          outro separador:
-            fechado  — "Editar", e abre;
+      {/* Editar BRIEFING — o nome não é enfeite. Este botão vive na
+          moldura, ao lado de acções que valem em qualquer separador, e
+          dizia só "Editar": em Materiais lia-se como se editasse as
+          linhas da ficha (que aliás já se editam no lugar, cada uma na
+          sua célula). Um botão da moldura que só mexe numa das partes
+          tem de dizer em qual.
+
+          Três estados, porque a edição sobrevive a uma ida a outro
+          separador:
+            fechado  — "Editar briefing", e abre;
             a editar — "Concluir edição", e guarda;
             noutro separador — "Voltar à edição", e traz de volta ao
               sítio onde os rascunhos estão à espera (guardar daqui era
@@ -288,7 +294,7 @@ export default function CabecalhoEvento({
           onClick={onEditar}
           title={
             !editando
-              ? "Editar os dados do briefing"
+              ? "Editar os dados do briefing, na Visão geral"
               : edicaoNoutroSeparador
                 ? "Voltar à Visão geral, onde ficou a edição a meio"
                 : "Guardar as alterações e voltar à leitura"
@@ -311,11 +317,11 @@ export default function CabecalhoEvento({
             </span>
           )}
           {!editando
-            ? "Editar"
+            ? "Editar briefing"
             : edicaoNoutroSeparador
               ? condensado
                 ? "Voltar"
-                : "Voltar à edição"
+                : "Voltar ao briefing"
               : condensado
                 ? "Concluir"
                 : "Concluir edição"}

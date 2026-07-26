@@ -145,13 +145,17 @@ function Linha({
   seleccionada,
   onSeleccionar,
   onActualizar,
+  onTrocar,
   aoTabular,
+  catalogo = [],
+  idsNaFicha,
   coresDaFicha = [],
 }) {
   // O popover das cores guarda para que lado abriu e com que altura —
   // medido no clique, que é o único momento em que a linha está no sítio
   // onde vai ficar.
   const [popover, setPopover] = useState(null);
+  const [aTrocar, setATrocar] = useState(false);
   const material = linha.material || {};
   const cores = coresDeTexto(linha.cores);
   const stock = disponivel(material);
@@ -191,15 +195,45 @@ function Linha({
         style={{ accentColor: "var(--gold)", cursor: "pointer" }}
       />
 
-      <span style={{ minWidth: 0 }}>
-        {material.nome}
-        {material.tipo && (
-          <span style={{ color: "#9B9B9B", fontSize: "11px" }}>
-            {" "}
-            {material.tipo}
-          </span>
-        )}
-      </span>
+      {aTrocar ? (
+        <TrocaDeMaterial
+          actual={material.nome}
+          catalogo={catalogo}
+          idsNaFicha={idsNaFicha}
+          onTrocar={onTrocar}
+          onFechar={() => setATrocar(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setATrocar(true)}
+          title="Trocar de material — a quantidade, as cores e as observações ficam"
+          style={{
+            minWidth: 0,
+            textAlign: "left",
+            border: "none",
+            background: "none",
+            padding: 0,
+            font: "inherit",
+            color: "inherit",
+            cursor: "pointer",
+            borderBottom: "1px dotted transparent",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderBottomColor = "var(--gold-light)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderBottomColor = "transparent";
+          }}
+        >
+          {material.nome}
+          {material.tipo && (
+            <span style={{ color: "#9B9B9B", fontSize: "11px" }}>
+              {" "}
+              {material.tipo}
+            </span>
+          )}
+        </button>
+      )}
 
       <input
         type="number"
@@ -373,21 +407,177 @@ function Linha({
 }
 
 // ---------- Adicionar sem sair da ficha ----------
+// ---------- Procurar no catálogo ----------
+//
+// A mesma pergunta serve duas coisas — acrescentar uma linha à ficha e
+// trocar o material de uma que já lá está — e por isso é feita num sítio
+// só. O que já está na ficha nunca aparece: não se acrescenta duas vezes
+// nem se troca por aquilo que já lá está noutra linha (a base de dados
+// também não deixaria).
+const sugerirMateriais = (catalogo, idsNaFicha, texto) => {
+  const t = texto.trim().toLowerCase();
+  if (!t) return [];
+  return catalogo
+    .filter(
+      (m) => !idsNaFicha.has(m.id) && (m.nome || "").toLowerCase().includes(t),
+    )
+    .slice(0, 6);
+};
+
+function Sugestoes({ lista, indice, largura, esquerda, nota, onPassar, onEscolher }) {
+  if (lista.length === 0) return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "calc(100% - 4px)",
+        left: esquerda,
+        zIndex: 40,
+        width: largura,
+        backgroundColor: "white",
+        border: "1px solid var(--gold-light)",
+        borderRadius: "10px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+        overflow: "hidden",
+      }}
+    >
+      {lista.map((m, i) => {
+        const stock = disponivel(m);
+        return (
+          <button
+            key={m.id}
+            onMouseEnter={() => onPassar(i)}
+            // Sem isto, o clique tirava primeiro o cursor da caixa de
+            // procura — e quem fecha ao perder o cursor fechava antes de
+            // o clique chegar.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onEscolher(m)}
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: "10px",
+              width: "100%",
+              padding: "8px 12px",
+              border: "none",
+              backgroundColor: i === indice ? "#FBF7EF" : "white",
+              cursor: "pointer",
+              textAlign: "left",
+              fontSize: "12.5px",
+            }}
+          >
+            <span>{m.nome}</span>
+            <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
+              {m.categoria}
+              {stock !== null && ` · ${stock} disponíveis`}
+            </span>
+          </button>
+        );
+      })}
+      {nota && (
+        <p
+          style={{
+            fontSize: "10.5px",
+            color: "#9B9B9B",
+            margin: 0,
+            padding: "7px 12px",
+            borderTop: "1px solid #F5ECD7",
+            backgroundColor: "#FCFBF7",
+          }}
+        >
+          {nota}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------- Trocar o material de uma linha ----------
+//
+// Enganar-se no material é o erro mais fácil de cometer aqui, e até
+// agora só havia uma saída: remover a linha e recomeçar — levando com
+// ela a quantidade, as cores e as observações, que estavam certas. A
+// linha era removível mas não editável. Agora troca-se o material no
+// lugar e fica tudo o resto.
+function TrocaDeMaterial({ actual, catalogo, idsNaFicha, onTrocar, onFechar }) {
+  const [texto, setTexto] = useState("");
+  const [indice, setIndice] = useState(0);
+  const caixa = useRef(null);
+  const sugestoes = sugerirMateriais(catalogo, idsNaFicha, texto);
+
+  const escolher = (material) => {
+    if (!material) return;
+    onTrocar(material);
+    onFechar();
+  };
+
+  return (
+    <div ref={caixa} style={{ position: "relative", minWidth: 0 }}>
+      <input
+        autoFocus
+        value={texto}
+        onChange={(e) => {
+          setTexto(e.target.value);
+          setIndice(0);
+        }}
+        // Sair da caixa fecha a troca — excepto quando se sai PARA uma
+        // sugestão, que é o contrário de desistir. O preventDefault no
+        // rato já tenta segurar o cursor aqui; isto é o segundo travão,
+        // para a escolha nunca se perder entre o carregar e o largar.
+        onBlur={(evento) => {
+          if (caixa.current?.contains(evento.relatedTarget)) return;
+          onFechar();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setIndice((i) => Math.min(i + 1, sugestoes.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setIndice((i) => Math.max(i - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            escolher(sugestoes[indice]);
+          } else if (e.key === "Escape") {
+            e.stopPropagation();
+            onFechar();
+          }
+        }}
+        placeholder={`trocar ${actual} por…`}
+        style={{
+          width: "100%",
+          padding: "4px 8px",
+          borderRadius: "6px",
+          border: "1.5px solid var(--gold-light)",
+          fontSize: "12.5px",
+          fontFamily: "inherit",
+          outline: "none",
+          backgroundColor: "white",
+          boxSizing: "border-box",
+        }}
+      />
+      <Sugestoes
+        lista={sugestoes}
+        indice={indice}
+        largura="340px"
+        esquerda={0}
+        nota="A quantidade, as cores e as observações ficam como estão."
+        onPassar={setIndice}
+        onEscolher={escolher}
+      />
+    </div>
+  );
+}
+
 function Typeahead({ categoria, catalogo, idsNaFicha, onAdicionar }) {
   const [texto, setTexto] = useState("");
   const [indice, setIndice] = useState(0);
   const inputRef = useRef(null);
 
-  const sugestoes = useMemo(() => {
-    const t = texto.trim().toLowerCase();
-    if (!t) return [];
-    return catalogo
-      .filter(
-        (m) =>
-          !idsNaFicha.has(m.id) && (m.nome || "").toLowerCase().includes(t),
-      )
-      .slice(0, 6);
-  }, [texto, catalogo, idsNaFicha]);
+  const sugestoes = useMemo(
+    () => sugerirMateriais(catalogo, idsNaFicha, texto),
+    [texto, catalogo, idsNaFicha],
+  );
 
   const escolher = async (material) => {
     if (!material) return;
@@ -433,64 +623,15 @@ function Typeahead({ categoria, catalogo, idsNaFicha, onAdicionar }) {
           color: "var(--charcoal)",
         }}
       />
-      {sugestoes.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% - 4px)",
-            left: "40px",
-            zIndex: 40,
-            width: "340px",
-            backgroundColor: "white",
-            border: "1px solid var(--gold-light)",
-            borderRadius: "10px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-            overflow: "hidden",
-          }}
-        >
-          {sugestoes.map((m, i) => {
-            const stock = disponivel(m);
-            return (
-              <button
-                key={m.id}
-                onMouseEnter={() => setIndice(i)}
-                onClick={() => escolher(m)}
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "none",
-                  backgroundColor: i === indice ? "#FBF7EF" : "white",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  fontSize: "12.5px",
-                }}
-              >
-                <span>{m.nome}</span>
-                <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
-                  {m.categoria}
-                  {stock !== null && ` · ${stock} disponíveis`}
-                </span>
-              </button>
-            );
-          })}
-          <p
-            style={{
-              fontSize: "10.5px",
-              color: "#9B9B9B",
-              margin: 0,
-              padding: "7px 12px",
-              borderTop: "1px solid #F5ECD7",
-              backgroundColor: "#FCFBF7",
-            }}
-          >
-            Enter adiciona e deixa o cursor na quantidade.
-          </p>
-        </div>
-      )}
+      <Sugestoes
+        lista={sugestoes}
+        indice={indice}
+        largura="340px"
+        esquerda="40px"
+        nota="Enter adiciona e deixa o cursor na quantidade."
+        onPassar={setIndice}
+        onEscolher={escolher}
+      />
     </div>
   );
 }
@@ -598,6 +739,29 @@ export default function FichaMateriais({
       marcarGuardado();
     } catch (e) {
       console.error(e);
+      setEstadoGravacao("idle");
+    }
+  };
+
+  // Trocar o material de uma linha. Ao contrário de um retoque na
+  // quantidade, isto muda o que a linha É — por isso, se a escrita
+  // falhar, a linha volta ao que era em vez de ficar a mostrar um
+  // material que a base de dados não tem.
+  const trocarMaterial = async (linhaId, material) => {
+    const anterior = linhas.find((l) => l.id === linhaId);
+    if (!anterior || anterior.material_id === material.id) return;
+    setLinhas((prev) =>
+      prev.map((l) =>
+        l.id === linhaId ? { ...l, material_id: material.id, material } : l,
+      ),
+    );
+    setEstadoGravacao("saving");
+    try {
+      await updateEventoMaterial(linhaId, { material_id: material.id });
+      marcarGuardado();
+    } catch (e) {
+      console.error(e);
+      setLinhas((prev) => prev.map((l) => (l.id === linhaId ? anterior : l)));
       setEstadoGravacao("idle");
     }
   };
@@ -887,7 +1051,10 @@ export default function FichaMateriais({
                         )
                       }
                       onActualizar={(campos) => actualizar(linha.id, campos)}
+                      onTrocar={(material) => trocarMaterial(linha.id, material)}
                       aoTabular={aoTabular}
+                      catalogo={catalogo}
+                      idsNaFicha={idsNaFicha}
                       coresDaFicha={coresDaFicha}
                     />
                   ))}
