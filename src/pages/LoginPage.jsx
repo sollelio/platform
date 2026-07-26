@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { destinoDepoisDoLogin, useSessao } from "../lib/sessao";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.png";
 
@@ -130,6 +131,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const localizacao = useLocation();
+  const sessao = useSessao();
+
+  // Para onde se vai depois de entrar — e para onde se vai já, se afinal
+  // a sessão ainda cá está.
+  const destino = destinoDepoisDoLogin(localizacao);
 
   const validate = () => {
     const e = {};
@@ -158,7 +165,9 @@ export default function LoginPage() {
     if (error) {
       setErrors({ general: "Email ou password incorretos. Tenta novamente." });
     } else {
-      navigate("/admin");
+      // `replace` para o "voltar" do browser não trazer de volta ao
+      // formulário depois de já se estar lá dentro.
+      navigate(destino, { replace: true });
     }
     setLoading(false);
   };
@@ -196,6 +205,32 @@ export default function LoginPage() {
     backgroundColor: "white",
     minWidth: 0,
   };
+
+  // Já cá dentro, o formulário é um beco: escreve-se a password outra
+  // vez para nada, ou fica-se na dúvida se a sessão morreu. Quem quer
+  // entrar com outra conta sai primeiro — o "Sair" da barra lateral
+  // termina a sessão e traz aqui.
+  //
+  // Espera-se pela resposta em vez de assumir que não há sessão: assumir
+  // fazia o formulário piscar a quem já entrou.
+  if (sessao === undefined) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "var(--cream)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "14px",
+          color: "var(--gray-mid)",
+        }}
+      >
+        A verificar sessão...
+      </div>
+    );
+  }
+  if (sessao) return <Navigate to={destino} replace />;
 
   return (
     <div
