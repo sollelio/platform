@@ -280,6 +280,7 @@ export default function CabecalhoEvento({
   activeAba,
   onAba,
   onVoltar,
+  onRecuperar,
   onImprimir,
   onWhatsApp,
   onEditar,
@@ -504,6 +505,9 @@ export default function CabecalhoEvento({
 
         <div style={{ marginTop: "16px" }}>
           <Jornada
+            // key: trocar de evento remonta a régua — a guarda de
+            // primeira pintura renasce e nada "acontece" em cascata.
+            key={submissao.id}
             submissao={submissao}
             invites={invites}
             previstos={previstos}
@@ -511,6 +515,7 @@ export default function CabecalhoEvento({
             onEtapa={onEtapa}
             onProximoGesto={onProximoGesto}
             onStatusChange={onStatusChange}
+            onRecuperar={onRecuperar}
           />
         </div>
       </div>

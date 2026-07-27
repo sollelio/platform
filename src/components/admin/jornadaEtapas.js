@@ -4,8 +4,13 @@ import { saldoSinalPendente } from "../../lib/pagamentos";
 import { estadoFormularioDoEvento } from "../../lib/invites";
 
 // ============================================================
-// jornadaEtapas — as oito etapas do evento e o próximo gesto, sem uma
-// única linha de desenho.
+// jornadaEtapas — as sete paragens cronológicas do evento, o selo do
+// formulário e o próximo gesto, sem uma única linha de desenho.
+//
+// O Formulário saiu da linha (Direção B, 27/07/2026): é a única coisa
+// que acende fora de ordem — a cliente responde quando responde — e
+// andava disfarçado de paragem cronológica. A linha passa a dizer só
+// tempo; o formulário é um SELO à parte, com os seus quatro estados.
 //
 // Vive fora do componente porque quem precisa desta resposta já não é
 // só a régua: o drawer usa-a para saber que botão mostrar (o gesto
@@ -67,16 +72,13 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
   const emPreparacao =
     ["Em Preparação", "Confirmado"].includes(s.status) || concluido;
 
-  // Formulário: ✓ preenchido · ◐ criado por preencher · ○ nem criado.
-  // A resposta vem da fonte única (lib/invites), que só dá "preenchido"
-  // quando as respostas estão NESTE evento — um convite que duplicou
-  // (respostas noutro evento) já não acende o ✓ no evento original.
+  // O selo do formulário. A resposta vem da fonte única (lib/invites),
+  // que só dá "preenchido" quando as respostas estão NESTE evento — um
+  // convite que duplicou (respostas noutro evento) não sela o original.
   const { estado: estadoFormulario } = estadoFormularioDoEvento(
     invites,
     s.id,
   );
-  const formularioFeito = estadoFormulario === "preenchido";
-  const formularioAMeio = estadoFormulario === "pendente";
 
   const { valorSinal, porReceber, temPrevisto } = numerosDoSinal(
     s,
@@ -117,18 +119,6 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
             : null,
     },
     {
-      id: "formulario",
-      rotulo: "Formulário",
-      feito: formularioFeito,
-      aMeio: formularioAMeio,
-      // Submetido (✓) = morto; pendente (◐) preenche; ausente (○) cria
-      clicavel: !formularioFeito,
-      sub:
-        estadoFormulario === "preenchido-noutro"
-          ? "respostas noutro evento"
-          : undefined,
-    },
-    {
       id: "projecto",
       rotulo: "Projecto",
       feito: idxFase >= 4,
@@ -153,20 +143,25 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
       id: "grandeDia",
       rotulo: "O grande dia",
       feito: concluido,
-      emoji: "🥂",
       sub: dataCurta(s.data_evento),
       clicavel: posSinal,
       tituloBloqueado: "Só depois do sinal recebido",
     },
   ];
 
-  // A etapa ATUAL: a primeira por fazer na cadeia (o Formulário fica
-  // de fora — é independente da ordem)
-  const atual = etapas.find((e) => e.id !== "formulario" && !e.feito);
+  // A etapa ATUAL: a primeira por fazer — a linha é agora puramente
+  // cronológica, sem exceções a saltar
+  const atual = etapas.find((e) => !e.feito);
+
+  // Concluído com a fase atrasada (legal na BD): a régua não pede
+  // "criar o projecto" a um evento que já aconteceu — pede arrumação.
+  const porArrumar = concluido && !!atual;
 
   // A frase "→ A seguir" — a app a apontar o próximo gesto
   const proximoGesto = (() => {
     if (!atual) return null;
+    if (porArrumar)
+      return "a fase no funil — o evento já está concluído";
     if (atual.id === "orcamento") return "enviar o orçamento";
     if (atual.id === "sinal")
       return sinalSaldadoSemAvanco
@@ -178,9 +173,93 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
     if (atual.id === "contrato") return "preparar o contrato";
     if (atual.id === "preparacao") return "preparar o evento (Materiais)";
     if (atual.id === "grandeDia")
-      return "está tudo pronto — falta o grande dia 🥂";
+      return "está tudo pronto — falta o grande dia";
     return null;
   })();
 
-  return { etapas, atual, proximoGesto };
+  // O selo viaja ao lado das etapas: quem desenha decide onde o põe
+  // (cabeçalho do cartão na cheia, ponto próprio na compacta).
+  return {
+    etapas,
+    atual,
+    proximoGesto,
+    porArrumar,
+    formulario: { estado: estadoFormulario },
+  };
+}
+
+// ============================================================
+// A EVIDÊNCIA de um percurso perdido — o que os dados ainda provam.
+//
+// A fase é sobrescrita ao perder, mas o STATUS preserva-se DE
+// PROPÓSITO como memória histórica (decisão do 2A; o CHECK da 040
+// isenta o perdido exatamente para o permitir). E o status pós-sinal
+// só se grava em fase pós-sinal — logo, um perdido "Em Preparação"
+// PROVA que chegou pelo menos a Cliente: o Sinal e o Orçamento
+// acendem por inferência, não por adivinha.
+// ============================================================
+
+const STATUS_POS_SINAL = ["Em Preparação", "Confirmado", "Concluído"];
+
+export function construirEvidencia({ s, invites, previstos, pagamentos }) {
+  const valor = Number(s.valor_acordado) || 0;
+  const statusPos = STATUS_POS_SINAL.includes(s.status);
+  // A mesma leitura da régua viva: só o dinheiro ligado ao previsto do
+  // SINAL (ordem 1) — somar tudo punha contribuições e remanescente a
+  // fazer de prova de sinal. Sem plano carregado, soma-se tudo, como
+  // antes de existirem planos.
+  const previstoSinal = (previstos || []).find(
+    (p) => p.submission_id === s.id && p.ordem === 1,
+  );
+  const recebido = (pagamentos || []).reduce((acc, p) => {
+    if (previstoSinal && p.previsto_id !== previstoSinal.id) return acc;
+    return acc + (Number(p.valor) || 0);
+  }, 0);
+  const { estado: estadoFormulario } = estadoFormularioDoEvento(
+    invites,
+    s.id,
+  );
+
+  const etapas = [
+    {
+      id: "interessado",
+      rotulo: "Interessada",
+      evidencia: true,
+      sub: dataCurta(s.created_at),
+    },
+    {
+      id: "orcamento",
+      rotulo: "Orçamento",
+      evidencia: valor > 0 || statusPos,
+      sub: valor > 0 ? formatarEuros(valor) : null,
+    },
+    {
+      id: "sinal",
+      rotulo: "Sinal",
+      evidencia: recebido > 0 || statusPos,
+      sub: recebido > 0 ? `${formatarEuros(recebido)} recebidos` : null,
+    },
+    // Sem coluna de fase histórica, Projecto e Contrato não têm prova
+    // possível — ficam honestamente apagados.
+    { id: "projecto", rotulo: "Projecto", evidencia: false },
+    { id: "contrato", rotulo: "Contrato", evidencia: false },
+    { id: "preparacao", rotulo: "Preparação", evidencia: statusPos },
+    {
+      id: "grandeDia",
+      rotulo: "O grande dia",
+      evidencia: s.status === "Concluído",
+      sub: dataCurta(s.data_evento),
+    },
+  ];
+
+  const fraseStatus =
+    s.status === "Em Preparação"
+      ? "Estava em preparação quando se perdeu."
+      : s.status === "Confirmado"
+        ? "Estava confirmado quando se perdeu."
+        : s.status === "Concluído"
+          ? "Estava concluído quando se perdeu."
+          : null;
+
+  return { etapas, formulario: { estado: estadoFormulario }, fraseStatus };
 }

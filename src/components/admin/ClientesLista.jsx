@@ -156,8 +156,18 @@ export default function ClientesLista({
   onAbrirEvento,
   onDadosMudaram,
   refrescarEm = 0,
+  verPerdidos = null,
+  aoConsumirVerPerdidos,
 }) {
   const [vista, setVista] = useState(ultimaVista); // "lista" | "funil"
+
+  // Um pedido "ver perdidos" força a vista do funil (e fica na memória
+  // da sessão, como qualquer troca manual) — o resto é com o FunilBoard.
+  useEffect(() => {
+    if (!verPerdidos) return;
+    ultimaVista = "funil";
+    setVista("funil");
+  }, [verPerdidos]);
   const [clientes, setClientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
@@ -371,6 +381,8 @@ export default function ClientesLista({
       <div>
         {alternador}
         <FunilBoard
+          verPerdidos={verPerdidos}
+          aoConsumirVerPerdidos={aoConsumirVerPerdidos}
           eventTypes={eventTypes}
           onAbrirEvento={onAbrirEvento}
           refrescarEm={refrescarEm}

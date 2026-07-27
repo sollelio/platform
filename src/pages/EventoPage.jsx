@@ -449,12 +449,16 @@ export default function EventoPage() {
   // Sair da página é a única saída que ainda deita rascunhos fora (a ida
   // a outro separador já não), por isso é a única que pergunta — e
   // pergunta aqui no ecrã, nunca num diálogo do browser.
-  const voltarAoAdmin = (tab = "clientes") => {
+  // `extra` viaja no state (ex.: verPerdidos, da pílula «Recuperar no
+  // funil») — e a saidaPendente guarda o STATE COMPLETO, para a
+  // confirmação inline não perder a intenção pelo caminho.
+  const voltarAoAdmin = (tab = "clientes", extra) => {
+    const state = { tab, ...extra };
     if (porGuardar > 0) {
-      setSaidaPendente(tab);
+      setSaidaPendente(state);
       return;
     }
-    navigate("/admin", { state: { tab } });
+    navigate("/admin", { state });
   };
 
   // OPTIMISTA: o estado novo pinta-se no gesto (o ✓ da Jornada salta
@@ -520,6 +524,7 @@ export default function EventoPage() {
           activeAba={activeAba}
           onAba={irParaAba}
           onVoltar={() => voltarAoAdmin("clientes")}
+          onRecuperar={() => voltarAoAdmin("clientes", { verPerdidos: id })}
           onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
           onEditar={alternarEdicao}
           editando={aEditar}
@@ -704,7 +709,7 @@ export default function EventoPage() {
               const destino = saidaPendente;
               setSaidaPendente(null);
               setEdicao(null);
-              navigate("/admin", { state: { tab: destino } });
+              navigate("/admin", { state: destino });
             }}
             className="acao acao--perigo"
             style={medidaBotaoSaida}

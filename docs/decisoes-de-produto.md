@@ -57,6 +57,22 @@ criar o ficheiro; se alguma estiver mal reconstruída, corrige-se aqui.
 - **26/07/2026 — Nada de ações destrutivas dentro do detalhe:** remoção em
   lote é seleção múltipla + barra de ações + confirmação inline.
 
+## Design — os dois critérios (27/07/2026)
+
+- **As superfícies julgam-se por dois padrões distintos e não se
+  misturam.** INTERNAS (drawer, página do evento, Jornada, Logística):
+  o critério é OFÍCIO — precisão "porta de Rolls-Royce", o filtro é
+  «isto aguenta ser visto cinquenta vezes por semana?». PÚBLICAS
+  (contribuição coletiva, futuro portal do cliente): o critério é
+  DESLUMBRE — vender o sonho, com brief próprio, noutro momento.
+  Porquê: um gesto que encanta à primeira e irrita à quinquagésima
+  está errado numa ferramenta diária; e o deslumbre da montra não
+  pertence à bancada de trabalho.
+- **Mockup antes de UI nova** (convenção da casa): mudanças grandes
+  mostram-se antes de se construírem; várias direções valem mais do
+  que uma; os estados difíceis (vazio, concluído, perdido/recuperado)
+  mostram-se sempre — é neles que a qualidade se decide.
+
 ## Logística — conferência "O que sai" (27/07/2026)
 
 - **A aritmética da conferência conta só eventos pós-sinal**

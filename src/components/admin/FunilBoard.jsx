@@ -80,11 +80,23 @@ export default function FunilBoard({
   onAbrirEvento,
   onDadosMudaram,
   refrescarEm = 0,
+  verPerdidos = null,
+  aoConsumirVerPerdidos,
 }) {
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
+
+  // A pílula «Recuperar no funil» da Jornada aterra aqui: liga o "Ver
+  // perdidos" (a coluna aparece) e consome o pedido — a recuperação em
+  // si continua a ser o gesto informado de sempre, no cartão.
+  useEffect(() => {
+    if (!verPerdidos) return;
+    setMostrarPerdidos(true);
+    aoConsumirVerPerdidos?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verPerdidos]);
   const [confirmandoPerda, setConfirmandoPerda] = useState(null); // id do evento
   // { id, valorSinal } — o valor mostrado na confirmação é o do
   // PREVISTO real (lido ao abrir), não uma divisão por dois: com o

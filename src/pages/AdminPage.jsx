@@ -239,6 +239,25 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState(
     () => location.state?.tab || "inicio",
   );
+  // Pedido "mostra-me os perdidos do funil" — vem da pílula «Recuperar
+  // no funil» da Jornada (página do evento via location.state, drawer
+  // via handler direto). Consome-se uma vez: o FunilBoard liga o "Ver
+  // perdidos" e avisa que consumiu.
+  const [pedidoVerPerdidos, setPedidoVerPerdidos] = useState(
+    () => location.state?.verPerdidos || null,
+  );
+  // Consome o pedido do HISTÓRICO (padrão do gerarDoc/formularioDe no
+  // mesmo ficheiro): o initializer já o guardou no estado React; sem
+  // isto, F5 ou Back reliam o verPerdidos e roubavam a vista escolhida.
+  useEffect(() => {
+    if (location.state?.verPerdidos) {
+      navigate(location.pathname, {
+        replace: true,
+        state: { tab: "clientes" },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [invites, setInvites] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
   // O fetch dos convites deixou de falhar em silêncio: sem a lista, o
@@ -1050,6 +1069,8 @@ export default function AdminPage() {
               onAbrirEvento={(ev) => setSelected(ev)}
               onDadosMudaram={fetchSubmissions}
               refrescarEm={funilVersao}
+              verPerdidos={pedidoVerPerdidos}
+              aoConsumirVerPerdidos={() => setPedidoVerPerdidos(null)}
             />
           </AvisosBloqueantes>
         )}
@@ -1907,6 +1928,13 @@ export default function AdminPage() {
         selected={selected}
         eventTypes={eventTypes}
         onClose={() => setSelected(null)}
+        onRecuperarPerdido={(id) => {
+          // A recuperação informada vive no funil — a pílula leva lá,
+          // nunca recupera por conta própria.
+          setSelected(null);
+          setActiveTab("clientes");
+          setPedidoVerPerdidos(id);
+        }}
         onStatusChange={handleStatusChange}
         onSaved={(atualizada) => {
           // O mesmo padrão do handleStatusChange: merge NORMALIZADO,

@@ -76,6 +76,7 @@ export default function SubmissionDrawer({
   onVerFormulario,
   invites = [],
   onModeloCriado,
+  onRecuperarPerdido,
 }) {
   const [folhaMensagens, setFolhaMensagens] = useState(false);
   const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
@@ -214,13 +215,16 @@ export default function SubmissionDrawer({
   // gesto se faz de verdade — o drawer aponta, não trabalha.
   const gesto = (() => {
     if (selected.fase === "perdido") return null;
-    const { atual } = construirEtapas({
+    const { atual, porArrumar } = construirEtapas({
       s: selected,
       invites,
       previstos: planoDoEvento?.previstos,
       pagamentos: planoDoEvento?.pagamentos,
     });
-    if (!atual) return null;
+    // "Por arrumar" (Concluído com fase atrasada): a Jornada diz para
+    // arrumar no funil — um botão a mandar produzir documentos para um
+    // evento já acontecido contradizia-a dois blocos acima.
+    if (!atual || porArrumar) return null;
     // O botão promete um gesto concreto — a navegação leva a intenção
     // (realce) consigo, e o separador aterra com a parcela/linha em
     // evidência. A EventoPage consome o state uma única vez.
@@ -353,13 +357,26 @@ export default function SubmissionDrawer({
                 Confirmado/Concluído) se edita — nos passos "Preparação"
                 e "Grande dia", em vez de num bloco à parte sem ligação
                 visual. Vive em Jornada.jsx desde que passou a aparecer
-                também no cabeçalho da página do evento. */}
+                também no cabeçalho da página do evento.
+                key = id do evento: a guarda de primeira pintura vive num
+                ref DENTRO da Jornada e só conhece a primeira montagem —
+                trocar de evento sem fechar o drawer (ex.: "Abrir ficha
+                completa" numa notificação, que fica por cima do backdrop)
+                reaproveitava a instância e as diferenças entre as duas
+                réguas animavam como acontecimentos. Remontar reinicia a
+                guarda, como já fazem DataEventoEditor e ClassificacaoTipo. */}
             <Jornada
+              key={selected.id}
               submissao={selected}
               invites={invites}
               previstos={planoDoEvento?.previstos}
               pagamentos={planoDoEvento?.pagamentos}
               onStatusChange={onStatusChange}
+              onRecuperar={
+                onRecuperarPerdido
+                  ? () => onRecuperarPerdido(selected.id)
+                  : undefined
+              }
               onEtapa={(id) => {
                 if (id === "orcamento")
                   onGerarDocumento && onGerarDocumento(selected, "orcamento");

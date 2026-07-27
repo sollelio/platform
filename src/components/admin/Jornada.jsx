@@ -1,44 +1,239 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { STATUS_OPTIONS, STATUS_COLORS } from "./faseConfig";
-import { construirEtapas } from "./jornadaEtapas";
+import { construirEtapas, construirEvidencia } from "./jornadaEtapas";
 
 // ============================================================
 // A JORNADA — a linha de vida do evento, do primeiro "olá" ao
-// grande dia. Oito etapas derivadas da fase comercial, do estado
-// operacional e dos formulários.
-// Três estados: feito (dourado, ✓) · atual (anel dourado) ·
-// futuro (cinza). O Formulário é independente da ordem (acende
-// quando o cliente responde, seja quando for): ✓ preenchido,
-// ◐ criado por preencher, ○ nem criado.
+// grande dia. Sete paragens CRONOLÓGICAS (cada visto significa
+// "aconteceu depois do anterior") + o SELO do formulário no
+// cabeçalho do cartão — a única coisa que acende fora de ordem
+// saiu da linha e ganhou desenho de exceção (Direção B, 27/07).
 //
-// Vive fora do SubmissionDrawer desde o redesenho: é a melhor peça
-// do drawer e a resposta literal a «em que fase está isto», por isso
-// aparece nos DOIS níveis — no drawer e no cabeçalho da página do
-// evento. A variante `compacta` é a régua sem rótulos do cabeçalho
-// encolhido (92 px), com o passo actual escrito ao lado.
+// As marcas são SVG desenhadas à mão, num só vocabulário de
+// traço (pontas redondas), parentes do visto do percurso de
+// documentos. Morreram os glifos de texto e o emoji. O bloco
+// dos medalhões tem ALTURA FIXA: o passo atual nunca empurra a
+// linha ao crescer. A respiração perpétua do anel saiu — o
+// movimento marca acontecimentos; a presença do atual vem do
+// halo assentado, estático.
+//
+// Vive nos três contextos: drawer (cheia, 512px), página do
+// evento (cheia, larga) e a régua compacta da moldura sticky
+// (42px) — onde o selo é o ponto quadrado de cantos redondos no
+// fim da linha (forma diferente diz "isto não é uma paragem").
 //
 // Props:
 //   submissao      — a submissão (obrigatória)
-//   invites        — todos os convites (para o passo Formulário)
+//   invites        — todos os convites (para o selo)
 //   previstos      — pagamentos_previstos deste evento (opcional)
 //   pagamentos     — pagamentos reais deste evento (opcional)
-//   onEtapa(id)    — clique numa etapa que não seja de estado
+//   onEtapa(id)    — clique numa etapa que não seja de estado; o
+//     selo chama onEtapa("formulario") — o contrato de sempre
 //   onStatusChange(id, status, fase) — mudar o estado do evento
-//   onProximoGesto(id) — quando dado, a frase "A seguir" vira PÍLULA
-//     accionável (a página passa-o; o drawer não — lá o gesto já tem
-//     o seu botão grande, e duas chamadas iguais eram uma a mais).
-//     Nunca no "grande dia": frase celebratória não é botão.
-//   compacta       — régua sem rótulos, para o cabeçalho condensado
+//   onProximoGesto(id) — quando dado, a frase "A seguir" vira
+//     PÍLULA accionável (a página passa-o; o drawer não — lá o
+//     gesto já tem o seu botão grande). Nunca no "grande dia".
+//   compacta       — régua sem rótulos, para a moldura sticky
 // ============================================================
 
-// A régua sem rótulos do cabeçalho encolhido: bolinhas e fios, com o
-// passo actual escrito ao lado. Sem cliques — encolhido, o cabeçalho
-// só informa; para agir volta-se a subir.
-function JornadaCompacta({ etapas, atual }) {
+// ---------- as marcas, desenhadas à mão ----------
+
+// O visto da casa — o mesmo traço do percurso de documentos
+const Visto = ({ cor = "#fff", t = 11 }) => (
+  <svg width={t} height={t} viewBox="0 0 16 16" fill="none" aria-hidden>
+    <path
+      d="M3.5 8.5 L6.6 11.6 L12.5 4.8"
+      stroke={cor}
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// A taça do grande dia — line-art, não emoji
+const Taca = ({ cor, t = 11, opacidade = 1 }) => (
+  <svg
+    width={t}
+    height={t}
+    viewBox="0 0 22 22"
+    fill="none"
+    aria-hidden
+    opacity={opacidade}
+  >
+    <path
+      d="M6.5 3 h9 M7 3 c0 4.5 1.6 6.5 4 6.5 s4 -2 4 -6.5 M11 9.5 v6 M7.5 18.5 h7 M11 15.5 v3"
+      stroke={cor}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// A meia-lua do formulário por preencher — meio selo dado
+const MeiaLua = ({ t = 13 }) => (
+  <svg width={t} height={t} viewBox="0 0 13 13" aria-hidden>
+    <circle
+      cx="6.5"
+      cy="6.5"
+      r="5.75"
+      fill="none"
+      stroke="#CBB77E"
+      strokeWidth="1.25"
+    />
+    <path d="M6.5 0.75 A5.75 5.75 0 0 1 6.5 12.25 Z" fill="#CBB77E" />
+  </svg>
+);
+
+const dataLonga = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("pt-PT", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+// ---------- o selo do formulário ----------
+
+const SELO_ESTADOS = {
+  nenhum: {
+    texto: "Formulário por criar",
+    cor: "var(--gray-mid)",
+    glifo: (
+      <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
+        <circle
+          cx="6.5"
+          cy="6.5"
+          r="5.75"
+          fill="none"
+          stroke="#C4C7CC"
+          strokeWidth="1.25"
+        />
+      </svg>
+    ),
+  },
+  pendente: {
+    texto: "Formulário por preencher",
+    cor: "var(--gray-mid)",
+    glifo: <MeiaLua />,
+  },
+  preenchido: {
+    texto: "Formulário respondido",
+    cor: "var(--gold-dark)",
+    glifo: (
+      <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
+        <circle cx="6.5" cy="6.5" r="6" fill="var(--gold)" />
+        <path
+          d="M3.8 6.8 L5.7 8.7 L9.4 4.6"
+          stroke="#fff"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    ),
+  },
+  "preenchido-noutro": {
+    texto: "Respostas noutro evento",
+    cor: "#B45309",
+    glifo: (
+      <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
+        <circle
+          cx="6.5"
+          cy="6.5"
+          r="5.75"
+          fill="none"
+          stroke="#B45309"
+          strokeWidth="1.25"
+        />
+        <circle cx="6.5" cy="6.5" r="1.6" fill="#B45309" />
+      </svg>
+    ),
+  },
+};
+
+function SeloFormulario({
+  estado,
+  onEtapa,
+  primeiraPintura = true,
+  reduzirMovimento = false,
+}) {
+  const conf = SELO_ESTADOS[estado] || SELO_ESTADOS.nenhum;
+  // Respondido é morto (não há gesto); os outros três abrem o caminho
+  // de sempre — o contrato onEtapa("formulario") não mudou.
+  const morto = estado === "preenchido";
+  return (
+    <button
+      type="button"
+      className="toca foco"
+      disabled={morto || !onEtapa}
+      onClick={onEtapa ? () => onEtapa("formulario") : undefined}
+      title={
+        morto
+          ? "As respostas estão neste evento"
+          : onEtapa
+            ? "Abrir"
+            : undefined
+      }
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        height: "22px",
+        padding: "0 10px 0 8px",
+        borderRadius: "999px",
+        backgroundColor: "white",
+        border: `1px solid ${estado === "preenchido-noutro" ? "#F0D9B5" : "var(--gold-light)"}`,
+        fontSize: "10.5px",
+        color: conf.cor,
+        cursor: morto || !onEtapa ? "default" : "pointer",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}
+    >
+      {/* A troca de estado salta com a mola da casa quando acontece à
+          frente dos olhos (a resposta da cliente a chegar em direto) —
+          nunca ao abrir, nunca com movimento reduzido. A key remonta o
+          glifo a cada estado; na primeira pintura o initial é falso. */}
+      <motion.span
+        key={estado}
+        initial={
+          primeiraPintura || reduzirMovimento ? false : { scale: 0 }
+        }
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+        style={{ display: "inline-flex" }}
+      >
+        {conf.glifo}
+      </motion.span>
+      <span>{conf.texto}</span>
+    </button>
+  );
+}
+
+// Cor do ponto do selo na régua compacta
+const SELO_COR_COMPACTA = {
+  nenhum: "#F1EBDD",
+  pendente: "#EAD9AC",
+  preenchido: "var(--gold)",
+  "preenchido-noutro": "#B45309",
+};
+
+// ---------- a régua compacta (moldura sticky de 42px) ----------
+
+// Bolinhas e fios, o selo como ponto quadrado no fim, e o passo actual
+// escrito ao lado. Sem cliques — encolhido, o cabeçalho só informa.
+function JornadaCompacta({ etapas, atual, formulario, porArrumar = false }) {
   const legenda = atual
-    ? [atual.rotulo, atual.sub].filter(Boolean).join(" · ")
+    ? porArrumar
+      ? "concluído · por arrumar no funil"
+      : [atual.rotulo, atual.sub].filter(Boolean).join(" · ")
     : "percurso completo";
+  const seloConf = SELO_ESTADOS[formulario.estado] || SELO_ESTADOS.nenhum;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -61,9 +256,7 @@ function JornadaCompacta({ etapas, atual }) {
                   ? "white"
                   : e.feito
                     ? "var(--gold)"
-                    : e.aMeio
-                      ? "#EAD9AC"
-                      : "#F1EBDD",
+                    : "#F1EBDD",
                 border: ehAtual ? "2px solid var(--gold)" : "none",
               }}
             />
@@ -80,6 +273,19 @@ function JornadaCompacta({ etapas, atual }) {
           </div>
         );
       })}
+      {/* O selo: quadrado de cantos redondos — não é uma paragem */}
+      <span
+        title={seloConf.texto}
+        style={{
+          display: "block",
+          width: "9px",
+          height: "9px",
+          borderRadius: "3px",
+          marginLeft: "6px",
+          backgroundColor: SELO_COR_COMPACTA[formulario.estado] || "#F1EBDD",
+          flexShrink: 0,
+        }}
+      />
       <span
         style={{
           fontSize: "11px",
@@ -94,6 +300,144 @@ function JornadaCompacta({ etapas, atual }) {
   );
 }
 
+// ---------- o medalhão de uma paragem ----------
+
+// Bloco de ALTURA FIXA (26px): o atual (24px) nunca empurra a linha —
+// o meio píxel que se nota é exatamente o que aqui morre.
+function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
+  const ehTaca = etapa.id === "grandeDia";
+  const bloqueada = !etapa.clicavel && etapa.tituloBloqueado && !etapa.feito;
+
+  let estilo;
+  let conteudo = null;
+
+  if (etapa.saldado) {
+    // O dinheiro está cá, falta o carimbo: visto dourado em campo
+    // branco — nem feita nem por fazer, exatamente o que é.
+    estilo = {
+      width: "21px",
+      height: "21px",
+      backgroundColor: "white",
+      border: "2px solid var(--gold)",
+    };
+    conteudo = <Visto cor="#A07830" />;
+  } else if (etapa.feito) {
+    estilo = {
+      width: "21px",
+      height: "21px",
+      backgroundColor: "var(--gold)",
+      // aro de cunhagem — o rebordo de uma moeda
+      boxShadow: "inset 0 0 0 1px #b9973e",
+    };
+    // O visto (ou a taça, no grande dia) salta com a mola canónica da
+    // casa quando a etapa SE CONCLUI à frente dos olhos — nunca ao
+    // abrir (guarda de primeira pintura), nunca com movimento
+    // reduzido. Sem a mola, a taça branca sobre o fundo ainda branco
+    // era um clímax invisível.
+    conteudo = (
+      <motion.span
+        initial={primeiraPintura || reduzirMovimento ? false : { scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{
+          type: "spring",
+          stiffness: 500,
+          damping: 28,
+          // a meio do enchimento a ouro (300ms via CSS da casa): a cor
+          // chega primeiro, a marca assina em cima
+          delay: 0.14,
+        }}
+        style={{ display: "inline-flex" }}
+      >
+        {ehTaca ? <Taca cor="#fff" t={12} /> : <Visto />}
+      </motion.span>
+    );
+  } else if (ehAtual) {
+    // Presença pelo halo assentado, estático — a respiração morreu:
+    // um pulso perpétuo não marca acontecimento nenhum. Quando o
+    // "atual" avança à frente dos olhos, o halo ASSENTA no fim da
+    // cascata (fade curto, guardado); depois fica imóvel.
+    estilo = {
+      width: "24px",
+      height: "24px",
+      backgroundColor: "white",
+      border: "1.5px solid var(--gold)",
+    };
+    conteudo = (
+      <>
+        <motion.span
+          aria-hidden
+          initial={
+            primeiraPintura || reduzirMovimento ? false : { opacity: 0 }
+          }
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2, delay: 0.56 }}
+          style={{
+            position: "absolute",
+            // -1.5px: alinha com a border box (o inset 0 ficava DENTRO
+            // do aro de 1.5px e o halo media ~2.5px em vez de 4)
+            inset: "-1.5px",
+            borderRadius: "50%",
+            boxShadow: "0 0 0 4px rgba(201,168,76,0.16)",
+            pointerEvents: "none",
+          }}
+        />
+        {ehTaca ? (
+          <Taca cor="var(--gold)" t={12} />
+        ) : (
+          <span
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              backgroundColor: "var(--gold)",
+            }}
+          />
+        )}
+      </>
+    );
+  } else {
+    // Futura: um engaste limpo — aro fino sobre branco-quente, sem o
+    // "○" redundante lá dentro. Expectativa, não ausência.
+    estilo = {
+      width: "21px",
+      height: "21px",
+      backgroundColor: "#FDFBF5",
+      border: "1px solid #E8DCC0",
+      opacity: bloqueada ? 0.62 : 1,
+    };
+    conteudo = ehTaca ? <Taca cor="#A08B55" opacidade={0.5} /> : null;
+  }
+
+  return (
+    <div
+      style={{
+        height: "26px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: "5px",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <div
+        className="jornada-bola"
+        style={{
+          position: "relative",
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxSizing: "border-box",
+          ...estilo,
+        }}
+      >
+        {conteudo}
+      </div>
+    </div>
+  );
+}
+
 export default function Jornada({
   submissao,
   invites = [],
@@ -102,6 +446,7 @@ export default function Jornada({
   onEtapa,
   onStatusChange,
   onProximoGesto,
+  onRecuperar,
   compacta = false,
 }) {
   // O estado (Recebido/Em Preparação/Confirmado/Concluído) edita-se
@@ -122,44 +467,262 @@ export default function Jornada({
   const s = submissao;
   if (!s) return null;
 
-  // Percurso terminado — sem jornada, só a lápide discreta
+  // Percurso terminado — a caixa que engolia a história abriu-se: a
+  // mesma régua, congelada, com o que os dados ainda provam (o status
+  // é a memória sobrevivente — foi preservado de propósito no 2A).
   if (s.fase === "perdido") {
+    const { etapas, formulario, fraseStatus } = construirEvidencia({
+      s,
+      invites,
+      previstos,
+      pagamentos,
+    });
+
     if (compacta) {
+      const memoria = {
+        "Em Preparação": "estava em preparação",
+        Confirmado: "estava confirmado",
+        Concluído: "estava concluído",
+      }[s.status];
       return (
         <span style={{ fontSize: "11px", color: "var(--gray-mid)" }}>
-          Percurso terminado (perdido)
+          {memoria
+            ? `Perdido — ${memoria}`
+            : "Percurso terminado (perdido)"}
         </span>
       );
     }
+
+    const ultimaEvidencia = etapas.reduce(
+      (acc, e, i) => (e.evidencia ? i : acc),
+      0,
+    );
+
     return (
       <div
         style={{
           backgroundColor: "#F9FAFB",
           border: "1px solid #E5E7EB",
           borderRadius: "12px",
-          padding: "10px 14px",
+          padding: "14px 10px 10px",
           marginBottom: "14px",
-          fontSize: "12px",
-          color: "var(--gray-mid)",
         }}
       >
-        Percurso terminado (perdido) — pode ser recuperado no funil.
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            margin: "0 4px 12px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "9px",
+              fontWeight: "700",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--gray-mid)",
+              margin: 0,
+            }}
+          >
+            Percurso terminado
+          </p>
+          <SeloFormulario
+            estado={formulario.estado}
+            onEtapa={undefined}
+            primeiraPintura={primeiraPintura.current}
+            reduzirMovimento={reduzirMovimento}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-start" }}>
+          {etapas.map((e, i) => {
+            const ehTaca = e.id === "grandeDia";
+            const seguinteComEvidencia = etapas[i + 1]?.evidencia;
+            return (
+              <div
+                key={e.id}
+                style={{
+                  flex: 1,
+                  textAlign: "center",
+                  position: "relative",
+                  minWidth: 0,
+                }}
+              >
+                {i < etapas.length - 1 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "12px",
+                      left: "50%",
+                      right: "-50%",
+                      height: "2px",
+                      backgroundColor: "#E5E7EB",
+                    }}
+                  >
+                    {e.evidencia && seguinteComEvidencia && i < ultimaEvidencia && (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#C9CBD1",
+                        }}
+                      />
+                    )}
+                    {/* o fio esvai-se UMA vez, depois da última prova
+                        — buracos entre provas ficam no trilho neutro */}
+                    {i === ultimaEvidencia && (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          background:
+                            "repeating-linear-gradient(to right, #C9CBD1 0 6px, transparent 6px 12px)",
+                          WebkitMaskImage:
+                            "linear-gradient(to right, black, transparent 80%)",
+                          maskImage:
+                            "linear-gradient(to right, black, transparent 80%)",
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+                <div
+                  style={{
+                    height: "26px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "5px",
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "21px",
+                      height: "21px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxSizing: "border-box",
+                      ...(e.evidencia
+                        ? {
+                            backgroundColor: "#B8BBC0",
+                            boxShadow: "inset 0 0 0 1px #A7AAB0",
+                          }
+                        : {
+                            backgroundColor: "#FCFCFD",
+                            border: "1px solid #E5E7EB",
+                          }),
+                    }}
+                  >
+                    {e.evidencia ? (
+                      ehTaca ? (
+                        <Taca cor="#fff" t={12} />
+                      ) : (
+                        <Visto />
+                      )
+                    ) : ehTaca ? (
+                      <Taca cor="#6B7280" opacidade={0.35} />
+                    ) : null}
+                  </div>
+                </div>
+                <p
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: e.evidencia ? "600" : "400",
+                    color: e.evidencia ? "#4B5563" : "var(--gray-mid)",
+                    margin: "0 2px",
+                    lineHeight: 1.25,
+                    overflowWrap: "break-word",
+                  }}
+                >
+                  {e.rotulo}
+                </p>
+                {e.sub && (
+                  <p
+                    style={{
+                      fontSize: "9.5px",
+                      color: "var(--gray-mid)",
+                      fontVariantNumeric: "tabular-nums",
+                      margin: 0,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {e.sub}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            margin: "12px 4px 2px",
+          }}
+        >
+          <p style={{ fontSize: "11px", color: "var(--gray-mid)", margin: 0 }}>
+            {fraseStatus || "O que ficou registado mantém-se legível."}
+          </p>
+          {onRecuperar && (
+            <button
+              type="button"
+              onClick={onRecuperar}
+              className="toca foco pilula-gesto"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                borderRadius: "999px",
+                fontSize: "11.5px",
+                fontWeight: "500",
+                border: "1.5px solid var(--gold-light)",
+                backgroundColor: "white",
+                color: "var(--gold-dark)",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              <span>Recuperar no funil</span>
+              <span className="pilula-seta" aria-hidden>
+                →
+              </span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
-  const { etapas, atual, proximoGesto } = construirEtapas({
+  const { etapas, atual, proximoGesto, porArrumar, formulario } =
+    construirEtapas({
     s,
     invites,
     previstos,
     pagamentos,
   });
 
-  if (compacta) return <JornadaCompacta etapas={etapas} atual={atual} />;
+  if (compacta)
+    return (
+      <JornadaCompacta
+        etapas={etapas}
+        atual={atual}
+        formulario={formulario}
+        porArrumar={porArrumar}
+      />
+    );
 
   // Preparação/Grande dia abrem o escolhedor de estado ali mesmo; os
-  // restantes continuam a delegar no onEtapa do pai (gerar documento,
-  // preencher formulário).
+  // restantes continuam a delegar no onEtapa do pai (gerar documento);
+  // o formulário vive no selo, já não na linha.
   const aoClicarEtapa = (id) => {
     if (id === "preparacao" || id === "grandeDia") {
       setPopoverEtapa((atualAberto) => (atualAberto === id ? null : id));
@@ -178,26 +741,37 @@ export default function Jornada({
         marginBottom: "14px",
       }}
     >
-      <p
+      <div
         style={{
-          fontSize: "9px",
-          fontWeight: "700",
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "var(--gold-dark)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
           margin: "0 4px 12px",
         }}
       >
-        A Jornada
-      </p>
+        <p
+          style={{
+            fontSize: "9px",
+            fontWeight: "700",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--gold-dark)",
+            margin: 0,
+          }}
+        >
+          A Jornada
+        </p>
+        <SeloFormulario
+          estado={formulario.estado}
+          onEtapa={onEtapa}
+          primeiraPintura={primeiraPintura.current}
+          reduzirMovimento={reduzirMovimento}
+        />
+      </div>
       <div style={{ display: "flex", alignItems: "flex-start" }}>
         {etapas.map((e, i) => {
           const ehAtual = atual && atual.id === e.id;
-          const corBola = e.feito
-            ? "var(--gold)"
-            : e.aMeio
-              ? "#EAD9AC"
-              : "#F1EBDD";
           return (
             // Botão a sério: responde ao rato, ao Tab e ao Enter — uma
             // div com onClick não respondia a nada disto.
@@ -219,7 +793,7 @@ export default function Jornada({
                 <div
                   style={{
                     position: "absolute",
-                    top: "10px",
+                    top: "12px",
                     left: "50%",
                     right: "-50%",
                     height: "2px",
@@ -232,7 +806,16 @@ export default function Jornada({
                   <motion.div
                     initial={false}
                     animate={{ scaleX: e.feito ? 1 : 0 }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    // A curva-assinatura das revelações da casa, com o
+                    // arranque depois do visto assinar (initial=false:
+                    // ao abrir a página nada disto corre)
+                    transition={{
+                      duration: reduzirMovimento ? 0 : 0.48,
+                      ease: [0.22, 1, 0.36, 1],
+                      // o arranque espera pelo visto SÓ no enchimento;
+                      // a drenagem (reversão) responde já
+                      delay: reduzirMovimento ? 0 : e.feito ? 0.24 : 0,
+                    }}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -242,80 +825,27 @@ export default function Jornada({
                   />
                 </div>
               )}
-              <div
-                className="jornada-bola"
-                style={{
-                  position: "relative",
-                  width: ehAtual ? "24px" : "21px",
-                  height: ehAtual ? "24px" : "21px",
-                  borderRadius: "50%",
-                  backgroundColor: ehAtual ? "white" : corBola,
-                  border: ehAtual ? "2.5px solid var(--gold)" : "none",
-                  margin: `${ehAtual ? "-1px" : "0"} auto 5px`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: e.emoji ? "11px" : "10px",
-                  color: e.feito ? "white" : "var(--gray-mid)",
-                  fontWeight: "700",
-                }}
-              >
-                {/* O anel do passo actual respira — lentíssimo, só
-                    opacidade; parado de todo para quem pediu movimento
-                    reduzido. */}
-                {ehAtual && (
-                  <motion.span
-                    aria-hidden
-                    initial={false}
-                    animate={
-                      reduzirMovimento
-                        ? { opacity: 1 }
-                        : { opacity: [1, 0.45, 1] }
-                    }
-                    transition={
-                      reduzirMovimento
-                        ? { duration: 0 }
-                        : { duration: 3.6, repeat: Infinity, ease: "easeInOut" }
-                    }
-                    style={{
-                      position: "absolute",
-                      inset: "-2.5px",
-                      borderRadius: "50%",
-                      boxShadow: "0 0 0 4px rgba(201,168,76,0.22)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
-                {e.emoji ? (
-                  e.emoji
-                ) : e.feito ? (
-                  <motion.span
-                    initial={
-                      primeiraPintura.current || reduzirMovimento
-                        ? false
-                        : { scale: 0 }
-                    }
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 28 }}
-                    style={{ display: "inline-flex" }}
-                  >
-                    ✓
-                  </motion.span>
-                ) : ehAtual ? (
-                  "●"
-                ) : (
-                  "○"
-                )}
-              </div>
+              <Medalhao
+                etapa={e}
+                ehAtual={ehAtual}
+                primeiraPintura={primeiraPintura.current}
+                reduzirMovimento={reduzirMovimento}
+              />
               <p
                 style={{
-                  fontSize: ehAtual ? "10px" : "9.5px",
+                  // Tamanho FIXO — o atual distingue-se por peso e
+                  // cor, nunca a empurrar os vizinhos.
+                  fontSize: "10px",
                   fontWeight: e.feito || ehAtual ? "600" : "400",
                   color: ehAtual
                     ? "var(--gold-dark)"
                     : e.feito
                       ? "var(--charcoal)"
                       : "var(--gray-mid)",
+                  opacity:
+                    !e.feito && !ehAtual && e.tituloBloqueado && !e.clicavel
+                      ? 0.62
+                      : 1,
                   margin: "0 2px",
                   lineHeight: 1.25,
                   overflowWrap: "break-word",
@@ -326,9 +856,14 @@ export default function Jornada({
               {e.sub && (
                 <p
                   style={{
-                    fontSize: "9px",
-                    color: ehAtual ? "#B45309" : "var(--gray-mid)",
-                    fontWeight: ehAtual ? "600" : "400",
+                    fontSize: "9.5px",
+                    color: e.saldado
+                      ? "var(--gold-dark)"
+                      : ehAtual
+                        ? "#B45309"
+                        : "var(--gray-mid)",
+                    fontWeight: e.saldado || ehAtual ? "600" : "400",
+                    fontVariantNumeric: "tabular-nums",
                     margin: 0,
                     lineHeight: 1.3,
                   }}
@@ -424,7 +959,63 @@ export default function Jornada({
           drawer (sem onProximoGesto) fica a frase, porque o botão
           grande ali ao lado já faz o gesto. No "grande dia" é sempre
           frase: celebração não é botão. */}
+      {/* Percurso completo — o remate: a única serifa da régua, no
+          único sítio onde já não há gesto, só registo. */}
+      {!atual && (
+        <motion.div
+          initial={
+            primeiraPintura.current || reduzirMovimento
+              ? false
+              : { opacity: 0, y: 2 }
+          }
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay: 0.7 }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            margin: "12px 4px 2px",
+          }}
+        >
+          <span
+            style={{
+              width: "40px",
+              height: "1px",
+              backgroundColor: "var(--gold)",
+              flexShrink: 0,
+            }}
+          />
+          <p
+            style={{
+              fontFamily: "Playfair Display, serif",
+              fontStyle: "italic",
+              fontSize: "12.5px",
+              color: "var(--gold-dark)",
+              margin: 0,
+            }}
+          >
+            Percurso completo
+            {s.data_evento
+              ? ` — o grande dia foi a ${dataLonga(s.data_evento)}`
+              : ""}
+            .
+          </p>
+        </motion.div>
+      )}
+      {proximoGesto && porArrumar && (
+        <p
+          style={{
+            fontSize: "11px",
+            fontStyle: "italic",
+            color: "var(--gold-dark)",
+            margin: "10px 4px 0",
+          }}
+        >
+          → Por arrumar: {proximoGesto}
+        </p>
+      )}
       {proximoGesto &&
+        !porArrumar &&
         (onProximoGesto && atual && atual.id !== "grandeDia" ? (
           <button
             onClick={() => onProximoGesto(atual.id)}
