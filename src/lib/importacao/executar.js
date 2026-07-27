@@ -18,6 +18,21 @@ import { generateCode } from "../invites";
 import { FIELD_MAP_INVERSO } from "../submissionFields";
 import { normalizarNome } from "../tipoEvento";
 
+// Erros do Postgres traduzidos para o relatório — a rede final por
+// baixo da validação do plano (o CHECK da 040 responde com 23514).
+const traduzErroImportacao = (error) => {
+  if (
+    error?.code === "23514" &&
+    (error.message || "").includes("submissions_status_pos_sinal")
+  ) {
+    return "estado/fase incompatíveis: um estado operacional (Em Preparação/Confirmado/Concluído) exige fase pós-sinal (cliente/projecto/contrato) ou perdido.";
+  }
+  if (error?.code === "23502") {
+    return "campo obrigatório em falta no registo (provavelmente o estado).";
+  }
+  return error?.message || "erro desconhecido";
+};
+
 // Registo do evento em snake_case, pronto para o jsonb_populate_record.
 // Precedência: os campos do evento (data, valor, estado...) ganham às
 // respostas; as colunas legadas derivam das respostas canónicas.
@@ -121,7 +136,7 @@ export async function executarPlano(
       console.error("importar_cliente falhou:", item.cliente.nome, error);
       relatorio.clientesFalhados.push({
         nome: item.cliente.nome,
-        erro: error.message,
+        erro: traduzErroImportacao(error),
       });
     } else {
       relatorio.clientesOk.push({

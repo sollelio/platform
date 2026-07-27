@@ -88,6 +88,19 @@ export async function validarPlano(plano, eventTypes) {
           `${ref}: fase "${ev.fase}" inválida (${FASES_VALIDAS.join(" / ")}).`,
         );
       }
+      // O PAR estado/fase tem de respeitar o invariante da BD (CHECK
+      // da migração 040): estado operacional exige fase pós-sinal ou
+      // perdido. Validar aqui põe o erro no plano, legível, em vez de
+      // deixar o INSERT rebentar no Postgres a meio da importação.
+      if (
+        ["Em Preparação", "Confirmado", "Concluído"].includes(ev.estado) &&
+        FASES_VALIDAS.includes(ev.fase) &&
+        !["cliente", "projecto", "contrato", "perdido"].includes(ev.fase)
+      ) {
+        item.erros.push(
+          `${ref}: o estado "${ev.estado}" exige fase pós-sinal (cliente/projecto/contrato) ou perdido — com a fase "${ev.fase}", usa o estado "Recebido" ou omite-o.`,
+        );
+      }
       if (Number.isNaN(ev.valorAcordado)) {
         item.erros.push(`${ref}: valorAcordado não é um número.`);
       }

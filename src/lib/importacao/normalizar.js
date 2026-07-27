@@ -114,13 +114,28 @@ function normalizarEvento(e = {}) {
     docsBrutos.proposta || docsBrutos.projecto || docsBrutos.projeto;
   if (proposta) documentos.proposta = normalizarProposta(proposta);
 
+  // Defaults do "estado final" (histórico concluído) — mas o par tem
+  // de nascer coerente com o invariante da 040 (estado operacional ⇒
+  // fase pós-sinal ou perdido): um evento importado com fase PRÉ-SINAL
+  // explícita e sem estado é um negócio a decorrer, não um concluído —
+  // o default cego de "Concluído" fabricava o par inválido que o CHECK
+  // agora recusa.
+  const fase = limpar(e.fase) || "contrato";
+  const faseComEstadoOperacional = [
+    "cliente",
+    "projecto",
+    "contrato",
+    "perdido",
+  ].includes(fase);
+  const estado =
+    limpar(e.estado) || (faseComEstadoOperacional ? "Concluído" : "Recebido");
+
   return {
     tipoEvento: limpar(e.tipoEvento),
     tipoEventoId: null, // resolvido na validação (match por nome)
     dataEvento: limpar(e.dataEvento),
-    // Defaults do "estado final" (histórico concluído):
-    estado: limpar(e.estado) || "Concluído",
-    fase: limpar(e.fase) || "contrato",
+    estado,
+    fase,
     valorAcordado: numeroOuNull(e.valorAcordado),
     pagamentoFinal: e.pagamentoFinal !== false,
     numeroConvidados: numeroOuNull(e.numeroConvidados),

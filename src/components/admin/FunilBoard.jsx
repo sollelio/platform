@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getEventosFunil, updateFase } from "../../lib/clientes";
-import { registarSinalDoFunil, METODOS_SUGERIDOS } from "../../lib/pagamentos";
+import {
+  registarSinalDoFunil,
+  METODOS_SUGERIDOS,
+  getPagamentosEvento,
+  saldoSinalPendente,
+} from "../../lib/pagamentos";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import {
@@ -82,6 +87,10 @@ export default function FunilBoard({
   const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
   const [confirmandoPerda, setConfirmandoPerda] = useState(null); // id do evento
   const [confirmandoSinal, setConfirmandoSinal] = useState(null); // id do evento
+  // Recuperação informada de um perdido COM dinheiro registado:
+  // { id, sinalPago, totalPago } enquanto a Nádia escolhe a saída.
+  const [recuperando, setRecuperando] = useState(null);
+  const pedidoRecuperacaoRef = useRef(null);
   const [atualizando, setAtualizando] = useState(null); // id do evento
   const [novoInteressado, setNovoInteressado] = useState(false); // modal aberto
   const [avisoErro, setAvisoErro] = useState(null); // toast discreto (adeus alert)
@@ -110,23 +119,82 @@ export default function FunilBoard({
   // de teste) caem em "interessado" para nunca desaparecerem do funil.
   const faseDe = (ev) => (FASE_LABEL[ev.fase] ? ev.fase : "interessado");
 
-  const mudarFase = async (ev, fase) => {
+  const mudarFase = async (ev, fase, opcoes = {}) => {
     setAtualizando(ev.id);
     try {
-      await updateFase(ev.id, fase);
+      const atualizada = await updateFase(ev.id, fase, opcoes);
       setEventos((prev) =>
-        prev.map((e) => (e.id === ev.id ? { ...e, fase } : e)),
+        prev.map((e) =>
+          e.id === ev.id ? { ...e, fase, status: atualizada.status } : e,
+        ),
       );
       if (onDadosMudaram) onDadosMudaram();
     } catch (e) {
       console.error(e);
+      // Só as mensagens da casa (Error traduzido em lib/clientes)
+      // chegam à barra; um erro cru do Supabase/rede cai na genérica.
       setAvisoErro(
-        "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
+        e instanceof Error && e.message
+          ? e.message
+          : "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
       );
       setTimeout(() => setAvisoErro(null), 4500);
     }
     setAtualizando(null);
     setConfirmandoPerda(null);
+    setRecuperando(null);
+  };
+
+  // Recuperar um perdido — informado pelos dados, nunca em silêncio
+  // quando há dinheiro (decisão do Hélio, Lote 2):
+  //   sem pagamentos  → Interessados com o estado limpo ('Recebido'),
+  //                     no MESMO update (o par atómico que o CHECK da
+  //                     040 exige);
+  //   com pagamentos  → a Nádia escolhe inline: voltar a Clientes
+  //                     (mantém o estado que tinha) ou a Interessados
+  //                     (limpa o estado) — o saldo do sinal destaca a
+  //                     saída provável.
+  const pedirRecuperacao = async (ev) => {
+    // Só o pedido MAIS RECENTE conta — clicar ↩ noutro cartão com um
+    // fetch em voo não pode trocar painéis nem piscar estados.
+    pedidoRecuperacaoRef.current = ev.id;
+    setAtualizando(ev.id);
+    let plano;
+    try {
+      plano = await getPagamentosEvento(ev.id);
+    } catch (e) {
+      console.error(e);
+      if (pedidoRecuperacaoRef.current !== ev.id) return;
+      // Sem conseguir ver os pagamentos, não se recupera às cegas —
+      // podia esconder dinheiro registado.
+      setAtualizando(null);
+      setAvisoErro(
+        "Não foi possível verificar os pagamentos deste evento — tenta recuperar outra vez.",
+      );
+      setTimeout(() => setAvisoErro(null), 4500);
+      return;
+    }
+    if (pedidoRecuperacaoRef.current !== ev.id) return;
+    const pagamentos = plano?.pagamentos || [];
+    if (pagamentos.length === 0) {
+      await mudarFase(ev, "interessado", { status: "Recebido" });
+      return;
+    }
+    const totalPago = pagamentos.reduce(
+      (acc, p) => acc + (Number(p.valor) || 0),
+      0,
+    );
+    // "Sinal pago" só se afirma com um previsto de sinal a existir —
+    // saldoSinalPendente devolve 0 também quando não há plano nenhum,
+    // e isso não é um sinal pago.
+    const previstoSinal = (plano?.previstos || []).find(
+      (p) => p.ordem === 1,
+    );
+    const sinalPago =
+      !!previstoSinal &&
+      saldoSinalPendente(ev.id, plano?.previstos || [], pagamentos) <= 0;
+    setRecuperando({ id: ev.id, sinalPago, totalPago });
+    setAtualizando(null);
   };
 
   // "Sinal recebido →" é a ÚNICA transição de fase que move dinheiro a
@@ -390,7 +458,14 @@ export default function FunilBoard({
                   onPedirPerda={() => setConfirmandoPerda(ev.id)}
                   onCancelarPerda={() => setConfirmandoPerda(null)}
                   onConfirmarPerda={() => mudarFase(ev, "perdido")}
-                  onRecuperar={() => mudarFase(ev, "interessado")}
+                  aEscolherRecuperacao={
+                    recuperando?.id === ev.id ? recuperando : null
+                  }
+                  onRecuperar={() => pedirRecuperacao(ev)}
+                  onRecuperarPara={(fase, opcoes) =>
+                    mudarFase(ev, fase, opcoes)
+                  }
+                  onCancelarRecuperacao={() => setRecuperando(null)}
                   onPedirSinal={() => setConfirmandoSinal(ev.id)}
                   onCancelarSinal={() => setConfirmandoSinal(null)}
                   onConfirmarSinal={(dados) => confirmarSinalRecebido(ev, dados)}
@@ -630,12 +705,15 @@ function CardEvento({
   aAtualizar,
   aConfirmarPerda,
   aConfirmarSinal,
+  aEscolherRecuperacao,
   onAbrir,
   onAvancar,
   onPedirPerda,
   onCancelarPerda,
   onConfirmarPerda,
   onRecuperar,
+  onRecuperarPara,
+  onCancelarRecuperacao,
   onPedirSinal,
   onCancelarSinal,
   onConfirmarSinal,
@@ -795,6 +873,98 @@ function CardEvento({
           onConfirmar={onConfirmarSinal}
           onCancelar={onCancelarSinal}
         />
+      ) : aEscolherRecuperacao ? (
+        // O perdido tem dinheiro registado: a escolha é da Nádia,
+        // inline, com a saída provável destacada pelo saldo do sinal.
+        // O wrap com stopPropagation segue a lição do
+        // FormularioSinalInline: sem ele, um clique no texto ou entre
+        // botões propagava ao onAbrir do cartão e abria o drawer.
+        <div onClick={(e) => e.stopPropagation()}>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--gray-mid)",
+              margin: "0 0 8px 0",
+            }}
+          >
+            Este evento tem{" "}
+            <strong>{formatarEuros(aEscolherRecuperacao.totalPago)}</strong>{" "}
+            registados
+            {aEscolherRecuperacao.sinalPago ? " — o sinal está pago" : ""}.
+            Recuperar para onde?
+          </p>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRecuperarPara("cliente", {});
+              }}
+              disabled={aAtualizar}
+              style={{
+                padding: "7px 8px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "600",
+                border: aEscolherRecuperacao.sinalPago
+                  ? "1.5px solid var(--gold)"
+                  : "1px solid #D1D5DB",
+                backgroundColor: aEscolherRecuperacao.sinalPago
+                  ? "var(--gold)"
+                  : "white",
+                color: aEscolherRecuperacao.sinalPago
+                  ? "white"
+                  : "var(--gray-mid)",
+                cursor: aAtualizar ? "wait" : "pointer",
+              }}
+            >
+              {aAtualizar ? "..." : "Para Clientes — mantém o estado"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRecuperarPara("interessado", { status: "Recebido" });
+              }}
+              disabled={aAtualizar}
+              style={{
+                padding: "7px 8px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "600",
+                border: !aEscolherRecuperacao.sinalPago
+                  ? "1.5px solid var(--gold)"
+                  : "1px solid #D1D5DB",
+                backgroundColor: !aEscolherRecuperacao.sinalPago
+                  ? "var(--gold)"
+                  : "white",
+                color: !aEscolherRecuperacao.sinalPago
+                  ? "white"
+                  : "var(--gray-mid)",
+                cursor: aAtualizar ? "wait" : "pointer",
+              }}
+            >
+              {aAtualizar ? "..." : "Para Interessados — limpa o estado"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancelarRecuperacao();
+              }}
+              style={{
+                padding: "6px 8px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                border: "1px solid #E5E7EB",
+                backgroundColor: "white",
+                color: "var(--gray-mid)",
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       ) : ehPerdido ? (
         <button
           onClick={(e) => {

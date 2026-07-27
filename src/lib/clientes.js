@@ -406,17 +406,47 @@ const FASES_VALIDAS = [
   "perdido",
 ];
 
-export const updateFase = async (submissionId, fase) => {
+// O CHECK da migração 040 (status pós-sinal ⇒ fase pós-sinal ou
+// perdido) responde com 23514 quando uma escrita violaria o par — a
+// última rede, depois das guardas do código. A mensagem é da casa,
+// nunca o erro cru do Postgres.
+const mensagemCheckFaseStatus = (error) => {
+  if (error?.code !== "23514") return null;
+  if ((error.message || "").includes("submissions_status_pos_sinal")) {
+    return "Este estado só é possível depois do sinal — a fase do evento já não o permite. Recarrega a página.";
+  }
+  if ((error.message || "").includes("submissions_status_valido")) {
+    return "Estado inválido para um evento — recarrega a página e tenta de novo.";
+  }
+  return "Esta mudança entra em conflito com o estado do evento — recarrega a página.";
+};
+
+// `opcoes.status` permite escrever fase e status NUM SÓ update — o par
+// atómico de que a recuperação de um perdido precisa (voltar a
+// Interessados limpando o estado, sem janela onde o CHECK da 040
+// visse um par inválido).
+export const updateFase = async (submissionId, fase, opcoes = {}) => {
   if (!FASES_VALIDAS.includes(fase)) {
     throw new Error(`Fase inválida: ${fase}`);
   }
+  const update = { fase };
+  if (opcoes.status) update.status = opcoes.status;
   const { data, error } = await supabase
     .from("submissions")
-    .update({ fase })
+    .update(update)
     .eq("id", submissionId)
     .select()
     .single();
-  if (error) throw error;
+  if (error?.code === "PGRST116") {
+    throw new Error(
+      "Este evento já não existe ou mudou noutra sessão — recarrega a página.",
+    );
+  }
+  if (error) {
+    const mensagem = mensagemCheckFaseStatus(error);
+    if (mensagem) throw new Error(mensagem);
+    throw error;
+  }
   return data;
 };
 
@@ -449,7 +479,7 @@ export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
   const comGuardaDeFase = STATUS_POS_SINAL.includes(novoStatus);
   if (comGuardaDeFase && !FASES_POS_SINAL.includes(faseAtual)) {
     throw new Error(
-      `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL_PRE_SINAL[faseAtual] || faseAtual}".`,
+      `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL_PRE_SINAL[faseAtual] || faseAtual || "sem fase definida"}".`,
     );
   }
   let query = supabase
@@ -470,7 +500,11 @@ export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
         : "Este evento já não existe ou mudou noutra sessão — recarrega a página.",
     );
   }
-  if (error) throw error;
+  if (error) {
+    const mensagem = mensagemCheckFaseStatus(error);
+    if (mensagem) throw new Error(mensagem);
+    throw error;
+  }
   return data;
 };
 
