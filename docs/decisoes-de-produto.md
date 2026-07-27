@@ -78,3 +78,18 @@ criar o ficheiro; se alguma estiver mal reconstruída, corrige-se aqui.
 - **Materiais desativados aparecem na conferência com marca que peça
   ação.** Porquê: o soft-delete existe para não partir fichas antigas;
   omiti-los faz a carrinha partir sem eles.
+- **Os Alertas ficam radar lato — mas sem mentir.** *(Decisão delegada
+  pelo Hélio a 27/07/2026 — «escolhe aquele que fizer mais sentido» —
+  e escolhida pelo assistente.)* Os orçamentos sem sinal continuam a
+  contar nos Alertas (o valor do radar é avisar ANTES de se aceitar o
+  sinal de dois eventos incompatíveis), e as linhas fora da lista de
+  carga também (a Montagem também sai de casa — a ocupação física não
+  é a folha da carrinha). Em contrapartida, um alerta que só existe
+  por causa de orçamentos é **condicional**: âmbar, marcado «só se o
+  orçamento fechar», fora do badge vermelho — o badge conta só ruturas
+  entre eventos confirmados. Porquê esta via e não o alinhamento total
+  com a conferência: alinhar apagava o aviso precoce (descobrir-se-ia
+  a rutura só depois de aceitar o segundo sinal, tarde demais para
+  comprar ou negociar datas); manter sem marca fazia o badge gritar
+  por hipóteses — e um badge que grita por hipóteses deixa de ser
+  lido.

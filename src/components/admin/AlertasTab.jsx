@@ -311,10 +311,15 @@ function ReposicaoCard({ alerta }) {
 // Cartão de um alerta (material × janela)
 // ------------------------------------------------------------
 function AlertaCard({ alerta, tituloEvento }) {
-  // Stock a 0 → "por definir" (âmbar). Stock > 0 mas insuficiente → rutura (vermelho).
-  const porDefinir = alerta.stock <= 0;
+  // Sem total registado → "por definir" (âmbar). Condicional (só
+  // rebenta se um orçamento sem sinal fechar) → âmbar. Rutura real →
+  // vermelho. Nota: total registado mas todo "por confirmar" dá stock
+  // 0 a sério — é rutura, não "por definir".
+  const porDefinir = alerta.semStock ?? alerta.stock <= 0;
+  const condicional = !!alerta.condicional;
+  const daProvisorios = alerta.necessario - (alerta.necessarioConfirmado ?? alerta.necessario);
 
-  const cor = porDefinir
+  const cor = porDefinir || condicional
     ? {
         borda: "var(--gold-light)",
         fundo: "#FEF9EC",
@@ -363,6 +368,20 @@ function AlertaCard({ alerta, tituloEvento }) {
           <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0 }}>
             {formatarJanela(alerta.janela)}
           </p>
+          {condicional && (
+            <p
+              style={{
+                fontSize: "10px",
+                fontWeight: "700",
+                color: cor.forte,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                margin: "4px 0 0 0",
+              }}
+            >
+              condicional — só se o orçamento fechar
+            </p>
+          )}
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           {porDefinir ? (
@@ -401,7 +420,7 @@ function AlertaCard({ alerta, tituloEvento }) {
                   letterSpacing: "0.05em",
                 }}
               >
-                em falta
+                {condicional ? "em falta se fechar" : "em falta"}
               </p>
             </>
           )}
@@ -419,14 +438,28 @@ function AlertaCard({ alerta, tituloEvento }) {
       >
         {porDefinir ? (
           <>
-            Os eventos pedem <strong>{alerta.necessario}</strong> unidades, mas
-            este material ainda não tem stock registado. Define o stock no
-            catálogo para saber se chega.
+            Os eventos pedem <strong>{alerta.necessario}</strong> unidades
+            {daProvisorios > 0 && (
+              <> (inclui {daProvisorios} de orçamentos sem sinal)</>
+            )}
+            , mas este material ainda não tem stock registado. Define o stock
+            no catálogo para saber se chega.
           </>
         ) : (
           <>
-            Precisas de <strong>{alerta.necessario}</strong> · tens{" "}
-            <strong>{alerta.stock}</strong>
+            Precisas de <strong>{alerta.necessario}</strong>
+            {daProvisorios > 0 && (
+              <> (inclui {daProvisorios} de orçamentos sem sinal)</>
+            )}{" "}
+            · tens <strong>{alerta.stock}</strong>
+            {condicional && (
+              <>
+                {" "}
+                {(alerta.necessarioConfirmado ?? 0) > 0
+                  ? "— os confirmados, sozinhos, ainda cabem"
+                  : "— não há eventos confirmados a pedi-lo"}
+              </>
+            )}
           </>
         )}
       </div>
@@ -463,6 +496,25 @@ function AlertaCard({ alerta, tituloEvento }) {
               >
                 {formatarDataCurta(ev.dataEvento)}
               </span>
+              {ev.provisorio && (
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    padding: "2px 7px",
+                    marginLeft: "8px",
+                    borderRadius: "999px",
+                    backgroundColor: "#FEF9EC",
+                    color: "var(--gold-dark)",
+                    border: "1px solid var(--gold-light)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  sem sinal
+                </span>
+              )}
             </div>
             <span
               style={{

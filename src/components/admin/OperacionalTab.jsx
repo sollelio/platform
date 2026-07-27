@@ -11,6 +11,7 @@ import {
 import ConferenciaPeriodo from "./ConferenciaPeriodo";
 import AlertasTab from "./AlertasTab";
 import MateriaisInventario from "./MateriaisInventario";
+import { FASES_POS_SINAL } from "./faseConfig";
 
 // ============================================================
 // OperacionalTab — Logística.
@@ -86,7 +87,14 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
   }, [recarregarDados]);
 
   const alertas = useMemo(
-    () => calcularAlertas({ materiais, submissions, todasFichas, buffer }),
+    () =>
+      calcularAlertas({
+        materiais,
+        submissions,
+        todasFichas,
+        buffer,
+        fasesPosSinal: FASES_POS_SINAL,
+      }),
     [materiais, submissions, todasFichas, buffer],
   );
 
@@ -96,11 +104,12 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
     [materiais],
   );
 
-  // O badge conta só as RUTURAS REAIS (stock definido mas insuficiente),
-  // não os "sem stock definido" (stock = 0) — esses são setup por fazer,
-  // não conflitos acionáveis. Assim o badge mantém-se credível no dia 1.
+  // O badge conta só as RUTURAS REAIS: stock definido mas insuficiente
+  // ENTRE EVENTOS CONFIRMADOS. Nem os "sem stock definido" (setup por
+  // fazer) nem os condicionais (só rebentam se um orçamento fechar) —
+  // um badge que grita por hipóteses é um badge que se deixa de ler.
   const numRuturasReais = useMemo(
-    () => alertas.filter((a) => a.stock > 0).length,
+    () => alertas.filter((a) => !a.semStock && !a.condicional).length,
     [alertas],
   );
 

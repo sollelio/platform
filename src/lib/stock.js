@@ -334,11 +334,22 @@ export const calcularAlertas = ({
   submissions,
   todasFichas,
   buffer,
+  fasesPosSinal = null,
 }) => {
   // Um evento perdido não vai buscar material nenhum — contá-lo criava
   // alertas de rutura fantasma (e contradizia a conferência, que já o
   // excluía: dois números do mesmo ecrã a discordarem um do outro).
+  //
+  // Decisão de 27/07 (docs/decisoes-de-produto.md): os Alertas são um
+  // RADAR LATO — os orçamentos sem sinal CONTAM (o valor do radar é
+  // avisar antes de se aceitar o sinal de dois eventos incompatíveis),
+  // mas um alerta que só existe por causa deles é CONDICIONAL
+  // (condicional: true) — a UI marca-o e o badge vermelho não o conta.
+  // As linhas fora da lista de carga também contam: a Montagem também
+  // sai de casa; a ocupação física não é a folha da carrinha.
   const vivos = (submissions || []).filter((s) => s && s.fase !== "perdido");
+  const confirmado = (s) =>
+    !Array.isArray(fasesPosSinal) || fasesPosSinal.includes(s.fase);
   const materiaisPorEvento = construirMateriaisPorEvento(todasFichas);
   const clusters = agruparEventosEmClusters(vivos, buffer);
   const catalogoPorId = new Map((materiais || []).map((m) => [m.id, m]));
@@ -363,8 +374,11 @@ export const calcularAlertas = ({
       const info = catalogoPorId.get(materialId);
       const stock = info ? stockParaConflitos(info) : 0;
 
-      // Soma o que todos os eventos do cluster pedem deste material
+      // Soma o que todos os eventos do cluster pedem deste material,
+      // separando o que vem de eventos CONFIRMADOS do que vem de
+      // orçamentos sem sinal.
       let necessario = 0;
+      let necessarioConfirmado = 0;
       const eventos = [];
       idsCluster.forEach((sid) => {
         const linha = (materiaisPorEvento.get(sid) || []).find(
@@ -372,12 +386,15 @@ export const calcularAlertas = ({
         );
         const qtd = linha ? linha.quantidade : 0;
         if (qtd > 0) {
+          const sub = vivos.find((s) => s.id === sid);
+          const provisorio = sub ? !confirmado(sub) : false;
           necessario += qtd;
-          const sub = (submissions || []).find((s) => s.id === sid);
+          if (!provisorio) necessarioConfirmado += qtd;
           eventos.push({
             submissionId: sid,
             dataEvento: sub?.data_evento || null,
             quantidade: qtd,
+            provisorio,
           });
         }
       });
@@ -389,8 +406,19 @@ export const calcularAlertas = ({
           material: info || { id: materialId, nome: "(material desconhecido)" },
           janela: cluster.janela,
           stock,
+          // "Sem stock definido" é NÃO TER TOTAL REGISTADO — a mesma
+          // definição da conferência. Um total registado mas todo "por
+          // confirmar" dá stock 0 a sério ("tens 0"), não "por definir".
+          semStock:
+            !info ||
+            info.quantidade_total == null ||
+            Number(info.quantidade_total) <= 0,
           necessario,
+          necessarioConfirmado,
           falta,
+          // Só rebenta SE algum orçamento fechar — os confirmados,
+          // sozinhos, ainda cabem no stock.
+          condicional: necessarioConfirmado - stock <= 0,
           // eventos ordenados por data
           eventos: eventos.sort(
             (a, b) => new Date(a.dataEvento) - new Date(b.dataEvento),
@@ -400,8 +428,15 @@ export const calcularAlertas = ({
     });
   });
 
-  // Maior falta primeiro — o mais urgente no topo
-  return alertas.sort((a, b) => b.falta - a.falta);
+  // A mesma triagem a três da UI (AlertaCard): ruturas reais
+  // (vermelho) primeiro, depois "sem stock definido", condicionais no
+  // fim. Dentro de cada grupo, a maior falta no topo.
+  const rank = (a) => (a.semStock ? 1 : a.condicional ? 2 : 0);
+  return alertas.sort((a, b) => {
+    const r = rank(a) - rank(b);
+    if (r !== 0) return r;
+    return b.falta - a.falta;
+  });
 };
 
 // ---------------------------------------------------------------------
