@@ -43,6 +43,8 @@
 -- código. (As 036/038/039 não têm esta condição — o código novo tem
 -- fallback para BD antiga, e a BD nova é inofensiva para código
 -- antigo. Esta é a única do lote em que a BD manda no código.)
+-- O PLANO DE RECUO está no fim do ficheiro — testado ANTES da
+-- publicação, nunca improvisado no dia.
 --
 -- Idempotente: UPDATE condicionado, SET DEFAULT/NOT NULL repetíveis,
 -- constraints guardadas por IF NOT EXISTS. Correr em TEST 2×;
@@ -97,3 +99,27 @@ begin
 end $$;
 
 commit;
+
+-- ============================================================
+-- PLANO DE RECUO (se o CÓDIGO for revertido com o CHECK vivo)
+--
+-- Reverter o deploy com os CHECKs ativos recria a condição que parte:
+-- o updateFase antigo escreve só {fase} e a recuperação de perdidos
+-- pós-sinal falha no CHECK. O recuo é largar os CHECKs — e SÓ os
+-- CHECKs. O DEFAULT e o NOT NULL ficam: são inofensivos para o código
+-- antigo (nenhum escritor da app envia status NULL explícito — o
+-- importador antigo também preenchia sempre o estado) e largá-los
+-- ressuscitava o caso especial dos NULL que esta migração matou.
+--
+-- Prova em TEST antes da publicação, o ciclo completo:
+--   1.ª execução da 040 → recuo (descomentar e correr) → 040 outra
+--   vez — três execuções limpas provam aplicação, recuo e
+--   re-aplicação sem estado meio-migrado.
+--
+-- begin;
+-- alter table public.submissions
+--   drop constraint if exists submissions_status_pos_sinal;
+-- alter table public.submissions
+--   drop constraint if exists submissions_status_valido;
+-- commit;
+-- ============================================================
