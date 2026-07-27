@@ -30,13 +30,30 @@ export async function validarPlano(plano, eventTypes) {
   if (e1) throw e1;
   const { data: eventosBD, error: e2 } = await supabase
     .from("submissions")
-    .select("id, cliente_id, data_evento, event_type_id");
+    .select("id, cliente_id, data_evento, event_type_id, respostas")
+    // ordem estável: com o mesmo telefone em respostas de clientes
+    // diferentes, o dono escolhido não pode variar entre validações
+    .order("created_at", { ascending: true });
   if (e2) throw e2;
 
   const clientesPorTelefone = new Map();
   (clientesBD || []).forEach((c) => {
     const t = normalizarTelefone(c.contacto);
     if (t && !clientesPorTelefone.has(t)) clientesPorTelefone.set(t, c);
+  });
+  // Os números também vivem nas RESPOSTAS dos eventos (numeroWhatsapp/
+  // contactoPrincipal) — é onde o captacao_dedupe do Postgres os
+  // procura. Sem isto, um cliente captado só com WhatsApp (ficha com
+  // contacto vazio) era invisível ao dedupe da importação e duplicava
+  // (Lote 3B, o buraco exato do diagnóstico).
+  const clientesPorId = new Map((clientesBD || []).map((c) => [c.id, c]));
+  (eventosBD || []).forEach((s) => {
+    const dono = s.cliente_id ? clientesPorId.get(s.cliente_id) : null;
+    if (!dono) return;
+    for (const chave of ["contactoPrincipal", "numeroWhatsapp"]) {
+      const t = normalizarTelefone(s.respostas?.[chave]);
+      if (t && !clientesPorTelefone.has(t)) clientesPorTelefone.set(t, dono);
+    }
   });
 
   const tiposDesconhecidos = new Set();
@@ -161,18 +178,32 @@ export async function validarPlano(plano, eventTypes) {
         );
       }
 
-      // Possível duplicado na BD (cliente existente + mesma data + mesmo tipo)
+      // Duplicado na BD (cliente existente + mesma data). Duas frases
+      // diferentes, porque a RPC (044) só salta quando o TIPO também
+      // bate exatamente (null só casa com null; um tipo por criar
+      // ganha um uuid novo e nunca salta) — prometer o salto onde ele
+      // não acontece seria a UI a garantir proteção que não existe.
       if (existente && ev.dataEvento) {
-        const dup = (eventosBD || []).find(
+        const dupExato = (eventosBD || []).find(
           (s) =>
             s.cliente_id === existente.id &&
             s.data_evento === ev.dataEvento &&
-            (ev.tipoEventoId ? s.event_type_id === ev.tipoEventoId : true),
+            s.event_type_id === (ev.tipoEventoId ?? null),
         );
-        if (dup) {
+        if (dupExato) {
           item.avisos.push(
-            `${ref}: "${existente.nome}" já tem um evento nesta data na app — possível duplicado.`,
+            `${ref}: "${existente.nome}" já tem um evento igual (mesma data e tipo) na app — vai ser SALTADO na importação (proteção contra duplicados, migração 044). Se é mesmo um evento diferente, muda a data no ficheiro.`,
           );
+        } else {
+          const dupParcial = (eventosBD || []).find(
+            (s) =>
+              s.cliente_id === existente.id && s.data_evento === ev.dataEvento,
+          );
+          if (dupParcial) {
+            item.avisos.push(
+              `${ref}: "${existente.nome}" já tem um evento nesta data na app (de tipo diferente, ou com o tipo por criar) — possível duplicado; a importação NÃO o vai saltar, verifica antes de importar.`,
+            );
+          }
         }
       }
     });

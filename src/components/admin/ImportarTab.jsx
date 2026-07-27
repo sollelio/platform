@@ -96,8 +96,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
   };
 
   // Passo 5 — escrita real (Fase 2): transação por cliente na função
-  // Postgres. Depois de uma execução, o botão bloqueia — reimportar o
-  // mesmo ficheiro duplicaria os dados.
+  // Postgres. O botão continua a bloquear depois de uma execução, mas
+  // desde a 044 é cortesia, não defesa: a RPC salta eventos que já
+  // existem (cliente+data+tipo) e reimportar é um no-op visível.
   const importar = async () => {
     setAImportar(true);
     setRelatorio(null);
@@ -596,6 +597,12 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                     texto={`${relatorio.clientesOk.length} clientes importados`}
                   />
                   <Pill ok texto={`${relatorio.eventos} eventos`} />
+                  {relatorio.eventosSaltados > 0 && (
+                    <Pill
+                      aviso
+                      texto={`${relatorio.eventosSaltados} já existiam (saltados)`}
+                    />
+                  )}
                   <Pill ok texto={`${relatorio.documentos} documentos`} />
                   <Pill ok texto={`${relatorio.formularios} formulários`} />
                   {relatorio.pagamentos > 0 && (
@@ -629,6 +636,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                   >
                     ✓ {c.nome} — {c.eventos}{" "}
                     {c.eventos === 1 ? "evento" : "eventos"}
+                    {c.saltados > 0
+                      ? ` · ${c.saltados} ${c.saltados === 1 ? "já existia (saltado)" : "já existiam (saltados)"}`
+                      : ""}
                     {c.anexado ? " (anexado a cliente existente)" : ""}
                   </p>
                 ))}
@@ -654,8 +664,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                 >
                   Os clientes importados já estão em Clientes, Agenda,
                   Documentos e Dashboard. Para importar outro ficheiro, cola o
-                  JSON novo e valida — <strong>não</strong> voltes a importar
-                  este (duplicaria os dados).
+                  JSON novo e valida. Reimportar este por engano já não
+                  duplica: os eventos que já existem (mesma pessoa, mesma
+                  data, mesmo tipo) são saltados e contados no relatório.
                 </p>
               </div>
             )}

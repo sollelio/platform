@@ -9,8 +9,12 @@
 //      falhe reverte inteiro; os restantes seguem.
 //   3. Devolve o relatório (ok/falhados, contagens, duração).
 //
-// NÃO é idempotente: reimportar o mesmo ficheiro duplica dados —
-// o ecrã bloqueia o botão depois de uma execução.
+// IDEMPOTENTE desde a migração 044: um evento cujo trio cliente+data+
+// tipo já exista na BD é saltado por inteiro DENTRO da RPC (com os
+// seus documentos, convite e pagamentos) e contado em
+// eventos_saltados — reimportar o mesmo ficheiro é um no-op visível.
+// O bloqueio do botão no ecrã continua, mas passou de única defesa a
+// mera cortesia.
 // ============================================================
 
 import { supabase } from "../supabase";
@@ -120,6 +124,7 @@ export async function executarPlano(
     clientesFalhados: [],
     modelosCriados,
     eventos: 0,
+    eventosSaltados: 0,
     documentos: 0,
     formularios: 0,
     pagamentos: 0,
@@ -143,8 +148,10 @@ export async function executarPlano(
         nome: item.cliente.nome,
         anexado: !!item.clienteExistente,
         eventos: data?.eventos ?? 0,
+        saltados: data?.eventos_saltados ?? 0,
       });
       relatorio.eventos += data?.eventos ?? 0;
+      relatorio.eventosSaltados += data?.eventos_saltados ?? 0;
       relatorio.documentos += data?.documentos ?? 0;
       relatorio.formularios += data?.formularios ?? 0;
       relatorio.pagamentos += data?.pagamentos ?? 0;
