@@ -29,6 +29,17 @@
 -- para 'Recebido' + DEFAULT + NOT NULL mata o caso especial de vez e
 -- deixa o CHECK ser estreito.
 --
+-- E os NULL da FASE morrem pelo mesmo motivo — apanhado pelo Hélio:
+-- um CHECK passa quando a expressão dá NULL (não só quando dá
+-- verdadeiro), por isso com fase nullable o invariante ficava
+-- contornável para sempre (status operacional + fase NULL → `false or
+-- NULL` → NULL → aceite). Em vez de remendar a expressão com um
+-- `is not null`, mata-se a causa: fase NOT NULL + DEFAULT
+-- 'interessado' (a fase de entrada, o mesmo fallback do faseDe do
+-- funil) + CHECK de vocabulário próprio — a 016 que guardava a fase
+-- perdeu-se do repositório, e assim o par fica guardado dos dois
+-- lados por migrações que existem.
+--
 -- Quando o CHECK rejeitar uma escrita (23514), a app traduz para a
 -- barra de erro da casa (mensagemCheckFaseStatus em lib/clientes.js):
 -- «Este estado só é possível depois do sinal — a fase do evento já
@@ -70,8 +81,22 @@ alter table public.submissions
 alter table public.submissions
   alter column status set not null;
 
--- 2) Os dois CHECKs, com nome próprio (o código distingue-os na
---    tradução do 23514).
+-- 2) O mesmo para a FASE (inventário: zero NULL nos dois ambientes;
+--    todos os escritores da app definem a fase explicitamente — o
+--    DEFAULT é rede para chamadores futuros).
+update public.submissions
+   set fase = 'interessado'
+ where fase is null;
+
+alter table public.submissions
+  alter column fase set default 'interessado';
+
+alter table public.submissions
+  alter column fase set not null;
+
+-- 3) Os CHECKs, com nome próprio (o código distingue-os na tradução
+--    do 23514). Com status e fase NOT NULL, nenhuma expressão pode
+--    dar NULL — o invariante não tem buraco.
 do $$
 begin
   if not exists (
@@ -82,6 +107,17 @@ begin
     alter table public.submissions
       add constraint submissions_status_valido
       check (status in ('Recebido', 'Em Preparação', 'Confirmado', 'Concluído'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'submissions_fase_valida'
+      and conrelid = 'public.submissions'::regclass
+  ) then
+    alter table public.submissions
+      add constraint submissions_fase_valida
+      check (fase in ('interessado', 'orcamento', 'sinal', 'cliente',
+                      'projecto', 'contrato', 'perdido'));
   end if;
 
   if not exists (
@@ -105,11 +141,13 @@ commit;
 --
 -- Reverter o deploy com os CHECKs ativos recria a condição que parte:
 -- o updateFase antigo escreve só {fase} e a recuperação de perdidos
--- pós-sinal falha no CHECK. O recuo é largar os CHECKs — e SÓ os
--- CHECKs. O DEFAULT e o NOT NULL ficam: são inofensivos para o código
--- antigo (nenhum escritor da app envia status NULL explícito — o
--- importador antigo também preenchia sempre o estado) e largá-los
--- ressuscitava o caso especial dos NULL que esta migração matou.
+-- pós-sinal falha no CHECK do PAR. O recuo é largar APENAS esse — o
+-- submissions_status_pos_sinal é a única constraint acoplada ao
+-- código novo. Os CHECKs de vocabulário (status_valido, fase_valida)
+-- e os DEFAULT/NOT NULL ficam: o código antigo só escreve valores dos
+-- vocabulários e nunca envia NULL explícito (verificado escritor a
+-- escritor, importador incluído), e largá-los ressuscitava os casos
+-- especiais que esta migração matou.
 --
 -- Prova em TEST antes da publicação, o ciclo completo:
 --   1.ª execução da 040 → recuo (descomentar e correr) → 040 outra
@@ -119,7 +157,5 @@ commit;
 -- begin;
 -- alter table public.submissions
 --   drop constraint if exists submissions_status_pos_sinal;
--- alter table public.submissions
---   drop constraint if exists submissions_status_valido;
 -- commit;
 -- ============================================================
