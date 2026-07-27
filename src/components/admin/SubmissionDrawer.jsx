@@ -20,6 +20,8 @@ import { Icone } from "./Navegacao";
 import Jornada from "./Jornada";
 import { construirEtapas } from "./jornadaEtapas";
 import { estadoFormularioDoEvento } from "../../lib/invites";
+import { fundirCampos } from "../../lib/briefingEdicao";
+import { codigoErroRpc } from "../../lib/rpc";
 import { getPagamentosEvento } from "../../lib/pagamentos";
 
 // ============================================================
@@ -483,27 +485,30 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
     // "papel: data" (se existir) — é dali que o briefing e o
     // formulário completo leem a data; sem isto, ficam presos no
     // valor antigo mesmo depois de corrigida aqui.
-    const update = { data_evento: valor || null };
-    if (campoData) {
-      update.respostas = {
-        ...(submissao.respostas || {}),
-        [campoData.id]: valor || null,
-      };
+    //
+    // A escrita vai pelo fundirCampos: só a chave da data viaja e o
+    // merge do respostas é feito no servidor — reescrever o JSONB
+    // inteiro a partir desta cópia (que pode ter horas) apagava
+    // respostas que a cliente tivesse submetido entretanto.
+    const patch = campoData ? { [campoData.id]: valor || null } : {};
+    try {
+      const linha = await fundirCampos(submissao.id, patch, {
+        data_evento: valor || null,
+      });
+      setAGuardar(false);
+      if (onSaved && linha) onSaved({ ...submissao, ...linha });
+      setAEditar(false);
+    } catch (e) {
+      console.error(e);
+      setAGuardar(false);
+      // O evento apagado entretanto é terminal — repetir nunca vai
+      // funcionar; diz-se isso em vez de convidar ao retry.
+      setErro(
+        codigoErroRpc(e) === "EVENTO_EM_FALTA"
+          ? "Este evento já não existe — fecha o painel e recarrega a página."
+          : "Não guardou — tenta outra vez.",
+      );
     }
-    const { data, error } = await supabase
-      .from("submissions")
-      .update(update)
-      .eq("id", submissao.id)
-      .select()
-      .single();
-    setAGuardar(false);
-    if (error) {
-      console.error(error);
-      setErro("Não guardou — tenta outra vez.");
-      return;
-    }
-    if (onSaved) onSaved({ ...submissao, ...data });
-    setAEditar(false);
   };
 
   if (aEditar) {

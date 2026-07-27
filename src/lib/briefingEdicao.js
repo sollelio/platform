@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { ehFuncaoRpcEmFalta } from "./rpc";
 import { getValorAtual, FIELD_MAP_INVERSO } from "./submissionFields";
 
 // ============================================================
@@ -68,23 +69,81 @@ export function camposAlterados(submissao, seccoes, rascunhos) {
 export const contarAlteracoes = (submissao, seccoes, rascunhos) =>
   camposAlterados(submissao, seccoes, rascunhos).length;
 
-// A escrita do briefing, uma alteração ou vinte: sempre nas DUAS fontes
-// (respostas + coluna antiga equivalente, quando existe) e sempre numa
-// ida só à base de dados. O campo marcado com papel "data" É a data do
-// evento, seja qual for o seu id.
-export async function guardarAlteracoes(submissao, alteracoes) {
-  const update = { respostas: { ...(submissao.respostas || {}) } };
-  for (const { campo, valor } of alteracoes) {
-    const v = paraGuardar(valor);
-    update.respostas[campo.id] = v;
-    const coluna = FIELD_MAP_INVERSO[campo.id];
-    if (coluna) update[coluna] = v;
-    if (campo.papel === "data") update.data_evento = v;
+// A escrita SEGURA de campos de um evento: só as chaves ALTERADAS
+// viajam, e o merge do JSONB acontece no servidor (RPC da migração
+// 038, atómico debaixo do lock da linha). Antes, reescrevia-se o
+// `respostas` inteiro a partir da cópia em memória — com a página
+// aberta há horas e a cliente a submeter o formulário entretanto, a
+// edição seguinte apagava as respostas dela sem rasto.
+//
+// As colunas antigas (dupla fonte) viajam no MESMO update, dentro da
+// RPC (p_colunas, cada uma só tocada se a chave vier) — as duas fontes
+// não podem divergir por uma falha a meio. Se a BD ainda não tiver a
+// 038, cai-se na releitura imediatamente antes de gravar (o padrão do
+// atualizarEventoComQuestionario): a janela encolhe de horas para
+// milissegundos.
+export async function fundirCampos(submissaoId, patch, colunas = {}) {
+  const temPatch = Object.keys(patch || {}).length > 0;
+  const temColunas = Object.keys(colunas || {}).length > 0;
+  if (!temPatch && !temColunas) return null;
+
+  // Uma ida só: o merge do respostas E as colunas antigas no mesmo
+  // UPDATE, dentro da RPC — as duas fontes nunca divergem por uma
+  // falha a meio.
+  const rpc = await supabase.rpc("submissao_fundir_respostas", {
+    p_id: submissaoId,
+    p_patch: patch || {},
+    p_colunas: colunas || {},
+  });
+  if (!rpc.error) return rpc.data;
+  if (!ehFuncaoRpcEmFalta(rpc.error)) throw rpc.error;
+
+  // BD ainda sem a 038 (ou schema cache do PostgREST frio): relê e
+  // funde imediatamente antes de gravar, tudo num único update — a
+  // janela encolhe de horas para milissegundos, mas só a RPC a fecha
+  // de vez. O aviso na consola existe para a migração em falta não
+  // ficar esquecida num ambiente.
+  console.warn(
+    "submissao_fundir_respostas em falta — a usar o fallback pré-038.",
+  );
+  const update = { ...(colunas || {}) };
+  if (temPatch) {
+    const { data: atual, error: erroLeitura } = await supabase
+      .from("submissions")
+      .select("respostas")
+      .eq("id", submissaoId)
+      .single();
+    if (erroLeitura) throw erroLeitura;
+    update.respostas = { ...(atual?.respostas || {}), ...patch };
   }
-  return supabase
+  const { data, error } = await supabase
     .from("submissions")
     .update(update)
-    .eq("id", submissao.id)
+    .eq("id", submissaoId)
     .select()
     .single();
+  if (error) throw error;
+  return data;
+}
+
+// A escrita do briefing, uma alteração ou vinte: sempre nas DUAS fontes
+// (respostas + coluna antiga equivalente, quando existe). O campo
+// marcado com papel "data" É a data do evento, seja qual for o seu id.
+// Mantém o contrato { data, error } dos chamadores da Visão Geral.
+export async function guardarAlteracoes(submissao, alteracoes) {
+  const patch = {};
+  const colunas = {};
+  for (const { campo, valor } of alteracoes) {
+    const v = paraGuardar(valor);
+    patch[campo.id] = v;
+    const coluna = FIELD_MAP_INVERSO[campo.id];
+    if (coluna) colunas[coluna] = v;
+    if (campo.papel === "data") colunas.data_evento = v;
+  }
+  try {
+    const data = await fundirCampos(submissao.id, patch, colunas);
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 }

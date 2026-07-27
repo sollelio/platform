@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { getValorAtual, seccoesPreenchidas } from "../../lib/submissionFields";
+import { codigoErroRpc } from "../../lib/rpc";
 import {
   camposAlterados,
   guardarAlteracoes,
@@ -460,7 +461,11 @@ function BriefingEmEdicao({
 
     if (error) {
       console.error(error);
-      setErro("Não foi possível guardar. Tenta outra vez.");
+      setErro(
+        codigoErroRpc(error) === "EVENTO_EM_FALTA"
+          ? "Este evento já não existe — volta à lista de clientes e recarrega."
+          : "Não foi possível guardar. Tenta outra vez.",
+      );
       return;
     }
     onSaved(data);
@@ -670,7 +675,11 @@ export default function VisaoGeralEvento({
     ]);
     if (error) {
       console.error(error);
-      setErro("Não foi possível guardar. Tenta outra vez.");
+      setErro(
+        codigoErroRpc(error) === "EVENTO_EM_FALTA"
+          ? "Este evento já não existe — volta à lista de clientes e recarrega."
+          : "Não foi possível guardar. Tenta outra vez.",
+      );
       return false;
     }
     onSaved(data);
