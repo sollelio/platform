@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { createInvite, getEventTypes } from "../lib/invites";
@@ -456,6 +456,37 @@ export default function AdminPage() {
     setShowNewInvite(true);
     setCreatedInvite(null);
   };
+
+  // O botão "Enviar formulário" da página do evento chega cá com o id
+  // no state (o padrão do gerarDoc acima) e cumpre-se quando eventos,
+  // convites e modelos já estão carregados. Sem convite, abre o painel
+  // Novo Formulário JÁ APONTADO ao evento (submission_alvo_id) — as
+  // respostas atualizam o evento existente em vez de criar cliente +
+  // evento duplicados. Com convite pendente, abre-o para preencher;
+  // preenchido, mostra as respostas.
+  const pedidoDeFormulario = location.state?.formularioDe;
+  const pedidoDeFormularioConsumido = useRef(false);
+  useEffect(() => {
+    if (!pedidoDeFormulario || pedidoDeFormularioConsumido.current) return;
+    if (loading || loadingInvites || loadingEventTypes) return;
+    pedidoDeFormularioConsumido.current = true;
+    // consome o pedido do histórico — voltar atrás não o repete
+    navigate(location.pathname, { replace: true, state: { tab: "convites" } });
+    const evento = submissions.find((s) => s.id === pedidoDeFormulario);
+    if (!evento) return;
+    const convite = invites.find(
+      (i) =>
+        i.submission_alvo_id === evento.id || i.submission_id === evento.id,
+    );
+    if (!convite) {
+      handleFormularioDoEvento(evento);
+    } else if (!convite.submission_id) {
+      handlePreencherFormulario(convite);
+    } else {
+      setSelectedInvite(convite);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoDeFormulario, loading, loadingInvites, loadingEventTypes]);
 
   // Chamado pela Agenda quando a irmã clica "Tornar cliente" numa reserva.
   // Muda para a tab Formulários, abre o painel pré-preenchido e carimba

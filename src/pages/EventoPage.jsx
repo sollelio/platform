@@ -501,10 +501,14 @@ export default function EventoPage() {
                   })
                 }
                 onVerFormulario={() =>
-                  navigate("/admin", { state: { tab: "convites" } })
+                  navigate("/admin", {
+                    state: { tab: "convites", formularioDe: id },
+                  })
                 }
                 onCriarFormulario={() =>
-                  navigate("/admin", { state: { tab: "convites" } })
+                  navigate("/admin", {
+                    state: { tab: "convites", formularioDe: id },
+                  })
                 }
               />
             </Painel>
