@@ -236,8 +236,19 @@ export default function EventoPage() {
   // O canal DESTE evento (Lote 4A): a página é onde vive a edição do
   // briefing — o sítio mais perigoso para uma base velha. A submissão
   // do formulário do cliente (um UPDATE) chega cá em direto e a base
-  // fica fresca; o fundirCampos já limitava o estrago às chaves
-  // editadas, isto encolhe também a janela da colisão por chave.
+  // fica fresca.
+  //
+  // SUSPENSO durante a edição do briefing (decisão do Hélio, e com
+  // razão técnica verificada): os rascunhos são semeados da base no
+  // INÍCIO da edição e o "o que mudou" compara rascunho vs base — se a
+  // base mudasse por baixo a meio, um campo que a cliente alterou e a
+  // Nádia nunca tocou passava a contar como "alterado por ela" e o
+  // guardar reescrevia o valor VELHO por cima da resposta fresca (o
+  // 1B ressuscitado pela comparação). O último UPDATE recebido fica em
+  // espera num ref e aplica-se quando a edição fecha.
+  const aEditarRef = useRef(false);
+  aEditarRef.current = aEditar;
+  const updatePendenteRef = useRef(null);
   useEffect(() => {
     const canal = supabase
       .channel(`evento-${id}`)
@@ -251,6 +262,10 @@ export default function EventoPage() {
         },
         (payload) => {
           if (!payload.new) return;
+          if (aEditarRef.current) {
+            updatePendenteRef.current = payload.new;
+            return;
+          }
           setSubmissao((s) =>
             s ? { ...s, ...normalizeSubmission(payload.new) } : s,
           );
@@ -261,6 +276,29 @@ export default function EventoPage() {
       supabase.removeChannel(canal);
     };
   }, [id]);
+
+  // A retoma: a edição fechou (guardada ou abandonada) e algo chegou
+  // entretanto — relê-se a linha FRESCA em vez de aplicar o payload
+  // arquivado, que já pode ser mais velho do que a gravação dela
+  // (aplicá-lo reescreveria as chaves acabadas de guardar).
+  useEffect(() => {
+    if (aEditar || !updatePendenteRef.current) return;
+    updatePendenteRef.current = null;
+    let cancelado = false;
+    (async () => {
+      const { data } = await supabase
+        .from("submissions")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (!cancelado && data) {
+        setSubmissao((s) => (s ? { ...s, ...normalizeSubmission(data) } : s));
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [aEditar, id]);
 
   // Só o plano volta a ser lido quando se regista um pagamento — o
   // resto da página não mudou.
