@@ -793,19 +793,32 @@ export const periodosPredefinidos = (hoje = new Date()) => {
   const diaSemana = base.getUTCDay(); // 0 = domingo
 
   const sextaProxima = somaDias(base, diaSemana === 0 ? -2 : 5 - diaSemana);
+  // A `dica` é a definição dita por extenso (tooltip dos botões): o fim
+  // de semana OPERACIONAL começa à sexta — é quando a carrinha sai para
+  // as montagens de sábado — e "Esta semana" são os próximos 7 dias,
+  // não a semana de calendário. Vive aqui, ao lado da conta, para nunca
+  // divergirem.
   return [
     {
       id: "semana",
       label: "Esta semana",
+      dica: "Os próximos 7 dias, a contar de hoje",
       inicio: base,
       fim: somaDias(base, 6),
     },
     {
       id: "fimDeSemana",
       label: "Fim de semana",
+      dica: "De sexta a domingo — a carrinha sai à sexta",
       inicio: sextaProxima,
       fim: somaDias(sextaProxima, 2),
     },
-    { id: "quinzena", label: "15 dias", inicio: base, fim: somaDias(base, 14) },
+    {
+      id: "quinzena",
+      label: "15 dias",
+      dica: "Os próximos 15 dias, a contar de hoje",
+      inicio: base,
+      fim: somaDias(base, 14),
+    },
   ];
 };

@@ -231,12 +231,16 @@ export default function ConferenciaPeriodo({
               backgroundColor: "white",
             }}
           >
-            {[...predefinidos, { id: "datas", label: "Datas…" }].map((p, i) => {
+            {[
+              ...predefinidos,
+              { id: "datas", label: "Datas…", dica: "Escolher as datas à mão" },
+            ].map((p, i) => {
               const ativo = escolhido === p.id;
               return (
                 <button
                   key={p.id}
                   onClick={() => setEscolhido(p.id)}
+                  title={p.dica}
                   className="foco"
                   style={{
                     position: "relative",
@@ -618,11 +622,18 @@ export default function ConferenciaPeriodo({
             borderRadius: "12px",
           }}
         >
+          {/* Com evento no período mas ficha sem carga, "Nada sai de
+              casa" contradizia o cartão «0 un» ali em cima — a frase
+              liga os pontos: há evento, falta a ficha. */}
           {!periodo
             ? "Escolhe um período para ver o que sai."
-            : conf.provisorios.eventos.length > 0
-              ? "Nada confirmado sai de casa neste período — só os orçamentos provisórios abaixo."
-              : "Nada sai de casa neste período."}
+            : conf.eventos.length > 0
+              ? conf.eventos.length === 1
+                ? "O evento deste período ainda não tem linhas de carga — compõe a ficha dele."
+                : "Os eventos deste período ainda não têm linhas de carga — compõe as fichas deles."
+              : conf.provisorios.eventos.length > 0
+                ? "Nada confirmado sai de casa neste período — só os orçamentos provisórios abaixo."
+                : "Nada sai de casa neste período."}
         </p>
       ) : (
         <div
