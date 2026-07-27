@@ -69,6 +69,9 @@ export default function MateriaisInventario({ onStockAlterado }) {
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState(null); // material a editar (ou {} para novo)
   const [successMsg, setSuccessMsg] = useState(null);
+  // Erro com cor de erro (Lote 4B): a faixa verde de sucesso a dizer
+  // falhas enganava; e o alert() está proibido pela regra da casa.
+  const [erroMsg, setErroMsg] = useState(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -86,8 +89,14 @@ export default function MateriaisInventario({ onStockAlterado }) {
   }, []);
 
   const mostrarSucesso = (msg) => {
+    setErroMsg(null);
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
+  };
+
+  const mostrarErro = (msg) => {
+    setSuccessMsg(null);
+    setErroMsg(msg);
   };
 
   const handleGuardar = async (dados) => {
@@ -135,7 +144,9 @@ export default function MateriaisInventario({ onStockAlterado }) {
       onStockAlterado?.();
     } catch (e) {
       console.error(e);
-      alert("Não foi possível alterar. Tenta novamente.");
+      mostrarErro(
+        `Não foi possível alterar "${material.nome}". Tenta novamente.`,
+      );
     }
   };
 
@@ -213,6 +224,21 @@ export default function MateriaisInventario({ onStockAlterado }) {
         </button>
       </div>
 
+      {erroMsg && (
+        <p
+          style={{
+            fontSize: "12px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "8px",
+            padding: "10px 14px",
+            marginBottom: "14px",
+          }}
+        >
+          ⚠ {erroMsg}
+        </p>
+      )}
       {successMsg && (
         <p
           style={{

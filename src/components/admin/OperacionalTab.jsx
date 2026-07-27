@@ -53,7 +53,14 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
   // Chamada uma vez ao montar, E sempre que um filho grava algo que afeta
   // os alertas (quantidade numa ficha, stock de um material) — assim o
   // badge e a lista atualizam sem refrescar a página.
+  // O erro de carga ganha voz (Lote 4B): sem isto, materiais/fichas
+  // ficavam [] e a conferência dizia "Nada sai de casa" — uma mentira
+  // tranquilizadora em cima de uma falha de rede.
+  const [erroDados, setErroDados] = useState(null);
   const recarregarDados = useCallback(async () => {
+    // O erro só limpa quando um pedido NOVO resolve — limpá-lo à
+    // partida fazia o retry mostrar "Nada sai de casa" durante o
+    // pedido em curso (a mentira de volta, no pior momento).
     try {
       const [mats, fichas, config] = await Promise.all([
         getMateriais({ incluirInativos: true }),
@@ -63,8 +70,12 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
       setMateriais(mats);
       setTodasFichas(fichas);
       setBuffer(await getBuffer(config));
+      setErroDados(null);
     } catch (e) {
       console.error("Erro ao carregar alertas:", e);
+      setErroDados(
+        "Não foi possível carregar os dados de stock e fichas — o que vês pode estar incompleto.",
+      );
     }
   }, []);
 
@@ -181,6 +192,9 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
           submissions={submissions}
           todasFichas={todasFichas}
           eventTypes={eventTypes}
+          loading={loadingAlertas}
+          erro={erroDados}
+          onTentarNovamente={recarregarDados}
         />
       )}
       {subTab === "alertas" && (
@@ -199,6 +213,9 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
 // ------------------------------------------------------------
 // Catálogo de materiais — accordion por categoria + busca
 // ------------------------------------------------------------
+// ⚠ CÓDIGO MORTO (verificado no Lote 4B): nunca é renderizado — o
+// inventário real é o MateriaisInventario.jsx. Candidato a remoção
+// no 4D; não corrigir bugs aqui.
 function MateriaisCatalogo({ onStockAlterado }) {
   const [materiais, setMateriais] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -286,7 +303,11 @@ function MateriaisCatalogo({ onStockAlterado }) {
       onStockAlterado?.();
     } catch (e) {
       console.error(e);
-      alert("Não foi possível alterar. Tenta novamente.");
+      // No lugar do alert: a mesma faixa dos sucessos, com a falha
+      // dita por extenso (a regra da casa — nunca diálogos do browser).
+      mostrarSucesso(
+        `Não foi possível alterar "${material.nome}". Tenta novamente.`,
+      );
     }
   };
 

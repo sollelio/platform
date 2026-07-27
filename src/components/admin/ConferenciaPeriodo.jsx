@@ -99,6 +99,9 @@ export default function ConferenciaPeriodo({
   submissions = [],
   todasFichas = [],
   eventTypes = [],
+  loading = false,
+  erro = null,
+  onTentarNovamente,
 }) {
   const predefinidos = useMemo(() => periodosPredefinidos(), []);
   const [escolhido, setEscolhido] = useState("fimDeSemana");
@@ -362,8 +365,76 @@ export default function ConferenciaPeriodo({
         </div>
       )}
 
-      {/* A tabela: uma coluna por evento, a soma, o que existe, o saldo */}
-      {conf.linhas.length === 0 ? (
+      {/* A tabela: uma coluna por evento, a soma, o que existe, o saldo.
+          "A carregar" e "falhou" deixaram de se disfarçar de "nada sai"
+          (Lote 4B) — a mentira tranquilizadora era pior que o erro. */}
+      {erro && conf.linhas.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "12px",
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            ⚠ {erro} A tabela abaixo pode estar desatualizada.
+          </span>
+          {onTentarNovamente && (
+            <button
+              onClick={onTentarNovamente}
+              className="ligacao"
+              style={{ fontSize: "12px", color: "#B91C1C" }}
+            >
+              Tentar novamente
+            </button>
+          )}
+        </div>
+      )}
+      {erro && conf.linhas.length === 0 ? (
+        <div
+          style={{
+            fontSize: "13px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "12px",
+            padding: "20px 24px",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ margin: "0 0 10px 0" }}>⚠ {erro}</p>
+          {onTentarNovamente && (
+            <button
+              onClick={onTentarNovamente}
+              className="ligacao"
+              style={{ fontSize: "12.5px", color: "#B91C1C" }}
+            >
+              Tentar novamente
+            </button>
+          )}
+        </div>
+      ) : loading && conf.linhas.length === 0 && periodo ? (
+        <p
+          style={{
+            fontSize: "13px",
+            color: "var(--gray-mid)",
+            fontStyle: "italic",
+            padding: "24px",
+            textAlign: "center",
+            border: "1px dashed var(--gold-light)",
+            borderRadius: "12px",
+          }}
+        >
+          A carregar o que sai de casa…
+        </p>
+      ) : conf.linhas.length === 0 ? (
         <p
           style={{
             fontSize: "13px",

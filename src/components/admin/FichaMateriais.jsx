@@ -637,6 +637,14 @@ export default function FichaMateriais({
   const [linhas, setLinhas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [estadoGravacao, setEstadoGravacao] = useState("idle");
+  // Erros de carga/gravação com voz (Lote 4B): antes, um catch com
+  // console.error deixava o ecrã a mostrar o que a BD não tem.
+  const [erroFicha, setErroFicha] = useState(null);
+  // O erro de CARGA é pegajoso: as ações não o limpam (limpá-lo era
+  // apagar o aviso no momento exato em que ela fazia o que ele
+  // desaconselhava) e suprime o convite "a ficha está por compor" —
+  // compor por cima de uma carga falhada duplicaria linhas.
+  const [erroCarga, setErroCarga] = useState(false);
   const [filtro, setFiltro] = useState("tudo");
   const [recolhidas, setRecolhidas] = useState([]);
   const [seleccao, setSeleccao] = useState([]);
@@ -675,6 +683,10 @@ export default function FichaMateriais({
       } catch (e) {
         if (cancelado) return;
         console.error("Erro ao carregar ficha:", e);
+        setErroCarga(true);
+        setErroFicha(
+          "Não foi possível carregar a ficha de materiais — recarrega a página antes de mexer (o que vês pode estar incompleto).",
+        );
         setLoading(false);
       }
     })();
@@ -740,6 +752,13 @@ export default function FichaMateriais({
   // --- acções ---
 
   const actualizar = async (linhaId, campos) => {
+    const anterior = linhas.find((l) => l.id === linhaId);
+    // Só os CAMPOS deste pedido se revertem em erro — as observações
+    // gravam por tecla e os toggles em pedidos separados: reverter a
+    // linha inteira apagava edições concorrentes de outros campos.
+    const camposAnteriores = {};
+    for (const k of Object.keys(campos)) camposAnteriores[k] = anterior?.[k];
+    if (!erroCarga) setErroFicha(null);
     setLinhas((prev) =>
       prev.map((l) => (l.id === linhaId ? { ...l, ...campos } : l)),
     );
@@ -749,7 +768,16 @@ export default function FichaMateriais({
       marcarGuardado();
     } catch (e) {
       console.error(e);
+      if (anterior)
+        setLinhas((prev) =>
+          prev.map((l) =>
+            l.id === linhaId ? { ...l, ...camposAnteriores } : l,
+          ),
+        );
       setEstadoGravacao("idle");
+      setErroFicha(
+        "Não foi possível guardar a alteração — o valor voltou ao que estava. Tenta outra vez.",
+      );
     }
   };
 
@@ -760,6 +788,7 @@ export default function FichaMateriais({
   const trocarMaterial = async (linhaId, material) => {
     const anterior = linhas.find((l) => l.id === linhaId);
     if (!anterior || anterior.material_id === material.id) return;
+    if (!erroCarga) setErroFicha(null);
     setLinhas((prev) =>
       prev.map((l) =>
         l.id === linhaId ? { ...l, material_id: material.id, material } : l,
@@ -771,12 +800,28 @@ export default function FichaMateriais({
       marcarGuardado();
     } catch (e) {
       console.error(e);
-      setLinhas((prev) => prev.map((l) => (l.id === linhaId ? anterior : l)));
+      setLinhas((prev) =>
+        prev.map((l) =>
+          l.id === linhaId
+            ? { ...l, material_id: anterior.material_id, material: anterior.material }
+            : l,
+        ),
+      );
       setEstadoGravacao("idle");
+      setErroFicha(
+        "Não foi possível trocar o material — a linha voltou ao que estava. Tenta outra vez.",
+      );
     }
   };
 
   const adicionar = async (material) => {
+    if (erroCarga) {
+      setErroFicha(
+        "A ficha não carregou — recarrega a página antes de adicionar (podia duplicar linhas já existentes).",
+      );
+      return;
+    }
+    setErroFicha(null);
     setEstadoGravacao("saving");
     try {
       const nova = await addEventoMaterial(submissionId, material);
@@ -788,10 +833,14 @@ export default function FichaMateriais({
     } catch (e) {
       console.error(e);
       setEstadoGravacao("idle");
+      setErroFicha(
+        "Não foi possível adicionar o material — não ficou na ficha. Tenta outra vez.",
+      );
     }
   };
 
   const aplicarLista = async (campo, valor) => {
+    if (!erroCarga) setErroFicha(null);
     setEstadoGravacao("saving");
     const alvos = linhas.filter((l) => seleccao.includes(l.id));
     setLinhas((prev) =>
@@ -799,29 +848,57 @@ export default function FichaMateriais({
         seleccao.includes(l.id) ? { ...l, [campo]: valor } : l,
       ),
     );
-    try {
-      await Promise.all(
-        alvos.map((l) => updateEventoMaterial(l.id, { [campo]: valor })),
-      );
+    const resultados = await Promise.allSettled(
+      alvos.map((l) => updateEventoMaterial(l.id, { [campo]: valor })),
+    );
+    const falhadas = alvos.filter(
+      (_, i) => resultados[i].status === "rejected",
+    );
+    if (falhadas.length === 0) {
       marcarGuardado();
-    } catch (e) {
-      console.error(e);
-      setEstadoGravacao("idle");
+      return;
     }
+    // As que falharam voltam ao que estavam — sem estados mistos mudos.
+    console.error("aplicarLista: falhas parciais", resultados);
+    const porId = new Map(falhadas.map((l) => [l.id, l]));
+    setLinhas((prev) =>
+      prev.map((l) =>
+        porId.has(l.id) ? { ...l, [campo]: porId.get(l.id)[campo] } : l,
+      ),
+    );
+    setEstadoGravacao("idle");
+    setErroFicha(
+      falhadas.length === alvos.length
+        ? "Não foi possível aplicar a alteração — as linhas voltaram ao que estavam. Tenta outra vez."
+        : `A alteração falhou em ${falhadas.length} das ${alvos.length} linhas — essas voltaram ao que estavam. Tenta outra vez.`,
+    );
   };
 
   const removerSeleccionadas = async () => {
+    if (!erroCarga) setErroFicha(null);
     setEstadoGravacao("saving");
-    try {
-      await Promise.all(seleccao.map((id) => removeEventoMaterial(id)));
-      setLinhas((prev) => prev.filter((l) => !seleccao.includes(l.id)));
-      setSeleccao([]);
+    const alvos = [...seleccao];
+    const resultados = await Promise.allSettled(
+      alvos.map((id) => removeEventoMaterial(id)),
+    );
+    const removidos = alvos.filter(
+      (_, i) => resultados[i].status === "fulfilled",
+    );
+    // Só saem do ecrã as que saíram MESMO da base — uma falha parcial
+    // deixava o ecrã e a BD em desacordo, sem uma palavra.
+    if (removidos.length > 0)
+      setLinhas((prev) => prev.filter((l) => !removidos.includes(l.id)));
+    setSeleccao(alvos.filter((id) => !removidos.includes(id)));
+    if (removidos.length === alvos.length) {
       setARemover(false);
       marcarGuardado();
-    } catch (e) {
-      console.error(e);
-      setEstadoGravacao("idle");
+      return;
     }
+    console.error("removerSeleccionadas: falhas parciais", resultados);
+    setEstadoGravacao("idle");
+    setErroFicha(
+      `Não foi possível remover ${alvos.length - removidos.length} das ${alvos.length} linhas — continuam na ficha. Tenta outra vez.`,
+    );
   };
 
   // Tab desce a coluna da quantidade em vez de saltar para o campo
@@ -871,6 +948,21 @@ export default function FichaMateriais({
 
   return (
     <div data-ficha style={{ paddingBottom: seleccao.length ? "72px" : 0 }}>
+      {erroFicha && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            margin: "0 0 12px 0",
+          }}
+        >
+          ⚠ {erroFicha}
+        </p>
+      )}
       {/* Filtros + totais */}
       <div
         style={{
@@ -982,7 +1074,9 @@ export default function FichaMateriais({
         </div>
 
         {grupos.length === 0 &&
-          (filtro === "tudo" ? (
+          // Com a carga falhada, "vazio" não quer dizer "por compor" —
+          // convidar a adicionar aqui duplicaria linhas que já existem.
+          (erroCarga ? null : filtro === "tudo" ? (
             <Convite
               titulo="A ficha está por compor."
               texto="Procura o primeiro material — o Enter adiciona e deixa o cursor na quantidade, pronto para o seguinte."

@@ -116,7 +116,14 @@ export default function SubmissionDrawer({
     let cancelado = false;
     getPagamentosEvento(id)
       .then((dados) => !cancelado && setPagamentosDoEvento({ id, ...dados }))
-      .catch(() => !cancelado && setPagamentosDoEvento({ id }));
+      .catch(
+        (e) =>
+          !cancelado &&
+          // erro: true — a Jornada cai na estimativa, mas com uma nota
+          // honesta em vez do silêncio (Lote 4B).
+          (console.warn("Plano indisponível no drawer:", e?.message || e),
+          setPagamentosDoEvento({ id, erro: true })),
+      );
     return () => {
       cancelado = true;
     };
@@ -373,6 +380,19 @@ export default function SubmissionDrawer({
                   });
               }}
             />
+            {planoDoEvento?.erro && (
+              <p
+                style={{
+                  fontSize: "11px",
+                  fontStyle: "italic",
+                  color: "#B45309",
+                  margin: "6px 0 0",
+                }}
+              >
+                ⚠ Plano de pagamentos indisponível — os valores do sinal na
+                Jornada são estimativa (metade do acordado).
+              </p>
+            )}
 
             {/* ===== Classificação do tipo "Outro" (quando aplicável) =====
                 A única coisa fora dos quatro blocos, e de propósito: um

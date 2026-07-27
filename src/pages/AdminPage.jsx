@@ -309,7 +309,9 @@ export default function AdminPage() {
       setNotifAberto(false);
       setSelected(ev);
     } else {
-      alert("Não foi possível abrir este evento. Tenta recarregar a página.");
+      setErroEstado(
+        "Não foi possível abrir este evento — recarrega a página e tenta outra vez.",
+      );
     }
   };
 
@@ -372,7 +374,7 @@ export default function AdminPage() {
       setActiveTab("orcamentos");
     } catch (e) {
       console.error("Erro ao preparar o documento:", e);
-      alert("Não foi possível preparar o documento. Tenta novamente.");
+      setErroEstado("Não foi possível preparar o documento. Tenta novamente.");
     }
   };
 
@@ -436,8 +438,8 @@ export default function AdminPage() {
       handleGerarDocumento(ev, doc.tipo);
       return;
     }
-    alert(
-      "Não foi possível encontrar o evento deste documento. Tenta recarregar a página.",
+    setErroEstado(
+      "Não foi possível encontrar o evento deste documento — recarrega a página.",
     );
   };
 
@@ -824,7 +826,9 @@ export default function AdminPage() {
       .eq("id", inviteToDelete.id);
     if (error) {
       console.error("Erro ao remover convite:", error);
-      alert("Não foi possível remover o formulário. Tenta novamente.");
+      // Fecha o modal ANTES de avisar — o véu escuro dele tapava a barra.
+      setInviteToDelete(null);
+      setAvisoConvites("Não foi possível remover o formulário. Tenta novamente.");
       return;
     }
     setInvites((prev) => prev.filter((i) => i.id !== inviteToDelete.id));
