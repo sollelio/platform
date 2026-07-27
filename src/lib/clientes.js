@@ -439,17 +439,37 @@ const FASE_LABEL_PRE_SINAL = {
 };
 
 export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
-  if (STATUS_POS_SINAL.includes(novoStatus) && !FASES_POS_SINAL.includes(faseAtual)) {
+  // A pré-validação local dá a mensagem imediata e explicada, com a
+  // fase que o ecrã mostra. A AUTORIDADE na direção que corrompe
+  // (gravar estado pós-sinal num evento pré-sinal) é o WHERE abaixo,
+  // contra a fase REAL — o drawer aberto sobre dados velhos deixava
+  // passar. (No sentido inverso — snapshot pré-sinal, fase real já
+  // avançada — o bloqueio local pode recusar a mais; a Jornada nem
+  // torna o gesto clicável nesse estado, e recarregar resolve.)
+  const comGuardaDeFase = STATUS_POS_SINAL.includes(novoStatus);
+  if (comGuardaDeFase && !FASES_POS_SINAL.includes(faseAtual)) {
     throw new Error(
       `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL_PRE_SINAL[faseAtual] || faseAtual}".`,
     );
   }
-  const { data, error } = await supabase
+  let query = supabase
     .from("submissions")
     .update({ status: novoStatus })
-    .eq("id", submissionId)
-    .select()
-    .single();
+    .eq("id", submissionId);
+  if (comGuardaDeFase) {
+    query = query.in("fase", FASES_POS_SINAL);
+  }
+  const { data, error } = await query.select().single();
+  if (error?.code === "PGRST116") {
+    // 0 linhas — repetir sem recarregar nunca vai funcionar. Com a
+    // guarda de fase aplicada, o mais provável é a fase ter mudado
+    // noutra sessão; sem ela, só pode ser o evento a já não existir.
+    throw new Error(
+      comGuardaDeFase
+        ? "A fase deste evento mudou entretanto (ou o evento já não existe) — o estado não foi alterado. Recarrega a página."
+        : "Este evento já não existe ou mudou noutra sessão — recarrega a página.",
+    );
+  }
   if (error) throw error;
   return data;
 };

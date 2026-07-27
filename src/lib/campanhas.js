@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { ehFuncaoRpcEmFalta, codigoErroRpc } from "./rpc";
 
 // ============================================================
 // campanhas.js — a contribuição coletiva de um evento (migração 033).
@@ -144,21 +145,37 @@ export const getIntencoesPendentes = async (campanhaId) => {
   return data || [];
 };
 
-const marcarIntencao = async (id, campos) => {
+// O erro que os dois separadores partilham: quem chega segundo a uma
+// promessa já resolvida vê isto, e nada é escrito.
+export const INTENCAO_JA_RESOLVIDA = "INTENCAO_JA_RESOLVIDA";
+
+// Só no fallback pré-039 (sem transação): o claim carimbou a promessa
+// mas o INSERT do dinheiro falhou — meio-estado que a UI tem de
+// explicar com todas as letras.
+export const INTENCAO_CARIMBADA_SEM_DINHEIRO =
+  "INTENCAO_CARIMBADA_SEM_DINHEIRO";
+
+// A guarda vive no SERVIDOR: o update só toca a intenção se ela ainda
+// estiver no estado esperado (.eq("estado", ...)). Antes, um segundo
+// separador podia confirmar por cima de confirmada (duplicando o
+// dinheiro) ou anular por cima de confirmada (histórico a mentir).
+const marcarIntencao = async (id, campos, deEstado = "pendente") => {
   const { data, error } = await supabase
     .from("campanha_intencoes")
     .update(campos)
     .eq("id", id)
+    .eq("estado", deEstado)
     .select()
     .single();
+  if (error?.code === "PGRST116") {
+    // 0 linhas: a intenção já não está "pendente" — resolvida noutro
+    // separador/dispositivo.
+    throw new Error(INTENCAO_JA_RESOLVIDA);
+  }
   if (error) throw error;
   return data;
 };
 
-// A confirmação em si (o dinheiro) faz-se ANTES, por
-// registarContribuicao — o registo do dinheiro é o que não se pode
-// perder; este carimbo vem a seguir, e se falhar a intenção fica
-// pendente à vista (nunca o contrário: carimbada sem dinheiro).
 export const marcarIntencaoConfirmada = (id) =>
   marcarIntencao(id, {
     estado: "confirmada",
@@ -171,14 +188,21 @@ export const anularIntencao = (id) =>
     anulada_em: new Date().toISOString(),
   });
 
-// Regista uma contribuição, imputada por ordem ao plano. Recebe os
-// previstos e pagamentos que a página já tem (nunca refaz a query).
+// Regista uma contribuição, imputada por ordem ao plano — e, se vier
+// uma intenção (intencaoId), confirma-a NA MESMA transação: é a RPC
+// contribuicao_registar (039) que reclama a promessa com guarda de
+// estado, calcula a imputação com os números lidos no servidor (nunca
+// com o retrato do browser) e insere as linhas — tudo ou nada.
 // Devolve as linhas inseridas (1..N), todas com o MESMO created_at.
+//
+// Os `previstos`/`pagamentos` recebidos só servem o FALLBACK pré-039
+// (a conta antiga, no browser) — com a RPC na BD são ignorados.
 export const registarContribuicao = async (
   submissionId,
   previstos,
   pagamentos,
   { valor, contribuinte = null, metodo, data, notas = null },
+  intencaoId = null,
 ) => {
   const v = arredondar(Number(valor));
   if (!submissionId || !Number.isFinite(v) || v <= 0) {
@@ -188,6 +212,40 @@ export const registarContribuicao = async (
   // reconstituido=false exige data (CHECK da 025) — e um registo ao
   // vivo tem sempre data a sério.
   if (!data) throw new Error("Falta a data da contribuição.");
+
+  const rpc = await supabase.rpc("contribuicao_registar", {
+    p_submission_id: submissionId,
+    p_valor: v,
+    p_metodo: metodo,
+    p_data: data,
+    p_contribuinte: contribuinte || null,
+    p_notas: notas || null,
+    p_intencao_id: intencaoId || null,
+  });
+  if (!rpc.error) return rpc.data || [];
+  if (!ehFuncaoRpcEmFalta(rpc.error)) {
+    const codigo = codigoErroRpc(rpc.error);
+    if (codigo === INTENCAO_JA_RESOLVIDA) {
+      throw new Error(INTENCAO_JA_RESOLVIDA);
+    }
+    // Os códigos de negócio da RPC em português — o cliente pré-valida
+    // os três, por isso isto só fala se as validações divergirem.
+    const MENSAGENS = {
+      VALOR_INVALIDO: "Valor inválido.",
+      METODO_EM_FALTA: "Escolhe (ou escreve) o método.",
+      DATA_EM_FALTA: "Falta a data da contribuição.",
+    };
+    if (MENSAGENS[codigo]) throw new Error(MENSAGENS[codigo]);
+    throw rpc.error;
+  }
+
+  // BD ainda sem a 039: a conta antiga, no browser. Reclama-se a
+  // promessa PRIMEIRO (a ordem decidida pelo Hélio: só se insere o
+  // dinheiro se o claim afetou uma linha) — sem transação, se o INSERT
+  // falhar depois do claim fica promessa carimbada sem dinheiro, e
+  // isso é dito com todas as letras a quem está a olhar.
+  console.warn("contribuicao_registar em falta — a usar o fallback pré-039.");
+  if (intencaoId) await marcarIntencaoConfirmada(intencaoId);
 
   const partes = [];
   let resto = v;
@@ -223,7 +281,16 @@ export const registarContribuicao = async (
       })),
     )
     .select();
-  if (error) throw error;
+  if (error) {
+    if (intencaoId) {
+      // A causa original fica na consola para diagnóstico; o código
+      // próprio deixa o componente tirar a promessa da lista e
+      // explicar o meio-estado.
+      console.error("Fallback pré-039: claim gravado, INSERT falhou:", error);
+      throw new Error(INTENCAO_CARIMBADA_SEM_DINHEIRO);
+    }
+    throw error;
+  }
   return inseridos;
 };
 

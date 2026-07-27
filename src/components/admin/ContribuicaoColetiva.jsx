@@ -13,8 +13,9 @@ import {
   apagarContribuicao,
   agruparContribuicoes,
   getIntencoesPendentes,
-  marcarIntencaoConfirmada,
   anularIntencao,
+  INTENCAO_JA_RESOLVIDA,
+  INTENCAO_CARIMBADA_SEM_DINHEIRO,
 } from "../../lib/campanhas";
 import { METODOS_SUGERIDOS } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
@@ -274,6 +275,24 @@ export default function ContribuicaoColetiva({
           setTimeout(() => setNovaIntencao(null), 1300);
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "campanha_intencoes",
+          filter: `campanha_id=eq.${idCampanha}`,
+        },
+        (payload) => {
+          // Resolvida noutro separador/dispositivo: sai da lista aqui
+          // também — era esta cegueira que deixava confirmar a mesma
+          // promessa duas vezes.
+          if (payload.new?.estado === "pendente") return;
+          setIntencoes((atuais) =>
+            atuais.filter((i) => i.id !== payload.new?.id),
+          );
+        },
+      )
       .subscribe();
 
     return () => {
@@ -367,10 +386,11 @@ export default function ContribuicaoColetiva({
     }
   };
 
-  // Confirmar uma promessa: PRIMEIRO o dinheiro (registarContribuicao,
-  // imputado por ordem), DEPOIS o carimbo na intenção. Se o carimbo
-  // falhar, o dinheiro já está seguro — a promessa sai da lista e fica
-  // o aviso; nunca se regista duas vezes.
+  // Confirmar uma promessa é UM gesto transacional (RPC da 039): a
+  // intenção é reclamada com guarda de estado e o dinheiro nasce na
+  // mesma transação — dois separadores a confirmar a mesma promessa já
+  // não duplicam nada: o segundo apanha INTENCAO_JA_RESOLVIDA e a
+  // lista dele atualiza-se.
   const confirmarPromessa = async (intencao) => {
     setErro(null);
     setAConfirmar(true);
@@ -386,6 +406,7 @@ export default function ContribuicaoColetiva({
           data: dataConf,
           notas: intencao.mensagem,
         },
+        intencao.id,
       );
       if (onPagamentos) onPagamentos([...pagamentos, ...inseridos]);
       const primeira = inseridos[0];
@@ -397,16 +418,25 @@ export default function ContribuicaoColetiva({
       setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
       setConfirmando(null);
       setMetodoConf("");
-      try {
-        await marcarIntencaoConfirmada(intencao.id);
-      } catch (e) {
-        console.error(e);
-        setErro(
-          "O dinheiro ficou registado, mas a promessa não ficou carimbada — se ela reaparecer na lista, anula-a; não a confirmes segunda vez.",
-        );
-      }
     } catch (e) {
-      setErro(e.message || "Não foi possível confirmar. Tenta novamente.");
+      if (e.message === INTENCAO_JA_RESOLVIDA) {
+        setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
+        setConfirmando(null);
+        setErro(
+          "Esta promessa já tinha sido confirmada ou anulada noutro separador — nada foi registado em dobro.",
+        );
+      } else if (e.message === INTENCAO_CARIMBADA_SEM_DINHEIRO) {
+        // Meio-estado do fallback pré-039: a promessa ficou carimbada,
+        // o dinheiro não — sai da lista (voltar a confirmar daria
+        // "já resolvida") e diz-se o que falta fazer.
+        setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
+        setConfirmando(null);
+        setErro(
+          "A promessa ficou carimbada, mas o dinheiro NÃO ficou registado — regista esta contribuição manualmente em «Registar contribuição».",
+        );
+      } else {
+        setErro(e.message || "Não foi possível confirmar. Tenta novamente.");
+      }
     }
     setAConfirmar(false);
   };
@@ -418,8 +448,19 @@ export default function ContribuicaoColetiva({
       setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
       setAnulando(null);
     } catch (e) {
-      console.error(e);
-      setErro("Não foi possível anular. Tenta novamente.");
+      if (e.message === INTENCAO_JA_RESOLVIDA) {
+        // Confirmada (ou anulada) noutro separador — sair da lista sem
+        // tocar em nada: anular por cima de confirmada punha o
+        // histórico a mentir (anulada com confirmada_em preenchido).
+        setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
+        setAnulando(null);
+        setErro(
+          "Esta promessa já tinha sido resolvida noutro separador — nada foi alterado.",
+        );
+      } else {
+        console.error(e);
+        setErro("Não foi possível anular. Tenta novamente.");
+      }
     }
   };
 
