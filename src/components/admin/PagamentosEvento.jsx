@@ -599,11 +599,21 @@ export default function PagamentosEvento({
   // falha aqui não deve impedir o registo/remoção do pagamento em si.
   const sincronizarPagamentoFinal = async (listaPagamentos) => {
     const remanescente = previstos.find((p) => p.ordem === 2);
-    if (!remanescente) return;
-    const pagoNoRemanescente = listaPagamentos
-      .filter((p) => p.previsto_id === remanescente.id)
-      .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
-    const completo = pagoNoRemanescente >= remanescente.valor - 0.005;
+    let completo;
+    if (remanescente) {
+      const pagoNoRemanescente = listaPagamentos
+        .filter((p) => p.previsto_id === remanescente.id)
+        .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+      completo = pagoNoRemanescente >= remanescente.valor - 0.005;
+    } else {
+      // Plano sem remanescente (a sincronização remove o previsto
+      // livre quando o lado preso já cobre o total novo): decide a
+      // falta GLOBAL — sem isto, um evento totalmente pago mantinha o
+      // alerta "falta o pagamento final" para sempre.
+      if (!(Number(valorAcordado) > 0)) return;
+      const resumo = resumoPagamentos(valorAcordado, listaPagamentos);
+      completo = resumo.falta <= 0;
+    }
     if (completo === !!submissao.pagamento_final) return;
     try {
       const atualizado = await marcarPagamentoFinal(submissao.id, completo);

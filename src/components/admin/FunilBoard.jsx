@@ -86,7 +86,11 @@ export default function FunilBoard({
   const [erro, setErro] = useState(null);
   const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
   const [confirmandoPerda, setConfirmandoPerda] = useState(null); // id do evento
-  const [confirmandoSinal, setConfirmandoSinal] = useState(null); // id do evento
+  // { id, valorSinal } — o valor mostrado na confirmação é o do
+  // PREVISTO real (lido ao abrir), não uma divisão por dois: com o
+  // remanescente preso por pagamentos, o sinal sincronizado pode não
+  // ser metade, e o que se confirma tem de ser o que se regista.
+  const [confirmandoSinal, setConfirmandoSinal] = useState(null);
   // Recuperação informada de um perdido COM dinheiro registado:
   // { id, sinalPago, totalPago } enquanto a Nádia escolhe a saída.
   const [recuperando, setRecuperando] = useState(null);
@@ -138,6 +142,26 @@ export default function FunilBoard({
   // Fase segura: eventos antigos sem fase (não devia haver, mas há BD
   // de teste) caem em "interessado" para nunca desaparecerem do funil.
   const faseDe = (ev) => (FASE_LABEL[ev.fase] ? ev.fase : "interessado");
+
+  // Abrir a confirmação do sinal lê o PREVISTO real primeiro: o valor
+  // que a Nádia confirma é o que fica registado (com o remanescente
+  // preso, o sinal sincronizado pode não ser metade do acordado). Sem
+  // plano legível, cai na metade — que o registo depois sincroniza.
+  const pedirSinal = async (ev) => {
+    setAtualizando(ev.id);
+    let valorSinal = (Number(ev.valor_acordado) || 0) / 2;
+    try {
+      const plano = await getPagamentosEvento(ev.id);
+      const previstoSinal = (plano?.previstos || []).find(
+        (p) => p.ordem === 1,
+      );
+      if (previstoSinal) valorSinal = Number(previstoSinal.valor) || valorSinal;
+    } catch (e) {
+      console.warn("Sem plano legível — a confirmação mostra a metade:", e);
+    }
+    setAtualizando(null);
+    setConfirmandoSinal({ id: ev.id, valorSinal });
+  };
 
   const mudarFase = async (ev, fase, opcoes = {}) => {
     setAtualizando(ev.id);
@@ -481,7 +505,12 @@ export default function FunilBoard({
                   tipo={nomeTipo(ev)}
                   aAtualizar={atualizando === ev.id}
                   aConfirmarPerda={confirmandoPerda === ev.id}
-                  aConfirmarSinal={confirmandoSinal === ev.id}
+                  aConfirmarSinal={confirmandoSinal?.id === ev.id}
+                  valorSinalConfirmacao={
+                    confirmandoSinal?.id === ev.id
+                      ? confirmandoSinal.valorSinal
+                      : null
+                  }
                   onAbrir={() => onAbrirEvento && onAbrirEvento(ev)}
                   onAvancar={() => mudarFase(ev, PROXIMA_FASE[faseDe(ev)])}
                   onPedirPerda={() => setConfirmandoPerda(ev.id)}
@@ -505,7 +534,7 @@ export default function FunilBoard({
                   onCancelarAvancoSemValor={() =>
                     setConfirmandoAvancoSemValor(null)
                   }
-                  onPedirSinal={() => setConfirmandoSinal(ev.id)}
+                  onPedirSinal={() => pedirSinal(ev)}
                   onCancelarSinal={() => setConfirmandoSinal(null)}
                   onConfirmarSinal={(dados) => confirmarSinalRecebido(ev, dados)}
                 />
@@ -744,6 +773,7 @@ function CardEvento({
   aAtualizar,
   aConfirmarPerda,
   aConfirmarSinal,
+  valorSinalConfirmacao,
   aEscolherRecuperacao,
   aConfirmarAvancoSemValor,
   onAbrir,
@@ -917,7 +947,9 @@ function CardEvento({
         </div>
       ) : aConfirmarSinal ? (
         <FormularioSinalInline
-          valorSinal={(Number(evento.valor_acordado) || 0) / 2}
+          valorSinal={
+            valorSinalConfirmacao ?? (Number(evento.valor_acordado) || 0) / 2
+          }
           aAtualizar={aAtualizar}
           onConfirmar={onConfirmarSinal}
           onCancelar={onCancelarSinal}

@@ -6,7 +6,7 @@ import {
   normalizeSubmission,
   FIELD_MAP_INVERSO,
 } from "./submissionFields";
-import { gerarPrevistos } from "./pagamentos";
+import { sincronizarPrevistos } from "./pagamentos";
 
 // ============================================================
 // Clientes — a pessoa (separada do evento desde a migração 010).
@@ -336,16 +336,24 @@ export const submeterFormulario = async (invite, payload) => {
 // {SINAL} das mensagens-tipo. Chamado pelo botão no gerador de
 // orçamento (quando o documento vem de um evento).
 //
-// Também gera o plano de pagamento (sinal + remanescente) sozinho —
-// gerarPrevistos é idempotente, por isso guardar o valor várias vezes
-// não duplica o plano. Uma falha aqui não deve impedir o valor de
-// ficar guardado (é a acção que a Nádia estava mesmo a fazer); o
-// painel de pagamentos sabe recuperar (botão "Gerar plano") se isto
-// falhar silenciosamente.
+// Também mantém o plano de pagamento em dia — sincronizarPrevistos
+// gera-o quando não existe e, quando existe, ajusta os previstos SEM
+// pagamentos ligados ao valor novo (o insert-once antigo deixava o
+// plano preso ao primeiro valor: a Nádia confirmava metade do acordado
+// no ecrã e a BD registava o valor velho). Uma falha aqui não deve
+// impedir o valor de ficar guardado (é a acção que a Nádia estava
+// mesmo a fazer); o painel de pagamentos sabe recuperar (botão
+// "Gerar plano") se isto falhar silenciosamente.
 export const guardarValorAcordado = async (submissionId, valor) => {
   const v = Number(valor);
   if (!submissionId || !Number.isFinite(v)) {
     throw new Error("Valor ou evento em falta.");
+  }
+  // Um valor ≤ 0 gravado deixaria o plano velho órfão (a sincronização
+  // só corre com v > 0) e esconderia o separador de pagamentos atrás
+  // do convite "ainda não há valor" — com dinheiro na BD invisível.
+  if (v <= 0) {
+    throw new Error("O valor acordado tem de ser maior que zero.");
   }
   const { data, error } = await supabase
     .from("submissions")
@@ -356,9 +364,12 @@ export const guardarValorAcordado = async (submissionId, valor) => {
   if (error) throw error;
   if (v > 0) {
     try {
-      await gerarPrevistos(submissionId, v, data.data_evento);
+      await sincronizarPrevistos(submissionId, v, data.data_evento);
     } catch (e) {
-      console.error("gerarPrevistos falhou após guardarValorAcordado:", e);
+      console.error(
+        "sincronizarPrevistos falhou após guardarValorAcordado:",
+        e,
+      );
     }
   }
   return data;

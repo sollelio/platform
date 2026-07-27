@@ -57,12 +57,126 @@ export const gerarPrevistos = async (submissionId, valorAcordado, dataEvento) =>
     {
       submission_id: submissionId,
       descricao: DESCRICAO_REMANESCENTE,
-      valor: metade,
+      // O resto por diferença, nunca metade outra vez: com cêntimo
+      // ímpar (33,33 → 16,67+16,67) o plano somava um cêntimo a mais
+      // que o acordado e o resumo acabava em "Pago a mais 0,01".
+      valor: arredondar(v - metade),
       data_limite: dataLimite,
       ordem: 2,
     },
   ]);
   if (e2) throw e2;
+};
+
+// O plano ACOMPANHA o valor acordado (Lote 2C). O gerarPrevistos é
+// insert-once e nada regenerava o plano quando o valor mudava — a
+// Nádia confirmava "metade do acordado" no ecrã e a BD registava o
+// valor de um plano antigo. A ressincronização mexe APENAS em
+// previstos SEM pagamentos ligados — dinheiro imputado é história,
+// nunca se reescreve o previsto por baixo dele:
+//   • sem plano                → gera (o gerarPrevistos de sempre);
+//   • ambos livres             → sinal = metade, remanescente = resto;
+//   • um lado preso            → o lado livre ajusta-se para o plano
+//     somar o total novo; se o lado preso já cobre o total, o previsto
+//     livre é REMOVIDO (deixá-lo a pedir dinheiro que não falta era o
+//     ecrã a mentir e o pagamento_final a nunca marcar);
+//   • plano não-standard (sem previsto de sinal, ou com parcelas além
+//     de sinal/remanescente) → não se toca.
+// Concorrência: leitura+update em dois passos, sem lock — com uma só
+// gestora o risco é teórico; a imputação a sério (RPC da 039) tranca.
+export const sincronizarPrevistos = async (
+  submissionId,
+  valorAcordado,
+  dataEvento,
+) => {
+  const v = Number(valorAcordado);
+  if (!submissionId || !Number.isFinite(v) || v <= 0) return;
+
+  const { data: previstos, error: e1 } = await supabase
+    .from("pagamentos_previstos")
+    .select("id, valor, ordem")
+    .eq("submission_id", submissionId)
+    .order("ordem");
+  if (e1) throw e1;
+
+  if (!previstos || previstos.length === 0) {
+    return gerarPrevistos(submissionId, v, dataEvento);
+  }
+
+  const sinal = previstos.find((p) => p.ordem === 1);
+  const remanescente = previstos.find((p) => p.ordem === 2);
+  const temExtras = previstos.some((p) => p.ordem !== 1 && p.ordem !== 2);
+  if (!sinal || temExtras) return; // plano não-standard: não se adivinha
+
+  const { data: ligados, error: e2 } = await supabase
+    .from("pagamentos")
+    .select("previsto_id")
+    .in(
+      "previsto_id",
+      previstos.map((p) => p.id),
+    );
+  if (e2) throw e2;
+  const comPagamentos = new Set((ligados || []).map((p) => p.previsto_id));
+  const livre = (p) => !!p && !comPagamentos.has(p.id);
+
+  const metade = arredondar(v / 2);
+  const atualizacoes = [];
+  const remocoes = [];
+  // A descrição acompanha a proporção: "Sinal (50%)" a dizer 60% era
+  // o texto a mentir.
+  const atualizar = (p, valor, nomeBase, nomeMetade) => {
+    if (Number(p.valor) === valor) return;
+    atualizacoes.push({
+      id: p.id,
+      valor,
+      descricao: valor === metade ? nomeMetade : nomeBase,
+    });
+  };
+
+  if (livre(sinal) && livre(remanescente)) {
+    const resto = arredondar(v - metade);
+    if (resto > 0) {
+      atualizar(sinal, metade, "Sinal", DESCRICAO_SINAL);
+      atualizar(remanescente, resto, "Remanescente", DESCRICAO_REMANESCENTE);
+    } else {
+      // Total minúsculo: uma só parcela honesta em vez de um plano
+      // meio-sincronizado.
+      atualizar(sinal, v, "Sinal", DESCRICAO_SINAL);
+      remocoes.push(remanescente.id);
+    }
+  } else if (livre(sinal)) {
+    if (!remanescente) {
+      atualizar(sinal, metade, "Sinal", DESCRICAO_SINAL);
+    } else {
+      const novo = arredondar(v - Number(remanescente.valor));
+      if (novo > 0) atualizar(sinal, novo, "Sinal", DESCRICAO_SINAL);
+      // O lado preso já cobre (ou excede) o total novo: um previsto
+      // livre a pedir dinheiro que já não falta é mentira — sai.
+      else remocoes.push(sinal.id);
+    }
+  } else if (livre(remanescente)) {
+    const novo = arredondar(v - Number(sinal.valor));
+    if (novo > 0)
+      atualizar(remanescente, novo, "Remanescente", DESCRICAO_REMANESCENTE);
+    else remocoes.push(remanescente.id);
+  }
+
+  for (const a of atualizacoes) {
+    const { error } = await supabase
+      .from("pagamentos_previstos")
+      .update({ valor: a.valor, descricao: a.descricao })
+      .eq("id", a.id);
+    if (error) throw error;
+  }
+  for (const id of remocoes) {
+    // Só previstos LIVRES chegam cá — nunca se apaga um previsto com
+    // dinheiro imputado (FK à parte, é história).
+    const { error } = await supabase
+      .from("pagamentos_previstos")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  }
 };
 
 // O plano + o dinheiro recebido de um evento, já ordenados — tudo o
@@ -142,7 +256,10 @@ export const registarSinalDoFunil = async (
   const v = Number(valorAcordado);
   if (!submissionId || !Number.isFinite(v) || v <= 0) return null;
 
-  await gerarPrevistos(submissionId, v, dataEvento);
+  // Sincronizar (não só gerar): se o valor acordado mudou depois do
+  // plano nascer e o sinal está livre, o previsto ajusta-se AGORA — o
+  // que o ecrã mostra (metade do acordado) é o que fica registado.
+  await sincronizarPrevistos(submissionId, v, dataEvento);
 
   const { data: previstos, error: e1 } = await supabase
     .from("pagamentos_previstos")
