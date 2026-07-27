@@ -381,32 +381,50 @@ export default function AdminPage() {
   // navegação traz o pedido no state e é aqui que ele se cumpre,
   // quando as submissions já estão carregadas (o handler precisa da
   // linha completa e dos eventTypes).
+  // Consumo no padrão do formularioDe (Lote 4A): navigate(replace) +
+  // ref. O window.history.replaceState antigo não mudava o
+  // location.state do react-router — o pedido continuava truthy e
+  // qualquer refetch que mexesse em submissions.length re-disparava o
+  // efeito, sequestrando a Nádia de volta ao editor de Documentos.
   const pedidoDeDocumento = location.state?.gerarDoc;
+  const pedidoDeDocumentoConsumido = useRef(false);
   useEffect(() => {
-    if (!pedidoDeDocumento || submissions.length === 0 || eventTypes.length === 0)
-      return;
+    if (!pedidoDeDocumento || pedidoDeDocumentoConsumido.current) return;
+    // Espera pelo LOADING, não pelo length: uma lista carregada vazia
+    // deixava o pedido pendurado para sempre, em silêncio.
+    if (loading || loadingEventTypes) return;
+    pedidoDeDocumentoConsumido.current = true;
+    navigate(location.pathname, {
+      replace: true,
+      state: { tab: "orcamentos" },
+    });
     const evento = submissions.find(
       (s) => s.id === pedidoDeDocumento.submissionId,
     );
-    if (!evento) return;
-    let cancelado = false;
+    if (!evento) {
+      setErroEstado(
+        "Não foi possível encontrar o evento deste documento. Recarrega a página e volta a tentar a partir da ficha do evento.",
+      );
+      return;
+    }
+    // SEM cleanup de cancelamento, de propósito: o navigate(replace)
+    // acima muda as deps e o React correria o cleanup ANTES de o await
+    // resolver — o documento nunca abria. O ref de consumo já garante
+    // que isto corre uma vez só.
     (async () => {
       try {
         const dados = await getDadosParaDocumento(evento, eventTypes);
-        if (cancelado) return;
-        // Consome o pedido para não voltar a disparar ao recarregar.
-        window.history.replaceState({ tab: "orcamentos" }, "");
         setDocumentoContexto({ ...dados, tipoDoc: pedidoDeDocumento.tipoDoc });
         setActiveTab("orcamentos");
       } catch (e) {
         console.error("Erro ao preparar o documento:", e);
+        setErroEstado(
+          "Não foi possível preparar o documento. Volta à ficha do evento e tenta outra vez.",
+        );
       }
     })();
-    return () => {
-      cancelado = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidoDeDocumento, submissions.length, eventTypes.length]);
+  }, [pedidoDeDocumento, loading, loadingEventTypes]);
 
   // Chamado pela Lista de Documentos ao clicar num documento: o mesmo
   // caminho do drawer (contexto pré-preenchido do evento). A lista só
@@ -569,6 +587,18 @@ export default function AdminPage() {
     setCreatedInvite(null);
   };
 
+  // Os ecos do realtime chegam em rajadas (INSERT+UPDATE do formulário,
+  // o eco da própria gravação) — coalescem num só refetch SILENCIOSO
+  // (sem esqueletos) 300ms depois do último evento.
+  const realtimeTimerRef = useRef(null);
+  const aoMudarSubmissoesRealtime = () => {
+    if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
+    realtimeTimerRef.current = setTimeout(() => {
+      fetchSubmissions(true);
+      setFunilVersao((v) => v + 1); // acorda a Lista/Funil de Clientes
+    }, 300);
+  };
+
   useEffect(() => {
     fetchSubmissions();
     fetchReservas();
@@ -582,8 +612,20 @@ export default function AdminPage() {
         { event: "INSERT", schema: "public", table: "submissions" },
         (payload) => {
           console.log("Nova submissão:", payload);
-          fetchSubmissions();
-          setFunilVersao((v) => v + 1); // acorda a Lista/Funil de Clientes
+          aoMudarSubmissoesRealtime();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "submissions" },
+        (payload) => {
+          // A peça que faltava (família realtime-só-INSERT, Lote 4A):
+          // a submissão do formulário do cliente é um UPDATE — sem
+          // isto, o drawer mostrava a etapa Formulário ✓ ao lado de
+          // título/data/respostas VELHOS, e era essa cópia velha que
+          // armava as escritas destrutivas que o 1B fechou no servidor.
+          console.log("Submissão atualizada:", payload);
+          aoMudarSubmissoesRealtime();
         },
       )
       .on(
@@ -797,14 +839,31 @@ export default function AdminPage() {
     return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\nPlaneamos cada detalhe. Criamos memórias inesquecíveis. ✨`;
   };
 
-  const fetchSubmissions = async () => {
-    setLoading(true);
+  // `silencioso`: os refetches do realtime não mostram esqueletos — o
+  // Início piscava a cada gravação. O contador de sequência descarta
+  // respostas fora de ordem (dois UPDATEs seguidos podiam deixar a
+  // lista presa no snapshot mais velho).
+  const fetchSeqRef = useRef(0);
+  const fetchSubmissions = async (silencioso = false) => {
+    const seq = ++fetchSeqRef.current;
+    if (!silencioso) setLoading(true);
     const { data, error } = await supabase
       .from("submissions")
       .select("*")
       .order("data_evento", { ascending: true });
-    if (!error) setSubmissions(data.map(normalizeSubmission));
-    setLoading(false);
+    if (!error && seq === fetchSeqRef.current) {
+      const normalizadas = data.map(normalizeSubmission);
+      setSubmissions(normalizadas);
+      // O drawer aberto acompanha: a prop selected era uma cópia que
+      // nenhum refetch tocava — ficava velha mesmo com a lista fresca.
+      // O merge preserva chaves extra (ex.: clientes, do funil).
+      setSelected((prev) => {
+        if (!prev) return prev;
+        const fresca = normalizadas.find((s) => s.id === prev.id);
+        return fresca ? { ...prev, ...fresca } : prev;
+      });
+    }
+    if (!silencioso) setLoading(false);
   };
 
   const fetchInvites = async () => {
@@ -833,10 +892,14 @@ export default function AdminPage() {
   const handleStatusChange = async (id, newStatus, fase) => {
     try {
       const atualizado = await updateStatus(id, newStatus, fase);
+      // Merge normalizado, nunca substituição pela linha crua: a linha
+      // da BD traz as colunas antigas a null e perderia chaves extra
+      // (ex.: clientes, quando o drawer veio do funil).
+      const fresca = normalizeSubmission(atualizado);
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? atualizado : s)),
+        prev.map((s) => (s.id === id ? { ...s, ...fresca } : s)),
       );
-      if (selected?.id === id) setSelected(atualizado);
+      if (selected?.id === id) setSelected((prev) => ({ ...prev, ...fresca }));
       setFunilVersao((v) => v + 1);
       setErroEstado(null);
     } catch (e) {
@@ -1810,10 +1873,18 @@ export default function AdminPage() {
         onClose={() => setSelected(null)}
         onStatusChange={handleStatusChange}
         onSaved={(atualizada) => {
+          // O mesmo padrão do handleStatusChange: merge NORMALIZADO,
+          // nunca a linha crua a substituir (as colunas antigas a null
+          // esmagavam as preenchidas e o drawer piscava dados a menos).
+          const fresca = normalizeSubmission(atualizada);
           setSubmissions((prev) =>
-            prev.map((s) => (s.id === atualizada.id ? atualizada : s)),
+            prev.map((s) =>
+              s.id === atualizada.id ? { ...s, ...fresca } : s,
+            ),
           );
-          setSelected(atualizada);
+          setSelected((prev) =>
+            prev && prev.id === atualizada.id ? { ...prev, ...fresca } : prev,
+          );
           setFunilVersao((v) => v + 1);
         }}
         onGerarDocumento={handleGerarDocumento}

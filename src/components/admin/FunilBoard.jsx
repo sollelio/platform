@@ -312,7 +312,9 @@ export default function FunilBoard({
     return generico ? ev.clientes?.nome || resumo.titulo : resumo.titulo;
   };
 
-  if (carregando) {
+  // Só a PRIMEIRA carga mostra o texto; nas recargas (realtime, drawer)
+  // o board anterior fica visível — sem piscar.
+  if (carregando && eventos.length === 0) {
     return (
       <p style={{ color: "var(--gray-mid)", fontSize: "14px" }}>
         A carregar o funil...

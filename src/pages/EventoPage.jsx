@@ -15,6 +15,7 @@ import {
   getResumoSubmissao,
   getValorAtual,
   seccoesDoModelo,
+  normalizeSubmission,
 } from "../lib/submissionFields";
 import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
@@ -232,6 +233,35 @@ export default function EventoPage() {
     };
   }, [id]);
 
+  // O canal DESTE evento (Lote 4A): a página é onde vive a edição do
+  // briefing — o sítio mais perigoso para uma base velha. A submissão
+  // do formulário do cliente (um UPDATE) chega cá em direto e a base
+  // fica fresca; o fundirCampos já limitava o estrago às chaves
+  // editadas, isto encolhe também a janela da colisão por chave.
+  useEffect(() => {
+    const canal = supabase
+      .channel(`evento-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "submissions",
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          if (!payload.new) return;
+          setSubmissao((s) =>
+            s ? { ...s, ...normalizeSubmission(payload.new) } : s,
+          );
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [id]);
+
   // Só o plano volta a ser lido quando se regista um pagamento — o
   // resto da página não mudou.
   const recarregarPlano = useCallback(async () => {
@@ -398,7 +428,11 @@ export default function EventoPage() {
     setSubmissao((s) => ({ ...s, status: novoStatus }));
     try {
       const atualizada = await updateStatus(submissionId, novoStatus, fase);
-      setSubmissao((s) => ({ ...s, ...atualizada }));
+      // A linha crua da BD traz as colunas antigas a null; o
+      // normalizeSubmission repõe-nas a partir do respostas — sem ele,
+      // o "X convidados" do cabeçalho desaparecia até recarregar
+      // (família merge-linha-crua, Lote 4A).
+      setSubmissao((s) => ({ ...s, ...normalizeSubmission(atualizada) }));
       setErroAccao(null);
     } catch (erro) {
       console.error(erro);
@@ -477,7 +511,10 @@ export default function EventoPage() {
                 onFecharEdicao={() => setEdicao(null)}
                 onAbrirEdicao={() => setEdicao({ id, rascunhos: null })}
                 onSaved={(atualizada) =>
-                  setSubmissao((s) => ({ ...s, ...atualizada }))
+                  setSubmissao((s) => ({
+                    ...s,
+                    ...normalizeSubmission(atualizada),
+                  }))
                 }
                 onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
               />
@@ -555,7 +592,11 @@ export default function EventoPage() {
                 onRealceConsumido={() => setRealce(null)}
                 onIrParaOrcamento={() => irComGesto("orcamento")}
                 onSaved={(atualizada) => {
-                  if (atualizada) setSubmissao((s) => ({ ...s, ...atualizada }));
+                  if (atualizada)
+                    setSubmissao((s) => ({
+                      ...s,
+                      ...normalizeSubmission(atualizada),
+                    }));
                 }}
               />
             </Painel>
