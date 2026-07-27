@@ -57,6 +57,10 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
   // ficavam [] e a conferência dizia "Nada sai de casa" — uma mentira
   // tranquilizadora em cima de uma falha de rede.
   const [erroDados, setErroDados] = useState(null);
+  // Erro de GRAVAÇÃO vindo dos filhos (ex.: o flush do stepper depois
+  // de trocar de sub-separador) — vive aqui porque este componente
+  // sobrevive à troca; a barra local do filho já teria desmontado.
+  const [erroGravacao, setErroGravacao] = useState(null);
   const recarregarDados = useCallback(async () => {
     // O erro só limpa quando um pedido NOVO resolve — limpá-lo à
     // partida fazia o retry mostrar "Nada sai de casa" durante o
@@ -183,8 +187,27 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
         })}
       </div>
 
+      {erroGravacao && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "16px",
+          }}
+        >
+          ⚠ {erroGravacao}
+        </p>
+      )}
+
       {subTab === "materiais" && (
-        <MateriaisInventario onStockAlterado={recarregarDados} />
+        <MateriaisInventario
+          onStockAlterado={recarregarDados}
+          onErroGravacao={setErroGravacao}
+        />
       )}
       {subTab === "conferencia" && (
         <ConferenciaPeriodo
@@ -192,6 +215,7 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
           submissions={submissions}
           todasFichas={todasFichas}
           eventTypes={eventTypes}
+          buffer={buffer}
           loading={loadingAlertas}
           erro={erroDados}
           onTentarNovamente={recarregarDados}

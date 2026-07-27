@@ -125,7 +125,13 @@ export const imprimirFicha = (linhas, submissao, tituloEvento = "") => {
     gerarLista(
       "Lista de Carga",
       "O que sai do armazém",
-      linhas.filter((l) => l.lista_carga),
+      // quantidade > 0 como na conferência «O que sai»: a regra da casa
+      // é as duas darem SEMPRE o mesmo número — uma linha a "0" no
+      // papel da carrinha só confundia a equipa. (Montagem e
+      // Higienização ficam como estavam; a regra é só sobre a Carga.)
+      linhas.filter(
+        (l) => l.lista_carga && Math.max(0, Number(l.quantidade) || 0) > 0,
+      ),
       submissao,
       nome,
     ),
@@ -234,10 +240,8 @@ ${listas || '<p style="text-align:center;color:#6B7280;padding:40px;font-size:13
 </html>`;
 
   const janela = window.open("", "_blank");
-  if (!janela) {
-    alert("O browser bloqueou a janela de impressão — permite pop-ups.");
-    return;
-  }
+  if (!janela) return { ok: false };
   janela.document.write(html);
   janela.document.close();
+  return { ok: true };
 };

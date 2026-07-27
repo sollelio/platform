@@ -231,7 +231,9 @@ function Linha({
         type="number"
         min="0"
         value={linha.quantidade ?? ""}
-        onChange={(e) => onActualizar({ quantidade: Number(e.target.value) })}
+        onChange={(e) =>
+          onActualizar({ quantidade: Math.max(0, Number(e.target.value)) })
+        }
         onKeyDown={aoTabular}
         className="caixa-texto"
         style={{
@@ -1026,7 +1028,13 @@ export default function FichaMateriais({
         )}
         {linhas.length > 0 && (
           <button
-            onClick={() => imprimirFicha(linhas, submissao)}
+            onClick={() => {
+              const { ok } = imprimirFicha(linhas, submissao);
+              if (!ok)
+                setErroFicha(
+                  "O browser bloqueou a janela de impressão — permite pop-ups para este site e tenta outra vez.",
+                );
+            }}
             className="acao acao--ouro"
             style={{
               padding: "7px 14px",

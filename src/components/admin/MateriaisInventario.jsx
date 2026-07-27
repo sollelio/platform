@@ -54,6 +54,11 @@ const estadoDe = (m) => {
   return "ok";
 };
 
+// As escritas do stepper em voo, em cadeia: o carregar() espera por
+// elas antes do SELECT — sem isto, sair e voltar depressa ao separador
+// lia o total ANTIGO enquanto o UPDATE do flush ainda ia a caminho.
+let escritaEmVoo = Promise.resolve();
+
 // Cores de cada estado (paleta do dlm-app)
 const CORES_ESTADO = {
   ok: { texto: "#3B6D11", fundo: "#EAF3DE", label: "OK" },
@@ -62,7 +67,7 @@ const CORES_ESTADO = {
   vazio: { texto: "var(--gray-mid)", fundo: "#F3F4F6", label: "Sem stock" },
 };
 
-export default function MateriaisInventario({ onStockAlterado }) {
+export default function MateriaisInventario({ onStockAlterado, onErroGravacao }) {
   const [materiais, setMateriais] = useState([]);
   const [loading, setLoading] = useState(true);
   const [grupoAtivo, setGrupoAtivo] = useState("Todos");
@@ -76,6 +81,7 @@ export default function MateriaisInventario({ onStockAlterado }) {
   const carregar = async () => {
     setLoading(true);
     try {
+      await escritaEmVoo;
       const data = await getMateriais({ incluirInativos: true });
       setMateriais(data);
     } catch (e) {
@@ -125,10 +131,20 @@ export default function MateriaisInventario({ onStockAlterado }) {
       ),
     );
     try {
-      await updateMaterial(materialId, { quantidade_total: valor });
+      const p = updateMaterial(materialId, { quantidade_total: valor });
+      escritaEmVoo = escritaEmVoo.then(() => p).catch(() => {});
+      await p;
+      onErroGravacao?.(null);
       onStockAlterado?.();
     } catch (e) {
       console.error(e);
+      // A voz do erro vive no PAI (OperacionalTab): se isto for o flush
+      // de um card já desmontado, a barra local já não existe — sem
+      // isto, a falha era um no-op silencioso e o número mentia.
+      const material = materiais.find((m) => m.id === materialId);
+      onErroGravacao?.(
+        `Não foi possível guardar o stock${material ? ` de "${material.nome}"` : ""} — o valor no ecrã pode não estar gravado. Tenta outra vez.`,
+      );
       // em erro, recarrega para repor o valor verdadeiro
       carregar();
     }
@@ -395,7 +411,13 @@ export default function MateriaisInventario({ onStockAlterado }) {
               key={m.id}
               material={m}
               idx={idx}
-              onEditar={() => setEditando(m)}
+              onEditar={(totalAtual) =>
+                setEditando(
+                  totalAtual == null
+                    ? m
+                    : { ...m, quantidade_total: totalAtual },
+                )
+              }
               onAtualizarTotal={handleAtualizarTotal}
             />
           ))}
@@ -447,17 +469,43 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
     setTotalLocal(Number(material.quantidade_total) || 0);
   }, [material.quantidade_total]);
 
+  // O valor por gravar vive num ref para o flush do unmount: sem isto,
+  // clicar no stepper e mudar logo de separador cancelava o timer e a
+  // gravação PERDIA-SE em silêncio — o número voltava atrás no regresso.
+  const pendenteRef = useRef(null);
+  const aoAtualizarRef = useRef(onAtualizarTotal);
+  aoAtualizarRef.current = onAtualizarTotal;
+
   const agendarGravacao = (valor) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    pendenteRef.current = valor;
     debounceRef.current = setTimeout(() => {
+      pendenteRef.current = null;
       onAtualizarTotal?.(material.id, valor);
     }, 600);
   };
 
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+    // O mesmo flush serve o unmount E o pagehide (F5/fechar o tab):
+    // o cleanup do React não corre no unload, e a edição perder-se-ia.
+    const flush = () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      if (pendenteRef.current != null) {
+        const valor = pendenteRef.current;
+        pendenteRef.current = null;
+        aoAtualizarRef.current?.(material.id, valor);
+      }
     };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+    // material.id é estável durante a vida do card (key da lista)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const alterarTotal = (delta) => {
@@ -473,7 +521,7 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
 
   return (
     <motion.div
-      onClick={onEditar}
+      onClick={() => onEditar(totalLocal)}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{

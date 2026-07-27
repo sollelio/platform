@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calcularConferencia, periodosPredefinidos } from "../../lib/stock";
+import { imprimirConferencia } from "../../lib/imprimirConferencia";
 import { getResumoSubmissao } from "../../lib/submissionFields";
+import { FASES_POS_SINAL, FASE_LABEL } from "./faseConfig";
 
 // ============================================================
 // ConferenciaPeriodo — "O que sai", em Logística.
@@ -26,17 +28,20 @@ const CORES = {
 
 const iso = (d) => d.toISOString().slice(0, 10);
 
+// Datas de dia puro ("2026-07-31") formatam-se em UTC — parse local
+// ("T00:00:00") + mês em fuso local podia fugir um dia na fronteira do
+// mês noutro fuso. Em Portugal era inofensivo; agora é correto em todos.
 const diaCurto = (isoData) =>
-  new Date(`${isoData}T00:00:00`).toLocaleDateString("pt-PT", {
-    weekday: "short",
-    day: "numeric",
-  });
+  new Date(`${String(isoData).slice(0, 10)}T00:00:00Z`).toLocaleDateString(
+    "pt-PT",
+    { weekday: "short", day: "numeric", timeZone: "UTC" },
+  );
 
 const intervaloLegivel = (inicio, fim) => {
   const a = new Date(inicio);
   const b = new Date(fim);
-  const mesA = a.toLocaleDateString("pt-PT", { month: "long" });
-  const mesB = b.toLocaleDateString("pt-PT", { month: "long" });
+  const mesA = a.toLocaleDateString("pt-PT", { month: "long", timeZone: "UTC" });
+  const mesB = b.toLocaleDateString("pt-PT", { month: "long", timeZone: "UTC" });
   const diaA = a.getUTCDate();
   const diaB = b.getUTCDate();
   return mesA === mesB
@@ -45,8 +50,8 @@ const intervaloLegivel = (inicio, fim) => {
 };
 
 // A grelha: material · categoria · uma coluna por evento · precisas ·
-// tens · saldo. Mais de três eventos e as colunas por evento saem — a
-// soma continua a responder à pergunta.
+// tens · saldo. Com muitos eventos a grelha alarga e ganha scroll
+// horizontal dentro do próprio cartão.
 const colunas = (nEventos) =>
   `minmax(200px, 1fr) 130px ${"84px ".repeat(nEventos)}74px 64px 90px`;
 
@@ -99,13 +104,29 @@ export default function ConferenciaPeriodo({
   submissions = [],
   todasFichas = [],
   eventTypes = [],
+  buffer = { antes: 2, depois: 2 },
   loading = false,
   erro = null,
   onTentarNovamente,
 }) {
-  const predefinidos = useMemo(() => periodosPredefinidos(), []);
+  // O "hoje" dos períodos re-ancora quando a janela volta a estar à
+  // vista: deixada aberta de domingo para segunda, "Fim de semana"
+  // apontava para o fim de semana PASSADO sem nenhum indício.
+  const [hoje, setHoje] = useState(() => new Date());
+  useEffect(() => {
+    const atualiza = () =>
+      setHoje((h) => (iso(new Date()) === iso(h) ? h : new Date()));
+    window.addEventListener("focus", atualiza);
+    document.addEventListener("visibilitychange", atualiza);
+    return () => {
+      window.removeEventListener("focus", atualiza);
+      document.removeEventListener("visibilitychange", atualiza);
+    };
+  }, []);
+  const predefinidos = useMemo(() => periodosPredefinidos(hoje), [hoje]);
   const [escolhido, setEscolhido] = useState("fimDeSemana");
   const [datas, setDatas] = useState({ inicio: "", fim: "" });
+  const [erroImpressao, setErroImpressao] = useState(false);
 
   const periodo = useMemo(() => {
     if (escolhido === "datas") {
@@ -118,12 +139,33 @@ export default function ConferenciaPeriodo({
 
   const conf = useMemo(
     () =>
-      calcularConferencia({ materiais, submissions, todasFichas, periodo }),
-    [materiais, submissions, todasFichas, periodo],
+      calcularConferencia({
+        materiais,
+        submissions,
+        todasFichas,
+        periodo,
+        buffer,
+        // A aritmética conta só pós-sinal; a lista vem do faseConfig,
+        // não é uma cópia local (decisão de 27/07).
+        fasesPosSinal: FASES_POS_SINAL,
+      }),
+    [materiais, submissions, todasFichas, periodo, buffer],
   );
 
   const nomeEvento = (submissao) =>
     getResumoSubmissao(submissao, eventTypes).titulo;
+
+  const imprimir = () => {
+    const { ok } = imprimirConferencia({
+      conf,
+      intervalo: periodo ? intervaloLegivel(periodo.inicio, periodo.fim) : "",
+      tituloPeriodo:
+        predefinidos.find((p) => p.id === escolhido)?.label ||
+        "Período escolhido",
+      nomeEvento,
+    });
+    setErroImpressao(!ok);
+  };
 
   const gridColunas = colunas(conf.eventos.length);
   const ruturas = conf.linhas.filter((l) => l.estado === "rutura");
@@ -154,13 +196,24 @@ export default function ConferenciaPeriodo({
               "Período escolhido"}
           </h2>
           <p style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}>
-            {periodo
-              ? `${intervaloLegivel(periodo.inicio, periodo.fim)} · ${conf.totais.eventos} ${
-                  conf.totais.eventos === 1 ? "evento" : "eventos"
-                } · ${conf.totais.materiais} ${
-                  conf.totais.materiais === 1 ? "material" : "materiais"
-                } · ${conf.totais.unidades} un a sair de casa`
-              : "Escolhe as datas para ver o que sai."}
+            {!periodo
+              ? "Escolhe as datas para ver o que sai."
+              : (loading || erro) && conf.linhas.length === 0
+                ? // Sem dados fiáveis, o cabeçalho não jura «0 un a sair»
+                  intervaloLegivel(periodo.inicio, periodo.fim)
+                : `${intervaloLegivel(periodo.inicio, periodo.fim)} · ${conf.totais.eventos} ${
+                    conf.totais.eventos === 1 ? "evento" : "eventos"
+                  } · ${conf.totais.materiais} ${
+                    conf.totais.materiais === 1 ? "material" : "materiais"
+                  } · ${conf.totais.unidades} un a sair de casa${
+                    conf.totais.provisorios > 0
+                      ? ` · +${conf.totais.provisorios} ${
+                          conf.totais.provisorios === 1
+                            ? "orçamento provisório"
+                            : "orçamentos provisórios"
+                        }`
+                      : ""
+                  }`}
           </p>
         </div>
         <div
@@ -199,7 +252,7 @@ export default function ConferenciaPeriodo({
           </div>
           {conf.linhas.length > 0 && (
             <button
-              onClick={() => window.print()}
+              onClick={imprimir}
               style={{
                 padding: "8px 14px",
                 borderRadius: "10px",
@@ -242,8 +295,26 @@ export default function ConferenciaPeriodo({
         </div>
       )}
 
-      {/* Um cartão por evento do período */}
-      {conf.eventos.length > 0 && (
+      {erroImpressao && conf.linhas.length > 0 && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "12px",
+          }}
+        >
+          ⚠ O browser bloqueou a janela de impressão — permite pop-ups para
+          este site e volta a carregar em «Imprimir conferência».
+        </p>
+      )}
+
+      {/* Um cartão por evento do período; os provisórios (sem sinal) à
+          parte, tracejados — vêem-se, mas não contam (decisão de 27/07). */}
+      {(conf.eventos.length > 0 || conf.provisorios.eventos.length > 0) && (
         <div
           style={{
             display: "flex",
@@ -285,8 +356,70 @@ export default function ConferenciaPeriodo({
               </p>
             </div>
           ))}
+          {conf.provisorios.eventos.map((e) => (
+            <div
+              key={e.submissionId}
+              style={{
+                flex: "1 1 200px",
+                backgroundColor: "#FFFDF6",
+                border: "1.5px dashed var(--gold-light)",
+                borderRadius: "12px",
+                padding: "12px 16px",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "9px",
+                  fontWeight: "700",
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  color: "var(--gold-dark)",
+                  margin: "0 0 5px",
+                }}
+              >
+                {diaCurto(e.dataEvento)} ·{" "}
+                {FASE_LABEL[e.submissao?.fase] || "sem sinal"} · provisório
+              </p>
+              <p style={{ fontSize: "13.5px", margin: "0 0 2px" }}>
+                {nomeEvento(e.submissao)}
+              </p>
+              <p
+                style={{ fontSize: "11.5px", color: "var(--gray-mid)", margin: 0 }}
+              >
+                {e.total} un · fora dos totais
+              </p>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* Vizinhos que descontam na disponibilidade — a razão por que o
+          "Tens" pode ser menor que o stock do inventário. */}
+      {conf.vizinhosInfo.length > 0 &&
+        conf.linhas.some((l) => l.foraEmVizinhos > 0) && (
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--gray-mid)",
+              backgroundColor: "#FBF7EF",
+              border: "1px solid #F0E6D0",
+              borderRadius: "10px",
+              padding: "9px 14px",
+              marginBottom: "14px",
+            }}
+          >
+            O «Tens» desconta material fora de casa em{" "}
+            {conf.vizinhosInfo.length === 1
+              ? "um evento vizinho"
+              : `${conf.vizinhosInfo.length} eventos vizinhos`}{" "}
+            (fora destas datas, mas com a janela de montagem/devolução
+            sobreposta):{" "}
+            {conf.vizinhosInfo
+              .map((v) => `${nomeEvento(v.submissao)} (${diaCurto(v.dataEvento)})`)
+              .join(", ")}
+            .
+          </p>
+        )}
 
       {/* Não chega para tudo — a mesma linguagem dos Alertas */}
       {ruturas.length > 0 && (
@@ -348,7 +481,9 @@ export default function ConferenciaPeriodo({
               <span style={{ fontSize: "13px" }}>{l.material.nome}</span>
               <span style={{ fontSize: "12px", color: "var(--gray-mid)" }}>
                 Precisas de <strong style={{ color: "var(--charcoal)" }}>{l.necessario}</strong>{" "}
-                · tens <strong style={{ color: "var(--charcoal)" }}>{l.stock}</strong>
+                · tens <strong style={{ color: "var(--charcoal)" }}>{l.disponivel}</strong>
+                {l.foraEmVizinhos > 0 &&
+                  ` (${l.foraEmVizinhos} fora em evento vizinho)`}
               </span>
               <span
                 style={{
@@ -446,9 +581,11 @@ export default function ConferenciaPeriodo({
             borderRadius: "12px",
           }}
         >
-          {periodo
-            ? "Nada sai de casa neste período."
-            : "Escolhe um período para ver o que sai."}
+          {!periodo
+            ? "Escolhe um período para ver o que sai."
+            : conf.provisorios.eventos.length > 0
+              ? "Nada confirmado sai de casa neste período — só os orçamentos provisórios abaixo."
+              : "Nada sai de casa neste período."}
         </p>
       ) : (
         <div
@@ -459,7 +596,10 @@ export default function ConferenciaPeriodo({
             overflowX: "auto",
           }}
         >
-          <div style={{ minWidth: "760px" }}>
+          {/* fit-content: as faixas de categoria e as bordas medem a
+              largura REAL das linhas — com minWidth fixo, no scroll
+              horizontal as células flutuavam para lá das faixas. */}
+          <div style={{ width: "fit-content", minWidth: "100%" }}>
             <div
               style={{
                 display: "grid",
@@ -556,7 +696,21 @@ export default function ConferenciaPeriodo({
                       backgroundColor: CORES[l.estado].fundo,
                     }}
                   >
-                    <span style={{ fontSize: "12.5px" }}>{l.material.nome}</span>
+                    <span style={{ fontSize: "12.5px" }}>
+                      {l.material.nome}
+                      {l.inativo && (
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: "9.5px",
+                            fontWeight: "700",
+                            color: "#B45309",
+                          }}
+                        >
+                          ⚠ desativado — confirma antes de carregar
+                        </span>
+                      )}
+                    </span>
                     <span style={{ fontSize: "11.5px", color: "#9B9B9B" }}>
                       {l.categoria}
                     </span>
@@ -591,10 +745,32 @@ export default function ConferenciaPeriodo({
                         fontSize: "12.5px",
                         textAlign: "right",
                         fontVariantNumeric: "tabular-nums",
-                        color: l.stock == null ? "#C4C4C4" : "var(--gray-mid)",
+                        color:
+                          l.disponivel == null ? "#C4C4C4" : "var(--gray-mid)",
                       }}
+                      title={
+                        l.foraEmVizinhos > 0
+                          ? l.vizinhos
+                              .map(
+                                (v) =>
+                                  `${v.quantidade} em ${nomeEvento(v.submissao)} (${diaCurto(v.dataEvento)})`,
+                              )
+                              .join(" · ")
+                          : undefined
+                      }
                     >
-                      {l.stock == null ? "—" : l.stock}
+                      {l.disponivel == null ? "—" : l.disponivel}
+                      {l.foraEmVizinhos > 0 && (
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: "9.5px",
+                            color: "var(--gold-dark)",
+                          }}
+                        >
+                          {l.foraEmVizinhos} fora
+                        </span>
+                      )}
                     </span>
                     <Saldo linha={l} />
                   </div>
@@ -602,6 +778,101 @@ export default function ConferenciaPeriodo({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Linhas da ficha fora da Lista de Carga — a exclusão diz-se,
+          nunca acontece em silêncio. */}
+      {conf.totais.foraDaCarga > 0 && (
+        <p
+          style={{
+            fontSize: "11.5px",
+            color: "var(--gray-mid)",
+            fontStyle: "italic",
+            margin: "10px 2px 0",
+          }}
+        >
+          {conf.totais.foraDaCarga}{" "}
+          {conf.totais.foraDaCarga === 1
+            ? "linha das fichas destes eventos não entra na Lista de Carga e fica"
+            : "linhas das fichas destes eventos não entram na Lista de Carga e ficam"}{" "}
+          fora desta soma.
+        </p>
+      )}
+
+      {/* Carga provisória — orçamentos com ficha, fora da aritmética */}
+      {conf.provisorios.eventos.length > 0 && (
+        <div
+          style={{
+            marginTop: "20px",
+            backgroundColor: "#FFFDF6",
+            border: "1.5px dashed var(--gold-light)",
+            borderRadius: "14px",
+            padding: "14px 18px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: "700",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--gold-dark)",
+              margin: "0 0 4px",
+            }}
+          >
+            Carga provisória — orçamentos sem sinal
+          </p>
+          <p
+            style={{
+              fontSize: "11.5px",
+              color: "var(--gray-mid)",
+              fontStyle: "italic",
+              margin: "0 0 10px",
+            }}
+          >
+            Não conta nos totais nem no «Não chega para tudo» — um orçamento
+            não se carrega na carrinha. Está aqui para não haver surpresas se
+            algum fechar à última hora.
+          </p>
+          {conf.provisorios.linhas.map((l) => (
+            <div
+              key={l.materialId}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                padding: "7px 2px",
+                borderTop: "1px solid #F5ECD7",
+              }}
+            >
+              <span style={{ fontSize: "12.5px" }}>
+                {l.material.nome}
+                {l.inativo && (
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: "9.5px",
+                      fontWeight: "700",
+                      color: "#B45309",
+                    }}
+                  >
+                    ⚠ desativado — confirma antes de carregar
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  fontSize: "12.5px",
+                  fontVariantNumeric: "tabular-nums",
+                  color: "var(--gray-mid)",
+                }}
+              >
+                {l.quantidade}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

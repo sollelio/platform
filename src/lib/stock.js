@@ -207,17 +207,33 @@ export const calcularDisponibilidade = ({
 // 5. Carregamento em lote das fichas (para o motor de alertas)
 // ---------------------------------------------------------------------
 
-// Traz TODAS as linhas de evento_materiais de uma vez, só com os campos
-// que o motor de alertas precisa (submission_id, material_id, quantidade).
+// Traz TODAS as linhas de evento_materiais, só com os campos que os
+// motores precisam (a conferência também lê lista_carga — decisão de
+// 27/07: a conferência respeita a Lista de Carga).
 // NÃO faz join com o catálogo — o stock de cada material vem à parte, do
 // getMateriais(), e juntamos as duas peças no cliente pelo material_id.
-// Isto mantém a query leve.
+// Pagina às 1000 (o teto por resposta do PostgREST): sem isto, a partir
+// da linha 1001 as fichas desapareciam SILENCIOSAMENTE dos alertas e da
+// conferência — o pior tipo de erro, o que parece um "está tudo bem".
 export const getTodasFichas = async () => {
-  const { data, error } = await supabase
-    .from("evento_materiais")
-    .select("submission_id, material_id, quantidade");
-  if (error) throw error;
-  return data || [];
+  const PAGINA = 1000;
+  const todas = [];
+  let inicio = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("evento_materiais")
+      .select("submission_id, material_id, quantidade, lista_carga")
+      .order("id", { ascending: true })
+      .range(inicio, inicio + PAGINA - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    todas.push(...data);
+    // Avança pelo que VEIO, não pelo que se pediu: se o servidor tiver
+    // um Max Rows menor que a página, parar em "veio menos que pedi"
+    // perdia o resto em silêncio.
+    inicio += data.length;
+  }
+  return todas;
 };
 
 // ---------------------------------------------------------------------
@@ -234,6 +250,10 @@ const construirMateriaisPorEvento = (todasFichas) => {
     mapa.get(linha.submission_id).push({
       material_id: linha.material_id,
       quantidade: Math.max(0, Number(linha.quantidade) || 0),
+      // Truthy, como a Lista de Carga impressa (imprimirFicha) e a
+      // checkbox da ficha: NULL sempre se COMPORTOU como "fora da
+      // carga" nos dois — a conferência tem de dizer o mesmo número.
+      foraDaCarga: !linha.lista_carga,
     });
   });
   return mapa;
@@ -315,8 +335,12 @@ export const calcularAlertas = ({
   todasFichas,
   buffer,
 }) => {
+  // Um evento perdido não vai buscar material nenhum — contá-lo criava
+  // alertas de rutura fantasma (e contradizia a conferência, que já o
+  // excluía: dois números do mesmo ecrã a discordarem um do outro).
+  const vivos = (submissions || []).filter((s) => s && s.fase !== "perdido");
   const materiaisPorEvento = construirMateriaisPorEvento(todasFichas);
-  const clusters = agruparEventosEmClusters(submissions, buffer);
+  const clusters = agruparEventosEmClusters(vivos, buffer);
   const catalogoPorId = new Map((materiais || []).map((m) => [m.id, m]));
 
   const alertas = [];
@@ -461,12 +485,31 @@ export const calcularAlertasReposicao = ({ materiais }) => {
 // isto é uma pergunta sobre o FUTURO, e o que está em higienização hoje
 // volta a estar disponível até lá.
 //
+// Decisões de produto de 27/07 (docs/decisoes-de-produto.md):
+//   • A aritmética conta SÓ eventos pós-sinal (fasesPosSinal, vinda do
+//     faseConfig.js por quem chama). Orçamentos com ficha aparecem à
+//     parte como CARGA PROVISÓRIA — visíveis, fora dos totais e do
+//     alarme: um orçamento não se carrega na carrinha, e um alarme que
+//     mente é um alarme que se deixa de ler.
+//   • Só linhas com lista_carga contam — a conferência e a Lista de
+//     Carga impressa do evento dão SEMPRE o mesmo número.
+//   • Eventos VIZINHOS (pós-sinal, fora do período, janela de buffer
+//     sobreposta) descontam na disponibilidade: o material deles não
+//     está no armazém, e a conferência reflete a realidade física.
+//   • Materiais desativados entram COM MARCA (inativo: true) — a ficha
+//     antiga ainda os leva; omiti-los fazia a carrinha partir sem eles.
+//
 // Devolve:
-//   { eventos: [{ submissionId, dataEvento, total }],
+//   { eventos: [{ submissionId, submissao, dataEvento, total }],
 //     linhas:  [{ materialId, material, categoria, porEvento: Map,
-//                 necessario, stock, saldo, estado }],
+//                 necessario, stock, foraEmVizinhos, vizinhos,
+//                 disponivel, saldo, estado, inativo }],
 //     porCategoria: [{ categoria, linhas, total }],
-//     totais: { eventos, materiais, unidades, ruturas } }
+//     provisorios: { eventos: [...], linhas: [{ materialId, material,
+//                    quantidade, inativo }], unidades },
+//     vizinhosInfo: [{ submissionId, submissao, dataEvento }],
+//     totais: { eventos, materiais, unidades, ruturas, foraDaCarga,
+//               provisorios } }
 //
 // estado: "rutura" | "no-limite" | "sem-stock" | "ok"
 export const calcularConferencia = ({
@@ -474,12 +517,23 @@ export const calcularConferencia = ({
   submissions,
   todasFichas,
   periodo,
+  buffer = { antes: 2, depois: 2 },
+  fasesPosSinal = null,
 }) => {
   const vazio = {
     eventos: [],
     linhas: [],
     porCategoria: [],
-    totais: { eventos: 0, materiais: 0, unidades: 0, ruturas: 0 },
+    provisorios: { eventos: [], linhas: [], unidades: 0 },
+    vizinhosInfo: [],
+    totais: {
+      eventos: 0,
+      materiais: 0,
+      unidades: 0,
+      ruturas: 0,
+      foraDaCarga: 0,
+      provisorios: 0,
+    },
   };
   if (!periodo || !periodo.inicio || !periodo.fim) return vazio;
 
@@ -487,10 +541,13 @@ export const calcularConferencia = ({
   const fim = aoDia(periodo.fim);
   if (!inicio || !fim) return vazio;
 
+  const confirmado = (s) =>
+    !Array.isArray(fasesPosSinal) || fasesPosSinal.includes(s.fase);
+
   // Os eventos do período — pela data do evento (o dia em que as coisas
   // saem mesmo de casa), não pela janela alargada pelo buffer: quem
   // confere no armazém pensa em dias de evento, não em ocupação.
-  const eventos = (submissions || [])
+  const noPeriodo = (submissions || [])
     .filter((s) => {
       if (!s || !s.data_evento) return false;
       if (s.fase === "perdido") return false;
@@ -499,31 +556,77 @@ export const calcularConferencia = ({
     })
     .sort((a, b) => a.data_evento.localeCompare(b.data_evento));
 
-  if (eventos.length === 0) return vazio;
+  const eventos = noPeriodo.filter(confirmado);
+  const eventosProvisorios = noPeriodo.filter((s) => !confirmado(s));
 
-  const idsNoPeriodo = new Set(eventos.map((s) => s.id));
   const materiaisPorEvento = construirMateriaisPorEvento(todasFichas);
   const catalogo = new Map((materiais || []).map((m) => [m.id, m]));
 
-  // material_id → { submissionId → quantidade }
+  // As linhas de CARGA de um evento (as outras listas não saem de casa)
+  const cargaDe = (submissionId) =>
+    (materiaisPorEvento.get(submissionId) || []).filter(
+      (l) => l.quantidade > 0 && !l.foraDaCarga,
+    );
+
+  // Linhas da ficha que ficam fora da carga — contadas para a nota de
+  // rodapé, para a exclusão nunca ser silenciosa. Só dos CONFIRMADOS:
+  // as linhas de um orçamento estão fora da soma inteiras, pela fase —
+  // contá-las aqui inflacionava a nota com linhas que nunca entrariam.
+  let foraDaCarga = 0;
+  for (const s of eventos) {
+    foraDaCarga += (materiaisPorEvento.get(s.id) || []).filter(
+      (l) => l.quantidade > 0 && l.foraDaCarga,
+    ).length;
+  }
+
+  // --- Vizinhos: eventos pós-sinal FORA do período cuja janela de
+  // ocupação (data ± buffer) toca o período escolhido. Só os pós-sinal
+  // levam material a sério — um orçamento vizinho não tira nada de casa.
+  const idsNoPeriodo = new Set(noPeriodo.map((s) => s.id));
+  const janelaPeriodo = { inicio, fim };
+  const vizinhos = (submissions || []).filter((s) => {
+    if (!s || !s.data_evento || idsNoPeriodo.has(s.id)) return false;
+    if (s.fase === "perdido" || !confirmado(s)) return false;
+    return intervalosSobrepoem(
+      janelaPeriodo,
+      janelaDoEvento(s.data_evento, buffer),
+    );
+  });
+
+  if (eventos.length === 0 && eventosProvisorios.length === 0) return vazio;
+
+  // material_id → { submissionId → quantidade } (só confirmados, só carga)
   const pedidos = new Map();
-  for (const [submissionId, linhas] of materiaisPorEvento.entries()) {
-    if (!idsNoPeriodo.has(submissionId)) continue;
-    for (const linha of linhas) {
-      if (!linha.quantidade) continue;
-      if (!pedidos.has(linha.material_id)) pedidos.set(linha.material_id, new Map());
+  for (const s of eventos) {
+    for (const linha of cargaDe(s.id)) {
+      if (!pedidos.has(linha.material_id))
+        pedidos.set(linha.material_id, new Map());
       const porEvento = pedidos.get(linha.material_id);
-      porEvento.set(
-        submissionId,
-        (porEvento.get(submissionId) || 0) + linha.quantidade,
-      );
+      porEvento.set(s.id, (porEvento.get(s.id) || 0) + linha.quantidade);
+    }
+  }
+
+  // material_id → quantidade fora de casa em vizinhos (e em que eventos)
+  const foraPorMaterial = new Map();
+  for (const s of vizinhos) {
+    for (const linha of cargaDe(s.id)) {
+      if (!foraPorMaterial.has(linha.material_id))
+        foraPorMaterial.set(linha.material_id, { quantidade: 0, eventos: [] });
+      const info = foraPorMaterial.get(linha.material_id);
+      info.quantidade += linha.quantidade;
+      info.eventos.push({
+        submissionId: s.id,
+        submissao: s,
+        dataEvento: s.data_evento,
+        quantidade: linha.quantidade,
+      });
     }
   }
 
   const linhas = [];
   for (const [materialId, porEvento] of pedidos.entries()) {
     const material = catalogo.get(materialId);
-    if (!material || material.ativo === false) continue;
+    if (!material) continue;
 
     const necessario = [...porEvento.values()].reduce((a, b) => a + b, 0);
     if (necessario <= 0) continue;
@@ -533,7 +636,10 @@ export const calcularConferencia = ({
     const semStock =
       material.quantidade_total == null || Number(material.quantidade_total) <= 0;
     const stock = semStock ? null : stockParaConflitos(material);
-    const saldo = semStock ? null : stock - necessario;
+    const vizinhosDaLinha = foraPorMaterial.get(materialId) || null;
+    const foraEmVizinhos = vizinhosDaLinha ? vizinhosDaLinha.quantidade : 0;
+    const disponivel = semStock ? null : stock - foraEmVizinhos;
+    const saldo = semStock ? null : disponivel - necessario;
 
     linhas.push({
       materialId,
@@ -542,7 +648,11 @@ export const calcularConferencia = ({
       porEvento,
       necessario,
       stock,
+      foraEmVizinhos,
+      vizinhos: vizinhosDaLinha ? vizinhosDaLinha.eventos : [],
+      disponivel,
       saldo,
+      inativo: material.ativo === false,
       estado: semStock
         ? "sem-stock"
         : saldo < 0
@@ -577,15 +687,66 @@ export const calcularConferencia = ({
     return { submissionId: s.id, submissao: s, dataEvento: s.data_evento, total };
   });
 
+  // --- Carga provisória: os orçamentos com ficha, agregados por
+  // material. Visíveis, mas fora da aritmética (ver decisão acima).
+  const provisoriosPorMaterial = new Map();
+  const provisoriosEventos = eventosProvisorios
+    .map((s) => {
+      let total = 0;
+      for (const linha of cargaDe(s.id)) {
+        const material = catalogo.get(linha.material_id);
+        if (!material) continue;
+        total += linha.quantidade;
+        if (!provisoriosPorMaterial.has(linha.material_id))
+          provisoriosPorMaterial.set(linha.material_id, {
+            materialId: linha.material_id,
+            material,
+            quantidade: 0,
+            inativo: material.ativo === false,
+          });
+        provisoriosPorMaterial.get(linha.material_id).quantidade +=
+          linha.quantidade;
+      }
+      return { submissionId: s.id, submissao: s, dataEvento: s.data_evento, total };
+    })
+    // Um orçamento sem ficha de carga não é carga provisória — é só um
+    // orçamento; não há nada para mostrar ao armazém.
+    .filter((e) => e.total > 0);
+  const provisoriosLinhas = [...provisoriosPorMaterial.values()].sort((a, b) =>
+    (a.material.nome || "").localeCompare(b.material.nome || ""),
+  );
+
   return {
     eventos: totaisPorEvento,
     linhas,
     porCategoria,
+    provisorios: {
+      eventos: provisoriosEventos,
+      linhas: provisoriosLinhas,
+      unidades: provisoriosLinhas.reduce((acc, l) => acc + l.quantidade, 0),
+    },
+    // Só os vizinhos que descontam MESMO nalguma linha — nomear um
+    // vizinho sem materiais partilhados mandava conferir um desconto
+    // que não existe.
+    vizinhosInfo: (() => {
+      const descontam = new Set(
+        linhas.flatMap((l) => l.vizinhos.map((v) => v.submissionId)),
+      );
+      return vizinhos
+        .filter((s) => descontam.has(s.id))
+        .map((s) => ({
+          submissionId: s.id,
+          submissao: s,
+          dataEvento: s.data_evento,
+        }));
+    })(),
     totais: {
       eventos: eventos.length,
       materiais: linhas.length,
       unidades: linhas.reduce((acc, l) => acc + l.necessario, 0),
       ruturas: linhas.filter((l) => l.estado === "rutura").length,
+      foraDaCarga,
+      provisorios: provisoriosEventos.length,
     },
   };
 };
