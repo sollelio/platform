@@ -42,6 +42,7 @@ export default function ReservaModal({
   const [guardando, setGuardando] = useState(false);
   const [erro, setErro] = useState(null);
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
 
   const guardar = async () => {
     if (!nomeCliente.trim()) {
@@ -83,6 +84,22 @@ export default function ReservaModal({
     } catch (e) {
       console.error(e);
       setErro("Não foi possível remover. Tenta novamente.");
+      setGuardando(false);
+    }
+  };
+
+  // Cancelar (soft) — a reserva fica registada fora da agenda e o
+  // evento ligado passa a "perdido". Era a função que existia na lib
+  // sem nenhum botão a chamá-la: "Remover" apagava a reserva e deixava
+  // o evento fantasma em Interessados para sempre.
+  const cancelar = async () => {
+    setGuardando(true);
+    try {
+      await cancelarReserva(reserva.id);
+      onRemover(reserva.id);
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível cancelar. Tenta novamente.");
       setGuardando(false);
     }
   };
@@ -265,6 +282,7 @@ export default function ReservaModal({
             >
               <button
                 onClick={() => onConverter(reserva)}
+                disabled={guardando}
                 style={{
                   flex: 1,
                   padding: "10px",
@@ -274,14 +292,19 @@ export default function ReservaModal({
                   border: "1.5px solid #22C55E",
                   backgroundColor: "#F0FDF4",
                   color: "#15803D",
-                  cursor: "pointer",
+                  cursor: guardando ? "not-allowed" : "pointer",
+                  opacity: guardando ? 0.6 : 1,
                 }}
               >
                 ✓ Tornar cliente
               </button>
               {!confirmarRemocao ? (
                 <button
-                  onClick={() => setConfirmarRemocao(true)}
+                  onClick={() => {
+                    setConfirmarRemocao(true);
+                    setConfirmarCancelamento(false);
+                  }}
+                  disabled={guardando}
                   style={{
                     flex: 1,
                     padding: "10px",
@@ -291,7 +314,8 @@ export default function ReservaModal({
                     border: "1.5px solid #FECACA",
                     backgroundColor: "#FEF2F2",
                     color: "#DC2626",
-                    cursor: "pointer",
+                    cursor: guardando ? "not-allowed" : "pointer",
+                    opacity: guardando ? 0.6 : 1,
                   }}
                 >
                   🗑 Remover
@@ -315,6 +339,67 @@ export default function ReservaModal({
                   Confirmar?
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Cancelar (soft) — só quando há evento ligado no funil.
+              A diferença diz-se por extenso; a confirmação é inline,
+              nunca window.confirm. */}
+          {edicao && reserva.submission_id && (
+            <div style={{ margin: "-8px 0 16px 0" }}>
+              {!confirmarCancelamento ? (
+                <button
+                  onClick={() => {
+                    setConfirmarCancelamento(true);
+                    setConfirmarRemocao(false);
+                  }}
+                  disabled={guardando}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    border: "1.5px solid #F0D9B5",
+                    backgroundColor: "#FEF3E2",
+                    color: "#92400E",
+                    cursor: guardando ? "not-allowed" : "pointer",
+                    opacity: guardando ? 0.6 : 1,
+                  }}
+                >
+                  ✖ Cancelar reserva — o negócio morreu
+                </button>
+              ) : (
+                <button
+                  onClick={cancelar}
+                  disabled={guardando}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    border: "none",
+                    backgroundColor: "#92400E",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  Confirmar? O evento dela passa a «perdido» no funil
+                </button>
+              )}
+              <p
+                style={{
+                  fontSize: "10.5px",
+                  color: "var(--gray-mid)",
+                  margin: "6px 2px 0",
+                  lineHeight: 1.5,
+                }}
+              >
+                «Remover» apaga só a reserva e o evento fica no funil;
+                «Cancelar» guarda o registo e marca o evento como perdido
+                (recupera-se pelo funil se ela voltar).
+              </p>
             </div>
           )}
 

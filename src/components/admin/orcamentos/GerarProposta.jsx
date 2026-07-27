@@ -38,6 +38,8 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
   );
   const [seccoes, setSeccoes] = useRascunho(`${rid}:seccoes`, [novaSeccao()]);
   const [carregandoImg, setCarregandoImg] = useState(null); // uid da secção
+  // Falhas de upload falam aqui — a regra da casa proíbe alert()
+  const [erroAcao, setErroAcao] = useState(null);
   const inputImagem = useRef(null);
   const seccaoAlvo = useRef(null); // uid da secção que pediu upload
 
@@ -61,13 +63,14 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
     e.target.value = "";
     const uid = seccaoAlvo.current;
     if (!file || !uid) return;
+    setErroAcao(null);
     setCarregandoImg(uid);
     try {
       const url = await uploadImagemProposta(file);
       atualizarSeccao(uid, { imagem: url });
     } catch (err) {
       console.error(err);
-      alert("Não foi possível carregar a imagem. Tenta novamente.");
+      setErroAcao("Não foi possível carregar a imagem. Tenta novamente.");
     }
     setCarregandoImg(null);
   };
@@ -86,6 +89,21 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
 
   return (
     <div>
+      {erroAcao && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "14px",
+          }}
+        >
+          ⚠ {erroAcao}
+        </p>
+      )}
       {/* ===== Estilos de impressão =====
           Mesmo tratamento do orçamento: @page margin 0 mata os
           cabeçalhos do browser; capa e secções são páginas próprias. */}

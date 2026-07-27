@@ -83,6 +83,8 @@ export default function GerarOrcamento({
     prefill?.imagensReferencia || [],
   );
   const [carregandoImg, setCarregandoImg] = useState(false);
+  // Falhas de upload/gravação falam aqui — a regra da casa proíbe alert()
+  const [erroAcao, setErroAcao] = useState(null);
   // Guardar o total como valor acordado do evento (alimenta o funil)
   const [aGuardarValor, setAGuardarValor] = useState(false);
   const [valorGuardado, setValorGuardado] = useState(false);
@@ -94,6 +96,7 @@ export default function GerarOrcamento({
     );
     e.target.value = "";
     if (ficheiros.length === 0) return;
+    setErroAcao(null);
     setCarregandoImg(true);
     try {
       const novas = [];
@@ -103,7 +106,7 @@ export default function GerarOrcamento({
       setImagens((prev) => [...prev, ...novas]);
     } catch (err) {
       console.error(err);
-      alert("Não foi possível carregar a imagem. Tenta novamente.");
+      setErroAcao("Não foi possível carregar a imagem. Tenta novamente.");
     }
     setCarregandoImg(false);
   };
@@ -187,6 +190,21 @@ export default function GerarOrcamento({
 
   return (
     <div>
+      {erroAcao && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "14px",
+          }}
+        >
+          ⚠ {erroAcao}
+        </p>
+      )}
       {/* ===== Estilos de impressão =====
           @page margin 0 elimina os cabeçalhos/rodapés automáticos do
           browser (título + URL); as margens passam a ser o padding dos
@@ -449,6 +467,7 @@ export default function GerarOrcamento({
             {prefill?.submissionId && (
               <button
                 onClick={async () => {
+                  setErroAcao(null);
                   setAGuardarValor(true);
                   try {
                     await guardarValorAcordado(prefill.submissionId, total);
@@ -456,7 +475,9 @@ export default function GerarOrcamento({
                     if (onDadosMudaram) onDadosMudaram();
                   } catch (e) {
                     console.error(e);
-                    alert("Não foi possível guardar o valor. Tenta novamente.");
+                    setErroAcao(
+                      "Não foi possível guardar o valor. Tenta novamente.",
+                    );
                   }
                   setAGuardarValor(false);
                 }}

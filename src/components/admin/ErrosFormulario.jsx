@@ -25,6 +25,7 @@ const formatarData = (iso) =>
 export default function ErrosFormulario() {
   const [erros, setErros] = useState([]);
   const [abertoId, setAbertoId] = useState(null);
+  const [erroAcao, setErroAcao] = useState(null);
 
   const carregar = () => {
     getErrosFormulario(30)
@@ -39,12 +40,14 @@ export default function ErrosFormulario() {
   useEffect(carregar, []);
 
   const resolver = async (id) => {
+    setErroAcao(null);
     try {
       await apagarErroFormulario(id);
       setErros((prev) => prev.filter((e) => e.id !== id));
     } catch (e) {
       console.error(e);
-      alert("Não foi possível apagar o registo. Tenta novamente.");
+      // Barra no próprio cartão — a regra da casa não deixa alert()
+      setErroAcao("Não foi possível apagar o registo. Tenta novamente.");
     }
   };
 
@@ -76,6 +79,21 @@ export default function ErrosFormulario() {
           : "erros técnicos em formulários"}{" "}
         (últimos 30 dias)
       </p>
+      {erroAcao && (
+        <p
+          style={{
+            fontSize: "12px",
+            color: "#B91C1C",
+            backgroundColor: "white",
+            border: "1px solid #FECACA",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            margin: "0 0 10px 0",
+          }}
+        >
+          ⚠ {erroAcao}
+        </p>
+      )}
       {erros.map((e) => {
         const aberto = abertoId === e.id;
         const ctx = e.contexto || {};

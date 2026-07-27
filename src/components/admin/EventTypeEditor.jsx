@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   DndContext,
@@ -228,6 +228,19 @@ const deleteIconBtnStyle = {
   flexShrink: 0,
 };
 
+// O mesmo botão, armado: o segundo clique é que remove (confirmação
+// inline no próprio sítio — nunca window.confirm, regra da casa)
+const confirmDeleteBtnStyle = {
+  ...deleteIconBtnStyle,
+  fontSize: "11px",
+  fontWeight: "700",
+  backgroundColor: "#DC2626",
+  color: "white",
+  borderRadius: "8px",
+  padding: "6px 10px",
+  whiteSpace: "nowrap",
+};
+
 function DragHandle({ attributes, listeners, title }) {
   return (
     <button
@@ -405,6 +418,7 @@ function FieldRow({
   field,
   dragHandle,
   draggingFieldOrOpt,
+  confirmar = false,
   onUpdate,
   onRemove,
   onTypeChange,
@@ -485,10 +499,10 @@ function FieldRow({
         </select>
         <button
           onClick={onRemove}
-          style={deleteIconBtnStyle}
+          style={confirmar ? confirmDeleteBtnStyle : deleteIconBtnStyle}
           title="Remover campo"
         >
-          🗑
+          {confirmar ? "Confirmar?" : "🗑"}
         </button>
       </div>
 
@@ -611,6 +625,9 @@ function StepCard({
   step,
   stepIndex,
   draggingType,
+  unicoPasso = false,
+  confirmarRemocaoPasso = false,
+  campoAConfirmar = null,
   onUpdateStep,
   onRemoveStep,
   onAddField,
@@ -741,7 +758,7 @@ function StepCard({
           ) : (
             <div style={{ width: "30px", flexShrink: 0 }} />
           )}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p
               style={{
                 fontSize: "10px",
@@ -775,10 +792,23 @@ function StepCard({
           </div>
           <button
             onClick={onRemoveStep}
-            style={deleteIconBtnStyle}
-            title="Remover passo"
+            disabled={unicoPasso}
+            style={
+              confirmarRemocaoPasso
+                ? confirmDeleteBtnStyle
+                : {
+                    ...deleteIconBtnStyle,
+                    opacity: unicoPasso ? 0.35 : 1,
+                    cursor: unicoPasso ? "not-allowed" : "pointer",
+                  }
+            }
+            title={
+              unicoPasso
+                ? "Tem de existir pelo menos um passo."
+                : "Remover passo"
+            }
           >
-            🗑
+            {confirmarRemocaoPasso ? "Confirmar? Os campos perdem-se" : "🗑"}
           </button>
         </div>
 
@@ -808,6 +838,7 @@ function StepCard({
                 field={field}
                 stepUid={step.uid}
                 draggingType={draggingType}
+                confirmar={campoAConfirmar === field.uid}
                 onUpdate={(changes) => onUpdateField(field.uid, changes)}
                 onRemove={() => onRemoveField(field.uid)}
                 onTypeChange={(newType) => onTypeChange(field.uid, newType)}
@@ -877,18 +908,31 @@ export default function EventTypeEditor({
       { uid: makeUid(), title: "", subtitle: "", fields: [] },
     ]);
 
+  // Remoções em duas fases: o primeiro clique arma o botão
+  // ("Confirmar?"), o segundo remove. null | {tipo:'passo',uid} |
+  // {tipo:'campo',stepUid,fieldUid}
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState(null);
+
+  // O botão armado desarma sozinho ao fim de uns segundos: um clique
+  // distraído minutos depois não pode remover sem novo aviso.
+  useEffect(() => {
+    if (!confirmandoRemocao) return undefined;
+    const t = setTimeout(() => setConfirmandoRemocao(null), 4000);
+    return () => clearTimeout(t);
+  }, [confirmandoRemocao]);
+
   const removeStep = (stepUid) => {
-    if (steps.length === 1) {
-      alert("Tem de existir pelo menos um passo.");
+    // Com um único passo o botão está desativado; isto é a segunda guarda.
+    if (steps.length === 1) return;
+    if (
+      confirmandoRemocao?.tipo === "passo" &&
+      confirmandoRemocao.uid === stepUid
+    ) {
+      setConfirmandoRemocao(null);
+      setSteps((prev) => prev.filter((s) => s.uid !== stepUid));
       return;
     }
-    if (
-      !window.confirm(
-        "Remover este passo? Todos os campos dele serão perdidos.",
-      )
-    )
-      return;
-    setSteps((prev) => prev.filter((s) => s.uid !== stepUid));
+    setConfirmandoRemocao({ tipo: "passo", uid: stepUid });
   };
 
   const updateField = (stepUid, fieldUid, changes) =>
@@ -934,14 +978,22 @@ export default function EventTypeEditor({
     );
 
   const removeField = (stepUid, fieldUid) => {
-    if (!window.confirm("Remover este campo?")) return;
-    setSteps((prev) =>
-      prev.map((s) =>
-        s.uid !== stepUid
-          ? s
-          : { ...s, fields: s.fields.filter((f) => f.uid !== fieldUid) },
-      ),
-    );
+    if (
+      confirmandoRemocao?.tipo === "campo" &&
+      confirmandoRemocao.stepUid === stepUid &&
+      confirmandoRemocao.fieldUid === fieldUid
+    ) {
+      setConfirmandoRemocao(null);
+      setSteps((prev) =>
+        prev.map((s) =>
+          s.uid !== stepUid
+            ? s
+            : { ...s, fields: s.fields.filter((f) => f.uid !== fieldUid) },
+        ),
+      );
+      return;
+    }
+    setConfirmandoRemocao({ tipo: "campo", stepUid, fieldUid });
   };
 
   const handleTypeChange = (stepUid, fieldUid, newType) => {
@@ -1035,6 +1087,9 @@ export default function EventTypeEditor({
     );
 
   const handleDragStart = ({ active }) => {
+    // Arrastar desarma qualquer confirmação pendente — depois de mover
+    // um campo, o primeiro clique volta a armar, nunca remove logo.
+    setConfirmandoRemocao(null);
     const activeId = active.id;
     if (String(activeId).startsWith(STEP_PREFIX)) {
       const stepUid = String(activeId).replace(STEP_PREFIX, "");
@@ -1362,6 +1417,17 @@ export default function EventTypeEditor({
                   step={step}
                   stepIndex={stepIndex}
                   draggingType={draggingType}
+                  unicoPasso={steps.length === 1}
+                  confirmarRemocaoPasso={
+                    confirmandoRemocao?.tipo === "passo" &&
+                    confirmandoRemocao.uid === step.uid
+                  }
+                  campoAConfirmar={
+                    confirmandoRemocao?.tipo === "campo" &&
+                    confirmandoRemocao.stepUid === step.uid
+                      ? confirmandoRemocao.fieldUid
+                      : null
+                  }
                   onUpdateStep={(changes) => updateStep(step.uid, changes)}
                   onRemoveStep={() => removeStep(step.uid)}
                   onAddField={() => addField(step.uid)}

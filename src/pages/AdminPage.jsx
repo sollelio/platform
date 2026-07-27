@@ -1412,6 +1412,38 @@ export default function AdminPage() {
                               );
                             })}
                           </select>
+                          {/* Decisão de 27/07 (docs/decisoes-de-produto.md):
+                              a RPC NÃO recusa convite sem alvo — recusaria
+                              no ecrã da cliente, que não tem como corrigir.
+                              O aviso vive AQUI, na criação, não-bloqueante. */}
+                          {/* Quando há convites órfãos, o bloco deles
+                              (abaixo) já pede exatamente esta ação —
+                              dois blocos âmbar iguais diluíam-se. */}
+                          {!newInvite.submissionAlvoId &&
+                            pendentesSemAlvo.length === 0 && (
+                              <p
+                                style={{
+                                  fontSize: "11.5px",
+                                  color: "#92400E",
+                                  backgroundColor: "#FEF3E2",
+                                  border: "1px solid #F0D9B5",
+                                  borderRadius: "8px",
+                                  padding: "8px 12px",
+                                  margin: "8px 0 0 0",
+                                  lineHeight: 1.6,
+                                }}
+                              >
+                                Sem evento escolhido, quando ela submeter
+                                nasce sempre um <strong>evento novo</strong>.
+                                O cartão de cliente só é reaproveitado se o
+                                telefone que ela preencher coincidir com o já
+                                registado — com um número novo, em falta ou
+                                incompleto, nasce também um cartão em
+                                duplicado. Se este formulário é para alguém
+                                que já está no funil, escolhe o evento dela
+                                aqui em cima.
+                              </p>
+                            )}
                         </div>
                       )}
 

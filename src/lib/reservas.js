@@ -227,7 +227,10 @@ export const cancelarReserva = async (id) => {
       .from("submissions")
       .update({ fase: "perdido" })
       .eq("id", reserva.submission_id);
-    if (error) console.error("Falha a marcar o evento como perdido:", error);
+    // Falhar aqui TEM de falhar o cancelamento: engolir deixava a
+    // reserva fora da agenda e o evento "morto" vivo em Interessados,
+    // sem nenhum aviso. Repetir converge — o passo 1 é idempotente.
+    if (error) throw error;
   }
   return reserva;
 };
