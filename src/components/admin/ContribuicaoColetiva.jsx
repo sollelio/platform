@@ -799,8 +799,8 @@ export default function ContribuicaoColetiva({
                 margin: "8px 0 0",
               }}
             >
-              O sinal está coberto — avança a fase no Funil quando
-              confirmares.
+              O sinal está coberto — a sugestão de avanço, aqui em cima
+              na página, avança a fase quando confirmares.
             </p>
           )}
         </div>

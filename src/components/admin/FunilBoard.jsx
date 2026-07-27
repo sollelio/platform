@@ -91,6 +91,10 @@ export default function FunilBoard({
   // { id, sinalPago, totalPago } enquanto a Nádia escolhe a saída.
   const [recuperando, setRecuperando] = useState(null);
   const pedidoRecuperacaoRef = useRef(null);
+  // "Sinal recebido →" SEM valor acordado deixou de avançar em
+  // silêncio: confirma-se inline, com a consequência à vista.
+  const [confirmandoAvancoSemValor, setConfirmandoAvancoSemValor] =
+    useState(null); // id do evento
   const [atualizando, setAtualizando] = useState(null); // id do evento
   const [novoInteressado, setNovoInteressado] = useState(false); // modal aberto
   const [avisoErro, setAvisoErro] = useState(null); // toast discreto (adeus alert)
@@ -98,6 +102,13 @@ export default function FunilBoard({
   const carregar = async () => {
     setCarregando(true);
     setErro(null);
+    // Nenhuma confirmação inline sobrevive a um reload: os dados que a
+    // justificavam podem ter mudado (valor definido no drawer, fase
+    // alterada) e a pergunta antiga passaria a afirmar coisas falsas.
+    setConfirmandoPerda(null);
+    setConfirmandoSinal(null);
+    setConfirmandoAvancoSemValor(null);
+    setRecuperando(null);
     try {
       const data = await getEventosFunil();
       setEventos(data);
@@ -106,6 +117,15 @@ export default function FunilBoard({
       setErro("Não foi possível carregar o funil.");
     }
     setCarregando(false);
+  };
+
+  // Um só aviso de cada vez, com um só timer — sem isto, o timer de um
+  // aviso antigo apagava a mensagem seguinte a meio da leitura.
+  const avisoTimerRef = useRef(null);
+  const mostrarAviso = (mensagem, ms = 4500) => {
+    if (avisoTimerRef.current) clearTimeout(avisoTimerRef.current);
+    setAvisoErro(mensagem);
+    avisoTimerRef.current = setTimeout(() => setAvisoErro(null), ms);
   };
 
   // Corre ao montar E sempre que o drawer altera um evento (bump do
@@ -133,16 +153,16 @@ export default function FunilBoard({
       console.error(e);
       // Só as mensagens da casa (Error traduzido em lib/clientes)
       // chegam à barra; um erro cru do Supabase/rede cai na genérica.
-      setAvisoErro(
+      mostrarAviso(
         e instanceof Error && e.message
           ? e.message
           : "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
       );
-      setTimeout(() => setAvisoErro(null), 4500);
     }
     setAtualizando(null);
     setConfirmandoPerda(null);
     setRecuperando(null);
+    setConfirmandoAvancoSemValor(null);
   };
 
   // Recuperar um perdido — informado pelos dados, nunca em silêncio
@@ -168,10 +188,9 @@ export default function FunilBoard({
       // Sem conseguir ver os pagamentos, não se recupera às cegas —
       // podia esconder dinheiro registado.
       setAtualizando(null);
-      setAvisoErro(
+      mostrarAviso(
         "Não foi possível verificar os pagamentos deste evento — tenta recuperar outra vez.",
       );
-      setTimeout(() => setAvisoErro(null), 4500);
       return;
     }
     if (pedidoRecuperacaoRef.current !== ev.id) return;
@@ -210,24 +229,34 @@ export default function FunilBoard({
         prev.map((e) => (e.id === ev.id ? { ...e, fase: "cliente" } : e)),
       );
       try {
-        await registarSinalDoFunil(ev.id, ev.valor_acordado, ev.data_evento, {
-          metodo,
-          data,
-        });
+        const registo = await registarSinalDoFunil(
+          ev.id,
+          ev.valor_acordado,
+          ev.data_evento,
+          { metodo, data },
+        );
+        if (!registo) {
+          // Devolveu null sem erro: sem plano utilizável ou o sinal já
+          // tinha um pagamento — a fase avançou, mas nada foi
+          // registado AGORA. Diz-se, em vez do silêncio.
+          mostrarAviso(
+            "A fase avançou, mas o sinal não ficou registado agora (sem plano utilizável ou já existia um pagamento do sinal) — confirma na ficha do evento.",
+            6000,
+          );
+        }
       } catch (e2) {
         console.error("registarSinalDoFunil falhou:", e2);
-        setAvisoErro(
+        mostrarAviso(
           "A fase avançou, mas não foi possível registar o pagamento do sinal — regista-o na ficha do evento.",
+          6000,
         );
-        setTimeout(() => setAvisoErro(null), 6000);
       }
       if (onDadosMudaram) onDadosMudaram();
     } catch (e) {
       console.error(e);
-      setAvisoErro(
+      mostrarAviso(
         "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
       );
-      setTimeout(() => setAvisoErro(null), 4500);
     }
     setAtualizando(null);
     setConfirmandoSinal(null);
@@ -466,6 +495,16 @@ export default function FunilBoard({
                     mudarFase(ev, fase, opcoes)
                   }
                   onCancelarRecuperacao={() => setRecuperando(null)}
+                  aConfirmarAvancoSemValor={
+                    confirmandoAvancoSemValor === ev.id
+                  }
+                  onPedirAvancoSemValor={() =>
+                    setConfirmandoAvancoSemValor(ev.id)
+                  }
+                  onConfirmarAvancoSemValor={() => mudarFase(ev, "cliente")}
+                  onCancelarAvancoSemValor={() =>
+                    setConfirmandoAvancoSemValor(null)
+                  }
                   onPedirSinal={() => setConfirmandoSinal(ev.id)}
                   onCancelarSinal={() => setConfirmandoSinal(null)}
                   onConfirmarSinal={(dados) => confirmarSinalRecebido(ev, dados)}
@@ -706,6 +745,7 @@ function CardEvento({
   aConfirmarPerda,
   aConfirmarSinal,
   aEscolherRecuperacao,
+  aConfirmarAvancoSemValor,
   onAbrir,
   onAvancar,
   onPedirPerda,
@@ -714,6 +754,9 @@ function CardEvento({
   onRecuperar,
   onRecuperarPara,
   onCancelarRecuperacao,
+  onPedirAvancoSemValor,
+  onConfirmarAvancoSemValor,
+  onCancelarAvancoSemValor,
   onPedirSinal,
   onCancelarSinal,
   onConfirmarSinal,
@@ -722,6 +765,12 @@ function CardEvento({
   const ehPerdido = fase === "perdido";
   const temValor =
     evento.valor_acordado !== null && evento.valor_acordado !== undefined;
+  // Para DECIDIR o caminho do sinal, "ter valor" é > 0 — o mesmo gate
+  // do registarSinalDoFunil (v <= 0 devolve null): um valor 0 abriria
+  // o formulário de um sinal de 0,00 € e acabava no avanço silencioso
+  // que este ramo existe para impedir. O temValor de cima continua a
+  // mandar só na exibição do € no card.
+  const temValorUtil = Number(evento.valor_acordado) > 0;
 
   return (
     <div
@@ -873,6 +922,64 @@ function CardEvento({
           onConfirmar={onConfirmarSinal}
           onCancelar={onCancelarSinal}
         />
+      ) : aConfirmarAvancoSemValor && fase === "sinal" && !temValorUtil ? (
+        // AUTOVALIDANTE: se os dados mudaram por baixo (valor definido
+        // no drawer, fase alterada, evento perdido), a pergunta antiga
+        // deixaria de ser verdade — cai-se nos ramos normais em vez de
+        // afirmar coisas falsas ou contornar a recuperação informada.
+        <div onClick={(e) => e.stopPropagation()}>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--gray-mid)",
+              margin: "0 0 8px 0",
+            }}
+          >
+            Sem valor acordado, avançar <strong>não regista dinheiro</strong> —
+            o evento passa a «garantido (sinal pago)» sem um cêntimo na ficha.
+            Define o valor no evento primeiro, ou avança na mesma.
+          </p>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onConfirmarAvancoSemValor();
+              }}
+              disabled={aAtualizar}
+              style={{
+                flex: 1,
+                padding: "7px 8px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "600",
+                border: "1.5px solid var(--gold)",
+                backgroundColor: "white",
+                color: "var(--gold)",
+                cursor: aAtualizar ? "wait" : "pointer",
+              }}
+            >
+              {aAtualizar ? "..." : "Avançar na mesma"}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancelarAvancoSemValor();
+              }}
+              style={{
+                flex: 1,
+                padding: "7px 8px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                border: "1px solid #E5E7EB",
+                backgroundColor: "white",
+                color: "var(--gray-mid)",
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       ) : aEscolherRecuperacao ? (
         // O perdido tem dinheiro registado: a escolha é da Nádia,
         // inline, com a saída provável destacada pelo saldo do sinal.
@@ -992,8 +1099,13 @@ function CardEvento({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (fase === "sinal" && temValor) {
+                if (fase === "sinal" && temValorUtil) {
                   onPedirSinal();
+                } else if (fase === "sinal") {
+                  // Sem valor acordado UTILIZÁVEL não há plano nem
+                  // registo de dinheiro — o avanço confirma-se com a
+                  // consequência à vista, nunca em silêncio.
+                  onPedirAvancoSemValor();
                 } else {
                   onAvancar();
                 }

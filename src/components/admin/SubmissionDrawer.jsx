@@ -224,9 +224,14 @@ export default function SubmissionDrawer({
     const porMapa = {
       orcamento: { rotulo: "Preparar orçamento", aba: "documentos", alvo: "orcamento" },
       sinal: {
-        rotulo: atual.sub
-          ? `Registar sinal · ${atual.sub.replace(" por receber", "")}`
-          : "Registar sinal",
+        // Saldado sem avanço: o botão deixa de pedir um sinal que já
+        // está no banco — leva à aba Pagamentos, onde vive a sugestão
+        // de avanço (Lote 2B).
+        rotulo: atual.saldado
+          ? "Sinal saldado · confirmar avanço"
+          : atual.sub
+            ? `Registar sinal · ${atual.sub.replace(" por receber", "")}`
+            : "Registar sinal",
         aba: "pagamentos",
         alvo: "sinal",
       },

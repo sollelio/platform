@@ -5,10 +5,11 @@ import {
   apagarPagamento,
   gerarPrevistos,
   resumoPagamentos,
+  saldoSinalPendente,
   METODOS_SUGERIDOS,
 } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
-import { marcarPagamentoFinal } from "../../lib/clientes";
+import { marcarPagamentoFinal, updateFase } from "../../lib/clientes";
 import { Icone } from "./Navegacao";
 import { Convite, useContagemAnimada } from "./acabamento";
 import ContribuicaoColetiva from "./ContribuicaoColetiva";
@@ -499,6 +500,11 @@ export default function PagamentosEvento({
   // A aterragem da pílula "registar o sinal": a parcela acende (pulso)
   // e o formulário abre-se já — a promessa cumpre-se, ela não procura.
   const [pulsando, setPulsando] = useState(null); // id do previsto
+  // Hooks da sugestão de avanço (Lote 2B) — declarados AQUI, antes dos
+  // early returns lá em baixo: um hook depois de um return condicional
+  // muda a contagem de hooks entre renders e rebenta o componente.
+  const [aAvancarFase, setAAvancarFase] = useState(false);
+  const [erroAvanco, setErroAvanco] = useState(null);
   const blocoRefs = useRef({});
 
   useEffect(() => {
@@ -607,6 +613,42 @@ export default function PagamentosEvento({
     }
   };
 
+  // O facto "sinal saldado" reconciliado com a fase (Lote 2B): pagar o
+  // sinal AQUI nunca avançava a fase — o evento ficava "A aguardar
+  // sinal" no funil com o dinheiro no banco. Sugere-se, nunca se
+  // executa (decisão de 26/07/2026): a sugestão aparece, o avanço só
+  // acontece ao clique dela — o mesmo registo da recuperação
+  // informada do funil. Só nas fases orcamento/sinal: em "interessado"
+  // a Jornada ainda aponta o orçamento como passo seguinte, e duas
+  // pílulas a apontar caminhos diferentes no mesmo ecrã confundem.
+  const previstoSinal = previstos.find((p) => p.ordem === 1);
+  const sinalSaldado =
+    !!previstoSinal &&
+    saldoSinalPendente(submissao.id, previstos, pagamentos) <= 0;
+  const sugerirAvancoFase =
+    sinalSaldado && ["orcamento", "sinal"].includes(submissao.fase);
+
+  const avancarParaCliente = async () => {
+    setAAvancarFase(true);
+    setErroAvanco(null);
+    try {
+      const atualizada = await updateFase(submissao.id, "cliente");
+      // Só o par que mudou: a linha crua inteira esmagaria as colunas
+      // que o normalizeSubmission preencheu na leitura (família
+      // merge-linha-crua, anotada no relatório).
+      if (onSaved)
+        onSaved({ fase: atualizada.fase, status: atualizada.status });
+    } catch (e) {
+      console.error(e);
+      setErroAvanco(
+        e instanceof Error && e.message
+          ? e.message
+          : "Não foi possível avançar a fase. Tenta novamente.",
+      );
+    }
+    setAAvancarFase(false);
+  };
+
   const guardarPagamento = async (previstoId, origem, dados) => {
     const registo = await registarPagamento(submissao.id, {
       previstoId: previstoId === "avulso" ? null : previstoId,
@@ -684,6 +726,62 @@ export default function PagamentosEvento({
           />
         )}
       </div>
+
+      {/* A sugestão de avanço — o sinal está no banco, a fase é juízo
+          dela. Desaparece sozinha quando a fase avança. */}
+      {sugerirAvancoFase && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            backgroundColor: "#FBF7EF",
+            border: "1px solid var(--gold-light)",
+            borderRadius: "12px",
+            padding: "12px 16px",
+            marginBottom: "18px",
+          }}
+        >
+          <p
+            style={{
+              flex: 1,
+              minWidth: "220px",
+              fontSize: "12.5px",
+              color: "var(--gold-dark)",
+              margin: 0,
+            }}
+          >
+            🥂 O sinal está saldado — este evento ainda conta como «em
+            negociação» no funil. Avançar para <strong>Cliente</strong>?
+          </p>
+          <button
+            onClick={avancarParaCliente}
+            disabled={aAvancarFase}
+            className="acao acao--ouro"
+            style={{
+              padding: "8px 16px",
+              borderRadius: "999px",
+              fontSize: "12px",
+              fontWeight: "600",
+            }}
+          >
+            {aAvancarFase ? "A avançar..." : "Avançar para Cliente"}
+          </button>
+          {erroAvanco && (
+            <p
+              style={{
+                width: "100%",
+                fontSize: "12px",
+                color: "#B91C1C",
+                margin: 0,
+              }}
+            >
+              ⚠ {erroAvanco}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Plano — sinal + remanescente */}
       {previstos.map((previsto) => (
