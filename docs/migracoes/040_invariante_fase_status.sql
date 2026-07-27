@@ -34,6 +34,16 @@
 -- «Este estado só é possível depois do sinal — a fase do evento já
 -- não o permite. Recarrega a página.» — nunca o erro cru do Postgres.
 --
+-- ⚠ ACOPLADA AO CÓDIGO DO 2A (commit 60f8b47) — NÃO CORRER EM
+-- PRODUÇÃO SOZINHA. O updateFase antigo escreve só {fase}: recuperar
+-- um perdido pós-sinal produziria exatamente o par que este CHECK
+-- proíbe, e a recuperação passaria a falhar na cara da Nádia (com o
+-- erro por traduzir, ainda por cima — a tradução do 23514 também vive
+-- no código novo). Produção: só no momento da publicação, JUNTO com o
+-- código. (As 036/038/039 não têm esta condição — o código novo tem
+-- fallback para BD antiga, e a BD nova é inofensiva para código
+-- antigo. Esta é a única do lote em que a BD manda no código.)
+--
 -- Idempotente: UPDATE condicionado, SET DEFAULT/NOT NULL repetíveis,
 -- constraints guardadas por IF NOT EXISTS. Correr em TEST 2×;
 -- produção decide o Hélio.
