@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { calcularConferencia, periodosPredefinidos } from "../../lib/stock";
+import { Esqueleto } from "./acabamento";
 import { imprimirConferencia } from "../../lib/imprimirConferencia";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { FASES_POS_SINAL, FASE_LABEL } from "./faseConfig";
@@ -127,6 +129,7 @@ export default function ConferenciaPeriodo({
   const [escolhido, setEscolhido] = useState("fimDeSemana");
   const [datas, setDatas] = useState({ inicio: "", fim: "" });
   const [erroImpressao, setErroImpressao] = useState(false);
+  const reduzirMovimento = useReducedMotion();
 
   const periodo = useMemo(() => {
     if (escolhido === "datas") {
@@ -234,18 +237,41 @@ export default function ConferenciaPeriodo({
                 <button
                   key={p.id}
                   onClick={() => setEscolhido(p.id)}
+                  className="foco"
                   style={{
+                    position: "relative",
                     padding: "8px 14px",
                     fontSize: "12px",
                     border: "none",
                     borderLeft: i === 0 ? "none" : "1px solid #F0E6D0",
-                    backgroundColor: ativo ? "#FBF7EF" : "white",
+                    backgroundColor: "white",
                     color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
                     fontWeight: ativo ? "600" : "400",
                     cursor: "pointer",
+                    transition: "color 140ms ease, font-weight 140ms ease",
                   }}
                 >
-                  {p.label}
+                  {/* O lavado ativo é UM só, que desliza de período em
+                      período (layoutId) — a troca vê-se acontecer, como
+                      na pastilha dos separadores do evento. */}
+                  {ativo && (
+                    <motion.span
+                      layoutId="conferencia-periodo-lavado"
+                      transition={
+                        reduzirMovimento
+                          ? { duration: 0 }
+                          : { type: "spring", stiffness: 600, damping: 42 }
+                      }
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundColor: "#FBF7EF",
+                      }}
+                    />
+                  )}
+                  <span style={{ position: "relative", zIndex: 1 }}>
+                    {p.label}
+                  </span>
                 </button>
               );
             })}
@@ -556,19 +582,30 @@ export default function ConferenciaPeriodo({
           )}
         </div>
       ) : loading && conf.linhas.length === 0 && periodo ? (
-        <p
-          style={{
-            fontSize: "13px",
-            color: "var(--gray-mid)",
-            fontStyle: "italic",
-            padding: "24px",
-            textAlign: "center",
-            border: "1px dashed var(--gold-light)",
-            borderRadius: "12px",
-          }}
-        >
-          A carregar o que sai de casa…
-        </p>
+        // A forma do que vem, não uma frase: dois cartões de evento e
+        // três linhas de tabela em esqueleto (o padrão da casa).
+        <div aria-label="A carregar o que sai de casa">
+          <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+            <Esqueleto w="200px" h={64} r={12} />
+            <Esqueleto w="200px" h={64} r={12} />
+          </div>
+          <div
+            style={{
+              backgroundColor: "white",
+              border: "1px solid #F0E6D0",
+              borderRadius: "14px",
+              padding: "14px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <Esqueleto w="40%" h={10} />
+            <Esqueleto h={14} />
+            <Esqueleto h={14} />
+            <Esqueleto w="82%" h={14} />
+          </div>
+        </div>
       ) : conf.linhas.length === 0 ? (
         <p
           style={{
