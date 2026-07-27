@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { createInvite, getEventTypes } from "../lib/invites";
+import {
+  createInvite,
+  getEventTypes,
+  estadoFormularioDoEvento,
+  apontarConviteAoEvento,
+} from "../lib/invites";
 import { validateField } from "../lib/validation";
 import {
   normalizeSubmission,
@@ -236,6 +241,13 @@ export default function AdminPage() {
   );
   const [invites, setInvites] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
+  // O fetch dos convites deixou de falhar em silêncio: sem a lista, o
+  // fluxo "Criar formulário" (formularioDe) não pode decidir com
+  // segurança — criar às cegas era arriscar um convite duplicado.
+  const [erroInvites, setErroInvites] = useState(null);
+  // Avisos do fluxo de convites (evento não encontrado, apontar falhou):
+  // respondem no ecrã, na tab Formulários, nunca num diálogo do browser.
+  const [avisoConvites, setAvisoConvites] = useState(null);
   const [showNewInvite, setShowNewInvite] = useState(false);
   const [newInvite, setNewInvite] = useState({
     eventTypeId: "",
@@ -410,12 +422,11 @@ export default function AdminPage() {
   // do drawer e a etapa da Jornada quando o convite existe por
   // preencher (nunca há caminho para duplicados).
   const handleVerFormularioDoEvento = (submissao) => {
-    const convite = invites.find(
-      (i) =>
-        i.submission_alvo_id === submissao.id ||
-        i.submission_id === submissao.id,
+    const { convite, estado } = estadoFormularioDoEvento(
+      invites,
+      submissao.id,
     );
-    if (convite && !convite.submission_id) {
+    if (estado === "pendente") {
       handlePreencherFormulario(convite);
     } else {
       // rede de segurança: sem convite legível, ao menos a lista
@@ -457,13 +468,17 @@ export default function AdminPage() {
     setCreatedInvite(null);
   };
 
-  // O botão "Enviar formulário" da página do evento chega cá com o id
+  // O botão "Criar formulário" da página do evento chega cá com o id
   // no state (o padrão do gerarDoc acima) e cumpre-se quando eventos,
-  // convites e modelos já estão carregados. Sem convite, abre o painel
-  // Novo Formulário JÁ APONTADO ao evento (submission_alvo_id) — as
+  // convites e modelos já estão carregados. A decisão vem da fonte
+  // única (estadoFormularioDoEvento): sem convite, abre o painel Novo
+  // Formulário JÁ APONTADO ao evento (submission_alvo_id) — as
   // respostas atualizam o evento existente em vez de criar cliente +
-  // evento duplicados. Com convite pendente, abre-o para preencher;
-  // preenchido, mostra as respostas.
+  // evento duplicados. Pendente, abre-o para preencher; preenchido,
+  // mostra as respostas. Duas frestas fechadas: se os convites não
+  // carregaram, NÃO se cria nada (criar às cegas era arriscar um
+  // duplicado); e o evento em falta responde com um aviso no ecrã em
+  // vez de um no-op silencioso.
   const pedidoDeFormulario = location.state?.formularioDe;
   const pedidoDeFormularioConsumido = useRef(false);
   useEffect(() => {
@@ -472,18 +487,30 @@ export default function AdminPage() {
     pedidoDeFormularioConsumido.current = true;
     // consome o pedido do histórico — voltar atrás não o repete
     navigate(location.pathname, { replace: true, state: { tab: "convites" } });
+    if (erroInvites) {
+      setAvisoConvites(
+        "Não foi possível ler os formulários existentes — para não criar um duplicado, recarrega a página e volta a tentar a partir da ficha do evento.",
+      );
+      return;
+    }
     const evento = submissions.find((s) => s.id === pedidoDeFormulario);
-    if (!evento) return;
-    const convite = invites.find(
-      (i) =>
-        i.submission_alvo_id === evento.id || i.submission_id === evento.id,
-    );
-    if (!convite) {
-      handleFormularioDoEvento(evento);
-    } else if (!convite.submission_id) {
+    if (!evento) {
+      setAvisoConvites(
+        "Não foi possível encontrar o evento deste formulário. Recarrega a página e volta a tentar a partir da ficha do evento.",
+      );
+      return;
+    }
+    const { convite, estado } = estadoFormularioDoEvento(invites, evento.id);
+    if (estado === "pendente") {
       handlePreencherFormulario(convite);
-    } else {
+    } else if (estado === "preenchido") {
       setSelectedInvite(convite);
+    } else {
+      // "nenhum" — e também "preenchido-noutro": o evento continua sem
+      // respostas próprias, por isso o caminho honesto é criar um
+      // formulário novo já apontado (o painel avisa do convite
+      // desviado no bloco "estado do alvo").
+      handleFormularioDoEvento(evento);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoDeFormulario, loading, loadingInvites, loadingEventTypes]);
@@ -689,6 +716,7 @@ export default function AdminPage() {
         reservaId: newInvite.reservaId || null,
         submissionAlvoId: newInvite.submissionAlvoId || null,
       });
+      setAvisoConvites(null);
       setCreatedInvite(invite);
       setInvites((prev) => [invite, ...prev]);
       const tipoActual = eventTypes.find((et) => et.id === eventTypeId);
@@ -706,6 +734,33 @@ export default function AdminPage() {
       console.error(e);
     }
     setCreatingInvite(false);
+  };
+
+  // "É deste evento" no aviso de pendentes órfãos do painel: em vez de
+  // criar um SEGUNDO convite, aponta o antigo ao evento escolhido. A
+  // guarda (só convites por preencher) vive no servidor, em
+  // apontarConviteAoEvento.
+  const handleApontarConvite = async (convite) => {
+    if (!newInvite.submissionAlvoId) return;
+    try {
+      const atualizado = await apontarConviteAoEvento(
+        convite.id,
+        newInvite.submissionAlvoId,
+      );
+      setInvites((prev) =>
+        prev.map((i) => (i.id === atualizado.id ? atualizado : i)),
+      );
+      setShowNewInvite(false);
+      setEventoContexto(null);
+      setNewInvite((prev) => ({ ...prev, submissionAlvoId: null }));
+      setAvisoConvites(null);
+      setSelectedInvite(atualizado);
+    } catch (e) {
+      console.error("Erro ao apontar o convite ao evento:", e);
+      setAvisoConvites(
+        "Não foi possível apontar o formulário ao evento (pode ter sido preenchido entretanto). Recarrega a página e tenta outra vez.",
+      );
+    }
   };
 
   const handleDeleteInvite = async () => {
@@ -746,7 +801,15 @@ export default function AdminPage() {
       .from("invites")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error) setInvites(data);
+    if (!error) {
+      setInvites(data);
+      setErroInvites(null);
+    } else {
+      console.error("Erro ao ir buscar convites:", error);
+      setErroInvites(
+        "Não foi possível carregar os formulários. Recarrega a página.",
+      );
+    }
     setLoadingInvites(false);
   };
 
@@ -932,6 +995,45 @@ export default function AdminPage() {
               }
             />
 
+            {/* Avisos do fluxo de convites — a resposta no ecrã que
+                substitui os antigos silêncios (evento não encontrado,
+                convites por carregar, apontar falhado) */}
+            {(avisoConvites || erroInvites) && (
+              <div
+                style={{
+                  fontSize: "12.5px",
+                  color: "#B91C1C",
+                  backgroundColor: "#FEF2F2",
+                  border: "1px solid #FECACA",
+                  borderRadius: "10px",
+                  padding: "10px 14px",
+                  margin: "0 0 16px 0",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                }}
+              >
+                <span style={{ flex: 1 }}>⚠ {avisoConvites || erroInvites}</span>
+                {avisoConvites && (
+                  <button
+                    onClick={() => setAvisoConvites(null)}
+                    aria-label="Fechar aviso"
+                    style={{
+                      border: "none",
+                      background: "none",
+                      color: "#B91C1C",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      padding: "0 2px",
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Botão novo Formulário */}
             <div
               style={{
@@ -942,8 +1044,27 @@ export default function AdminPage() {
             >
               <button
                 onClick={() => {
-                  setShowNewInvite(true);
                   setCreatedInvite(null);
+                  setAvisoConvites(null);
+                  // Com o painel JÁ aberto (por uma reserva ou por um
+                  // evento), o clique não desliga nada — limpar o
+                  // contexto a meio abortava a conversão da reserva em
+                  // silêncio.
+                  if (showNewInvite) return;
+                  // ABRIR pelo botão genérico limpa QUALQUER alvo que
+                  // tenha ficado de um fluxo anterior (drawer/Jornada/
+                  // página do evento) — um alvo obsoleto esquecido fazia
+                  // as respostas de um cliente novo caírem no evento
+                  // errado. O seletor "Formulário para" dentro do painel
+                  // volta a apontar quando for essa a intenção.
+                  setReservaContexto(null);
+                  setEventoContexto(null);
+                  setNewInvite((prev) => ({
+                    ...prev,
+                    reservaId: null,
+                    submissionAlvoId: null,
+                  }));
+                  setShowNewInvite(true);
                 }}
                 style={{
                   padding: "10px 22px",
@@ -984,6 +1105,30 @@ export default function AdminPage() {
                 const camposDisponiveis = todosOsCampos.filter(
                   (f) => !newInvite.camposAtivos.includes(f.id),
                 );
+                // Convites pendentes ÓRFÃOS (sem alvo e por preencher):
+                // cada um é uma porta aberta à duplicação — se for de um
+                // cliente que já existe, o preenchimento cria cliente +
+                // evento novos. O aviso mostra-os antes de se criar mais
+                // um; com um evento-alvo escolhido, "É deste evento"
+                // adota o antigo em vez de criar um segundo.
+                const pendentesSemAlvo = invites.filter(
+                  (i) =>
+                    i.status !== "Preenchido" &&
+                    !i.submission_id &&
+                    !i.submission_alvo_id,
+                );
+                // O evento-alvo escolhido e o estado do formulário
+                // DELE — para avisar quando já existe um convite
+                // (pendente, respondido, ou desviado para um duplicado)
+                // antes de se criar mais um.
+                const alvoSelecionado = newInvite.submissionAlvoId
+                  ? submissions.find(
+                      (s) => s.id === newInvite.submissionAlvoId,
+                    ) || null
+                  : null;
+                const estadoDoAlvo = alvoSelecionado
+                  ? estadoFormularioDoEvento(invites, alvoSelecionado.id)
+                  : null;
 
                 return (
                   <div
@@ -1100,6 +1245,199 @@ export default function AdminPage() {
                               (x) => x.id === newInvite.submissionAlvoId,
                             )}
                           />
+                        </div>
+                      )}
+
+                      {/* O ALVO do formulário — a diferença entre
+                          ATUALIZAR um evento existente e criar cliente +
+                          evento novos. Antes só se chegava a um convite
+                          apontado por caminhos programáticos (drawer,
+                          Jornada, página do evento); criado à mão, o
+                          convite nascia sempre órfão — a porta da
+                          duplicação. Escolher "nenhum" limpa o alvo. */}
+                      {!reservaContexto && (
+                        <div style={{ marginBottom: "14px" }}>
+                          <label
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.07em",
+                              color: "var(--charcoal)",
+                              display: "block",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            Formulário para
+                          </label>
+                          <select
+                            value={newInvite.submissionAlvoId || ""}
+                            onChange={(e) => {
+                              const alvoId = e.target.value;
+                              if (!alvoId) {
+                                setEventoContexto(null);
+                                setNewInvite((prev) => ({
+                                  ...prev,
+                                  submissionAlvoId: null,
+                                }));
+                                return;
+                              }
+                              const submissao = submissions.find(
+                                (s) => s.id === alvoId,
+                              );
+                              if (!submissao) return;
+                              // Só muda o ALVO — o tipo, os campos e o
+                              // que já está escrito no painel ficam
+                              // como estão (mudar de ideias não pode
+                              // apagar trabalho).
+                              const tipoDoAlvo = eventTypes.find(
+                                (et) => et.id === submissao.event_type_id,
+                              );
+                              const resumoDoAlvo = getResumoSubmissao(
+                                submissao,
+                                eventTypes,
+                              );
+                              setEventoContexto({
+                                id: submissao.id,
+                                titulo: resumoDoAlvo.titulo,
+                                tipoNome: tipoDoAlvo?.nome || "",
+                                data: submissao.data_evento || null,
+                              });
+                              setNewInvite((prev) => ({
+                                ...prev,
+                                submissionAlvoId: submissao.id,
+                              }));
+                            }}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: "8px",
+                              border: "1.5px solid var(--gold-light)",
+                              fontSize: "13px",
+                              outline: "none",
+                              fontFamily: "Inter, sans-serif",
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            <option value="">
+                              Cliente novo — cria cliente e evento
+                            </option>
+                            {submissions.map((s) => {
+                              const r = getResumoSubmissao(s, eventTypes);
+                              return (
+                                <option key={s.id} value={s.id}>
+                                  {r.titulo}
+                                  {s.data_evento ? ` · ${s.data_evento}` : ""}
+                                  {" — atualiza este evento"}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* O estado do formulário do ALVO escolhido — já
+                          tem convite pendente? respondido? desviado
+                          para um duplicado? Diz-se ANTES de se criar
+                          mais um. */}
+                      {estadoDoAlvo && estadoDoAlvo.estado !== "nenhum" && (
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            color: "#92400E",
+                            backgroundColor: "#FEF3E2",
+                            border: "1px solid #F0D9B5",
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            margin: "0 0 16px 0",
+                            lineHeight: "1.6",
+                          }}
+                        >
+                          {estadoDoAlvo.estado === "pendente"
+                            ? `⚠ Este evento já tem um formulário por preencher (código ${estadoDoAlvo.convite.code}). Partilha ou preenche esse — criar um segundo deixa dois códigos vivos para a mesma cliente.`
+                            : estadoDoAlvo.estado === "preenchido"
+                              ? `ℹ Este evento já tem um formulário respondido (código ${estadoDoAlvo.convite.code}). Um novo formulário volta a atualizar o evento por cima das respostas existentes.`
+                              : `⚠ O convite ${estadoDoAlvo.convite.code} apontado a este evento foi preenchido, mas as respostas ficaram noutro evento (o rasto de um duplicado por reparar). Criar aqui um formulário novo apontado é o caminho certo.`}
+                        </p>
+                      )}
+
+                      {!reservaContexto && pendentesSemAlvo.length > 0 && (
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#92400E",
+                            backgroundColor: "#FEF3E2",
+                            border: "1px solid #F0D9B5",
+                            borderRadius: "10px",
+                            padding: "12px 14px",
+                            marginBottom: "16px",
+                            lineHeight: "1.6",
+                          }}
+                        >
+                          <p style={{ margin: "0 0 6px 0", fontWeight: "700" }}>
+                            ⚠{" "}
+                            {pendentesSemAlvo.length === 1
+                              ? "Há um formulário pendente sem evento associado"
+                              : `Há ${pendentesSemAlvo.length} formulários pendentes sem evento associado`}
+                          </p>
+                          <p style={{ margin: "0 0 8px 0" }}>
+                            Se algum for desta cliente, não cries um segundo —
+                            {newInvite.submissionAlvoId
+                              ? " usa «É deste evento» para o apontar ao evento escolhido."
+                              : " escolhe primeiro o evento em «Formulário para» e aponta-o."}
+                          </p>
+                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                            {pendentesSemAlvo.slice(0, 4).map((c) => {
+                              const tipoDoConvite = eventTypes.find(
+                                (et) => et.id === c.event_type_id,
+                              );
+                              // Apontar só quando é seguro: sem reserva
+                              // pendurada e com o MESMO tipo de evento
+                              // do alvo (um convite de Batizado adotado
+                              // por um Casamento reescreveria o tipo e
+                              // faria merge de respostas de outro
+                              // modelo).
+                              const podeApontar =
+                                !!alvoSelecionado &&
+                                !c.reserva_id &&
+                                (!c.event_type_id ||
+                                  c.event_type_id ===
+                                    alvoSelecionado.event_type_id);
+                              return (
+                                <li key={c.id} style={{ marginBottom: "4px" }}>
+                                  {getTituloConvite(c, submissions, eventTypes)}{" "}
+                                  · {c.code}
+                                  {tipoDoConvite
+                                    ? ` · ${tipoDoConvite.nome}`
+                                    : ""}
+                                  {podeApontar && (
+                                    <button
+                                      onClick={() => handleApontarConvite(c)}
+                                      style={{
+                                        marginLeft: "8px",
+                                        padding: "3px 10px",
+                                        borderRadius: "999px",
+                                        fontSize: "11px",
+                                        fontWeight: "600",
+                                        border: "1px solid #F0D9B5",
+                                        backgroundColor: "white",
+                                        color: "#92400E",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      É deste evento
+                                    </button>
+                                  )}
+                                </li>
+                              );
+                            })}
+                            {pendentesSemAlvo.length > 4 && (
+                              <li>
+                                … e mais {pendentesSemAlvo.length - 4} na lista
+                                abaixo.
+                              </li>
+                            )}
+                          </ul>
                         </div>
                       )}
 

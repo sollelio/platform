@@ -1,6 +1,7 @@
 import { FASES_POS_SINAL } from "./faseConfig";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { saldoSinalPendente } from "../../lib/pagamentos";
+import { estadoFormularioDoEvento } from "../../lib/invites";
 
 // ============================================================
 // jornadaEtapas — as oito etapas do evento e o próximo gesto, sem uma
@@ -65,12 +66,16 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
   const emPreparacao =
     ["Em Preparação", "Confirmado"].includes(s.status) || concluido;
 
-  // Formulário: ✓ preenchido · ◐ criado por preencher · ○ nem criado
-  const invitesDoEvento = (invites || []).filter(
-    (i) => i.submission_id === s.id || i.submission_alvo_id === s.id,
+  // Formulário: ✓ preenchido · ◐ criado por preencher · ○ nem criado.
+  // A resposta vem da fonte única (lib/invites), que só dá "preenchido"
+  // quando as respostas estão NESTE evento — um convite que duplicou
+  // (respostas noutro evento) já não acende o ✓ no evento original.
+  const { estado: estadoFormulario } = estadoFormularioDoEvento(
+    invites,
+    s.id,
   );
-  const formularioFeito = invitesDoEvento.some((i) => i.submission_id);
-  const formularioAMeio = !formularioFeito && invitesDoEvento.length > 0;
+  const formularioFeito = estadoFormulario === "preenchido";
+  const formularioAMeio = estadoFormulario === "pendente";
 
   const { valorSinal, porReceber } = numerosDoSinal(
     s,
@@ -111,6 +116,10 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
       aMeio: formularioAMeio,
       // Submetido (✓) = morto; pendente (◐) preenche; ausente (○) cria
       clicavel: !formularioFeito,
+      sub:
+        estadoFormulario === "preenchido-noutro"
+          ? "respostas noutro evento"
+          : undefined,
     },
     {
       id: "projecto",

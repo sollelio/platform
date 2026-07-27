@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { documentosDoEvento, marcarPassoDocumento } from "../../lib/documentos";
+import { estadoFormularioDoEvento } from "../../lib/invites";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { Icone } from "./Navegacao";
 import { Esqueleto } from "./acabamento";
@@ -320,10 +321,14 @@ export default function DocumentosEvento({
 
   const proximoDoc = DOC_DA_FASE[submissao?.fase] || null;
 
-  const convite = invites.find(
-    (i) => i.submission_id === submissionId || i.submission_alvo_id === submissionId,
+  // O estado da linha Formulário vem da fonte única (lib/invites) — a
+  // mesma conta da Jornada e do drawer. "preenchido-noutro" é o rasto
+  // de um convite que duplicou: apontado cá, respostas noutro evento.
+  const { convite, estado: estadoFormulario } = estadoFormularioDoEvento(
+    invites,
+    submissionId,
   );
-  const formularioFeito = !!(convite && convite.submission_id);
+  const formularioFeito = estadoFormulario === "preenchido";
 
   const alternarPasso = async (doc, passo) => {
     const coluna = passo === "enviado" ? "enviado_em" : "assinado_em";
@@ -415,40 +420,42 @@ export default function DocumentosEvento({
         icone="formularios"
         titulo="Formulário"
         descricao={
-          !convite
-            ? "Ainda não foi enviado à cliente"
-            : formularioFeito
-              ? `Enviado ${dataCurta(convite.created_at)} · respondido pela cliente`
-              : `Enviado ${dataCurta(convite.created_at)} · à espera de resposta`
+          estadoFormulario === "nenhum"
+            ? "Ainda não foi criado"
+            : estadoFormulario === "preenchido"
+              ? `Criado ${dataCurta(convite.created_at)} · respondido pela cliente`
+              : estadoFormulario === "preenchido-noutro"
+                ? "As respostas ficaram noutro evento (convite antigo sem alvo) — cria um formulário novo apontado a este evento"
+                : `Criado ${dataCurta(convite.created_at)} · à espera de resposta`
         }
-        tom={!convite ? "adormecido" : undefined}
+        tom={estadoFormulario === "nenhum" ? "adormecido" : undefined}
         passos={
           <>
             <Passo
-              rotulo="enviado"
+              rotulo="criado"
               data={convite ? dataCurta(convite.created_at) : null}
               feito={!!convite}
-              aSeguir={!convite}
+              aSeguir={estadoFormulario === "nenhum"}
             />
             <Passo rotulo="preenchido" feito={formularioFeito} />
           </>
         }
         accoes={
-          !convite ? (
-            <button
-              onClick={() => onCriarFormulario && onCriarFormulario(submissao)}
-              className={classeBotao("ouro")}
-              style={medidaBotao("ouro")}
-            >
-              Enviar formulário
-            </button>
-          ) : (
+          estadoFormulario === "pendente" || estadoFormulario === "preenchido" ? (
             <button
               onClick={() => onVerFormulario && onVerFormulario(submissao)}
               className={classeBotao("ouro")}
               style={medidaBotao("ouro")}
             >
               {formularioFeito ? "Ver respostas" : "Preencher"}
+            </button>
+          ) : (
+            <button
+              onClick={() => onCriarFormulario && onCriarFormulario(submissao)}
+              className={classeBotao("ouro")}
+              style={medidaBotao("ouro")}
+            >
+              Criar formulário
             </button>
           )
         }

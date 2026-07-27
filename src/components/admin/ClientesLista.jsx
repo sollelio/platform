@@ -247,7 +247,12 @@ export default function ClientesLista({
       console.error(e);
       // Sem a lista de vínculos, mostra o aviso genérico à mesma —
       // não bloqueia a remoção por a verificação ter falhado.
-      setVinculosEvento({ documentos: [], reservas: [], pagamentos: [] });
+      setVinculosEvento({
+        documentos: [],
+        reservas: [],
+        pagamentos: [],
+        convitesPendentes: [],
+      });
     }
   };
 
@@ -954,6 +959,36 @@ export default function ClientesLista({
                   >
                     ℹ Há uma reserva na Agenda ligada a este evento — fica lá,
                     mas desliga-se do evento removido.
+                  </p>
+                )}
+                {(vinculosEvento.convitesPendentes?.length || 0) > 0 && (
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "#92400E",
+                      backgroundColor: "#FEF3E2",
+                      border: "1px solid #F0D9B5",
+                      margin: "0 0 10px 0",
+                      borderRadius: "8px",
+                      padding: "10px 14px",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    ⚠{" "}
+                    {vinculosEvento.convitesPendentes.length === 1
+                      ? "Há um formulário por preencher apontado a este evento"
+                      : `Há ${vinculosEvento.convitesPendentes.length} formulários por preencher apontados a este evento`}{" "}
+                    (
+                    {vinculosEvento.convitesPendentes
+                      .map((c) => c.code)
+                      .join(", ")}
+                    ). Ao remover o evento,{" "}
+                    {vinculosEvento.convitesPendentes.length === 1
+                      ? "esse convite fica solto e, se for preenchido, cria um cliente e um evento novos"
+                      : "esses convites ficam soltos e, se forem preenchidos, criam clientes e eventos novos"}{" "}
+                    em vez de atualizar este. Apaga-
+                    {vinculosEvento.convitesPendentes.length === 1 ? "o" : "os"}{" "}
+                    primeiro na secção Formulários.
                   </p>
                 )}
               </>

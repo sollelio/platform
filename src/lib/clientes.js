@@ -92,13 +92,17 @@ export const updateCliente = async (id, dados) => {
 //   evento_materiais.submission_id→ CASCADE   (reservas de stock só, sem dados a perder)
 //   notificacoes.submission_id    → CASCADE   (notificações antigas, sem interesse)
 //   reservas.submission_id        → SET NULL  (a reserva fica na Agenda, mas desliga-se)
-//   invites.submission_alvo_id    → SET NULL  (convite por preencher perde o alvo)
+//   invites.submission_alvo_id    → SET NULL  (convite por preencher perde o alvo
+//     e, se depois for preenchido, cria cliente + evento NOVOS em vez de
+//     atualizar este — por isso os convites pendentes apontados entram
+//     no aviso da remoção)
 //   invites.submission_id         → NO ACTION (BLOQUEIA: convite já preenchido aponta cá)
 export const getVinculosEvento = async (submissionId) => {
   const [
     { data: documentos, error: erroDocs },
     { data: reservas, error: erroRes },
     { data: pagamentos, error: erroPag },
+    { data: convitesPendentes, error: erroConv },
   ] = await Promise.all([
     supabase.from("documentos").select("tipo").eq("submission_id", submissionId),
     supabase
@@ -109,14 +113,21 @@ export const getVinculosEvento = async (submissionId) => {
       .from("pagamentos")
       .select("id, valor, data, reconstituido")
       .eq("submission_id", submissionId),
+    supabase
+      .from("invites")
+      .select("id, code, created_at")
+      .eq("submission_alvo_id", submissionId)
+      .is("submission_id", null),
   ]);
   if (erroDocs) throw erroDocs;
   if (erroRes) throw erroRes;
   if (erroPag) throw erroPag;
+  if (erroConv) throw erroConv;
   return {
     documentos: documentos || [],
     reservas: reservas || [],
     pagamentos: pagamentos || [],
+    convitesPendentes: convitesPendentes || [],
   };
 };
 

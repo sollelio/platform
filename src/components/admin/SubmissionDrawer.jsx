@@ -19,6 +19,7 @@ import MensagensSheet from "./MensagensSheet";
 import { Icone } from "./Navegacao";
 import Jornada from "./Jornada";
 import { construirEtapas } from "./jornadaEtapas";
+import { estadoFormularioDoEvento } from "../../lib/invites";
 import { getPagamentosEvento } from "../../lib/pagamentos";
 
 // ============================================================
@@ -161,21 +162,20 @@ export default function SubmissionDrawer({
     getValorAtual(selected, "numeroWhatsapp") ||
     getValorAtual(selected, "contactoPrincipal") ||
     null;
-  // Os TRÊS estados do formulário deste evento:
+  // Os TRÊS estados do formulário deste evento — a MESMA conta da
+  // Jornada e do separador Documentos (fonte única em lib/invites):
   //   sem convite  → criar (painel Novo Formulário)
   //   pendente     → abrir para PREENCHER (como o ✏ do cartão)
   //   submetido    → nada a abrir (botão desativado, etapa morta)
-  const conviteDoEvento = (invites || []).find(
-    (i) =>
-      i.submission_id === selected.id ||
-      i.submission_alvo_id === selected.id,
+  // "preenchido-noutro" (convite que duplicou; as respostas vivem
+  // noutro evento) conta como não preenchido: o caminho honesto é
+  // criar um formulário novo já apontado a este evento.
+  const { estado: estadoFormulario } = estadoFormularioDoEvento(
+    invites,
+    selected.id,
   );
-  const formularioSubmetido = !!(
-    conviteDoEvento &&
-    (conviteDoEvento.submission_id === selected.id ||
-      conviteDoEvento.submission_id)
-  );
-  const temConvitePendente = !!conviteDoEvento && !formularioSubmetido;
+  const formularioSubmetido = estadoFormulario === "preenchido";
+  const temConvitePendente = estadoFormulario === "pendente";
   const abrirFormulario = () => {
     if (formularioSubmetido) return;
     if (temConvitePendente) {

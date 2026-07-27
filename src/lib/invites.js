@@ -125,6 +125,71 @@ export const validateCode = async (code) => {
   return { valid: true, invite: data };
 };
 
+// ------------------------------------------------------------
+// A FONTE ÚNICA da pergunta "qual é o convite deste evento e em que
+// estado está o formulário?". Antes havia quatro contas diferentes
+// (drawer, Jornada, separador Documentos, AdminPage) que divergiam
+// quando o evento tinha mais de um convite — e um convite que tinha
+// duplicado (respostas gravadas noutro evento) acendia "Formulário ✓"
+// no evento original, escondendo o próprio estrago.
+//
+// Estados devolvidos:
+//   "nenhum"            → não há convite deste evento (criar)
+//   "pendente"          → convite por preencher (preencher/partilhar)
+//   "preenchido"        → respostas gravadas NESTE evento (ver)
+//   "preenchido-noutro" → convite apontado cá, mas as respostas foram
+//                         parar a OUTRO evento — o rasto da duplicação;
+//                         conta como "sem respostas" em todos os ✓.
+// Desempate determinístico: o mais recente primeiro (created_at; id
+// como critério final, para listas que chegam sem ordenação da BD).
+export const estadoFormularioDoEvento = (invites, eventoId) => {
+  if (!eventoId) return { convite: null, estado: "nenhum" };
+  const doEvento = (invites || []).filter(
+    (i) => i.submission_id === eventoId || i.submission_alvo_id === eventoId,
+  );
+  const maisRecente = (lista) =>
+    [...lista].sort(
+      (a, b) =>
+        new Date(b.created_at || 0) - new Date(a.created_at || 0) ||
+        String(b.id).localeCompare(String(a.id)),
+    )[0] || null;
+
+  const preenchidoAqui = maisRecente(
+    doEvento.filter((i) => i.submission_id === eventoId),
+  );
+  if (preenchidoAqui) return { convite: preenchidoAqui, estado: "preenchido" };
+
+  // "Pendente" exige as duas coisas: sem submissão E status por
+  // preencher. Um convite marcado "Preenchido" sem submission_id (o
+  // rasto de um markInviteUsed que falhou a meio) não pode voltar a
+  // ser oferecido para preencher.
+  const pendente = maisRecente(
+    doEvento.filter((i) => !i.submission_id && i.status !== "Preenchido"),
+  );
+  if (pendente) return { convite: pendente, estado: "pendente" };
+
+  const desviado = maisRecente(doEvento);
+  if (desviado) return { convite: desviado, estado: "preenchido-noutro" };
+
+  return { convite: null, estado: "nenhum" };
+};
+
+// Aponta um convite PENDENTE a um evento existente — a reparação manual
+// de um convite órfão (criado sem alvo, o caminho que duplicava). A
+// guarda .is("submission_id", null) vive no servidor: um convite já
+// preenchido nunca é re-apontado, mesmo com dois separadores abertos.
+export const apontarConviteAoEvento = async (inviteId, submissionId) => {
+  const { data, error } = await supabase
+    .from("invites")
+    .update({ submission_alvo_id: submissionId })
+    .eq("id", inviteId)
+    .is("submission_id", null)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 // Marca o convite como preenchido e liga à submissão.
 // Se o convite nasceu de uma reserva (reserva_id), converte também
 // essa reserva: liga-a à submissão e marca-a como "Convertida".

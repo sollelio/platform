@@ -9,7 +9,7 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
-import { getEventTypes } from "../lib/invites";
+import { getEventTypes, estadoFormularioDoEvento } from "../lib/invites";
 import { getPagamentosEvento, resumoPagamentos } from "../lib/pagamentos";
 import {
   getResumoSubmissao,
@@ -500,11 +500,22 @@ export default function EventoPage() {
                     },
                   })
                 }
-                onVerFormulario={() =>
+                onVerFormulario={() => {
+                  // "Ver respostas" de um formulário respondido não
+                  // precisa de sair da página: as respostas leem-se na
+                  // Visão Geral (o destino antigo, a lista de convites
+                  // do admin, era um beco — o modal do convite
+                  // preenchido não mostra respostas). Pendente segue
+                  // para o admin, onde se preenche/partilha.
+                  const { estado } = estadoFormularioDoEvento(invites, id);
+                  if (estado === "preenchido") {
+                    irParaAba("visao-geral");
+                    return;
+                  }
                   navigate("/admin", {
                     state: { tab: "convites", formularioDe: id },
-                  })
-                }
+                  });
+                }}
                 onCriarFormulario={() =>
                   navigate("/admin", {
                     state: { tab: "convites", formularioDe: id },
