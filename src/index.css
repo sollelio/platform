@@ -452,13 +452,13 @@ h3 {
 }
 
 /* A coluna fixa dos índices laterais (Visão geral, Notas). O top é a
-   altura do cabeçalho condensado + separadores + folga — se o
-   cabeçalho mudar de altura, acerta-se AQUI, num sítio só. */
+   altura da moldura pregada (linha compacta + separadores, ~80px) +
+   folga — se a moldura mudar de altura, acerta-se AQUI, num sítio só. */
 .coluna-lateral {
   width: 220px;
   flex-shrink: 0;
   position: sticky;
-  top: 180px;
+  top: 120px;
 }
 
 /* --- A Jornada: cada etapa é um botão a sério --- */

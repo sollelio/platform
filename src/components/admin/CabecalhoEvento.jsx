@@ -1,33 +1,43 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence, MotionConfig } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import Jornada from "./Jornada";
 import { Icone } from "./Navegacao";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { useContagemAnimada } from "./acabamento";
 
 // ============================================================
-// CabecalhoEvento — a moldura da página /evento/:id, que nunca
-// desaparece: identidade, A Jornada, o dinheiro em três números, as
-// acções que valem em qualquer separador, e os separadores.
+// CabecalhoEvento — a moldura da página /evento/:id, em DUAS peças:
 //
-// Dois estados:
-//   repouso    — ~283 px, tudo aberto, o cabeçalho respira
-//   condensado — 92 px a partir de 120 px de scroll: nome, régua sem
-//                rótulos, o que falta, imprimir, e os separadores
-// Nunca se perde o contexto nem a navegação.
+//   A parte que se DESPEDE — breadcrumb, título grande, meta, os três
+//     números do dinheiro e a Jornada completa. Nunca é sticky: rola
+//     para fora com a página, como qualquer conteúdo.
+//   A MOLDURA PERMANENTE — a linha compacta (nome, régua sem rótulos,
+//     o que falta, os botões) + os separadores. É sticky, tem altura
+//     CONSTANTE, e a linha compacta só acorda (opacidade) quando a
+//     moldura prega ao topo.
 //
-// A passagem entre os dois é uma MORFOSE, não uma troca: o título, o
-// "Falta" e os botões são os mesmos elementos nos dois estados
-// (layoutId) e viajam para o novo lugar; o resto desvanece em 180 ms.
-// O utilizador vê o título encolher para o canto — nunca vê outro
-// título aparecer.
+// Porquê assim, e não um cabeçalho que encolhe: encolher mudava a
+// altura do documento a meio de um scroll — o browser puxava o scroll
+// para compensar, o limiar disparava ao contrário, e o cabeçalho
+// oscilava aberto↔fechado (o "salta e volta" que esta arquitectura
+// substituiu). Aqui, fixar/desafixar muda SÓ opacidade e sombra —
+// nunca layout — e o próprio "condensar" é o scroll a acontecer: o
+// grande despede-se, a linha compacta acorda no lugar.
+//
+// O sinal "está pregada?" vem de um SENTINELA de 1px observado por
+// IntersectionObserver — geometria pura, sem limiares nem histerese.
+// A moldura sobrepõe-se à cauda da parte grande (margem negativa,
+// transparente até ser precisa) para os separadores ficarem, em
+// repouso, exactamente onde sempre estiveram — sem ar novo.
 //
 // O dinheiro aqui são TRÊS NÚMEROS e mais nada — as parcelas e o
 // registo vivem no separador Pagamentos. E a frase «→ A seguir» da
 // Jornada aponta, não age: leva ao separador onde o gesto se faz.
 // ============================================================
 
-const ALTURA_CONDENSA = 120;
+// A altura da linha compacta — e também a sobreposição da moldura
+// sobre a parte que se despede (ver a marginTop negativa no uso).
+const ALTURA_LINHA_COMPACTA = 42;
 
 const formatarDataLonga = (iso) => {
   if (!iso) return null;
@@ -108,17 +118,15 @@ function LinhaDinheiro({ resumo, compacta = false }) {
         }}
       >
         Falta{" "}
-        <motion.span
-          layoutId="cab-falta"
+        <span
           style={{
-            display: "inline-block",
             fontWeight: "600",
             color: "var(--gold-dark)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
           {formatarEuros(faltaAnim)}
-        </motion.span>
+        </span>
       </span>
     );
   }
@@ -137,10 +145,8 @@ function LinhaDinheiro({ resumo, compacta = false }) {
         {rotulo}
       </span>
       {destaque ? (
-        <motion.span
-          layoutId="cab-falta"
+        <span
           style={{
-            display: "inline-block",
             fontSize: "17px",
             fontWeight: "600",
             color: "var(--gold-dark)",
@@ -148,7 +154,7 @@ function LinhaDinheiro({ resumo, compacta = false }) {
           }}
         >
           {formatarEuros(valor)}
-        </motion.span>
+        </span>
       ) : (
         <span
           style={{
@@ -283,18 +289,20 @@ export default function CabecalhoEvento({
   onProximoGesto,
   onStatusChange,
 }) {
-  const [condensado, setCondensado] = useState(false);
-
-  // A partir de 120 px de scroll o cabeçalho encolhe para 92 px. O
-  // limiar tem histerese (volta a abrir só abaixo de 60 px) para não
-  // tremer quando o scroll fica preso na fronteira.
+  // FIXADO = a moldura está pregada ao topo. Deriva do sentinela —
+  // e como fixar/desafixar só muda opacidade e sombra (nunca layout),
+  // não há mecanismo para saltos nem oscilações.
+  const [fixado, setFixado] = useState(false);
+  const sentinelaRef = useRef(null);
   useEffect(() => {
-    const aoRolar = () => {
-      const y = window.scrollY;
-      setCondensado((atual) => (atual ? y > ALTURA_CONDENSA / 2 : y > ALTURA_CONDENSA));
-    };
-    window.addEventListener("scroll", aoRolar, { passive: true });
-    return () => window.removeEventListener("scroll", aoRolar);
+    const sentinela = sentinelaRef.current;
+    if (!sentinela) return;
+    const observador = new IntersectionObserver(
+      ([entrada]) => setFixado(!entrada.isIntersecting),
+      { threshold: 0 },
+    );
+    observador.observe(sentinela);
+    return () => observador.disconnect();
   }, []);
 
   const meta = [
@@ -308,25 +316,26 @@ export default function CabecalhoEvento({
 
   const quantoFalta = contagem(resumoEvento.data);
 
-  // Condensado E a editar, a régua fica curta e três botões não cabem em
-  // ecrãs estreitos — a saída da edição é a que não pode faltar, as
-  // outras duas voltam mal se pare de rolar (ou se conclua).
-  const soEdicao = condensado && editando;
+  // Na linha compacta E a editar, três botões não cabem em ecrãs
+  // estreitos — a saída da edição é a que não pode faltar, as outras
+  // duas voltam mal se pare de rolar (ou se conclua).
+  const soEdicao = fixado && editando;
 
-  // layoutId: os botões são os mesmos nos dois estados do cabeçalho —
-  // ao condensar, viajam para a linha em vez de piscar.
-  const acoes = (
-    <motion.div layoutId="cab-acoes" style={{ display: "flex", gap: "8px" }}>
-      {!soEdicao && (
+  // As acções nas duas medidas: completas na parte que se despede,
+  // curtas na linha compacta. Montam-se as duas em simultâneo — quem
+  // decide qual se vê é a opacidade da moldura, nunca o layout.
+  const acoes = (compacto) => (
+    <div style={{ display: "flex", gap: "8px" }}>
+      {!(compacto && soEdicao) && (
         <button
           onClick={onImprimir}
           className={CLASSE_BOTAO.ouro}
           style={medidaBotao}
         >
-          {condensado ? "Imprimir" : "Imprimir / Guardar PDF"}
+          {compacto ? "Imprimir" : "Imprimir / Guardar PDF"}
         </button>
       )}
-      {onWhatsApp && !soEdicao && (
+      {onWhatsApp && !(compacto && soEdicao) && (
         <button
           onClick={onWhatsApp}
           className={CLASSE_BOTAO.verde}
@@ -350,9 +359,9 @@ export default function CabecalhoEvento({
             noutro separador — "Voltar à edição", e traz de volta ao
               sítio onde os rascunhos estão à espera (guardar daqui era
               impossível: os campos nem sequer estão montados).
-          Fica visível mesmo com o cabeçalho condensado, senão a saída
+          Fica na linha compacta quando se está a editar, senão a saída
           desaparecia ao rolar. */}
-      {onEditar && (!condensado || editando) && (
+      {onEditar && (!compacto || editando) && (
         <button
           onClick={onEditar}
           title={
@@ -385,219 +394,230 @@ export default function CabecalhoEvento({
           {!editando
             ? "Editar briefing"
             : edicaoNoutroSeparador
-              ? condensado
+              ? compacto
                 ? "Voltar"
                 : "Voltar ao briefing"
-              : condensado
+              : compacto
                 ? "Concluir"
                 : "Concluir edição"}
         </button>
       )}
-    </motion.div>
+    </div>
   );
 
   return (
-    <div
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-        backgroundColor: "white",
-        borderBottom: "1px solid #F0E6D0",
-        boxShadow: condensado
-          ? "0 2px 10px rgba(26,26,26,0.06)"
-          : "0 1px 0 rgba(240,230,208,0.6)",
-        padding: condensado ? "12px 40px 0" : "18px 40px 0",
-        transition: "padding 180ms ease, box-shadow 180ms ease",
-      }}
-    >
-      <MotionConfig
-        reducedMotion="user"
-        transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
-      >
-        <AnimatePresence mode="popLayout" initial={false}>
-          {condensado ? (
-            <motion.div
-              key="condensado"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{ display: "flex", alignItems: "center", gap: "22px" }}
+    <>
+      {/* A PARTE QUE SE DESPEDE — nunca sticky; rola para fora com a
+          página. É isto a "condensação": o grande despede-se. */}
+      <div style={{ backgroundColor: "white", padding: "18px 40px 0" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "40px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                marginBottom: "7px",
+              }}
             >
-              <div
+              <button
+                onClick={onVoltar}
+                className="ligacao"
                 style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: "10px",
-                  minWidth: 0,
+                  fontSize: "11px",
+                  color: "var(--gold-dark)",
+                  letterSpacing: "0.04em",
                 }}
               >
-                <motion.span
-                  layoutId="cab-titulo"
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: "17px",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                ← Clientes
+              </button>
+              <span style={{ fontSize: "11px", color: "#C4C4C4" }}>/</span>
+              <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
+                Evento
+              </span>
+            </div>
+            <h2
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "28px",
+                fontWeight: "400",
+                margin: "0 0 7px",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.1,
+              }}
+            >
+              {resumoEvento.titulo}
+            </h2>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "9px",
+                flexWrap: "wrap",
+              }}
+            >
+              {meta.map((m, i) => (
+                <span
+                  key={m}
+                  style={{ display: "flex", alignItems: "center", gap: "9px" }}
                 >
-                  {resumoEvento.titulo}
-                </motion.span>
-                {quantoFalta && (
-                  <span
-                    style={{
-                      fontSize: "11.5px",
-                      color: "var(--gray-mid)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {quantoFalta}
-                  </span>
-                )}
-              </div>
-              <div style={{ flexShrink: 0 }}>
-                <Jornada
-                  submissao={submissao}
-                  invites={invites}
-                  previstos={previstos}
-                  pagamentos={pagamentos}
-                  compacta
-                />
-              </div>
-              <div style={{ flex: 1 }} />
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  flexShrink: 0,
-                }}
-              >
-                <LinhaDinheiro resumo={resumoDinheiro} compacta />
-                {acoes}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="repouso"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "40px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      marginBottom: "7px",
-                    }}
-                  >
-                    <button
-                      onClick={onVoltar}
-                      className="ligacao"
-                      style={{
-                        fontSize: "11px",
-                        color: "var(--gold-dark)",
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      ← Clientes
-                    </button>
-                    <span style={{ fontSize: "11px", color: "#C4C4C4" }}>/</span>
-                    <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
-                      Evento
+                  {i > 0 && (
+                    <span style={{ fontSize: "13px", color: "#DCD3C0" }}>
+                      ·
                     </span>
-                  </div>
-                  <motion.h2
-                    layoutId="cab-titulo"
-                    style={{
-                      fontFamily: "'Playfair Display', serif",
-                      fontSize: "28px",
-                      fontWeight: "400",
-                      margin: "0 0 7px",
-                      letterSpacing: "-0.01em",
-                      lineHeight: 1.1,
-                    }}
+                  )}
+                  <span
+                    style={{ fontSize: "13px", color: "var(--gray-mid)" }}
                   >
-                    {resumoEvento.titulo}
-                  </motion.h2>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "9px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {meta.map((m, i) => (
-                      <span
-                        key={m}
-                        style={{ display: "flex", alignItems: "center", gap: "9px" }}
-                      >
-                        {i > 0 && (
-                          <span style={{ fontSize: "13px", color: "#DCD3C0" }}>
-                            ·
-                          </span>
-                        )}
-                        <span
-                          style={{ fontSize: "13px", color: "var(--gray-mid)" }}
-                        >
-                          {m}
-                        </span>
-                      </span>
-                    ))}
-                    {quantoFalta && <span style={pastilha}>{quantoFalta}</span>}
-                  </div>
-                </div>
+                    {m}
+                  </span>
+                </span>
+              ))}
+              {quantoFalta && <span style={pastilha}>{quantoFalta}</span>}
+            </div>
+          </div>
 
-                {/* O dinheiro ANCORADO: primeiro os três números — o
-                    contrapeso do título, a resposta que ela procura ao
-                    abrir — e só depois os botões. Antes era ao
-                    contrário, e o "Falta" lia-se como rodapé. */}
-                <div
-                  style={{
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: "12px",
-                  }}
-                >
-                  <LinhaDinheiro resumo={resumoDinheiro} />
-                  {acoes}
-                </div>
-              </div>
+          {/* O dinheiro ANCORADO: primeiro os três números — o
+              contrapeso do título, a resposta que ela procura ao
+              abrir — e só depois os botões. */}
+          <div
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: "12px",
+            }}
+          >
+            <LinhaDinheiro resumo={resumoDinheiro} />
+            {acoes(false)}
+          </div>
+        </div>
 
-              <div style={{ marginTop: "16px" }}>
-                <Jornada
-                  submissao={submissao}
-                  invites={invites}
-                  previstos={previstos}
-                  pagamentos={pagamentos}
-                  onEtapa={onEtapa}
-                  onProximoGesto={onProximoGesto}
-                  onStatusChange={onStatusChange}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div style={{ marginTop: "16px" }}>
+          <Jornada
+            submissao={submissao}
+            invites={invites}
+            previstos={previstos}
+            pagamentos={pagamentos}
+            onEtapa={onEtapa}
+            onProximoGesto={onProximoGesto}
+            onStatusChange={onStatusChange}
+          />
+        </div>
+      </div>
 
-        <div style={{ marginTop: condensado ? "10px" : "0" }}>
+      {/* O SENTINELA: 1px branco que responde "a moldura está
+          pregada?" — visível = não; fora do ecrã = sim. */}
+      <div
+        ref={sentinelaRef}
+        aria-hidden
+        style={{ height: "1px", backgroundColor: "white" }}
+      />
+
+      {/* A MOLDURA PERMANENTE — altura constante, sempre. Sobrepõe-se
+          (margem negativa) à cauda da parte grande: em repouso a linha
+          compacta é invisível e deixa passar cliques, e os separadores
+          ficam exactamente onde sempre estiveram. Fixar muda só
+          opacidade e sombra. */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          marginTop: `-${ALTURA_LINHA_COMPACTA + 1}px`,
+          boxShadow: fixado ? "0 2px 10px rgba(26,26,26,0.06)" : "none",
+          transition: "box-shadow 180ms ease",
+        }}
+      >
+        <div
+          aria-hidden={!fixado}
+          style={{
+            height: `${ALTURA_LINHA_COMPACTA}px`,
+            display: "flex",
+            alignItems: "center",
+            gap: "22px",
+            padding: "0 40px",
+            backgroundColor: "white",
+            opacity: fixado ? 1 : 0,
+            transform: fixado ? "none" : "translateY(-4px)",
+            visibility: fixado ? "visible" : "hidden",
+            pointerEvents: fixado ? "auto" : "none",
+            transition: "opacity 180ms ease, transform 180ms ease",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              minWidth: 0,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "17px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {resumoEvento.titulo}
+            </span>
+            {quantoFalta && (
+              <span
+                style={{
+                  fontSize: "11.5px",
+                  color: "var(--gray-mid)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {quantoFalta}
+              </span>
+            )}
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <Jornada
+              submissao={submissao}
+              invites={invites}
+              previstos={previstos}
+              pagamentos={pagamentos}
+              compacta
+            />
+          </div>
+          <div style={{ flex: 1 }} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              flexShrink: 0,
+            }}
+          >
+            <LinhaDinheiro resumo={resumoDinheiro} compacta />
+            {acoes(true)}
+          </div>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: "white",
+            borderBottom: "1px solid #F0E6D0",
+            padding: "0 40px",
+          }}
+        >
           <Separadores abas={abas} activeAba={activeAba} onAba={onAba} />
         </div>
-      </MotionConfig>
-    </div>
+      </div>
+    </>
   );
 }
