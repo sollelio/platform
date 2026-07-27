@@ -16,6 +16,7 @@ import {
   criarModeloEAssociar,
 } from "../../lib/tipoEvento";
 import MensagensSheet from "./MensagensSheet";
+import { MarcaVisto, MarcaCruz } from "./marcas";
 import { Icone } from "./Navegacao";
 import Jornada from "./Jornada";
 import { construirEtapas } from "./jornadaEtapas";
@@ -220,6 +221,7 @@ export default function SubmissionDrawer({
       invites,
       previstos: planoDoEvento?.previstos,
       pagamentos: planoDoEvento?.pagamentos,
+      dinheiroACaminho: !planoDoEvento,
     });
     // "Por arrumar" (Concluído com fase atrasada): a Jornada diz para
     // arrumar no funil — um botão a mandar produzir documentos para um
@@ -342,12 +344,12 @@ export default function SubmissionDrawer({
                   title="Fechar (Esc)"
                   className="icone-botao"
                   style={{
-                    fontSize: "20px",
                     color: "var(--gray-mid)",
-                    padding: "2px 8px",
+                    padding: "6px 8px",
+                    display: "inline-flex",
                   }}
                 >
-                  ✕
+                  <MarcaCruz t={14} />
                 </button>
               </div>
             </div>
@@ -371,6 +373,7 @@ export default function SubmissionDrawer({
               invites={invites}
               previstos={planoDoEvento?.previstos}
               pagamentos={planoDoEvento?.pagamentos}
+              dinheiroACaminho={!planoDoEvento}
               onStatusChange={onStatusChange}
               onRecuperar={
                 onRecuperarPerdido
@@ -580,13 +583,13 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           title="Guardar"
           className="icone-botao"
           style={{
-            fontSize: "13px",
             color: "#16A34A",
-            padding: "2px 5px",
+            padding: "3px 5px",
             lineHeight: 1,
+            display: "inline-flex",
           }}
         >
-          ✓
+          <MarcaVisto />
         </button>
         <button
           onClick={() => {
@@ -598,13 +601,13 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           title="Cancelar"
           className="icone-botao"
           style={{
-            fontSize: "13px",
             color: "var(--gray-mid)",
-            padding: "2px 5px",
+            padding: "3px 5px",
             lineHeight: 1,
+            display: "inline-flex",
           }}
         >
-          ✕
+          <MarcaCruz />
         </button>
         {erro && (
           <span style={{ fontSize: "11px", color: "#B91C1C" }}>{erro}</span>

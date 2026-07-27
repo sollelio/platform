@@ -64,7 +64,17 @@ function numerosDoSinal(s, previstos, pagamentos, valor) {
 
 // As oito etapas, com o seu estado já resolvido. Puro: só lê o que
 // recebe, nunca faz queries.
-export function construirEtapas({ s, invites, previstos, pagamentos }) {
+// dinheiroACaminho: o plano ainda vem a caminho (drawer acabado de
+// abrir) — o Sinal cala os números em vez de mostrar a estimativa e
+// trocá-la pelo valor real meio segundo depois. Números que saltam
+// são pior do que números que chegam.
+export function construirEtapas({
+  s,
+  invites,
+  previstos,
+  pagamentos,
+  dinheiroACaminho = false,
+}) {
   const idxFase = FASE_ORDEM_JORNADA.indexOf(s.fase);
   const posSinal = FASES_POS_SINAL.includes(s.fase);
   const valor = Number(s.valor_acordado) || 0;
@@ -110,13 +120,15 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
       rotulo: "Sinal",
       feito: posSinal,
       saldado: sinalSaldadoSemAvanco,
-      sub: sinalSaldadoSemAvanco
-        ? "saldado · por avançar no funil"
-        : !posSinal && s.fase === "sinal" && porReceber > 0
-          ? `${formatarEuros(porReceber)} por receber`
-          : posSinal && valorSinal > 0
-            ? formatarEuros(valorSinal)
-            : null,
+      sub: dinheiroACaminho
+        ? null
+        : sinalSaldadoSemAvanco
+          ? "saldado · por avançar no funil"
+          : !posSinal && s.fase === "sinal" && porReceber > 0
+            ? `${formatarEuros(porReceber)} por receber`
+            : posSinal && valorSinal > 0
+              ? formatarEuros(valorSinal)
+              : null,
     },
     {
       id: "projecto",
@@ -164,11 +176,13 @@ export function construirEtapas({ s, invites, previstos, pagamentos }) {
       return "a fase no funil — o evento já está concluído";
     if (atual.id === "orcamento") return "enviar o orçamento";
     if (atual.id === "sinal")
-      return sinalSaldadoSemAvanco
-        ? "confirmar o avanço para Cliente — o sinal está saldado"
-        : porReceber > 0
-          ? `registar o sinal (${formatarEuros(porReceber)})`
-          : "registar o sinal";
+      return dinheiroACaminho
+        ? "registar o sinal"
+        : sinalSaldadoSemAvanco
+          ? "confirmar o avanço para Cliente — o sinal está saldado"
+          : porReceber > 0
+            ? `registar o sinal (${formatarEuros(porReceber)})`
+            : "registar o sinal";
     if (atual.id === "projecto") return "criar o projecto";
     if (atual.id === "contrato") return "preparar o contrato";
     if (atual.id === "preparacao") return "preparar o evento (Materiais)";

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { MarcaCruz } from "./marcas";
 import {
   TIPOS_NOTA,
   tipoNota,
@@ -194,9 +195,9 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
               onClick={onPedirApagar}
               title="Apagar esta nota"
               className="ligacao"
-              style={{ fontSize: "11.5px", color: "#C4C4C4" }}
+              style={{ color: "#C4C4C4", display: "inline-flex" }}
             >
-              ✕
+              <MarcaCruz t={11} />
             </button>
           )}
         </div>

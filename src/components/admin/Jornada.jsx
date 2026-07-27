@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { STATUS_OPTIONS, STATUS_COLORS } from "./faseConfig";
 import { construirEtapas, construirEvidencia } from "./jornadaEtapas";
+import { MarcaVisto } from "./marcas";
 
 // ============================================================
 // A JORNADA — a linha de vida do evento, do primeiro "olá" ao
@@ -39,18 +40,9 @@ import { construirEtapas, construirEvidencia } from "./jornadaEtapas";
 
 // ---------- as marcas, desenhadas à mão ----------
 
-// O visto da casa — o mesmo traço do percurso de documentos
-const Visto = ({ cor = "#fff", t = 11 }) => (
-  <svg width={t} height={t} viewBox="0 0 16 16" fill="none" aria-hidden>
-    <path
-      d="M3.5 8.5 L6.6 11.6 L12.5 4.8"
-      stroke={cor}
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+// O visto da casa vem do módulo partilhado (marcas.jsx) — aqui só se
+// fixa o tamanho e a cor por omissão da régua.
+const Visto = ({ cor = "#fff", t = 11 }) => <MarcaVisto t={t} cor={cor} />;
 
 // A taça do grande dia — line-art, não emoji
 const Taca = ({ cor, t = 11, opacidade = 1 }) => (
@@ -447,6 +439,7 @@ export default function Jornada({
   onStatusChange,
   onProximoGesto,
   onRecuperar,
+  dinheiroACaminho = false,
   compacta = false,
 }) {
   // O estado (Recebido/Em Preparação/Confirmado/Concluído) edita-se
@@ -704,11 +697,12 @@ export default function Jornada({
 
   const { etapas, atual, proximoGesto, porArrumar, formulario } =
     construirEtapas({
-    s,
-    invites,
-    previstos,
-    pagamentos,
-  });
+      s,
+      invites,
+      previstos,
+      pagamentos,
+      dinheiroACaminho,
+    });
 
   if (compacta)
     return (

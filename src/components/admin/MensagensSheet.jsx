@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { MarcaCruz } from "./marcas";
 import {
   DndContext,
   DragOverlay,
@@ -604,15 +605,15 @@ export default function MensagensSheet({
             onClick={onFechar}
             aria-label="Fechar"
             style={{
-              fontSize: "18px",
               color: "var(--gray-mid)",
               background: "none",
               border: "none",
               cursor: "pointer",
-              lineHeight: 1,
+              display: "inline-flex",
+              padding: "4px",
             }}
           >
-            ✕
+            <MarcaCruz t={14} />
           </button>
         </div>
         <p

@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { MarcaVisto, MarcaCruz } from "./marcas";
 import { getValorAtual, seccoesPreenchidas } from "../../lib/submissionFields";
 import { codigoErroRpc } from "../../lib/rpc";
 import {
@@ -106,6 +107,13 @@ const tituloSeccao = (aberta, interactivo) => ({
 
 // A identidade dos botões (cor, hover, foco) vive nas classes .acao--*
 // do index.css; aqui ficam só as medidas.
+// Centrar uma marca desenhada num botão de medida fixa
+const centraMarca = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 const medidaBotaoMini = {
   width: "26px",
   height: "26px",
@@ -224,18 +232,18 @@ function Campo({ submissao, campo, valor, editavel, onGuardar }) {
               disabled={aGravar}
               title="Guardar"
               className="acao acao--cheia"
-              style={medidaBotaoMini}
+              style={{ ...medidaBotaoMini, ...centraMarca }}
             >
-              ✓
+              <MarcaVisto />
             </button>
             <button
               onClick={() => setAEditar(false)}
               disabled={aGravar}
               title="Cancelar"
               className="acao acao--neutra"
-              style={medidaBotaoMini}
+              style={{ ...medidaBotaoMini, ...centraMarca }}
             >
-              ✕
+              <MarcaCruz />
             </button>
           </div>
         </div>

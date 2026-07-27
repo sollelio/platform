@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MarcaCruz } from "./marcas";
 import {
   getMateriais,
   getEventoMateriais,
@@ -1275,10 +1276,16 @@ export default function FichaMateriais({
               </button>
               <button
                 onClick={() => setSeleccao([])}
+                title="Limpar seleção"
                 className="acao acao--neutra"
-                style={medidaBtnBarra}
+                style={{
+                  ...medidaBtnBarra,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                ✕
+                <MarcaCruz t={11} />
               </button>
             </>
           )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { MarcaVisto } from "./marcas";
 import { motion } from "framer-motion";
 import Jornada from "./Jornada";
 import { Icone } from "./Navegacao";
@@ -97,16 +98,35 @@ const CLASSE_BOTAO = {
   neutro: "acao acao--neutra",
 };
 
-// Total · Recebido · Falta. Três números, sem parcelas. O valor do
-// "Falta" — o número operativo do negócio — é o MESMO elemento nos
-// dois estados do cabeçalho (layoutId): ao condensar não desaparece,
-// viaja para o seu lugar na linha.
+// Total · Recebido · Falta. Três números, sem parcelas. O "Falta" —
+// o número operativo do negócio — existe nas DUAS medidas da moldura:
+// ao condensar não desaparece, reaparece na linha compacta. (Já foi um
+// layoutId a viajar; o refactor da moldura de altura constante trocou
+// a viagem por opacidade — este comentário conta a verdade de agora.)
 function LinhaDinheiro({ resumo, compacta = false }) {
   // Os números contam quando mudam à frente dos olhos (registar um
   // pagamento no separador vê-se aqui no mesmo instante, a contar).
   const totalAnim = useContagemAnimada(resumo.total);
   const pagoAnim = useContagemAnimada(resumo.pago);
   const faltaAnim = useContagemAnimada(resumo.falta);
+
+  // Evento acabado de nascer: "Total 0€ · Recebido 0€ · Falta 0€" eram
+  // três zeros a fingir de resposta. Diz-se o que é — o valor está por
+  // acordar — em voz baixa, nas duas medidas.
+  if (!(resumo.total > 0) && !(resumo.pago > 0)) {
+    return (
+      <span
+        style={{
+          fontSize: compacta ? "12px" : "12.5px",
+          fontStyle: "italic",
+          color: "var(--gray-mid)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        valor por acordar
+      </span>
+    );
+  }
 
   if (compacta) {
     return (
@@ -315,7 +335,11 @@ export default function CabecalhoEvento({
       : null,
   ].filter(Boolean);
 
-  const quantoFalta = contagem(resumoEvento.data);
+  // No Concluído a pastilha cala-se: "já passou" ao lado de um evento
+  // entregue soava a compromisso falhado — o remate da Jornada é quem
+  // fala do fim, e fala melhor.
+  const quantoFalta =
+    submissao.status === "Concluído" ? null : contagem(resumoEvento.data);
 
   // Na linha compacta E a editar, três botões não cabem em ecrãs
   // estreitos — a saída da edição é a que não pode faltar, as outras
@@ -384,8 +408,8 @@ export default function CabecalhoEvento({
           style={medidaBotao}
         >
           {editando && !edicaoNoutroSeparador ? (
-            <span style={{ display: "flex", fontSize: "13px", lineHeight: 1 }}>
-              ✓
+            <span style={{ display: "flex" }}>
+              <MarcaVisto t={13} />
             </span>
           ) : (
             <span style={{ color: "var(--gold)", display: "flex" }}>
@@ -453,6 +477,9 @@ export default function CabecalhoEvento({
                 margin: "0 0 7px",
                 letterSpacing: "-0.01em",
                 lineHeight: 1.1,
+                // duas linhas equilibradas em vez de uma comprida e uma
+                // palavra órfã (o padrão text-wrap da casa)
+                textWrap: "balance",
               }}
             >
               {resumoEvento.titulo}
