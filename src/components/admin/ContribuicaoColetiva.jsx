@@ -7,6 +7,7 @@ import {
   actualizarMeta,
   actualizarComoContribuir,
   fecharCampanha,
+  reabrirCampanha,
   concluirCampanha,
   regenerarToken,
   registarContribuicao,
@@ -301,7 +302,12 @@ export default function ContribuicaoColetiva({
     };
   }, [campanha?.id, campanha?.estado]);
 
-  const grupos = useMemo(() => agruparContribuicoes(pagamentos), [pagamentos]);
+  // Só as contribuições DESTA campanha (042) — a soma por evento fazia
+  // uma campanha nova nascer cheia com o dinheiro da anterior.
+  const grupos = useMemo(
+    () => agruparContribuicoes(pagamentos, campanha?.id || null),
+    [pagamentos, campanha?.id],
+  );
   const contribuido = useMemo(
     () => Math.round(grupos.reduce((acc, g) => acc + g.total, 0) * 100) / 100,
     [grupos],
@@ -320,18 +326,36 @@ export default function ContribuicaoColetiva({
   const contribuidoAnim = useContagemAnimada(contribuido);
   const eventoPago = faltaEvento <= 0;
 
-  // A CELEBRAÇÃO — quando a meta se atinge ao vivo, uma vez, carimbada.
+  // A CONCLUSÃO — quando a meta desta campanha se atinge (as somas já
+  // são por campanha, 042 — a herança da campanha anterior morreu).
+  // A ANIMAÇÃO só acontece na primeira vez (celebrada_em); a escrita
+  // do estado acontece sempre que uma ativa cruza a meta — incluindo
+  // uma campanha reaberta que volte a lá chegar.
   useEffect(() => {
     if (!campanha || campanha.estado !== "ativa") return;
-    if (objetivo > 0 && contribuido >= objetivo && !campanha.celebrada_em) {
-      setBrinde(true);
-      setFaisca((n) => n + 1);
-      concluirCampanha(campanha.id).then(setCampanha).catch(console.error);
-      const temporizador = setTimeout(() => setBrinde(false), 2600);
-      return () => clearTimeout(temporizador);
+    if (objetivo > 0 && contribuido >= objetivo) {
+      let cancelado = false;
+      let temporizador = null;
+      if (!campanha.celebrada_em) {
+        setBrinde(true);
+        setFaisca((n) => n + 1);
+        temporizador = setTimeout(() => setBrinde(false), 2600);
+      }
+      // O carimbo da PRIMEIRA celebração preserva-se numa reaberta; e
+      // a resposta só assenta se este ainda for o evento aberto (a
+      // página não remonta ao trocar de :id).
+      concluirCampanha(campanha.id, campanha.celebrada_em)
+        .then((atualizada) => {
+          if (!cancelado) setCampanha(atualizada);
+        })
+        .catch(console.error);
+      return () => {
+        cancelado = true;
+        if (temporizador) clearTimeout(temporizador);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contribuido, campanha?.id, campanha?.estado]);
+  }, [contribuido, objetivo, campanha?.id, campanha?.estado]);
 
   // O sinal coberto é facto; avançar a fase é juízo dela — sugere-se,
   // nunca se executa (decisão de 26/07/2026).
@@ -355,6 +379,8 @@ export default function ContribuicaoColetiva({
         previstos,
         pagamentos,
         { valor, contribuinte: nome, metodo, data: dataContrib },
+        null,
+        campanha?.id || null,
       );
       if (onPagamentos) onPagamentos([...pagamentos, ...inseridos]);
       const primeira = inseridos[0];
@@ -407,6 +433,7 @@ export default function ContribuicaoColetiva({
           notas: intencao.mensagem,
         },
         intencao.id,
+        campanha?.id || null,
       );
       if (onPagamentos) onPagamentos([...pagamentos, ...inseridos]);
       const primeira = inseridos[0];
@@ -745,10 +772,41 @@ export default function ContribuicaoColetiva({
                 onClick={async () => {
                   setErro(null);
                   try {
-                    setCampanha(await actualizarMeta(campanha.id, metaEdit));
+                    let atualizada = await actualizarMeta(
+                      campanha.id,
+                      metaEdit,
+                    );
+                    // Subir a meta acima do contribuído numa campanha
+                    // CONCLUÍDA reabre-a — é o gesto explícito de
+                    // "ainda não acabou" (decisão da Fase 1). A
+                    // celebração não repete (celebrada_em fica), e o
+                    // índice "uma ativa por evento" protege contra
+                    // reabrir com outra campanha ativa ao lado.
+                    if (
+                      atualizada.estado === "concluida" &&
+                      Number(atualizada.objetivo) > contribuido
+                    ) {
+                      atualizada = await reabrirCampanha(campanha.id);
+                    }
+                    setCampanha(atualizada);
                     setEditandoMeta(false);
                   } catch (e) {
-                    setErro(e.message || "Meta inválida.");
+                    console.error(e);
+                    if (e?.code === "23505") {
+                      // A reabertura falhou (há outra ativa) mas a meta
+                      // JÁ tinha subido — repõe-se, senão a concluída
+                      // ficava a afirmar uma meta que não atingiu.
+                      try {
+                        await actualizarMeta(campanha.id, campanha.objetivo);
+                      } catch (e2) {
+                        console.error("Reversão da meta falhou:", e2);
+                      }
+                      setErro(
+                        "Já existe outra campanha ativa deste evento — fecha essa primeiro. A meta voltou ao valor anterior.",
+                      );
+                    } else {
+                      setErro(e.message || "Meta inválida.");
+                    }
                   }
                 }}
                 title="Guardar meta"
@@ -833,7 +891,11 @@ export default function ContribuicaoColetiva({
           {aFechar ? (
             <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "11.5px", color: "var(--gray-mid)" }}>
-                Fechar a campanha?
+                {intencoes.length > 0
+                  ? intencoes.length === 1
+                    ? "Fechar? A promessa por confirmar será anulada."
+                    : `Fechar? As ${intencoes.length} promessas por confirmar serão anuladas.`
+                  : "Fechar a campanha?"}
               </span>
               <button
                 onClick={() => setAFechar(false)}
@@ -847,6 +909,9 @@ export default function ContribuicaoColetiva({
                   setErro(null);
                   try {
                     setCampanha(await fecharCampanha(campanha.id));
+                    // fecharCampanha anulou as pendentes em lote — a
+                    // lista local acompanha.
+                    setIntencoes([]);
                     setAFechar(false);
                   } catch (e) {
                     console.error(e);

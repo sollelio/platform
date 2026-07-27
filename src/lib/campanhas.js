@@ -84,17 +84,37 @@ export const actualizarMeta = (id, objetivo) => {
   return actualizarCampanha(id, { objetivo: arredondar(v) });
 };
 
-export const fecharCampanha = (id) =>
-  actualizarCampanha(id, {
+// Fechar RESOLVE as promessas por confirmar (anuladas em lote, com
+// carimbo) em vez de as deixar órfãs invisíveis para sempre — a UI
+// mostra a contagem no gesto de confirmação, antes de chegar aqui.
+export const fecharCampanha = async (id) => {
+  const { error: erroPendentes } = await supabase
+    .from("campanha_intencoes")
+    .update({ estado: "anulada", anulada_em: new Date().toISOString() })
+    .eq("campanha_id", id)
+    .eq("estado", "pendente");
+  if (erroPendentes) throw erroPendentes;
+  return actualizarCampanha(id, {
     estado: "fechada",
     fechada_em: new Date().toISOString(),
   });
+};
 
-// Meta atingida: concluída + celebração carimbada (acontece UMA vez).
-export const concluirCampanha = (id) =>
+// Reabrir uma campanha concluída — acontece ao subir a meta acima do
+// contribuído (o gesto explícito da gestora; ver ContribuicaoColetiva).
+// celebrada_em fica: a celebração não repete. O índice único "uma
+// ativa por evento" (033) protege — se entretanto nasceu outra ativa,
+// o Postgres recusa (23505) e o chamador traduz.
+export const reabrirCampanha = (id) =>
+  actualizarCampanha(id, { estado: "ativa", fechada_em: null });
+
+// Meta atingida: concluída + celebração carimbada (acontece UMA vez —
+// uma campanha reaberta que volte a concluir preserva o carimbo da
+// PRIMEIRA celebração, passado por quem chama).
+export const concluirCampanha = (id, celebradaEm = null) =>
   actualizarCampanha(id, {
     estado: "concluida",
-    celebrada_em: new Date().toISOString(),
+    celebrada_em: celebradaEm || new Date().toISOString(),
   });
 
 // Revogação: o link partilhado por engano morre aqui, nasce outro.
@@ -203,6 +223,7 @@ export const registarContribuicao = async (
   pagamentos,
   { valor, contribuinte = null, metodo, data, notas = null },
   intencaoId = null,
+  campanhaId = null,
 ) => {
   const v = arredondar(Number(valor));
   if (!submissionId || !Number.isFinite(v) || v <= 0) {
@@ -221,23 +242,49 @@ export const registarContribuicao = async (
     p_contribuinte: contribuinte || null,
     p_notas: notas || null,
     p_intencao_id: intencaoId || null,
+    // A campanha dona do dinheiro (042). No caminho da promessa a RPC
+    // usa a campanha da própria intenção — este parâmetro é o do
+    // registo manual.
+    p_campanha_id: campanhaId || null,
   });
+  // Os códigos de negócio da RPC em português — o cliente pré-valida
+  // os três primeiros, por isso só falam se as validações divergirem.
+  const MENSAGENS = {
+    VALOR_INVALIDO: "Valor inválido.",
+    METODO_EM_FALTA: "Escolhe (ou escreve) o método.",
+    DATA_EM_FALTA: "Falta a data da contribuição.",
+    CAMPANHA_INVALIDA:
+      "Esta campanha já não existe (ou não é deste evento) — recarrega a página.",
+  };
+  const traduzir = (erro) => {
+    const codigo = codigoErroRpc(erro);
+    if (codigo === INTENCAO_JA_RESOLVIDA) return new Error(INTENCAO_JA_RESOLVIDA);
+    if (MENSAGENS[codigo]) return new Error(MENSAGENS[codigo]);
+    return erro;
+  };
+
   if (!rpc.error) return rpc.data || [];
-  if (!ehFuncaoRpcEmFalta(rpc.error)) {
-    const codigo = codigoErroRpc(rpc.error);
-    if (codigo === INTENCAO_JA_RESOLVIDA) {
-      throw new Error(INTENCAO_JA_RESOLVIDA);
-    }
-    // Os códigos de negócio da RPC em português — o cliente pré-valida
-    // os três, por isso isto só fala se as validações divergirem.
-    const MENSAGENS = {
-      VALOR_INVALIDO: "Valor inválido.",
-      METODO_EM_FALTA: "Escolhe (ou escreve) o método.",
-      DATA_EM_FALTA: "Falta a data da contribuição.",
-    };
-    if (MENSAGENS[codigo]) throw new Error(MENSAGENS[codigo]);
-    throw rpc.error;
-  }
+  if (!ehFuncaoRpcEmFalta(rpc.error)) throw traduzir(rpc.error);
+
+  // A assinatura de 8 argumentos não existe — pode ser uma BD com a
+  // 039 mas SEM a 042: re-tenta a RPC ANTIGA (7 argumentos). Mantém a
+  // transação e o cadeado; só o campanha_id fica por gravar nessa
+  // janela (o backfill da 042 apanha-o depois, e o filtro da taça
+  // tolera órfãos até lá).
+  console.warn(
+    "contribuicao_registar sem p_campanha_id — a tentar a assinatura da 039 (corre a 042).",
+  );
+  const rpc039 = await supabase.rpc("contribuicao_registar", {
+    p_submission_id: submissionId,
+    p_valor: v,
+    p_metodo: metodo,
+    p_data: data,
+    p_contribuinte: contribuinte || null,
+    p_notas: notas || null,
+    p_intencao_id: intencaoId || null,
+  });
+  if (!rpc039.error) return rpc039.data || [];
+  if (!ehFuncaoRpcEmFalta(rpc039.error)) throw traduzir(rpc039.error);
 
   // BD ainda sem a 039: a conta antiga, no browser. Reclama-se a
   // promessa PRIMEIRO (a ordem decidida pelo Hélio: só se insere o
@@ -306,10 +353,17 @@ export const apagarContribuicao = async (ids) => {
 // As linhas de origem='contribuicao' agrupadas de volta em
 // CONTRIBUIÇÕES (uma pessoa, um gesto): a chave é contribuinte +
 // método + created_at — o carimbo idêntico do insert em lote.
-export const agruparContribuicoes = (pagamentos) => {
+// Com campanhaId, as contribuições de OUTRAS campanhas ficam de fora
+// (042): era a soma por evento que fazia uma campanha nova nascer
+// cheia com o dinheiro da anterior. Linhas SEM campanha_id (pré-042,
+// ou a janela do fallback) ENTRAM de propósito — esconder dinheiro
+// acabado de registar seria pior que o risco de herança, e a fronteira
+// dura vive na BD: correr a 042 + backfill elimina os órfãos.
+export const agruparContribuicoes = (pagamentos, campanhaId = null) => {
   const grupos = new Map();
   for (const p of pagamentos || []) {
     if (p.origem !== "contribuicao") continue;
+    if (campanhaId && p.campanha_id && p.campanha_id !== campanhaId) continue;
     const chave = `${p.contribuinte || ""}|${p.metodo || ""}|${p.created_at}`;
     if (!grupos.has(chave)) {
       grupos.set(chave, {
