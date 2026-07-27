@@ -61,13 +61,51 @@ export const createReserva = async ({
   const nome = nomeCliente.trim();
   const contactoLimpo = contacto?.trim() || null;
 
-  // 1) A PESSOA
-  const { data: cliente, error: erroCliente } = await supabase
-    .from("clientes")
-    .insert({ nome, contacto: contactoLimpo })
-    .select()
-    .single();
-  if (erroCliente) throw erroCliente;
+  // 1) A PESSOA — reutilizada pelo telefone quando já existe (Lote 3A,
+  //    o precedente da captação): marcar uma reserva para alguém que
+  //    já está no funil deixou de criar um segundo cartão. NOTA: na UI
+  //    atual, a criação de reservas passa pelo CaptacaoForm (que já
+  //    deduplica) — este caminho está DORMENTE, mas fica correto para
+  //    quando/se o ReservaModal voltar a criar. O dedupe degrada sem
+  //    travar; um evento VIVO na mesma data trava com mensagem clara.
+  let clienteReutilizado = false;
+  let cliente = null;
+  if (contactoLimpo) {
+    const { data: dedupe, error: erroDedupe } = await supabase.rpc(
+      "captacao_dedupe",
+      { p_digitos: contactoLimpo, p_data: dataEvento || null },
+    );
+    if (erroDedupe) {
+      // Degrada sem travar a reserva — mas deixa rasto (um revoke ou
+      // migração em falta recomeçariam a duplicar em silêncio).
+      console.warn(
+        "captacao_dedupe indisponível na reserva:",
+        erroDedupe.message || erroDedupe,
+      );
+    }
+    const hit = Array.isArray(dedupe) ? dedupe[0] : dedupe;
+    if (hit?.evento_id) {
+      // Mesma pessoa, mesma data, evento vivo: criar uma reserva por
+      // cima seria o duplicado clássico — trava-se com o caminho certo
+      // à vista (o padrão do CaptacaoForm público).
+      throw new Error(
+        "Esta pessoa já tem um evento vivo nesta data — abre-o em Clientes/Funil em vez de criares uma reserva nova.",
+      );
+    }
+    if (hit?.cliente_id) {
+      cliente = { id: hit.cliente_id };
+      clienteReutilizado = true;
+    }
+  }
+  if (!cliente) {
+    const { data: novoCliente, error: erroCliente } = await supabase
+      .from("clientes")
+      .insert({ nome, contacto: contactoLimpo })
+      .select()
+      .single();
+    if (erroCliente) throw erroCliente;
+    cliente = novoCliente;
+  }
 
   // 2) O EVENTO em fase "interessado" — chaves canónicas no respostas,
   //    para o drawer/resumo/documentos lerem tudo sem código novo.
@@ -90,7 +128,11 @@ export const createReserva = async ({
     .select()
     .single();
   if (erroEvento) {
-    await supabase.from("clientes").delete().eq("id", cliente.id);
+    // Rollback só do que ESTA chamada criou — apagar um cliente
+    // REUTILIZADO levaria consigo uma pessoa real com histórico.
+    if (!clienteReutilizado) {
+      await supabase.from("clientes").delete().eq("id", cliente.id);
+    }
     throw erroEvento;
   }
 
@@ -112,10 +154,14 @@ export const createReserva = async ({
     .single();
   if (error) {
     await supabase.from("submissions").delete().eq("id", evento.id);
-    await supabase.from("clientes").delete().eq("id", cliente.id);
+    if (!clienteReutilizado) {
+      await supabase.from("clientes").delete().eq("id", cliente.id);
+    }
     throw error;
   }
-  return data;
+  // A bandeira deixa a Agenda avisar que a reserva ficou ligada a uma
+  // cliente que já existia (nenhum cartão novo foi criado).
+  return { ...data, clienteReutilizado };
 };
 
 // Actualiza campos de uma reserva. Só passa os campos presentes.

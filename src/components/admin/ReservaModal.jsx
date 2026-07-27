@@ -64,7 +64,13 @@ export default function ReservaModal({
       onGuardar(resultado);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível guardar. Tenta novamente.");
+      // As mensagens da casa (ex.: "já tem um evento vivo nesta data")
+      // chegam inteiras; erros crus caem na genérica.
+      setErro(
+        e instanceof Error && e.message
+          ? e.message
+          : "Não foi possível guardar. Tenta novamente.",
+      );
       setGuardando(false);
     }
   };

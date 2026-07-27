@@ -4,6 +4,7 @@ import {
   getTiposParaCaptacao,
   MAX_IMAGENS_REFERENCIA,
 } from "../../lib/captacao";
+import { supabase } from "../../lib/supabase";
 import { registarErroFormulario } from "../../lib/errosForm";
 
 // ============================================================
@@ -176,7 +177,17 @@ export default function CaptacaoForm({
   const validar = () => {
     const e = {};
     if (!nome.trim()) e.nome = "Indica o nome.";
-    if (!contacto.trim()) e.contacto = "Indica o contacto principal.";
+    if (!contacto.trim()) {
+      e.contacto = "Indica o contacto principal.";
+    } else if (!modoInterno && contacto.replace(/\D/g, "").length < 9) {
+      // <9 dígitos úteis: o dedupe do Postgres não consegue comparar
+      // (Lote 3A) e cada reenvio criava um cliente novo. Só na porta
+      // PÚBLICA — na interna a Nádia transcreve leads de Instagram
+      // ("insta: @vera") e bloqueá-la trocava um duplicado possível
+      // por trabalho impossível.
+      e.contacto =
+        "O contacto precisa de pelo menos 9 dígitos (podes usar espaços ou indicativo).";
+    }
     const temTipo =
       (eventTypeId && eventTypeId !== "__outro__") || tipoOutro.trim();
     if (!temTipo) e.tipo = "Escolhe o tipo de evento.";
@@ -236,10 +247,29 @@ export default function CaptacaoForm({
         modoInterno &&
         (submission.duplicado || submission.clienteReutilizado)
       ) {
-        // Não fecha já: primeiro conta à Nádia o que aconteceu
+        // Não fecha já: primeiro conta à Nádia o que aconteceu — e A
+        // QUEM ficou ligado (Lote 3A): um telefone com gralha que
+        // coincida com outra pessoa só se apanha vendo o nome. O fetch
+        // do nome é AUTENTICADO (só a porta interna cá chega; o
+        // anónimo da porta pública nunca vê nomes — a RLS é a
+        // fronteira) e best-effort.
+        let nomeExistente = null;
+        if (submission.cliente_id) {
+          try {
+            const { data: ficha } = await supabase
+              .from("clientes")
+              .select("nome")
+              .eq("id", submission.cliente_id)
+              .maybeSingle();
+            nomeExistente = ficha?.nome || null;
+          } catch (e) {
+            console.warn("Sem nome da ficha reutilizada:", e?.message || e);
+          }
+        }
         setAvisoDedupe({
           tipo: submission.duplicado ? "duplicado" : "reutilizado",
           submission,
+          nomeExistente,
         });
         setEnviando(false);
         return;
@@ -306,7 +336,9 @@ export default function CaptacaoForm({
         >
           {duplicado
             ? "Já havia um evento vivo deste contacto nesta data — não foi criado nada de novo (proteção contra envios repetidos). Se é mesmo um evento diferente, muda a data ou o contacto."
-            : "Este telefone já pertencia a um cliente, por isso o evento novo ficou guardado na ficha dele — a mesma pessoa não se duplica. Procura pelo nome do evento ou abre o cliente para confirmar."}
+            : avisoDedupe.nomeExistente
+              ? `Este telefone já pertencia à ficha de ${avisoDedupe.nomeExistente} — o evento novo ficou guardado nessa ficha, a mesma pessoa não se duplica. Se NÃO é esta pessoa, o número tem uma gralha: corrige-o na ficha do evento.`
+              : "Este telefone já pertencia a uma ficha registada, por isso o evento novo ficou guardado nessa ficha — a mesma pessoa não se duplica. Abre a ficha para confirmar."}
         </p>
         <button
           onClick={() => {

@@ -188,10 +188,19 @@ export const submeterCaptacao = async (payload) => {
     // dígitos do que recebe — concatenar os dois só verificava um).
     const numeros = [...new Set([whatsappDedupe, contacto].filter(Boolean))];
     for (const numero of numeros) {
-      const { data: dedupe } = await supabase.rpc("captacao_dedupe", {
-        p_digitos: numero,
-        p_data: dataDedupe,
-      });
+      const { data: dedupe, error: erroDedupe } = await supabase.rpc(
+        "captacao_dedupe",
+        { p_digitos: numero, p_data: dataDedupe },
+      );
+      if (erroDedupe) {
+        // O rpc() não LANÇA — devolve o erro; sem isto, um revoke ou
+        // migração em falta degradava para "cliente novo" sem rasto.
+        console.warn(
+          "captacao_dedupe falhou:",
+          erroDedupe.message || erroDedupe,
+        );
+        continue;
+      }
       const hit = Array.isArray(dedupe) ? dedupe[0] : dedupe;
       if (hit?.evento_id) {
         // Mesmo telefone + mesma data com evento vivo: NÃO duplica —
@@ -241,8 +250,12 @@ export const submeterCaptacao = async (payload) => {
     .select()
     .single();
   if (erroSub) {
-    // Não deixar uma pessoa órfã se o evento falhar
-    await supabase.from("clientes").delete().eq("id", cliente.id);
+    // Não deixar uma pessoa órfã se o evento falhar — mas SÓ se fomos
+    // nós a criá-la: apagar um cliente REUTILIZADO levaria consigo uma
+    // pessoa real com histórico (bug apanhado no Lote 3A).
+    if (!clienteExistenteId) {
+      await supabase.from("clientes").delete().eq("id", cliente.id);
+    }
     throw erroSub;
   }
 

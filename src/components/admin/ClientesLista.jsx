@@ -290,14 +290,36 @@ export default function ClientesLista({
     setRemovendoEvento(false);
   };
 
+  // Pesquisa NORMALIZADA (Lote 3A, antecipada por decisão do Hélio na
+  // Fase 1 — "ajuda a revelar duplicados"): acentos fora nos nomes
+  // ("joao" encontra "João") e telefones comparados só por dígitos
+  // ("912345678" encontra "912 345 678" e "+351 912 345 678").
+  const semAcentos = (s) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const filtrados = clientes.filter((c) => {
     const q = busca.trim().toLowerCase();
     if (!q) return true;
-    return [c.nome, c.contacto, c.email]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(q);
+    const texto = semAcentos(
+      [c.nome, c.contacto, c.email].filter(Boolean).join(" ").toLowerCase(),
+    );
+    if (texto.includes(semAcentos(q))) return true;
+    const qDigitos = q.replace(/\D/g, "");
+    if (qDigitos.length >= 3) {
+      // O número pode viver na ficha OU nas respostas dos eventos
+      // (numeroWhatsapp/contactoPrincipal) — é onde o dedupe também o
+      // procura; a pesquisa vê o mesmo que o sistema sabe.
+      const numeros = [
+        c.contacto,
+        ...(c.submissions || []).flatMap((e) => [
+          e.respostas?.contactoPrincipal,
+          e.respostas?.numeroWhatsapp,
+        ]),
+      ]
+        .filter(Boolean)
+        .map((n) => String(n).replace(/\D/g, ""));
+      if (numeros.some((n) => n.includes(qDigitos))) return true;
+    }
+    return false;
   });
 
   // Alternador Lista ↔ Funil — vive acima de tudo, nas duas vistas
