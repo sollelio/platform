@@ -400,8 +400,14 @@ export default function FormPage() {
       return;
     }
     const inv = JSON.parse(stored);
-    if (!inv.event_types || !inv.event_types.steps) {
-      // Convite sem tipo de evento associado — não há formulário para mostrar
+    // A guarda antiga só apanhava steps em FALTA; um modelo com steps
+    // vazios (ou num formato inesperado) passava e rebentava no
+    // primeiro step.title. Sem passos não há formulário para mostrar.
+    if (
+      !inv.event_types ||
+      !Array.isArray(inv.event_types.steps) ||
+      inv.event_types.steps.length === 0
+    ) {
       navigate("/");
       return;
     }

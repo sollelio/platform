@@ -336,7 +336,19 @@ export default function AdminPage() {
   const handlePreencherFormulario = (invite) => {
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     if (!tipo) {
-      alert("Tipo de evento não encontrado. Tenta recarregar a página.");
+      setActiveTab("convites");
+      setAvisoConvites(
+        "O tipo de evento deste formulário já não existe. Recarrega a página; se o aviso persistir, verifica o modelo no editor de Tipos de Evento.",
+      );
+      return;
+    }
+    // Um modelo sem passos partia o formulário do cliente (ecrã em
+    // branco) — diz-se aqui, onde há quem leia, e não lá.
+    if (!Array.isArray(tipo.steps) || tipo.steps.length === 0) {
+      setActiveTab("convites");
+      setAvisoConvites(
+        `O modelo "${tipo.nome}" não tem passos — o formulário abriria em branco. Abre o editor de Tipos de Evento e compõe os passos desse modelo antes de partilhar o convite.`,
+      );
       return;
     }
     const inviteCompleto = {
