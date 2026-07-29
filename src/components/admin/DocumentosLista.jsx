@@ -124,15 +124,22 @@ export default function DocumentosLista({
   submissions,
   eventTypes,
   onAbrirDocumento,
+  // Cada cartão é o cruzamento de um documento com o SEU evento. Com os
+  // eventos ainda a caminho o cruzamento falha em silêncio: todos os
+  // cartões saem com o título genérico «Evento», sem tipo, sem estado e
+  // sem data — e os filtros por tipo/estado/data escondem linhas que
+  // deviam estar lá. Esperar é mais honesto do que mostrar mal.
+  eventosPorChegar = false,
 }) {
   const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const loading = loadingDocs || eventosPorChegar;
   const [erro, setErro] = useState(false);
   const [filtros, setFiltros] = useState({});
   const [pesquisa, setPesquisa] = useState("");
 
   const carregar = async () => {
-    setLoading(true);
+    setLoadingDocs(true);
     setErro(false);
     try {
       setDocs(await listarDocumentos());
@@ -140,7 +147,7 @@ export default function DocumentosLista({
       console.error("Erro ao listar documentos:", e);
       setErro(true);
     }
-    setLoading(false);
+    setLoadingDocs(false);
   };
 
   useEffect(() => {

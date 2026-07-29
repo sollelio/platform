@@ -85,7 +85,13 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
       const data = await getMateriais({ incluirInativos: true });
       setMateriais(data);
     } catch (e) {
+      // Um catálogo vazio por falha de rede é indistinguível de um
+      // catálogo vazio de verdade — e o segundo nunca acontece nesta
+      // casa. Dizer que falhou é o mínimo.
       console.error("Erro ao carregar materiais:", e);
+      setErroMsg(
+        "Não foi possível carregar o inventário — isto não quer dizer que não haja materiais. Recarrega a página.",
+      );
     }
     setLoading(false);
   };

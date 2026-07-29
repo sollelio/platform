@@ -1,29 +1,50 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  getClientes,
-  getClienteComEventos,
-  createEventoParaCliente,
-  deleteEvento,
-  getVinculosEvento,
-} from "../../lib/clientes";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getClientes } from "../../lib/clientes";
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import FunilBoard from "./FunilBoard";
 import { Icone } from "./Navegacao";
-import { formatarEuros } from "./orcamentos/orcamentoConfig";
 
-// Memória da última vista escolhida (dura a sessão): se a Nádia
-// estava no funil, voltar aos Clientes volta ao FUNIL, não à lista.
+// Memória da última vista escolhida (dura a sessão). Continua a existir,
+// mas mudou de papel: agora a vista vive no URL (?vista=funil) e esta
+// memória só decide o que fazer quando o URL NÃO diz nada — que é o caso
+// de clicar «Clientes» no menu.
+//
+// Assim as duas coisas deixam de brigar (antes, uma variável de módulo
+// ganhava sempre a corrida ao URL no primeiro render):
+//   • um link partilhado com ?vista=... manda SEMPRE, é o que se prometeu
+//     a quem o recebeu;
+//   • sem indicação no URL, ela volta ao sítio onde estava — o hábito
+//     dela não se perde;
+//   • e o URL é normalizado logo a seguir, para a barra de endereço
+//     nunca mentir sobre o que está no ecrã.
 let ultimaVista = "lista";
 
+// Memória da pesquisa, pela mesma razão e no mesmo idioma: entrar na
+// ficha de uma cliente DESMONTA esta lista (são ramos exclusivos da
+// mesma secção), por isso sem isto o texto procurado evaporava-se e ela
+// tinha de o escrever outra vez a cada ida e volta. Não vai para o URL
+// de propósito: um endereço partilhado não deve levar a pesquisa de
+// quem o partilhou.
+let ultimaBusca = "";
+
 // ============================================================
-// ClientesLista — a vista de Clientes: PESSOAS (não eventos), agora
-// com duas vistas alternáveis:
-//   • Lista  — cards de clientes → eventos de cada um (como sempre)
+// ClientesLista — a vista de Clientes: PESSOAS (não eventos), em duas
+// vistas alternáveis:
+//   • Lista  — cartões de pessoas
 //   • Funil  — a esteira comercial por fases (FunilBoard)
 //
-// Clicar num evento (em qualquer vista) delega no onAbrirEvento
-// (o SubmissionDrawer que já existe).
+// NA LISTA, clicar numa pessoa vai DIRECTO ao destino: ao evento dela
+// se só tiver um vivo, à casa dela (/admin/clientes/:id) em qualquer
+// outro caso. O painel lateral que abria aqui — com os eventos, o
+// «+ Novo evento» e a remoção — mudou-se para essa casa, que tem
+// endereço próprio e sobrevive a um F5.
+//
+// NO FUNIL, os cartões são EVENTOS e continuam a abrir o
+// SubmissionDrawer pelo onAbrirEvento — de propósito: aquele cartão
+// tem dez botões de confirmação inline a viver de stopPropagation, e
+// transformá-lo numa navegação faria a página sair de baixo de uma
+// confirmação de «marcar como perdido» a meio.
 // ============================================================
 
 const iniciais = (nome) =>
@@ -34,29 +55,6 @@ const iniciais = (nome) =>
     .map((p) => p.charAt(0).toUpperCase())
     .join("");
 
-const formatarData = (iso) => {
-  if (!iso) return "sem data";
-  const [a, m, d] = iso.split("-");
-  const meses = [
-    "jan",
-    "fev",
-    "mar",
-    "abr",
-    "mai",
-    "jun",
-    "jul",
-    "ago",
-    "set",
-    "out",
-    "nov",
-    "dez",
-  ];
-  return `${Number(d)} ${meses[Number(m) - 1]} ${a}`;
-};
-
-// Os tipos de evento do cliente ("Casamento", "Casamento + Aniversário",
-// "Casamento + Aniversário +1"...) — a Nádia quer VER o evento no
-// cartão, não contar eventos. Sem tipo conhecido, cai na contagem.
 const tiposDoCliente = (c, eventTypes) => {
   const nomes = [
     ...new Set(
@@ -124,33 +122,6 @@ const faseDaPessoa = (c) => {
   return null;
 };
 
-// Rótulos dos tipos de documento — os mesmos da tab Documentos
-// (DocumentosTab.jsx). "proposta" é a chave interna; na UI é "Projecto".
-const TIPO_DOC_LABEL = {
-  orcamento: "Orçamento",
-  contrato: "Contrato",
-  proposta: "Projecto",
-};
-
-const EASE = [0.22, 1, 0.36, 1];
-
-// Linha de evento: ao passar o rato, aquece ligeiramente (reforça que é
-// clicável) — os valores são hex reais, não var(--...), porque o motor de
-// animação do framer-motion precisa de interpolar cores de verdade.
-const linhaEventoVariants = {
-  rest: { backgroundColor: "#FBF7EF", borderColor: "rgba(201,168,76,0)" },
-  hover: { backgroundColor: "#F7EFDA", borderColor: "#E8D5A3" },
-};
-
-// O botão de remover vive sempre ali (nunca escondido), mas em repouso
-// fica discreto — só "acorda" (opacidade, tamanho e vermelho) quando o
-// rato passa pela LINHA inteira, não só pelo próprio botão: é isso que o
-// torna óbvio sem ter de o ires procurar primeiro.
-const botaoRemoverVariants = {
-  rest: { opacity: 0.35, scale: 0.85, backgroundColor: "rgba(220,38,38,0)", color: "#8A8272" },
-  hover: { opacity: 1, scale: 1, backgroundColor: "rgba(220,38,38,0.12)", color: "#DC2626" },
-};
-
 export default function ClientesLista({
   eventTypes = [],
   onAbrirEvento,
@@ -159,26 +130,37 @@ export default function ClientesLista({
   verPerdidos = null,
   aoConsumirVerPerdidos,
 }) {
-  const [vista, setVista] = useState(ultimaVista); // "lista" | "funil"
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vistaDoUrl = searchParams.get("vista");
+  const vista =
+    vistaDoUrl === "funil" || vistaDoUrl === "lista" ? vistaDoUrl : ultimaVista;
+
+  // Normaliza o endereço quando ele não diz (ou diz mal) qual é a vista.
+  // `replace` de propósito: isto é uma correcção do URL, não um passo de
+  // navegação — não deve ficar no histórico nem exigir dois «voltar».
+  useEffect(() => {
+    if (vistaDoUrl !== vista) {
+      setSearchParams({ vista }, { replace: true });
+    }
+  }, [vistaDoUrl, vista, setSearchParams]);
+
+  const trocarVista = (v) => {
+    ultimaVista = v;
+    setSearchParams({ vista: v }, { replace: true });
+  };
 
   // Um pedido "ver perdidos" força a vista do funil (e fica na memória
   // da sessão, como qualquer troca manual) — o resto é com o FunilBoard.
   useEffect(() => {
     if (!verPerdidos) return;
-    ultimaVista = "funil";
-    setVista("funil");
+    trocarVista("funil");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verPerdidos]);
   const [clientes, setClientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
-  const [aberto, setAberto] = useState(null); // cliente com eventos
-  const [busca, setBusca] = useState("");
-  const [criandoEvento, setCriandoEvento] = useState(false);
-  const [perguntandoFase, setPerguntandoFase] = useState(false);
-  const [eventoParaRemover, setEventoParaRemover] = useState(null);
-  const [vinculosEvento, setVinculosEvento] = useState(null); // { documentos, reservas } | null enquanto verifica
-  const [erroRemoverEvento, setErroRemoverEvento] = useState(null);
-  const [removendoEvento, setRemovendoEvento] = useState(false);
+  const [busca, setBusca] = useState(ultimaBusca);
 
   const carregar = async () => {
     setCarregando(true);
@@ -201,103 +183,32 @@ export default function ClientesLista({
     if (vista === "lista") carregar();
   }, [vista, refrescarEm]);
 
-  const abrirCliente = async (id) => {
-    setPerguntandoFase(false);
-    try {
-      const c = await getClienteComEventos(id);
-      setAberto(c);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // O painel do cliente aberto (à direita, com os eventos dela) tem o
-  // seu próprio fetch, independente da lista — sem isto, editar a data
-  // (ou outro campo) no drawer do evento só se refletia aqui ao
-  // fechar e reabrir o cliente. "aberto" fica de fora das dependências
-  // de propósito: só queremos voltar a pedir quando o AdminPage avisa
-  // uma mudança (refrescarEm), não sempre que abrirCliente troca o
-  // próprio "aberto" (senão duplicava o pedido a cada clique na lista).
-  useEffect(() => {
-    if (aberto) abrirCliente(aberto.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refrescarEm]);
-
-  const nomeTipo = (ev) => {
-    if (!ev) return "Evento";
-    const t = eventTypes.find((x) => x.id === ev.event_type_id);
-    return t?.nome || (ev.respostas?.tipoEventoOutro || "").trim() || "Evento";
-  };
-
-  const novoEvento = async (fase) => {
-    if (!aberto) return;
-    setCriandoEvento(true);
-    setPerguntandoFase(false);
-    try {
-      await createEventoParaCliente(aberto.id, { fase });
-      await abrirCliente(aberto.id); // recarrega os eventos
-      await carregar(); // atualiza contagens na lista
-    } catch (e) {
-      console.error(e);
-    }
-    setCriandoEvento(false);
-  };
-
-  // Abre a confirmação e, em paralelo, vai ver o que este evento arrasta
-  // consigo (documentos que se perdem, reservas que se desligam) — a
-  // Nádia decide já informada, não às escuras.
-  const pedirRemocaoEvento = async (ev) => {
-    setErroRemoverEvento(null);
-    setEventoParaRemover(ev);
-    setVinculosEvento(null);
-    try {
-      const v = await getVinculosEvento(ev.id);
-      setVinculosEvento(v);
-    } catch (e) {
-      console.error(e);
-      // Sem a lista de vínculos, mostra o aviso genérico à mesma —
-      // não bloqueia a remoção por a verificação ter falhado.
-      setVinculosEvento({
-        documentos: [],
-        reservas: [],
-        pagamentos: [],
-        convitesPendentes: [],
-      });
-    }
-  };
-
-  const handleConfirmarRemocaoEvento = async () => {
-    if (!eventoParaRemover || !aberto) return;
-    setRemovendoEvento(true);
-    setErroRemoverEvento(null);
-    try {
-      await deleteEvento(eventoParaRemover.id);
-      setEventoParaRemover(null);
-      setVinculosEvento(null);
-      await abrirCliente(aberto.id); // recarrega os eventos
-      await carregar(); // atualiza contagens na lista
-      if (onDadosMudaram) onDadosMudaram();
-    } catch (e) {
-      console.error(e);
-      // Código 23503 = violação de chave estrangeira — duas causas
-      // possíveis, cada uma com a sua constraint nomeada (ver
-      // getVinculosEvento em lib/clientes.js). Esta apanha só o caso
-      // raro de um pagamento ter sido registado ENTRE abrir este
-      // diálogo e clicar Remover — o aviso normal já bloqueia o botão
-      // antes disso (ver o JSX do diálogo).
-      if (e.code === "23503" && e.message?.includes("pagamentos_submission_fk")) {
-        setErroRemoverEvento(
-          "Não é possível remover: entretanto ficou um pagamento registado neste evento. Fecha e volta a tentar.",
-        );
-      } else if (e.code === "23503") {
-        setErroRemoverEvento(
-          "Não é possível remover: há um convite/formulário já preenchido ligado a este evento.",
-        );
-      } else {
-        setErroRemoverEvento("Ocorreu um erro ao remover. Tenta novamente.");
-      }
-    }
-    setRemovendoEvento(false);
+  // ------------------------------------------------------------
+  // UM CLIQUE, E ACABOU — quando não há ambiguidade.
+  //
+  // A regra: se a pessoa tem exactamente UM evento vivo, o cartão leva
+  // lá directamente. Tudo o resto leva à casa dela, onde escolhe.
+  //
+  // «Vivo» é fase !== "perdido" (decisão do Hélio, 29/07/2026): um
+  // casamento que se perdeu no ano passado não deve roubar o atalho a
+  // um aniversário a decorrer. Repare-se que os casos-limite caem todos
+  // do lado seguro, sem becos:
+  //   • 0 eventos          -> a casa dela, com o convite para criar o 1.º;
+  //   • só eventos perdidos -> a casa dela, que os LISTA na mesma (é o
+  //     único caminho para os recuperar — se o clique não abrisse nada,
+  //     um cliente com um só evento perdido ficava inalcançável);
+  //   • 2+ vivos           -> a casa dela, para escolher qual.
+  //
+  // A contagem não custa uma ida à base: a lista de clientes já traz os
+  // eventos aninhados, com o id de cada um.
+  // ------------------------------------------------------------
+  const abrirCliente = (c) => {
+    const vivos = (c.submissions || []).filter((e) => e.fase !== "perdido");
+    navigate(
+      vivos.length === 1
+        ? `/evento/${vivos[0].id}`
+        : `/admin/clientes/${c.id}`,
+    );
   };
 
   // Pesquisa NORMALIZADA (Lote 3A, antecipada por decisão do Hélio na
@@ -344,8 +255,7 @@ export default function ClientesLista({
           <button
             key={v.id}
             onClick={() => {
-              ultimaVista = v.id;
-              setVista(v.id);
+              trocarVista(v.id);
             }}
             style={{
               padding: "8px 20px",
@@ -418,16 +328,7 @@ export default function ClientesLista({
   return (
     <div>
       {alternador}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: aberto
-            ? "repeat(auto-fit, minmax(300px, 1fr))"
-            : "1fr",
-          gap: "20px",
-          alignItems: "start",
-        }}
-      >
+      <div>
         {/* ===== LISTA DE CLIENTES (pessoas) ===== */}
         <div>
           <input
@@ -443,7 +344,10 @@ export default function ClientesLista({
             }}
             placeholder="Procurar por nome, contacto ou email..."
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => {
+              ultimaBusca = e.target.value;
+              setBusca(e.target.value);
+            }}
           />
 
           {filtrados.length === 0 && (
@@ -453,19 +357,18 @@ export default function ClientesLista({
           )}
 
           {filtrados.map((c) => {
-            const ativo = aberto?.id === c.id;
             const fase = faseDaPessoa(c);
             const corFase = fase ? FASE_COR[fase] : null;
             return (
               <div
                 key={c.id}
-                onClick={() => abrirCliente(c.id)}
+                onClick={() => abrirCliente(c)}
                 style={{
                   backgroundColor: "white",
                   borderRadius: "14px",
                   padding: "14px 16px",
                   marginBottom: "10px",
-                  border: ativo ? "2px solid var(--gold)" : "1px solid #F0EBE0",
+                  border: "1px solid #F0EBE0",
                   boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
                   cursor: "pointer",
                   display: "flex",
@@ -533,582 +436,42 @@ export default function ClientesLista({
                     {FASE_LABEL[fase]}
                   </span>
                 )}
+                {/* A SEGUNDA PORTA. O atalho de um clique é bom, mas
+                    deixava a ficha da pessoa inalcançável justamente no
+                    caso mais comum — a cliente de um só evento vivo ia
+                    direita ao evento e nunca mais havia caminho para o
+                    NIF, para o «+ Novo evento» nem para remover um
+                    evento criado por engano. Discreto de propósito: o
+                    gesto principal continua a ser abrir o evento. */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/admin/clientes/${c.id}`);
+                  }}
+                  title="Ficha da cliente"
+                  aria-label={`Ficha de ${c.nome}`}
+                  style={{
+                    flexShrink: 0,
+                    padding: "3px 10px",
+                    borderRadius: "999px",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    border: "1px solid var(--gold-light)",
+                    backgroundColor: "white",
+                    color: "var(--gold-dark)",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Ficha
+                </button>
               </div>
             );
           })}
         </div>
 
-        {/* ===== CLIENTE ABERTO — os eventos dela ===== */}
-        {aberto && (
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "14px",
-              padding: "18px",
-              border: "1px solid #F0EBE0",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-              position: "sticky",
-              top: "16px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                marginBottom: "6px",
-              }}
-            >
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "50%",
-                  backgroundColor: "#FBF7EF",
-                  border: "1px solid var(--gold-light)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "Playfair Display, serif",
-                  fontSize: "17px",
-                  color: "var(--gold)",
-                }}
-              >
-                {iniciais(aberto.nome)}
-              </div>
-              <div style={{ flex: 1 }}>
-                <p
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    fontFamily: "Playfair Display, serif",
-                    color: "var(--charcoal)",
-                    margin: 0,
-                  }}
-                >
-                  {aberto.nome}
-                </p>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--gray-mid)",
-                    margin: 0,
-                  }}
-                >
-                  {[aberto.contacto, aberto.nif ? `NIF ${aberto.nif}` : null]
-                    .filter(Boolean)
-                    .join(" · ") || "sem contacto"}
-                </p>
-              </div>
-              <button
-                onClick={() => setAberto(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "18px",
-                  color: "var(--gray-mid)",
-                  cursor: "pointer",
-                }}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-
-            <div
-              style={{
-                borderTop: "1px solid #F0EBE0",
-                paddingTop: "12px",
-                marginTop: "10px",
-              }}
-            >
-              {aberto.eventos.length === 0 && (
-                <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>
-                  Ainda sem eventos.
-                </p>
-              )}
-              {aberto.eventos.map((ev) => {
-                const f = FASE_COR[ev.fase] || FASE_COR.interessado;
-                return (
-                  <motion.div
-                    key={ev.id}
-                    onClick={() => onAbrirEvento && onAbrirEvento(ev)}
-                    initial="rest"
-                    whileHover="hover"
-                    variants={linhaEventoVariants}
-                    transition={{ duration: 0.18, ease: EASE }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                      padding: "11px 13px",
-                      borderRadius: "10px",
-                      border: "1px solid transparent",
-                      marginBottom: "8px",
-                      cursor: onAbrirEvento ? "pointer" : "default",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <p
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "var(--charcoal)",
-                          margin: 0,
-                        }}
-                      >
-                        {nomeTipo(ev)}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--gray-mid)",
-                          margin: 0,
-                        }}
-                      >
-                        {formatarData(ev.data_evento)}
-                        {ev.local_evento ? ` · ${ev.local_evento}` : ""}
-                      </p>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "600",
-                          padding: "3px 10px",
-                          borderRadius: "999px",
-                          backgroundColor: f.bg,
-                          color: f.cor,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {FASE_LABEL[ev.fase] || ev.fase}
-                      </span>
-                      <motion.button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          pedirRemocaoEvento(ev);
-                        }}
-                        title="Remover este evento"
-                        aria-label="Remover este evento"
-                        variants={botaoRemoverVariants}
-                        whileTap={{ scale: 0.85 }}
-                        transition={{ duration: 0.18, ease: EASE }}
-                        style={{
-                          width: "26px",
-                          height: "26px",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: "50%",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Icone nome="lixo" tamanho={14} />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                );
-              })}
-
-              {perguntandoFase && !criandoEvento ? (
-                <div
-                  style={{
-                    marginTop: "8px",
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1.5px solid var(--gold-light)",
-                    backgroundColor: "white",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      color: "var(--charcoal)",
-                      margin: "0 0 10px 0",
-                    }}
-                  >
-                    Em que ponto está este evento?
-                  </p>
-                  <button
-                    onClick={() => novoEvento("interessado")}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      border: "1.5px solid #F0D9B5",
-                      backgroundColor: "#FEF3E2",
-                      color: "#B45309",
-                      cursor: "pointer",
-                      marginBottom: "8px",
-                      textAlign: "left",
-                    }}
-                  >
-                    🟡 Ainda a decidir
-                    <span
-                      style={{
-                        display: "block",
-                        fontWeight: "400",
-                        fontSize: "11px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      Vai precisar de orçamento
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => novoEvento("cliente")}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      border: "1.5px solid #BBE5C8",
-                      backgroundColor: "#DCFCE7",
-                      color: "#166534",
-                      cursor: "pointer",
-                      marginBottom: "8px",
-                      textAlign: "left",
-                    }}
-                  >
-                    🟢 Já fechado
-                    <span
-                      style={{
-                        display: "block",
-                        fontWeight: "400",
-                        fontSize: "11px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      A cliente confirmou o evento
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setPerguntandoFase(false)}
-                    style={{
-                      width: "100%",
-                      padding: "7px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      border: "none",
-                      backgroundColor: "transparent",
-                      color: "var(--gray-mid)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setPerguntandoFase(true)}
-                  disabled={criandoEvento}
-                  style={{
-                    width: "100%",
-                    marginTop: "8px",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    border: "1.5px solid var(--gold)",
-                    color: criandoEvento ? "var(--gray-mid)" : "var(--gold)",
-                    backgroundColor: "white",
-                    cursor: criandoEvento ? "wait" : "pointer",
-                  }}
-                >
-                  {criandoEvento
-                    ? "A criar..."
-                    : "+ Novo evento para esta cliente"}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Confirmação de remoção de evento — nunca window.confirm,
-          e nunca escondida dentro do detalhe (SubmissionDrawer): o
-          botão vive já na lista, aqui a confirmação só evita um
-          clique acidental a apagar um evento por engano. */}
-      {eventoParaRemover && (
-        <div
-          onClick={() => {
-            setEventoParaRemover(null);
-            setVinculosEvento(null);
-            setErroRemoverEvento(null);
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 150,
-            backgroundColor: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "white",
-              borderRadius: "16px",
-              padding: "24px",
-              maxWidth: "400px",
-              width: "100%",
-              boxShadow: "0 8px 48px rgba(0,0,0,0.15)",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "16px",
-                color: "var(--charcoal)",
-                margin: "0 0 12px 0",
-                fontFamily: "Playfair Display, serif",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Remover evento?
-            </h3>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "var(--gray-mid)",
-                margin: "0 0 16px 0",
-                lineHeight: "1.6",
-              }}
-            >
-              O evento <strong>{nomeTipo(eventoParaRemover)}</strong>{" "}
-              {eventoParaRemover.data_evento
-                ? `(${formatarData(eventoParaRemover.data_evento)}) `
-                : ""}
-              de <strong>{aberto?.nome}</strong> vai ser removido. Esta acção
-              não pode ser anulada.
-            </p>
-
-            {vinculosEvento === null ? (
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--gray-mid)",
-                  margin: "0 0 16px 0",
-                }}
-              >
-                A verificar o que está ligado a este evento...
-              </p>
-            ) : (
-              <>
-                {vinculosEvento.pagamentos.length > 0 && (
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#7F1D1D",
-                      backgroundColor: "#FEF2F2",
-                      border: "1.5px solid #EF4444",
-                      borderRadius: "8px",
-                      padding: "12px 14px",
-                      margin: "0 0 10px 0",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    <p style={{ margin: "0 0 6px 0", fontWeight: "700" }}>
-                      🛑 Isto impede a remoção
-                    </p>
-                    <p style={{ margin: "0 0 6px 0" }}>
-                      Este evento tem{" "}
-                      {vinculosEvento.pagamentos.length === 1
-                        ? "um pagamento registado"
-                        : `${vinculosEvento.pagamentos.length} pagamentos registados`}{" "}
-                      — dinheiro real não se apaga junto com o evento. Apaga
-                      primeiro{" "}
-                      {vinculosEvento.pagamentos.length === 1
-                        ? "esse pagamento"
-                        : "esses pagamentos"}{" "}
-                      no separador Pagamentos da ficha do evento; só depois
-                      este evento fica livre para remover.
-                    </p>
-                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                      {vinculosEvento.pagamentos.map((p) => (
-                        <li key={p.id}>
-                          {formatarEuros(p.valor)}
-                          {p.data
-                            ? ` · ${formatarData(p.data)}`
-                            : " · data desconhecida (reconstituído)"}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {vinculosEvento.documentos.length > 0 && (
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#B91C1C",
-                      backgroundColor: "#FEF2F2",
-                      border: "1px solid #FECACA",
-                      borderRadius: "8px",
-                      padding: "10px 14px",
-                      margin: "0 0 10px 0",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    ⚠ Este evento tem{" "}
-                    <strong>
-                      {vinculosEvento.documentos
-                        .map((d) => TIPO_DOC_LABEL[d.tipo] || d.tipo)
-                        .join(", ")}
-                    </strong>{" "}
-                    — {vinculosEvento.documentos.length === 1 ? "vai" : "vão"}{" "}
-                    ser apagado{vinculosEvento.documentos.length === 1 ? "" : "s"}{" "}
-                    definitivamente junto com o evento.
-                  </p>
-                )}
-                {vinculosEvento.reservas.length > 0 && (
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#92400E",
-                      backgroundColor: "#FEF3E2",
-                      border: "1px solid #F0D9B5",
-                      margin: "0 0 10px 0",
-                      borderRadius: "8px",
-                      padding: "10px 14px",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    ℹ Há uma reserva na Agenda ligada a este evento — fica lá,
-                    mas desliga-se do evento removido.
-                  </p>
-                )}
-                {(vinculosEvento.convitesPendentes?.length || 0) > 0 && (
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#92400E",
-                      backgroundColor: "#FEF3E2",
-                      border: "1px solid #F0D9B5",
-                      margin: "0 0 10px 0",
-                      borderRadius: "8px",
-                      padding: "10px 14px",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    ⚠{" "}
-                    {vinculosEvento.convitesPendentes.length === 1
-                      ? "Há um formulário por preencher apontado a este evento"
-                      : `Há ${vinculosEvento.convitesPendentes.length} formulários por preencher apontados a este evento`}{" "}
-                    (
-                    {vinculosEvento.convitesPendentes
-                      .map((c) => c.code)
-                      .join(", ")}
-                    ). Ao remover o evento,{" "}
-                    {vinculosEvento.convitesPendentes.length === 1
-                      ? "esse convite fica solto e, se for preenchido, cria um cliente e um evento novos"
-                      : "esses convites ficam soltos e, se forem preenchidos, criam clientes e eventos novos"}{" "}
-                    em vez de atualizar este. Apaga-
-                    {vinculosEvento.convitesPendentes.length === 1 ? "o" : "os"}{" "}
-                    primeiro na secção Formulários.
-                  </p>
-                )}
-              </>
-            )}
-
-            {erroRemoverEvento && (
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "#EF4444",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  margin: "0 0 16px 0",
-                }}
-              >
-                ⚠ {erroRemoverEvento}
-              </p>
-            )}
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                onClick={() => {
-                  setEventoParaRemover(null);
-                  setVinculosEvento(null);
-                  setErroRemoverEvento(null);
-                }}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  border: "1.5px solid var(--gold-light)",
-                  color: "var(--gray-mid)",
-                  backgroundColor: "white",
-                  cursor: "pointer",
-                }}
-              >
-                Cancelar
-              </button>
-              {(() => {
-                const bloqueadoPorPagamentos =
-                  (vinculosEvento?.pagamentos?.length || 0) > 0;
-                const desativado =
-                  removendoEvento ||
-                  vinculosEvento === null ||
-                  bloqueadoPorPagamentos;
-                return (
-                  <button
-                    onClick={handleConfirmarRemocaoEvento}
-                    disabled={desativado}
-                    title={
-                      bloqueadoPorPagamentos
-                        ? "Apaga primeiro os pagamentos deste evento"
-                        : undefined
-                    }
-                    style={{
-                      padding: "10px 20px",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      border: "none",
-                      backgroundColor: desativado ? "#FCA5A5" : "#EF4444",
-                      color: "white",
-                      cursor: desativado ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    {removendoEvento
-                      ? "A remover..."
-                      : vinculosEvento === null
-                        ? "A verificar..."
-                        : bloqueadoPorPagamentos
-                          ? "Remoção bloqueada"
-                          : "Remover"}
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

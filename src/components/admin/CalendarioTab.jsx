@@ -93,6 +93,12 @@ function chaveDia(ano, mes, dia) {
 }
 
 export default function CalendarioTab({
+  // Os três contadores do mês somam sobre eventos e reservas que vêm
+  // por prop. Antes de eles chegarem, «0 eventos · 0 reservas · 0 dias
+  // ocupados» não é um mês vazio — é uma pergunta ainda sem resposta,
+  // dita como se fosse resposta. Enquanto não sabemos, mostra-se um
+  // travessão.
+  dadosPorChegar = false,
   submissions,
   eventTypes,
   reservas = [],
@@ -260,9 +266,9 @@ export default function CalendarioTab({
             }}
           >
             <span style={{ fontWeight: "700", color: "var(--gold)" }}>
-              {totalEventosMes}
+              {dadosPorChegar ? "—" : totalEventosMes}
             </span>{" "}
-            {totalEventosMes === 1 ? "evento" : "eventos"}
+            {!dadosPorChegar && totalEventosMes === 1 ? "evento" : "eventos"}
           </div>
           <div
             style={{
@@ -275,9 +281,9 @@ export default function CalendarioTab({
             }}
           >
             <span style={{ fontWeight: "700", color: "var(--gold-dark)" }}>
-              {totalReservasMes}
+              {dadosPorChegar ? "—" : totalReservasMes}
             </span>{" "}
-            {totalReservasMes === 1 ? "reserva" : "reservas"}
+            {!dadosPorChegar && totalReservasMes === 1 ? "reserva" : "reservas"}
           </div>
           <div
             style={{
@@ -290,9 +296,11 @@ export default function CalendarioTab({
             }}
           >
             <span style={{ fontWeight: "700", color: "var(--gold)" }}>
-              {diasOcupados}
+              {dadosPorChegar ? "—" : diasOcupados}
             </span>{" "}
-            {diasOcupados === 1 ? "dia ocupado" : "dias ocupados"}
+            {!dadosPorChegar && diasOcupados === 1
+              ? "dia ocupado"
+              : "dias ocupados"}
           </div>
         </div>
       </div>

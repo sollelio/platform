@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { caminhoDoSeparador } from "../../lib/rotasAdmin";
 import { motion } from "framer-motion";
 import { getMateriais } from "../../lib/materiais";
 import {
@@ -29,8 +31,47 @@ import { FASES_POS_SINAL } from "./faseConfig";
 // Este componente é o dono dos dados (materiais, fichas, buffer): carrega
 // uma vez e partilha pelos três.
 // ============================================================
-export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
-  const [subTab, setSubTab] = useState("materiais");
+// As três vistas desta secção vivem no URL, como os separadores:
+// /admin/logistica/materiais | /conferencia | /alertas. Sem isto, a
+// Nádia não conseguia mandar a ninguém — nem a si própria — o link de
+// «o que sai este fim-de-semana», que é precisamente a vista mais
+// partilhável de todo o backoffice.
+//
+// «conferencia» é vocabulário da casa (a folha impressa chama-se assim),
+// não um id escondido — por isso pode ir no endereço tal e qual.
+const SUB_VISTAS = ["materiais", "conferencia", "alertas"];
+const SUB_VISTA_POR_OMISSAO = "materiais";
+
+export default function OperacionalTab({
+  submissions = [],
+  eventTypes = [],
+  // As três vistas somam sobre `submissions`, que vem por prop — mas o
+  // `loadingAlertas` local só sabe dos SEUS três pedidos (materiais,
+  // fichas, configuração). Sem este sinal, a Conferência anunciava
+  // «Nada sai de casa neste período · 0 eventos» e os Alertas «Sem
+  // conflitos de stock» com os eventos ainda a caminho — uma afirmação
+  // falsa num ecrã de decisão operacional.
+  eventosPorChegar = false,
+}) {
+  const { p1 } = useParams();
+  const navigate = useNavigate();
+  const subTab = SUB_VISTAS.includes(p1) ? p1 : SUB_VISTA_POR_OMISSAO;
+
+  // Endereço sem vista (o link do menu) ou com uma vista que não existe:
+  // corrige-se para a vista por omissão, sem deixar rasto no histórico.
+  useEffect(() => {
+    if (p1 !== subTab) {
+      navigate(`${caminhoDoSeparador("operacional")}/${subTab}`, {
+        replace: true,
+      });
+    }
+  }, [p1, subTab, navigate]);
+
+  // replace, como o toggle Lista/Funil: as três vistas são LADOS desta
+  // secção, não passos de uma viagem — o «voltar» não deve ter de
+  // desfazer três cliques antes de sair da Logística.
+  const setSubTab = (v) =>
+    navigate(`${caminhoDoSeparador("operacional")}/${v}`, { replace: true });
 
   // Dados para os alertas — carregados AQUI (uma vez) e partilhados entre
   // o badge da sub-navegação e a vista AlertasTab, para não duplicar
@@ -215,7 +256,7 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
           todasFichas={todasFichas}
           eventTypes={eventTypes}
           buffer={buffer}
-          loading={loadingAlertas}
+          loading={loadingAlertas || eventosPorChegar}
           erro={erroDados}
           onTentarNovamente={recarregarDados}
         />
@@ -224,7 +265,7 @@ export default function OperacionalTab({ submissions = [], eventTypes = [] }) {
         <AlertasTab
           alertas={alertas}
           alertasReposicao={alertasReposicao}
-          loading={loadingAlertas}
+          loading={loadingAlertas || eventosPorChegar}
           submissions={submissions}
           eventTypes={eventTypes}
         />

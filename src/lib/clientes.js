@@ -38,13 +38,21 @@ export const getClientes = async () => {
 };
 
 // Obtém um cliente com os seus eventos completos, ordenados por data.
+// maybeSingle e não single: com o cliente a viver num URL
+// (/admin/clientes/:clienteId), um id que já não existe — link antigo,
+// endereço mal colado, cliente entretanto apagado — deixou de ser um
+// caso impossível. O single ATIRAVA (PGRST116) e, numa rota dedicada,
+// não há lista por trás para amparar: dava ecrã em branco. Assim
+// devolve null e quem chama mostra o seu próprio «não encontrado».
+// (Mesma escolha que o getEventoCompleto já fazia, logo abaixo.)
 export const getClienteComEventos = async (clienteId) => {
   const { data, error } = await supabase
     .from("clientes")
     .select("*, submissions(*)")
     .eq("id", clienteId)
-    .single();
+    .maybeSingle();
   if (error) throw error;
+  if (!data) return null;
   const eventos = (data.submissions || []).sort((a, b) =>
     (a.data_evento || "9999").localeCompare(b.data_evento || "9999"),
   );

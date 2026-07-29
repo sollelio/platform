@@ -111,12 +111,29 @@ export function useNotificacoes() {
   const [nova, setNova] = useState(null);
 
   useEffect(() => {
-    getNotificacoes().then(setLista);
+    let vivo = true;
+    // FUNDE, não substitui. O canal já está a receber enquanto a lista
+    // inicial vem a caminho: uma notificação que chegue nesses
+    // milissegundos era prependida e logo a seguir varrida pelo
+    // setLista(dados) — e é justamente a MAIS RECENTE, a que mais
+    // importa. Some sem rasto: não há erro, não há segundo evento, e o
+    // badge fica a menos até ao próximo recarregamento.
+    getNotificacoes().then((dados) => {
+      if (!vivo) return;
+      setLista((prev) => {
+        const jaVem = new Set(dados.map((n) => n.id));
+        const chegadasEntretanto = prev.filter((n) => !jaVem.has(n.id));
+        return [...chegadasEntretanto, ...dados];
+      });
+    });
     const parar = subscreverNotificacoes((n) => {
       setLista((prev) => [n, ...prev.filter((x) => x.id !== n.id)]);
       setNova(n);
     });
-    return parar;
+    return () => {
+      vivo = false;
+      parar();
+    };
   }, []);
 
   const naoLidas = lista.filter((n) => !n.lida_em).length;

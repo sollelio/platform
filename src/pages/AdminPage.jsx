@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
+import {
+  SEPARADOR_POR_OMISSAO,
+  caminhoDoSeparador,
+  idDoSlug,
+} from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
 import {
   createInvite,
@@ -13,12 +18,17 @@ import {
   getValorAtual,
   getResumoSubmissao,
 } from "../lib/submissionFields";
-import { getDadosParaDocumento, updateStatus } from "../lib/clientes";
+import {
+  getDadosParaDocumento,
+  getEventoCompleto,
+  updateStatus,
+} from "../lib/clientes";
 import EventTypesTab from "../components/admin/EventTypesTab";
 import CampoSeletor from "../components/admin/CampoSeletor";
 import SubmissionDrawer from "../components/admin/SubmissionDrawer";
 import DashboardTab from "../components/admin/DashboardTab";
 import ClientesLista from "../components/admin/ClientesLista";
+import ClienteVista from "../components/admin/ClienteVista";
 import AvisosBloqueantes from "../components/admin/AvisosBloqueantes";
 import DeleteInviteModal from "../components/admin/DeleteInviteModal";
 import ShareSheet from "../components/admin/ShareSheet";
@@ -232,13 +242,40 @@ export default function AdminPage() {
   const location = useLocation();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  // ------------------------------------------------------------
+  // «POR CHEGAR» — a distinção que faltava em todo o backoffice.
+  //
+  // Uma vista que recebe uma lista VAZIA não sabe se ela está vazia
+  // porque não há nada, se ainda vem a caminho, ou se a busca falhou.
+  // Sem essa distinção, os ecrãs AFIRMAM: «Nada sai de casa neste
+  // período», «Sem conflitos de stock», «formulário por preencher» —
+  // e uma delas leva mesmo a criar cliente e evento DUPLICADOS.
+  //
+  // A partir daqui cada lista tem, além do seu «a carregar», uma marca
+  // de FALHA. Uma busca que falha deixa de ficar disfarçada de «não há
+  // nada»: as duas juntas formam «por chegar», e é isso que desce às
+  // vistas, que passam a calar-se em vez de mentir.
+  // ------------------------------------------------------------
+  const [falhaSubmissions, setFalhaSubmissions] = useState(false);
+  const [falhaEventTypes, setFalhaEventTypes] = useState(false);
+  const [falhaReservas, setFalhaReservas] = useState(false);
+  const [loadingReservas, setLoadingReservas] = useState(true);
   const [selected, setSelected] = useState(null);
-  // A app abre no Início — o assistente do dia (bloco 12b) — excepto
-  // ao voltar de /evento/:id, que diz por onde se entrou (o separador
-  // não vive no URL, por isso viaja no state da navegação).
-  const [activeTab, setActiveTab] = useState(
-    () => location.state?.tab || "inicio",
-  );
+  // O SEPARADOR VIVE NO URL. Deixou de ser estado: é o parâmetro da
+  // rota, traduzido de slug (o que a Nádia lê na barra de endereço)
+  // para id interno (o que o código sempre usou) pelo mapa único em
+  // lib/rotasAdmin.js.
+  //
+  // Consequências que valem a mudança: F5 recarrega o mesmo ecrã, o
+  // «voltar» do browser funciona, e cada separador tem endereço para
+  // partilhar ou abrir noutro separador do browser.
+  //
+  // Um slug desconhecido (URL antigo, link mal colado, erro de escrita)
+  // devolve null e cai no Início — a navegação nunca deve ser o sítio
+  // onde um erro de escrita se manifesta como ecrã em branco.
+  const { separador, p1, p2 } = useParams();
+  const idDoSeparador = idDoSlug(separador);
+  const activeTab = idDoSeparador || SEPARADOR_POR_OMISSAO;
   // Pedido "mostra-me os perdidos do funil" — vem da pílula «Recuperar
   // no funil» da Jornada (página do evento via location.state, drawer
   // via handler direto). Consome-se uma vez: o FunilBoard liga o "Ver
@@ -251,15 +288,21 @@ export default function AdminPage() {
   // isto, F5 ou Back reliam o verPerdidos e roubavam a vista escolhida.
   useEffect(() => {
     if (location.state?.verPerdidos) {
-      navigate(location.pathname, {
+      // Consome o pedido: limpa o state SEM mexer no URL (o separador
+      // já vive no caminho, posto lá por quem navegou para cá).
+      // Preserva a query VIVA (window.location, não o `location` do
+      // hook, que está congelado no mount): a ClientesLista pode já ter
+      // escrito o ?vista=funil neste mesmo instante, e limpar o state
+      // não pode apagá-lo.
+      navigate(location.pathname + window.location.search, {
         replace: true,
-        state: { tab: "clientes" },
+        state: null,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [invites, setInvites] = useState([]);
-  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [loadingInvites, setLoadingInvites] = useState(true);
   // O fetch dos convites deixou de falhar em silêncio: sem a lista, o
   // fluxo "Criar formulário" (formularioDe) não pode decidir com
   // segurança — criar às cegas era arriscar um convite duplicado.
@@ -343,11 +386,24 @@ export default function AdminPage() {
   // Navegação GLOBAL (menu lateral / barra inferior / atalhos): chegar
   // a Documentos pelo menu abre SEMPRE a Lista de Documentos — nunca o
   // último documento visitado nem o último cliente aberto.
-  const handleNavegar = (tab) => {
-    if (tab === "orcamentos") {
-      setDocumentoContexto(null);
-    }
-    setActiveTab(tab);
+  // O menu lateral (e a barra do telemóvel) navegam SOZINHOS: cada item
+  // é uma ligação de verdade que substitui a entrada do histórico. Este
+  // handler deixou de navegar — faz só o efeito que a navegação global
+  // sempre teve, e que continua a valer.
+  // Já não faz nada, e é isso que se quer: chegar a Documentos pelo
+  // menu abre a Lista porque o endereço do menu não tem documento
+  // nenhum — a regra deixou de precisar de um gesto para se cumprir.
+  // Mantém-se como ponto único caso volte a haver efeito de navegação
+  // global (é o que os quatro sítios do menu chamam).
+  const handleNavegar = () => {};
+
+  // Navegação CONTEXTUAL, feita por código: a Jornada que manda para
+  // Documentos, a Agenda que manda para Formulários, o Início que manda
+  // para a Agenda. Ao contrário do menu, EMPURRA histórico — isto é um
+  // passo de uma viagem, e o «voltar» deve desfazê-lo.
+  const navegarPara = (tab) => {
+    handleNavegar(tab);
+    navigate(caminhoDoSeparador(tab));
   };
 
   // Abre o formulário para a irmã preencher ela própria —
@@ -355,9 +411,18 @@ export default function AdminPage() {
   // do que já está em memória, e navega para o formulário como
   // se fosse o casal/família a abri-lo
   const handlePreencherFormulario = (invite) => {
+    // «Não carregou» não é «não existe»: sem os modelos em mão, a
+    // mensagem certa não é «o tipo de evento já não existe».
+    if (modelosPorChegar) {
+      navegarPara("convites");
+      setAvisoConvites(
+        "Ainda não foi possível ler os tipos de evento. Recarrega a página e tenta outra vez.",
+      );
+      return;
+    }
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     if (!tipo) {
-      setActiveTab("convites");
+      navegarPara("convites");
       setAvisoConvites(
         "O tipo de evento deste formulário já não existe. Recarrega a página; se o aviso persistir, verifica o modelo no editor de Tipos de Evento.",
       );
@@ -366,7 +431,7 @@ export default function AdminPage() {
     // Um modelo sem passos partia o formulário do cliente (ecrã em
     // branco) — diz-se aqui, onde há quem leia, e não lá.
     if (!Array.isArray(tipo.steps) || tipo.steps.length === 0) {
-      setActiveTab("convites");
+      navegarPara("convites");
       setAvisoConvites(
         `O modelo "${tipo.nome}" não tem passos — o formulário abriria em branco. Abre o editor de Tipos de Evento e compõe os passos desse modelo antes de partilhar o convite.`,
       );
@@ -385,80 +450,118 @@ export default function AdminPage() {
   // fecha o drawer e abre o separador Documentos já pré-preenchido.
   // Este é o fluxo CONTEXTUAL: abre o documento DIRECTAMENTE, sem
   // passar pela Lista de Documentos.
-  const handleGerarDocumento = async (submissao, tipoDoc) => {
-    try {
-      const dados = await getDadosParaDocumento(submissao, eventTypes);
-      setDocumentoContexto({ ...dados, tipoDoc });
-      setSelected(null);
-      setActiveTab("orcamentos");
-    } catch (e) {
-      console.error("Erro ao preparar o documento:", e);
-      setErroEstado("Não foi possível preparar o documento. Tenta novamente.");
-    }
+  // Abrir um documento é navegar para o endereço dele. Quem o compõe é
+  // o efeito acima — aqui não se prepara nada, para não haver dois
+  // sítios a fazer a mesma coisa por caminhos diferentes.
+  const handleGerarDocumento = (submissao, tipoDoc) => {
+    setSelected(null);
+    navigate(`${caminhoDoSeparador("orcamentos")}/${submissao.id}/${tipoDoc}`);
   };
 
-  // A página do evento não tem o editor de documentos dentro dela —
-  // vive neste separador. Ao carregar em "Preparar orçamento" lá, a
-  // navegação traz o pedido no state e é aqui que ele se cumpre,
-  // quando as submissions já estão carregadas (o handler precisa da
-  // linha completa e dos eventTypes).
-  // Consumo no padrão do formularioDe (Lote 4A): navigate(replace) +
-  // ref. O window.history.replaceState antigo não mudava o
-  // location.state do react-router — o pedido continuava truthy e
-  // qualquer refetch que mexesse em submissions.length re-disparava o
-  // efeito, sequestrando a Nádia de volta ao editor de Documentos.
-  const pedidoDeDocumento = location.state?.gerarDoc;
-  const pedidoDeDocumentoConsumido = useRef(false);
+  // ------------------------------------------------------------
+  // O DOCUMENTO ABERTO VIVE NO URL: /admin/documentos/:evento/:tipo
+  //
+  // Isto substitui o handshake que trazia o pedido no `state` da
+  // navegação — um mecanismo de USO ÚNICO que tinha de ser consumido
+  // com um navigate(replace) e guardado por um ref para não se repetir
+  // a cada refetch (o comentário antigo contava que já tinha
+  // "sequestrado a Nádia de volta ao editor" uma vez). Com o endereço a
+  // mandar, o pedido é o próprio URL: não se gasta, não se repete, e um
+  // F5 volta ao mesmo documento em vez de cair na lista.
+  //
+  // O contexto do documento continua a ser um objecto COMPOSTO (o
+  // evento, o cliente, os dados todos resolvidos por
+  // getDadosParaDocumento) — o que muda é que agora se reconstrói à
+  // chegada, a partir dos dois ids do caminho, em vez de viajar em
+  // memória.
+  // ------------------------------------------------------------
+  // Vocabulário fechado: um tipo inventado no endereço não deve chegar
+  // ao editor a fingir que é um documento.
+  const TIPOS_DOC = ["orcamento", "contrato", "proposta"];
+  const docEventoId = activeTab === "orcamentos" ? p1 : null;
+  const docTipo =
+    activeTab === "orcamentos" && TIPOS_DOC.includes(p2) ? p2 : null;
+
   useEffect(() => {
-    if (!pedidoDeDocumento || pedidoDeDocumentoConsumido.current) return;
+    // Sem documento no endereço, a secção é a lista.
+    if (!docEventoId || !docTipo) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (documentoContexto) setDocumentoContexto(null);
+      // Endereço com evento mas sem tipo legível (/admin/documentos/<id>
+      // ou um tipo mal escrito) é um link truncado, não a lista: o ecrã
+      // cai na lista, e o URL tem de cair com ele — senão a barra de
+      // endereço fica a anunciar um documento que não está aberto.
+      if (docEventoId && !docTipo) {
+        navigate(caminhoDoSeparador("orcamentos"), { replace: true });
+      }
+      return;
+    }
+    // Já é este o documento montado — nada a refazer (é este guarda que
+    // impede o efeito de se re-disparar a cada refetch das submissões).
+    if (
+      documentoContexto?.submissionId === docEventoId &&
+      documentoContexto?.tipoDoc === docTipo
+    ) {
+      return;
+    }
+    // Mesmo evento, só mudou o TIPO (ela carregou em Contrato dentro do
+    // editor): os dados compostos são os mesmos — troca-se a etiqueta em
+    // memória em vez de pagar outra ida à base.
+    if (documentoContexto?.submissionId === docEventoId) {
+      setDocumentoContexto({ ...documentoContexto, tipoDoc: docTipo });
+      return;
+    }
+
     // Espera pelo LOADING, não pelo length: uma lista carregada vazia
     // deixava o pedido pendurado para sempre, em silêncio.
     if (loading || loadingEventTypes) return;
-    pedidoDeDocumentoConsumido.current = true;
-    navigate(location.pathname, {
-      replace: true,
-      state: { tab: "orcamentos" },
-    });
-    const evento = submissions.find(
-      (s) => s.id === pedidoDeDocumento.submissionId,
-    );
-    if (!evento) {
-      setErroEstado(
-        "Não foi possível encontrar o evento deste documento. Recarrega a página e volta a tentar a partir da ficha do evento.",
-      );
-      return;
-    }
-    // SEM cleanup de cancelamento, de propósito: o navigate(replace)
-    // acima muda as deps e o React correria o cleanup ANTES de o await
-    // resolver — o documento nunca abria. O ref de consumo já garante
-    // que isto corre uma vez só.
+
+    let cancelado = false;
     (async () => {
       try {
+        // A lista já carregada é o caminho rápido. Mas um endereço de
+        // documento tem de valer por si — é essa a razão de ele existir:
+        // um link guardado nos favoritos, aberto num separador novo,
+        // não pode depender de a lista INTEIRA estar em memória. Se o
+        // evento não estiver lá, vai-se buscar SÓ esse.
+        const evento =
+          submissions.find((s) => s.id === docEventoId) ||
+          (await getEventoCompleto(docEventoId));
+        if (cancelado) return;
+        if (!evento) {
+          setErroEstado(
+            "Não foi possível encontrar o evento deste documento. Recarrega a página e volta a tentar a partir da ficha do evento.",
+          );
+          // Volta à lista em vez de deixar o ecrã eternamente "a
+          // preparar": ela fica com o aviso à vista E com um sítio onde
+          // continuar.
+          navigate(caminhoDoSeparador("orcamentos"), { replace: true });
+          return;
+        }
         const dados = await getDadosParaDocumento(evento, eventTypes);
-        setDocumentoContexto({ ...dados, tipoDoc: pedidoDeDocumento.tipoDoc });
-        setActiveTab("orcamentos");
+        if (!cancelado) setDocumentoContexto({ ...dados, tipoDoc: docTipo });
       } catch (e) {
         console.error("Erro ao preparar o documento:", e);
-        setErroEstado(
-          "Não foi possível preparar o documento. Volta à ficha do evento e tenta outra vez.",
-        );
+        if (!cancelado) {
+          setErroEstado(
+            "Não foi possível preparar o documento. Volta à ficha do evento e tenta outra vez.",
+          );
+        }
       }
     })();
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidoDeDocumento, loading, loadingEventTypes]);
+  }, [docEventoId, docTipo, loading, loadingEventTypes, submissions, eventTypes]);
 
   // Chamado pela Lista de Documentos ao clicar num documento: o mesmo
   // caminho do drawer (contexto pré-preenchido do evento). A lista só
   // mostra documentos de eventos — no domínio, um documento nunca
   // existe isolado.
   const handleAbrirDocumentoDaLista = (doc) => {
-    const ev = submissions.find((s) => s.id === doc.submission_id);
-    if (ev) {
-      handleGerarDocumento(ev, doc.tipo);
-      return;
-    }
-    setErroEstado(
-      "Não foi possível encontrar o evento deste documento — recarrega a página.",
+    navigate(
+      `${caminhoDoSeparador("orcamentos")}/${doc.submission_id}/${doc.tipo}`,
     );
   };
 
@@ -481,12 +584,24 @@ export default function AdminPage() {
       handlePreencherFormulario(convite);
     } else {
       // rede de segurança: sem convite legível, ao menos a lista
-      setActiveTab("convites");
+      navegarPara("convites");
       setShowNewInvite(false);
     }
   };
 
   const handleFormularioDoEvento = (submissao) => {
+    // A guarda que impede o pior desta família: sem saber que convites
+    // existem, este caminho concluiria «este evento não tem formulário»
+    // e criaria um NOVO — que, ao ser preenchido, faz nascer um cliente
+    // e um evento DUPLICADOS em vez de actualizar os que já existem.
+    // Perante o desconhecido, não se adivinha: diz-se e pára-se.
+    if (convitesPorChegar) {
+      navegarPara("convites");
+      setAvisoConvites(
+        "Ainda não foi possível ler os formulários que já existem. Recarrega a página antes de criar um novo — criá-lo às cegas pode duplicar o cliente e o evento.",
+      );
+      return;
+    }
     const tipoId = submissao.event_type_id || eventTypes[0]?.id || "";
     const tipo = eventTypes.find((et) => et.id === tipoId);
     const campoData = getAllFields(tipo).find((f) => f.type === "date");
@@ -500,7 +615,7 @@ export default function AdminPage() {
 
     const resumo = getResumoSubmissao(submissao, eventTypes);
     setSelected(null); // fecha o drawer
-    setActiveTab("convites");
+    navegarPara("convites");
     setReservaContexto(null);
     setEventoContexto({
       id: submissao.id,
@@ -537,7 +652,7 @@ export default function AdminPage() {
     if (loading || loadingInvites || loadingEventTypes) return;
     pedidoDeFormularioConsumido.current = true;
     // consome o pedido do histórico — voltar atrás não o repete
-    navigate(location.pathname, { replace: true, state: { tab: "convites" } });
+    navigate(caminhoDoSeparador("convites"), { replace: true, state: null });
     if (erroInvites) {
       setAvisoConvites(
         "Não foi possível ler os formulários existentes — para não criar um duplicado, recarrega a página e volta a tentar a partir da ficha do evento.",
@@ -590,7 +705,7 @@ export default function AdminPage() {
       camposAtivos.push(campoData.id); // sem isto, o campo não aparece no painel
     }
 
-    setActiveTab("convites");
+    navegarPara("convites");
     setReservaContexto(reserva);
     setEventoContexto(null);
     setNewInvite({
@@ -671,6 +786,14 @@ export default function AdminPage() {
 
     return () => {
       supabase.removeChannel(channel);
+      // ⚠ CORRECÇÃO DE BUG — independente do routing, assinalada à parte
+      // para poder ser revista isolada da mudança estrutural.
+      // O cleanup removia o canal mas NÃO limpava o temporizador de
+      // 300ms que coalesce as rajadas do realtime. Um eco que chegasse
+      // nos últimos 300ms antes do desmonte disparava um fetchSubmissions
+      // + setFunilVersao já sem componente montado: refetch fantasma e
+      // aviso de setState depois do desmonte.
+      if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
     };
   }, []);
 
@@ -688,19 +811,25 @@ export default function AdminPage() {
           camposAtivos: tipoDefault ? getDefaultCampos(tipoDefault) : [],
         };
       });
+      setFalhaEventTypes(false);
     } catch (e) {
       console.error("Erro ao ir buscar tipos de evento:", e);
+      setFalhaEventTypes(true);
     }
     setLoadingEventTypes(false);
   };
 
   const fetchReservas = async () => {
+    setLoadingReservas(true);
     try {
       const data = await getReservas();
       setReservas(data);
+      setFalhaReservas(false);
     } catch (e) {
       console.error("Erro ao ir buscar reservas:", e);
+      setFalhaReservas(true);
     }
+    setLoadingReservas(false);
   };
 
   // Quando a irmã muda o tipo de evento no painel, os campos activos
@@ -874,7 +1003,24 @@ export default function AdminPage() {
       .from("submissions")
       .select("*")
       .order("data_evento", { ascending: true });
-    if (!error && seq === fetchSeqRef.current) {
+    // ⚠ CORRECÇÃO DE BUG (anterior a este trabalho, exposta por ele):
+    // uma chamada OBSOLETA não pode tocar em NADA — nem sequer no
+    // `loading`. Antes, o guarda de sequência só protegia os dados, mas
+    // o setLoading(false) do fim corria na mesma: com duas buscas em voo
+    // (o StrictMode dispara o efeito de arranque duas vezes), a primeira
+    // a resolver anunciava "já não estou a carregar" com a lista ainda
+    // VAZIA. Quem lesse `submissions` nessa janela concluía que o evento
+    // não existia — foi assim que abrir um documento a partir da ficha
+    // do evento passou a dar "não foi possível encontrar o evento".
+    if (seq !== fetchSeqRef.current) return;
+    setFalhaSubmissions(!!error);
+    if (error) {
+      // Antes: o erro era engolido sem console e sem estado, e a lista
+      // ficava vazia para SEMPRE — a janela transitória virava mentira
+      // permanente.
+      console.error("Erro ao ir buscar eventos:", error);
+    }
+    if (!error) {
       const normalizadas = data.map(normalizeSubmission);
       setSubmissions(normalizadas);
       // O drawer aberto acompanha: a prop selected era uma cópia que
@@ -889,12 +1035,18 @@ export default function AdminPage() {
     if (!silencioso) setLoading(false);
   };
 
+  const invitesSeqRef = useRef(0);
   const fetchInvites = async () => {
+    // Guarda de sequência, como a das submissões: uma resposta obsoleta
+    // não pode tocar em nada — nem nos dados, nem no erro, nem no
+    // indicador de carga.
+    const seq = ++invitesSeqRef.current;
     setLoadingInvites(true);
     const { data, error } = await supabase
       .from("invites")
       .select("*")
       .order("created_at", { ascending: false });
+    if (seq !== invitesSeqRef.current) return;
     if (!error) {
       setInvites(data);
       setErroInvites(null);
@@ -933,13 +1085,25 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/admin/login");
+    // replace: depois de sair, o «voltar» não deve reentrar no
+    // backoffice (que só mostraria o ecrã de sessão a expirar).
+    navigate("/admin/login", { replace: true });
   };
 
   // A secção Documentos tem DOIS modos: documento aberto (chega-se cá
   // pelo drawer do evento ou pela Lista) ou a Lista de Documentos —
   // o modo por omissão e a entrada principal da secção.
-  const documentoAberto = !!documentoContexto;
+  // Decide-se pelo ENDEREÇO, não pelo contexto já composto: enquanto o
+  // contexto se prepara, a secção tem de continuar a ser "o documento" —
+  // senão piscava a lista no meio.
+  const documentoAberto = !!(docEventoId && docTipo);
+
+  // «Por chegar» = ainda a carregar OU falhou. Nos dois casos a vista
+  // não SABE, e não saber nunca deve ser dito como «não há nada».
+  const eventosPorChegar = loading || falhaSubmissions;
+  const convitesPorChegar = loadingInvites || !!erroInvites;
+  const modelosPorChegar = loadingEventTypes || falhaEventTypes;
+  const reservasPorChegar = loadingReservas || falhaReservas;
 
   return (
     <div
@@ -950,6 +1114,15 @@ export default function AdminPage() {
         display: ehDesktop ? "flex" : "block",
       }}
     >
+      {/* Slug desconhecido: corrige o URL para o Início, sem deixar a
+          entrada errada no histórico. Vai aqui, e não num return
+          antecipado, porque este componente tem dezenas de hooks e um
+          return a meio partia a ordem deles. Enquanto o redireccionamento
+          não acontece, o ecrã já mostra o Início — não pisca nada. */}
+      {!idDoSeparador && (
+        <Navigate to={caminhoDoSeparador(SEPARADOR_POR_OMISSAO)} replace />
+      )}
+
       {/* ===== CASCA DE NAVEGAÇÃO (bloco 12a) =====
           Desktop: sidebar lateral com tudo visível.
           Telemóvel: cabeçalho fino + barra inferior (+ folha Mais). */}
@@ -1051,9 +1224,9 @@ export default function AdminPage() {
             submissions={submissions}
             invites={invites}
             eventTypes={eventTypes}
-            loading={loading || loadingEventTypes}
+            loading={eventosPorChegar || modelosPorChegar || convitesPorChegar}
             onAbrirEvento={(ev) => setSelected(ev)}
-            onNavegar={handleNavegar}
+            onNavegar={navegarPara}
             onDadosMudaram={fetchSubmissions}
           />
         )}
@@ -1061,8 +1234,22 @@ export default function AdminPage() {
         {/* ---- TAB MENSAGENS (biblioteca de mensagens-tipo) ---- */}
         {activeTab === "mensagens" && <MensagensTab />}
 
-        {/* ---- TAB CLIENTES ---- */}
-        {activeTab === "clientes" && (
+        {/* ---- TAB CLIENTES ----
+             Com um id no caminho (/admin/clientes/:clienteId) mostra-se
+             a casa dessa cliente; sem ele, a lista/funil de sempre. É a
+             mesma secção do menu — por isso o item «Clientes» continua
+             aceso nos dois casos. */}
+        {activeTab === "clientes" && p1 && (
+          <AvisosBloqueantes pagina="clientes">
+            <ClienteVista
+              key={p1}
+              eventTypes={eventTypes}
+              onDadosMudaram={fetchSubmissions}
+              refrescarEm={funilVersao}
+            />
+          </AvisosBloqueantes>
+        )}
+        {activeTab === "clientes" && !p1 && (
           <AvisosBloqueantes pagina="clientes">
             <ClientesLista
               eventTypes={eventTypes}
@@ -1771,7 +1958,7 @@ export default function AdminPage() {
             {/* Lista de convites */}
             <InvitesList
               invites={invites}
-              loading={loadingInvites}
+              loading={loadingInvites || eventosPorChegar}
               eventTypes={eventTypes}
               onSelect={(invite) => setSelectedInvite(invite)}
               onPreencher={handlePreencherFormulario}
@@ -1818,6 +2005,7 @@ export default function AdminPage() {
         {/* ---- TAB TIPOS DE EVENTO ---- */}
         {activeTab === "calendario" && (
           <CalendarioTab
+            dadosPorChegar={eventosPorChegar || reservasPorChegar}
             submissions={submissions}
             eventTypes={eventTypes}
             reservas={reservas}
@@ -1836,7 +2024,11 @@ export default function AdminPage() {
           />
         )}
         {activeTab === "operacional" && (
-          <OperacionalTab submissions={submissions} eventTypes={eventTypes} />
+          <OperacionalTab
+            submissions={submissions}
+            eventTypes={eventTypes}
+            eventosPorChegar={eventosPorChegar}
+          />
         )}
         {activeTab === "importar" && (
           <ImportarTab
@@ -1858,6 +2050,7 @@ export default function AdminPage() {
             navegar — o "sempre montado" deixou de ser necessário. */}
         {activeTab === "orcamentos" && !documentoAberto && (
           <DocumentosLista
+            eventosPorChegar={eventosPorChegar || modelosPorChegar}
             submissions={submissions}
             eventTypes={eventTypes}
             onAbrirDocumento={handleAbrirDocumentoDaLista}
@@ -1869,7 +2062,9 @@ export default function AdminPage() {
             {/* Voltar à Lista de Documentos */}
             <button
               className="no-print"
-              onClick={() => setDocumentoContexto(null)}
+              onClick={() =>
+                navigate(caminhoDoSeparador("orcamentos"), { replace: true })
+              }
               style={{
                 marginBottom: "16px",
                 padding: "7px 14px",
@@ -1885,9 +2080,20 @@ export default function AdminPage() {
             >
               ← Todos os documentos
             </button>
+            {!documentoContexto ? (
+              <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>
+                A preparar o documento…
+              </p>
+            ) : (
             <DocumentosTab
-              key={`doc-${documentoContexto.submissionId}-${documentoContexto.tipoDoc}`}
+              key={`doc-${documentoContexto.submissionId}`}
               contexto={documentoContexto}
+              onTrocarTipo={(t) =>
+                navigate(
+                  `${caminhoDoSeparador("orcamentos")}/${docEventoId}/${t}`,
+                  { replace: true },
+                )
+              }
               onDadosMudaram={fetchSubmissions}
               onVoltarAoEvento={
                 documentoContexto?.submissionId
@@ -1895,12 +2101,13 @@ export default function AdminPage() {
                       const ev = submissions.find(
                         (x) => x.id === documentoContexto.submissionId,
                       );
-                      setActiveTab("clientes");
+                      navegarPara("clientes");
                       if (ev) setSelected(ev);
                     }
                   : null
               }
             />
+            )}
           </div>
         )}
       </div>
@@ -1925,6 +2132,7 @@ export default function AdminPage() {
       )}
 
       <SubmissionDrawer
+        convitesPorChegar={convitesPorChegar}
         selected={selected}
         eventTypes={eventTypes}
         onClose={() => setSelected(null)}
@@ -1932,7 +2140,7 @@ export default function AdminPage() {
           // A recuperação informada vive no funil — a pílula leva lá,
           // nunca recupera por conta própria.
           setSelected(null);
-          setActiveTab("clientes");
+          navegarPara("clientes");
           setPedidoVerPerdidos(id);
         }}
         onStatusChange={handleStatusChange}

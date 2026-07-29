@@ -7,29 +7,37 @@ sempre que se recupera âmbito depois de uma compactação de contexto.
 As entradas até 27/07/2026 foram reconstruídas do histórico da sessão ao
 criar o ficheiro; se alguma estiver mal reconstruída, corrige-se aqui.
 
+**Sobre os nomes:** a autoridade é o `GLOSSARIO.md`. Este ficheiro guarda
+*decisões*; o glossário guarda *como se chamam as coisas*. Se divergirem,
+o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
+«clientes» como base de pessoas passou a **contactos**; «captação» passou a
+**pedido**; o formulário longo é **formulário** do lado da Nádia e
+**questionário** do lado de quem o preenche.)
+
 ---
 
 ## Identidade e duplicados
 
-- **26/07/2026 — Sem ferramenta de fusão de clientes.** Há ~9 clientes no
+- **26/07/2026 — Sem ferramenta de fusão de contactos.** Há ~9 contactos no
   sistema; duplicados fundem-se à mão. Porquê: construir fusão automática
   para uma dúzia de registos é risco sem retorno.
 - **27/07/2026 — Email fica fora do dedupe** (Lote 3). Dados: 0 emails em
-  12 clientes. Se um dia entrar, fica pré-aprovada a opção **aviso, nunca
+  12 contactos. Se um dia entrar, fica pré-aprovada a opção **aviso, nunca
   funde**. Porquê: o email não é chave fiável neste negócio; fusões
   automáticas são irreversíveis.
 - **27/07/2026 — Telefone é a chave canónica de dedupe**, normalizado para
   os formatos reais (ex.: `931699846`, `925 956 617`, `+351 966 413 181`,
   `+491726435834`). Porquê: é o identificador que a Nádia realmente tem.
-- **27/07/2026 — A RPC do formulário NÃO recusa convite sem alvo com
-  evento vivo na mesma data.** O aviso vai para a **criação do convite no
+- **27/07/2026 — A RPC do questionário NÃO recusa formulário sem alvo com
+  evento vivo na mesma data.** O aviso vai para a **criação do formulário no
   backoffice**, ao lado do seletor de alvo (1A). Porquê: a recusa na RPC
-  dispararia no ecrã da cliente, que não tem como a corrigir.
-  *(Implementação: Lote 4D.)*
-- **27/07/2026 — O aviso de duplicado na captação pública nunca mostra
-  nomes ao anónimo** — o nome do cliente existente só aparece a sessões
+  dispararia no ecrã de quem preenche, que não tem como a corrigir.
+  *(Implementação: Lote 4D. Nota: o id interno continua `convites` — só o
+  vocabulário mudou.)*
+- **27/07/2026 — O aviso de duplicado no pedido público nunca mostra
+  nomes ao anónimo** — o nome do contacto existente só aparece a sessões
   autenticadas. Porquê: a RLS é a fronteira; a porta pública não revela
-  quem já é cliente.
+  quem já é contacto da casa.
 
 ## Funil, fases e pagamentos
 

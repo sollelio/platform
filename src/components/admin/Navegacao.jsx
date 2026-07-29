@@ -1,4 +1,6 @@
+import { NavLink } from "react-router-dom";
 import LogoDourado from "../LogoDourado";
+import { caminhoDoSeparador } from "../../lib/rotasAdmin";
 
 // ============================================================
 // Navegacao — a casca de navegação da app.
@@ -216,24 +218,44 @@ export function Icone({ nome, tamanho = 18 }) {
 // ------------------------------------------------------------
 // Item de navegação (partilhado entre sidebar e folha Mais)
 // ------------------------------------------------------------
+// Os separadores a sério viajam como LIGAÇÕES de verdade (<a href>),
+// não como botões: é o que dá o clique-do-meio, o «abrir em novo
+// separador» e o «copiar endereço da ligação» — metade da razão de ter
+// URL próprio. `replace` porque um separador do menu é um LADO da app,
+// não um passo de uma viagem: o «voltar» do browser deve desfazer o
+// último salto com significado (o evento de onde ela veio), não os dez
+// cliques de menu que deu pelo caminho.
+//
+// Os itens de acção (`__sair`, `__mais`) continuam botões — não são
+// sítios, são gestos. A convenção do prefixo `__` é o que os distingue.
+//
+// O OBJECTO DO EVENTO É ENTREGUE AO onNavegar, e isso não é detalhe: uma
+// ligação a sério navega sozinha, e a ÚNICA forma de a travar é
+// preventDefault(). Quem monta este menu por cima de um ecrã com
+// trabalho por guardar (a página do evento) precisa do evento em mão
+// para poder dizer «agora não». Enquanto isto era um <button>, bastava
+// não chamar nada; com um <a href>, não chamar nada deixa o browser ir.
+const ehSeparador = (id) => typeof id === "string" && !id.startsWith("__");
+
 function ItemNav({ item, ativo, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        width: "100%",
-        padding: "10px 14px",
-        borderRadius: "10px",
-        cursor: "pointer",
-        textAlign: "left",
-        backgroundColor: ativo ? "#FBF7EF" : "transparent",
-        color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
-        transition: "all 0.15s",
-      }}
-    >
+  const estilo = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    textAlign: "left",
+    boxSizing: "border-box",
+    border: "none",
+    textDecoration: "none",
+    backgroundColor: ativo ? "#FBF7EF" : "transparent",
+    color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
+    transition: "all 0.15s",
+  };
+  const conteudo = (
+    <>
       <Icone nome={item.icone} tamanho={18} />
       <span
         style={{
@@ -245,6 +267,25 @@ function ItemNav({ item, ativo, onClick }) {
       >
         {item.label}
       </span>
+    </>
+  );
+
+  if (ehSeparador(item.id)) {
+    return (
+      <NavLink
+        to={caminhoDoSeparador(item.id)}
+        replace
+        onClick={onClick}
+        style={estilo}
+      >
+        {conteudo}
+      </NavLink>
+    );
+  }
+
+  return (
+    <button onClick={onClick} style={{ ...estilo, background: "transparent" }}>
+      {conteudo}
     </button>
   );
 }
@@ -387,7 +428,7 @@ export function SidebarNav({
           key={item.id}
           item={item}
           ativo={activeTab === item.id}
-          onClick={() => onNavegar(item.id)}
+          onClick={(ev) => onNavegar(item.id, ev)}
         />
       ))}
 
@@ -397,7 +438,7 @@ export function SidebarNav({
           key={item.id}
           item={item}
           ativo={activeTab === item.id}
-          onClick={() => onNavegar(item.id)}
+          onClick={(ev) => onNavegar(item.id, ev)}
         />
       ))}
 
@@ -413,7 +454,7 @@ export function SidebarNav({
             key={item.id}
             item={item}
             ativo={activeTab === item.id}
-            onClick={() => onNavegar(item.id)}
+            onClick={(ev) => onNavegar(item.id, ev)}
           />
         ))}
         <ItemNav
@@ -432,7 +473,7 @@ export function SidebarNav({
 export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
   const maisAtivo = IDS_NO_MAIS.includes(activeTab);
   const itens = [
-    ...NAV_PRINCIPAL.map((n) => ({ ...n, acao: () => onNavegar(n.id) })),
+    ...NAV_PRINCIPAL.map((n) => ({ ...n, acao: (ev) => onNavegar(n.id, ev) })),
     { id: "__mais", label: "Mais", icone: "mais", acao: onAbrirMais },
   ];
   return (
@@ -451,23 +492,22 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
     >
       {itens.map((item) => {
         const ativo = item.id === "__mais" ? maisAtivo : activeTab === item.id;
-        return (
-          <button
-            key={item.id}
-            onClick={item.acao}
-            style={{
-              flex: 1,
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              padding: "2px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "3px",
-              color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
-            }}
-          >
+        // Mesma regra da sidebar: separador é ligação, acção é botão.
+        const estilo = {
+          flex: 1,
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          padding: "2px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "3px",
+          textDecoration: "none",
+          color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
+        };
+        const conteudo = (
+          <>
             <Icone nome={item.icone} tamanho={19} />
             <span
               style={{
@@ -478,6 +518,21 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
             >
               {item.label}
             </span>
+          </>
+        );
+        return ehSeparador(item.id) ? (
+          <NavLink
+            key={item.id}
+            to={caminhoDoSeparador(item.id)}
+            replace
+            onClick={item.acao}
+            style={estilo}
+          >
+            {conteudo}
+          </NavLink>
+        ) : (
+          <button key={item.id} onClick={item.acao} style={estilo}>
+            {conteudo}
           </button>
         );
       })}
@@ -525,8 +580,8 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar }) {
             key={item.id}
             item={item}
             ativo={activeTab === item.id}
-            onClick={() => {
-              onNavegar(item.id);
+            onClick={(ev) => {
+              onNavegar(item.id, ev);
               onFechar();
             }}
           />

@@ -76,6 +76,11 @@ export default function SubmissionDrawer({
   onFormulario,
   onVerFormulario,
   invites = [],
+  // Sem saber que convites existem, «este evento não tem formulário» é
+  // um palpite — e o palpite errado cria um formulário a mais que, ao
+  // ser preenchido, faz nascer cliente e evento DUPLICADOS. Enquanto
+  // isto for verdade, o gesto cala-se em vez de adivinhar.
+  convitesPorChegar = false,
   onModeloCriado,
   onRecuperarPerdido,
 }) {
@@ -188,7 +193,7 @@ export default function SubmissionDrawer({
   const formularioSubmetido = estadoFormulario === "preenchido";
   const temConvitePendente = estadoFormulario === "pendente";
   const abrirFormulario = () => {
-    if (formularioSubmetido) return;
+    if (formularioSubmetido || convitesPorChegar) return;
     if (temConvitePendente) {
       if (onVerFormulario) onVerFormulario(selected);
     } else if (onFormulario) {

@@ -32,8 +32,16 @@ export default function DocumentosTab({
   ativo = true,
   onDadosMudaram,
   onVoltarAoEvento,
+  onTrocarTipo,
 }) {
-  const [sub, setSub] = useState(contexto?.tipoDoc || "orcamento");
+  // Com onTrocarTipo, o sub-separador é DERIVADO do contexto (que vem do
+  // URL) em vez de ser estado local: trocar de Orçamento para Contrato
+  // muda o endereço, e o endereço volta a descrever o que está no ecrã.
+  // Sem ele — o documento "manual", sem evento — mantém-se o estado
+  // local de sempre, porque não há URL para o representar.
+  const [subLocal, setSubLocal] = useState(contexto?.tipoDoc || "orcamento");
+  const sub = onTrocarTipo ? contexto?.tipoDoc || "orcamento" : subLocal;
+  const setSub = onTrocarTipo || setSubLocal;
   const submissionId = contexto?.submissionId || null;
 
   return (

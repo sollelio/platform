@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
 import { getCampanhaPublica, prometerContribuicao } from "../lib/campanhas";
+import { CONTRIBUICAO_COLETIVA_ATIVA } from "../lib/funcionalidades";
 import { Taca } from "../components/admin/ContribuicaoColetiva";
 import { Esqueleto } from "../components/admin/acabamento";
 
@@ -207,11 +208,22 @@ function FormularioPromessa({ token, reduzir }) {
 export default function ContribuirPage() {
   const { token } = useParams();
   const [dados, setDados] = useState(null);
-  const [estado, setEstado] = useState("a-carregar");
+  // Com a funcionalidade desligada, o estado INICIAL já é o de link
+  // morto: o visitante nem chega a ver um esqueleto a carregar uma
+  // coisa que nunca vem.
+  const [estado, setEstado] = useState(
+    CONTRIBUICAO_COLETIVA_ATIVA ? "a-carregar" : "nao-encontrado",
+  );
   const reduzir = useReducedMotion();
 
   useEffect(() => {
     let cancelado = false;
+    // FUNCIONALIDADE DESLIGADA: nem se pergunta à base. O visitante vê
+    // o mesmo que veria com um link revogado — que é a verdade: este
+    // link não leva a lado nenhum. Reutiliza-se o estado que a página
+    // já tem para isso, em vez de inventar um ecrã novo, porque a frase
+    // serena já lá está e o tratamento é o da casa.
+    if (!CONTRIBUICAO_COLETIVA_ATIVA) return;
     getCampanhaPublica(token)
       .then((d) => {
         if (cancelado) return;

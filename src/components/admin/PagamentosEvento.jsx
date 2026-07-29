@@ -13,6 +13,7 @@ import { marcarPagamentoFinal, updateFase } from "../../lib/clientes";
 import { Icone } from "./Navegacao";
 import { Convite, useContagemAnimada } from "./acabamento";
 import ContribuicaoColetiva from "./ContribuicaoColetiva";
+import { CONTRIBUICAO_COLETIVA_ATIVA } from "../../lib/funcionalidades";
 
 // ============================================================
 // PagamentosEvento — o separador de pagamentos da página de evento
@@ -29,6 +30,33 @@ import ContribuicaoColetiva from "./ContribuicaoColetiva";
 // onPagamentos, e o cabeçalho vê o dinheiro mudar no instante.
 // Nunca se guarda um saldo — soma-se sempre os `pagamentos` na hora.
 // ============================================================
+
+// ------------------------------------------------------------
+// SECÇÕES ESCONDIDAS — decisão do Hélio, 29/07/2026, «por enquanto».
+//
+//   Contribuição coletiva — a funcionalidade vai ser repensada antes
+//     de ser estendida; enquanto isso não acontecer, não se mostra.
+//   Gastos do evento — o cartão «Em preparação» anuncia um módulo que
+//     ainda não existe.
+//
+// Interruptores em vez de código comentado: as duas secções ficam
+// INTACTAS por baixo, a aritmética não muda (ver nota abaixo), e voltar
+// a mostrar qualquer uma delas é pôr a sua constante a true — nada mais.
+// São duas e não uma de propósito: podem voltar em alturas diferentes.
+//
+// A da contribuição deixou de viver aqui: mudou-se para
+// lib/funcionalidades.js, porque governa DUAS portas — esta secção e a
+// página pública /contribuir/:token. Esconder a sala e deixar a rua
+// aberta deixava entrar promessas que ninguém veria.
+//
+// O QUE ISTO NÃO MUDA: o dinheiro das contribuições continua a contar
+// em tudo — no total, no que já entrou, no que falta e no que está pago
+// em cada parcela. Só deixa de haver ecrã onde ver ou apagar cada
+// contribuição uma a uma (essas linhas só viviam na secção escondida).
+// A nota «· X€ da contribuição coletiva» em cada parcela FICA: com a
+// secção escondida, passa a ser o único rasto visível desse dinheiro.
+// ------------------------------------------------------------
+const MOSTRAR_GASTOS_DO_EVENTO = false;
 
 const label = {
   fontSize: "11px",
@@ -857,19 +885,24 @@ export default function PagamentosEvento({
 
       {/* A CONTRIBUIÇÃO COLETIVA — o módulo que faz a casa ganhar
           dinheiro. Regista/apaga pela mesma mão que os pagamentos
-          (onPagamentos), e sincroniza o pagamento_final como eles. */}
-      <ContribuicaoColetiva
-        submissao={submissao}
-        previstos={previstos}
-        pagamentos={pagamentos}
-        faltaEvento={falta}
-        onPagamentos={(lista) => {
-          if (onPagamentos) onPagamentos(lista);
-          sincronizarPagamentoFinal(lista);
-        }}
-      />
+          (onPagamentos), e sincroniza o pagamento_final como eles.
+          ESCONDIDA por enquanto — ver CONTRIBUICAO_COLETIVA_ATIVA. */}
+      {CONTRIBUICAO_COLETIVA_ATIVA && (
+        <ContribuicaoColetiva
+          submissao={submissao}
+          previstos={previstos}
+          pagamentos={pagamentos}
+          faltaEvento={falta}
+          onPagamentos={(lista) => {
+            if (onPagamentos) onPagamentos(lista);
+            sincronizarPagamentoFinal(lista);
+          }}
+        />
+      )}
 
-      {/* O módulo que ainda vai nascer aqui — anunciado na língua dela. */}
+      {/* O módulo que ainda vai nascer aqui — anunciado na língua dela.
+          ESCONDIDO por enquanto — ver MOSTRAR_GASTOS_DO_EVENTO. */}
+      {MOSTRAR_GASTOS_DO_EVENTO && (
       <div
         style={{
           borderTop: "1px solid #F0E6D0",
@@ -914,6 +947,7 @@ export default function PagamentosEvento({
           </p>
         </div>
       </div>
+      )}
 
       {/* Confirmação de remoção — nunca window.confirm */}
       {pagamentoParaApagar && (

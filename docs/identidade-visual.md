@@ -23,6 +23,11 @@ elas não se julgam pelo mesmo padrão:
 eles. A página a desenhar é pública: em caso de dúvida, o registo é o
 da secção final («A montra»).**
 
+**Sobre nomes:** este guia trata de *como a casa se parece e se move*.
+Para *como se chamam as coisas* (contactos, pedido, orçamento,
+formulário/questionário, briefing, organizador), a autoridade é o
+`GLOSSARIO.md`.
+
 ---
 
 ## 1 · Paleta

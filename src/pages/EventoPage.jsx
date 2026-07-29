@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { caminhoDoSeparador } from "../lib/rotasAdmin";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
 import { getEventTypes, estadoFormularioDoEvento } from "../lib/invites";
 import { getPagamentosEvento, resumoPagamentos } from "../lib/pagamentos";
@@ -202,6 +203,12 @@ export default function EventoPage() {
     let cancelado = false;
     (async () => {
       try {
+        // .throwOnError() nos convites: os três irmãos deste Promise.all
+        // atiram quando falham, este devolvia { data: null, error } e o
+        // erro era descartado. A página declarava-se «pronta» com a
+        // lista de convites vazia, e a Jornada concluía «formulário por
+        // criar» num evento que já tinha um respondido. Uma leitura que
+        // falhou tem de parecer uma falha, não uma ausência.
         const [evento, modelos, { data: convites }, pagamentos] =
           await Promise.all([
             getEventoCompleto(id),
@@ -209,7 +216,8 @@ export default function EventoPage() {
             supabase
               .from("invites")
               .select("*")
-              .or(`submission_id.eq.${id},submission_alvo_id.eq.${id}`),
+              .or(`submission_id.eq.${id},submission_alvo_id.eq.${id}`)
+              .throwOnError(),
             getPagamentosEvento(id),
           ]);
         if (cancelado) return;
@@ -248,6 +256,7 @@ export default function EventoPage() {
   // espera num ref e aplica-se quando a edição fecha.
   const aEditarRef = useRef(false);
   aEditarRef.current = aEditar;
+  const temSubmissao = !!submissao;
   const updatePendenteRef = useRef(null);
   useEffect(() => {
     const canal = supabase
@@ -266,9 +275,20 @@ export default function EventoPage() {
             updatePendenteRef.current = payload.new;
             return;
           }
-          setSubmissao((s) =>
-            s ? { ...s, ...normalizeSubmission(payload.new) } : s,
-          );
+          setSubmissao((s) => {
+            // ARQUIVA quando o evento ainda não pousou. O canal
+            // subscreve antes de a carga inicial terminar, e um UPDATE
+            // que chegasse nessa janela caía no `s ? … : s` e era
+            // deitado fora sem rasto — a página ficava a mostrar um
+            // retrato já desactualizado até alguém recarregar. A
+            // decisão vive aqui dentro porque é aqui que se tem o
+            // estado FRESCO em mão, sem depender de um fecho antigo.
+            if (!s) {
+              updatePendenteRef.current = payload.new;
+              return s;
+            }
+            return { ...s, ...normalizeSubmission(payload.new) };
+          });
         },
       )
       .subscribe();
@@ -282,7 +302,7 @@ export default function EventoPage() {
   // arquivado, que já pode ser mais velho do que a gravação dela
   // (aplicá-lo reescreveria as chaves acabadas de guardar).
   useEffect(() => {
-    if (aEditar || !updatePendenteRef.current) return;
+    if (aEditar || !temSubmissao || !updatePendenteRef.current) return;
     updatePendenteRef.current = null;
     let cancelado = false;
     (async () => {
@@ -298,7 +318,7 @@ export default function EventoPage() {
     return () => {
       cancelado = true;
     };
-  }, [aEditar, id]);
+  }, [aEditar, id, temSubmissao]);
 
   // Só o plano volta a ser lido quando se regista um pagamento — o
   // resto da página não mudou.
@@ -357,10 +377,10 @@ export default function EventoPage() {
       <div style={{ display: "flex", backgroundColor: "var(--cream)", minHeight: "100vh" }}>
         <SidebarNav
           activeTab="clientes"
-          onNavegar={(tab) => navigate("/admin", { state: { tab } })}
+          onNavegar={(tab) => navigate(caminhoDoSeparador(tab))}
           onSair={async () => {
             await supabase.auth.signOut();
-            navigate("/admin/login");
+            navigate("/admin/login", { replace: true });
           }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -394,7 +414,7 @@ export default function EventoPage() {
         <div>
           <p style={{ margin: "0 0 10px" }}>Este evento já não existe.</p>
           <button
-            onClick={() => navigate("/admin")}
+            onClick={() => navigate(caminhoDoSeparador("clientes"))}
             className="ligacao"
             style={{
               color: "var(--gold-dark)",
@@ -452,13 +472,25 @@ export default function EventoPage() {
   // `extra` viaja no state (ex.: verPerdidos, da pílula «Recuperar no
   // funil») — e a saidaPendente guarda o STATE COMPLETO, para a
   // confirmação inline não perder a intenção pelo caminho.
+  // O separador deixou de viajar no state: vai no CAMINHO. O state
+  // continua a levar só os pedidos pontuais que ainda existem
+  // (verPerdidos, formularioDe), consumidos uma vez pela AdminPage.
+  // O gerarDoc desapareceu: o documento tem endereço próprio.
   const voltarAoAdmin = (tab = "clientes", extra) => {
-    const state = { tab, ...extra };
+    // Se se veio da ficha de uma cliente, volta-se para lá — só nesse
+    // caso. Nos outros pontos de entrada (Início, Agenda, funil, link
+    // directo) «Clientes» deve mesmo levar à lista, e leva.
+    const origemCliente = location.state?.origemCliente;
+    const caminho =
+      tab === "clientes" && origemCliente
+        ? `/admin/clientes/${origemCliente}`
+        : caminhoDoSeparador(tab);
+    const destino = { caminho, state: extra || null };
     if (porGuardar > 0) {
-      setSaidaPendente(state);
+      setSaidaPendente(destino);
       return;
     }
-    navigate("/admin", { state });
+    navigate(destino.caminho, { state: destino.state });
   };
 
   // OPTIMISTA: o estado novo pinta-se no gesto (o ✓ da Jornada salta
@@ -504,10 +536,20 @@ export default function EventoPage() {
     <div style={{ display: "flex", backgroundColor: "var(--cream)" }}>
       <SidebarNav
         activeTab="clientes"
-        onNavegar={(tab) => voltarAoAdmin(tab)}
+        // Os itens do menu são LIGAÇÕES a sério, e uma ligação navega
+        // sozinha: se houver briefing por guardar, tem de se travar o
+        // clique com preventDefault ANTES de o browser ir — senão o
+        // voltarAoAdmin guarda a saída pendente para uma confirmação
+        // que já não chega a pintar, e o que ela escreveu perde-se em
+        // silêncio. Era exactamente isto que a confirmação existia
+        // para impedir.
+        onNavegar={(tab, ev) => {
+          if (porGuardar > 0) ev?.preventDefault();
+          voltarAoAdmin(tab);
+        }}
         onSair={async () => {
           await supabase.auth.signOut();
-          navigate("/admin/login");
+          navigate("/admin/login", { replace: true });
         }}
       />
 
@@ -573,12 +615,9 @@ export default function EventoPage() {
                 onRealceConsumido={() => setRealce(null)}
                 onContagem={(n) => reportarContagem("documentos", n)}
                 onGerarDocumento={(evento, tipoDoc) =>
-                  navigate("/admin", {
-                    state: {
-                      tab: "orcamentos",
-                      gerarDoc: { submissionId: evento.id, tipoDoc },
-                    },
-                  })
+                  navigate(
+                    `${caminhoDoSeparador("orcamentos")}/${evento.id}/${tipoDoc}`,
+                  )
                 }
                 onVerFormulario={() => {
                   // "Ver respostas" de um formulário respondido não
@@ -592,13 +631,13 @@ export default function EventoPage() {
                     irParaAba("visao-geral");
                     return;
                   }
-                  navigate("/admin", {
-                    state: { tab: "convites", formularioDe: id },
+                  navigate(caminhoDoSeparador("convites"), {
+                    state: { formularioDe: id },
                   });
                 }}
                 onCriarFormulario={() =>
-                  navigate("/admin", {
-                    state: { tab: "convites", formularioDe: id },
+                  navigate(caminhoDoSeparador("convites"), {
+                    state: { formularioDe: id },
                   })
                 }
               />
@@ -709,7 +748,7 @@ export default function EventoPage() {
               const destino = saidaPendente;
               setSaidaPendente(null);
               setEdicao(null);
-              navigate("/admin", { state: destino });
+              navigate(destino.caminho, { state: destino.state });
             }}
             className="acao acao--perigo"
             style={medidaBotaoSaida}

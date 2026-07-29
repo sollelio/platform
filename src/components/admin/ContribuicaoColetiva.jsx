@@ -251,8 +251,18 @@ export default function ContribuicaoColetiva({
       return;
     }
     let cancelado = false;
+    // Funde em vez de substituir: uma promessa que chegue pelo canal
+    // enquanto esta lista vem a caminho seria varrida por ela — e uma
+    // promessa perdida é dinheiro que a casa não vai confirmar.
     getIntencoesPendentes(idCampanha)
-      .then((lista) => !cancelado && setIntencoes(lista))
+      .then((lista) => {
+        if (cancelado) return;
+        setIntencoes((atuais) => {
+          const jaVem = new Set(lista.map((i) => i.id));
+          const chegadasEntretanto = atuais.filter((i) => !jaVem.has(i.id));
+          return [...chegadasEntretanto, ...lista];
+        });
+      })
       .catch(console.error);
 
     const canal = supabase
