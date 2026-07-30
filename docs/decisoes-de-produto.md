@@ -79,7 +79,7 @@ o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
   (contribuição coletiva, futuro portal do cliente): o critério é
   DESLUMBRE — vender o sonho, com brief próprio, noutro momento.
   Porquê: um gesto que encanta à primeira e irrita à quinquagésima
-  está errado numa ferramenta diária; e o deslumbre da montra não
+  está errado numa ferramenta diária; e o deslumbre da vitrina não
   pertence à bancada de trabalho.
 - **Mockup antes de UI nova** (convenção da casa): mudanças grandes
   mostram-se antes de se construírem; várias direções valem mais do

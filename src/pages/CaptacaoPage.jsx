@@ -19,7 +19,7 @@ import LogoDourado from "../components/LogoDourado";
 //     levanta as letras do fundo.
 //   • Brilho de joalharia: um feixe de luz varre as LETRAS do logo
 //     (máscara com o próprio PNG — o brilho só existe onde há ouro),
-//     como o reflexo num anel dentro da montra. Passa, descansa,
+//     como o reflexo num anel dentro da vitrina. Passa, descansa,
 //     volta a passar.
 //   • Poeira de ouro: partículas ✦ sobem devagar à volta do halo,
 //     acendem e apagam em tempos desencontrados — champanhe vivo.

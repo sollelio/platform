@@ -11,7 +11,7 @@ import { Esqueleto } from "../components/admin/acabamento";
 // ContribuirPage — /contribuir/:token, a única janela do público para
 // uma campanha de contribuição coletiva.
 //
-// É a montra que a família partilha no grupo de WhatsApp — tem de
+// É a vitrina que a família partilha no grupo de WhatsApp — tem de
 // estar à altura da etiqueta da casa: o logo, a taça a encher, a
 // mensagem da anfitriã, e como contribuir. PRIVACIDADE por desenho
 // (decisão de 26/07/2026): mostra a percentagem e o nº de pessoas —

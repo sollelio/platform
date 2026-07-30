@@ -236,6 +236,7 @@ regra desfaz-se.
 | Fase — fechou, evento confirmado | — | **Cliente** | `cliente` |
 | A pipeline de fases | — | **funil** | `funil` |
 | Uma ocorrência a decorar | **o vosso evento** | **evento** | `submissions` (fica) |
+| A classe das superfícies públicas | — | **vitrina** | — |
 
 Repara na última coluna: quase tudo **fica como está**. O trabalho de renomear é sobretudo
 nos rótulos que se leem — menu, slug, e algumas frases nas páginas. Baixo risco no código.
@@ -298,6 +299,22 @@ software.
 ### Funil
 A pipeline por onde um contacto caminha: **Interessado → Orçamento → Cliente**. Fica "funil"
 — é a palavra que já usamos e que se entende.
+
+### Vitrina (o registo público)
+As superfícies da casa são de duas classes que não se julgam pelo mesmo padrão: as **internas**
+(a bancada de trabalho da Nádia, onde o critério é o ofício) e as **públicas** — abertas poucas
+vezes, por alguém emocionalmente investido, onde o critério é o deslumbre. **Vitrina** é o nome
+dessa segunda classe: a página de contribuição, a de captação, o futuro portal do cliente.
+
+**Substituiu "montra" a 30/07/2026.** As duas palavras são portuguesas e as duas estavam certas
+— mas "montra" só existe em Portugal, e a linguagem da casa passou a servir todo o espaço
+lusófono (ver `identidade-visual.md`, secção 6). "Vitrina" mantém a grafia portuguesa e
+entende-se em todo o lado; "vitrine" resolvia o alcance mas é a forma brasileira.
+
+> **Cuidado com o segundo sentido.** Um comentário em `MateriaisInventario.jsx` usa "montra"
+> para uma *vista de materiais* no backoffice — outra coisa, que por acaso usava a mesma
+> palavra. Ficou como estava de propósito: alinhá-la punha a palavra a fazer dois trabalhos,
+> que é precisamente o que este glossário existe para evitar.
 
 ---
 

@@ -15,13 +15,13 @@ elas não se julgam pelo mesmo padrão:
 - **Backoffice (interno)** — ferramenta diária. O critério é OFÍCIO:
   precisão de porta de Rolls-Royce, zero espetáculo. O filtro de tudo:
   *isto aguenta ser visto cinquenta vezes por semana?*
-- **Público (montras)** — aberto poucas vezes, por alguém
-  emocionalmente investido, no telemóvel. O critério é DESLUMBRE:
+- **Público (vitrinas)** — aberto poucas vezes, por alguém
+  emocionalmente investido, no telefone. O critério é DESLUMBRE:
   vender o sonho, comover — com a elegância da casa, nunca com kitsch.
 
 **Este documento serve os dois, e assinala sempre o que muda entre
 eles. A página a desenhar é pública: em caso de dúvida, o registo é o
-da secção final («A montra»).**
+da secção final («A vitrina»).**
 
 **Sobre nomes:** este guia trata de *como a casa se parece e se move*.
 Para *como se chamam as coisas* (contactos, pedido, orçamento,
@@ -64,8 +64,12 @@ formulário/questionário, briefing, organizador), a autoridade é o
 | Aro de engaste — borda de um passo futuro | `#E8DCC0` |
 | **Texto** — quase-preto da casa | `#1A1A1A` |
 | **Texto secundário** | `#6B6B6B` |
-| Rótulos apagados, cabeçalhos de tabela | `#9B9B9B` |
+| Rótulos apagados, cabeçalhos de tabela — **nunca em algo que se clica** | `#9B9B9B` |
 | Traços quase invisíveis (ações destrutivas discretas) | `#C4C4C4` |
+
+**Regra de contraste (vale nos dois registos):** `#9B9B9B` nunca serve
+algo que se clica — não chega ao contraste mínimo. Ligações secundárias
+em `#6B6B6B` (≈5.1:1), com hover dourado `#A07830`.
 
 ### Semânticos (sempre o trio texto/fundo/borda)
 
@@ -129,7 +133,7 @@ largo. É o gesto tipográfico mais assinatura da casa:
 **Regra nº 1: o movimento marca acontecimentos; o estado é imóvel.**
 No backoffice não existem loops perpétuos — um pulso permanente na
 visão periférica é imposto, não encanto. **No público os loops
-ambiente são permitidos** (é o papel da montra), mas lentos, orgânicos
+ambiente são permitidos** (é o papel da vitrina), mas lentos, orgânicos
 e discretos — brilho que respira, nunca coisas que saltam.
 
 Regras duras (valem nos dois registos):
@@ -228,28 +232,30 @@ Tudo desenhado à mão, num só vocabulário:
 ## 6 · Escrita
 
 - **Português europeu, sempre — nunca pt-BR.** As armadilhas do
-  costume: nada de «você» (o tratamento é por **tu**), nada de
-  gerúndio progressivo («estamos a enviar», nunca «estamos enviando»),
-  vocabulário de Portugal («telemóvel», «ecrã», «autocarro», «morada»).
-  Se soa a Brasil, está errado para esta casa.
-- Tratamento por **tu**, nos dois registos — a casa fala de perto
-  («Diz-nos o teu nome — é assim que os anfitriões sabem quem pôs a
-  mesa.»).
+  costume: nada de «você», nada de gerúndio progressivo («estamos a
+  enviar», nunca «estamos enviando»). Se soa a Brasil, está errado
+  para esta casa.
+- **Terceira pessoa em todo o texto, nos dois registos** — «o seu
+  evento», «receberá um aviso», «se precisar». Nunca «o teu»,
+  «avisamos-te», «escreve-nos».
+- **A linguagem serve todo o espaço lusófono.** A grafia continua
+  portuguesa, mas o vocabulário evita as palavras que só existem em
+  Portugal: «telemóvel», «ecrã», «casa de banho», «autocarro».
 - **Aspas angulares «»** para citações e para nomear botões/estados em
   texto corrido.
 - Frases completas e calmas; nada de fragmentos tipo dashboard.
 - **Erros dizem o que aconteceu e o que fazer a seguir**, sem jargão:
-  «Não foi possível registar. Tenta novamente daqui a um momento.» Um
+  «Não foi possível registar. Tente novamente daqui a um momento.» Um
   erro terminal diz que é terminal em vez de convidar a repetir.
 - Maiúsculas só nos overlines. Títulos em caixa normal.
 - Celebração com sobriedade: uma frase serena vale mais do que três
   pontos de exclamação (a casa quase não os usa).
-- Nunca `alert()`/diálogos do browser — tudo se diz no próprio ecrã,
-  no sítio onde aconteceu.
+- Nunca `alert()`/diálogos do browser — tudo se diz na própria página,
+  no lugar onde aconteceu.
 
 ---
 
-## 7 · A montra — o registo público (a referência é a página de contribuição)
+## 7 · A vitrina — o registo público (a referência é a página de contribuição)
 
 A anatomia de uma página pública da casa, de cima para baixo:
 
@@ -258,7 +264,7 @@ A anatomia de uma página pública da casa, de cima para baixo:
    **poeira de ouro** — meia dúzia de partículas que brilham e derivam
    em ciclos longos e dessincronizados (5–7s, tempos primos entre si:
    o brilho parece vivo, não coreografado) — e um raio de luz cónico
-   que dá uma volta completa em **24 segundos**. É o único sítio onde
+   que dá uma volta completa em **24 segundos**. É o único lugar onde
    a casa se permite este espetáculo, e mesmo ele entra devagar (1.1s,
    EASE LUXO).
 2. **Overline** de cerimónia (tracking 0.22em, ouro-escuro).
@@ -275,13 +281,13 @@ A anatomia de uma página pública da casa, de cima para baixo:
 8. **Rodapé-overline** com a assinatura da casa.
 
 Princípios do registo público:
-- Telemóvel primeiro: coluna única, ~480px máx, botões generosos.
+- Telefone primeiro: coluna única, ~480px máx, botões generosos.
 - **Privacidade por desenho**: a página pública mostra percentagens e
   contagens de pessoas — nunca valores absolutos, metas em euros nem
   nomes de terceiros.
 - Estados difíceis com a mesma dignidade: link expirado, campanha
   fechada e erro de rede têm cada um a sua frase serena (overline +
-  Playfair + linha de ajuda) — nunca um ecrã cru.
+  Playfair + linha de ajuda) — nunca uma página crua.
 - O deslumbre é **atmosfera** (luz, brilho, tempo), nunca **ruído**
   (confetti, cores fora da paleta, saltos). A paleta não muda entre
   registos — muda a quantidade de ar e a permissão para brilhar.

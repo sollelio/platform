@@ -12,6 +12,7 @@ import AdminPage from "./pages/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BriefingPage from "./pages/BriefingPage";
 import ContribuirPage from "./pages/ContribuirPage";
+import PortalPage from "./pages/PortalPage";
 import EventoPage from "./pages/EventoPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import CaptacaoPage from "./pages/CaptacaoPage";
@@ -111,6 +112,13 @@ function App() {
         {/* A página pública da contribuição coletiva — por token
             aleatório e revogável, leitura via RPC (034), sem login. */}
         <Route path="/contribuir/:token" element={<ContribuirPage />} />
+        {/* O Portal do Cliente — leitura via RPC (049, afinada pela 051
+            e 052), sem login, por token opaco e revogável.
+            🔴 O token NÃO deriva do id do evento: são 24 bytes
+            aleatórios, e a projecção da RPC não devolve o id. É a regra
+            que a migração 049 existe para respeitar — um id que escape
+            expõe o registo completo por outro RPC anónimo. */}
+        <Route path="/portal/:token" element={<PortalPage />} />
         <Route path="*" element={<DestinoDesconhecido />} />
       </Routes>
     </BrowserRouter>
