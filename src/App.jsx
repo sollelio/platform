@@ -114,11 +114,15 @@ function App() {
         <Route path="/contribuir/:token" element={<ContribuirPage />} />
         {/* O Portal do Cliente — leitura via RPC (049, afinada pela 051
             e 052), sem login, por token opaco e revogável.
+            «acompanhar» e não «portal»: portal é a palavra que usamos
+            entre nós, e a cortina fala à cliente em «o acompanhamento».
+            Não ficou slug antigo a redirecionar porque nenhuma ligação
+            tinha sido partilhada quando o nome mudou.
             🔴 O token NÃO deriva do id do evento: são 24 bytes
             aleatórios, e a projecção da RPC não devolve o id. É a regra
             que a migração 049 existe para respeitar — um id que escape
             expõe o registo completo por outro RPC anónimo. */}
-        <Route path="/portal/:token" element={<PortalPage />} />
+        <Route path="/acompanhar/:token" element={<PortalPage />} />
         <Route path="*" element={<DestinoDesconhecido />} />
       </Routes>
     </BrowserRouter>

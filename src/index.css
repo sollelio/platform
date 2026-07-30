@@ -1,5 +1,10 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap");
+/* As fontes da casa mudaram-se para o <head> do index.html.
+   NÃO as tragas de volta para aqui: o `@import "tailwindcss"` da linha
+   acima é substituído pelo plugin por milhares de linhas de CSS, e um
+   @import que deixe de estar no topo da folha é descartado em silêncio —
+   foi o que aconteceu, e a aplicação inteira pintou em Noto durante esse
+   tempo todo. */
 
 :root {
   --gold: #c9a84c;

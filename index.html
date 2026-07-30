@@ -5,6 +5,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema DLM — Do Luxo à Mesa</title>
+
+    <!--
+      AS FONTES DA CASA carregam-se AQUI, e não por @import no index.css.
+
+      Estavam lá e NUNCA chegaram a carregar: a linha 1 do index.css é
+      `@import "tailwindcss"`, que o plugin do Tailwind v4 substitui por
+      milhares de linhas de CSS. O @import das fontes, que vinha a seguir,
+      deixava de estar no topo da folha — e o CSS obriga os @import a
+      precederem todas as outras regras, por isso era descartado em
+      silêncio. A aplicação inteira pintava em Noto Serif / Noto Sans.
+
+      Aqui não há ordem que se possa perder, e o preconnect abre a ligação
+      antes de o CSS ser pedido.
+
+      Inter 700 é o peso dos OVERLINES, o gesto tipográfico mais assinatura
+      da casa (identidade-visual.md §2).
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>

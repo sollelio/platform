@@ -300,6 +300,36 @@ software.
 A pipeline por onde um contacto caminha: **Interessado → Orçamento → Cliente**. Fica "funil"
 — é a palavra que já usamos e que se entende.
 
+### As sete etapas do acompanhamento
+
+O Portal do Cliente (`/acompanhar/:token`) mostra à cliente onde vai o evento
+dela. A base guarda **chaves**; a cliente lê **rótulos**. É a regra de ouro deste
+ficheiro aplicada a sete pares — e a razão da migração 050, que tirou os rótulos
+do servidor: com eles lá dentro, mudar uma palavra que uma pessoa lê obrigava a
+uma migração.
+
+| Chave (`etapa`) | O que a cliente lê | Porquê |
+|---|---|---|
+| `interessada` | **O seu pedido** | é o nome que este glossário dá ao gesto de quem chega |
+| `orcamento` | **O orçamento** | o documento que a casa devolve |
+| `sinal` | **A data reservada** | «sinal» é palavra de negócio; do lado dela o que aconteceu foi a data ficar guardada |
+| `projecto` | **O projecto** | — |
+| `contrato` | **O contrato** | — |
+| `preparacao` | **A preparação** | — |
+| `grande_dia` | **O grande dia** | — |
+
+> **A chave `interessada` está no feminino** e a `submissions.fase` diz
+> `interessado` — a pendência #2 deste ficheiro a aparecer num sítio novo. Não se
+> corrigiu porque é chave de máquina e o rótulo já resolve a exclusão do lado de
+> quem lê. Fica registado que **é agora que é grátis**: nenhum outro consumidor
+> depende dela.
+
+No código, os rótulos vivem em `src/lib/portal.js` (`ROTULO_ETAPA`), com os textos
+de acompanhamento de cada etapa ao lado — um para quando é o presente, outro para
+quando é o passo seguinte. **Este ficheiro manda; o `portal.js` segue.**
+
+---
+
 ### Vitrina (o registo público)
 As superfícies da casa são de duas classes que não se julgam pelo mesmo padrão: as **internas**
 (a bancada de trabalho da Nádia, onde o critério é o ofício) e as **públicas** — abertas poucas

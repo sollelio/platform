@@ -26,9 +26,58 @@ const POEIRA = [
   { left: "50%", top: "-6%", size: 8, delay: 2.9, dur: 6.3, drift: -14 },
 ];
 
-export default function LogoDourado({ size = 200, alt = "Do Luxo à Mesa" }) {
+export default function LogoDourado({
+  size = 200,
+  alt = "Do Luxo à Mesa",
+  // Dois interruptores, ambos no valor de sempre por omissão — as páginas
+  // que já usavam este componente não notam nada.
+  //
+  // `raio`: o sector cónico que dá a volta em 24s. A cortina do
+  // acompanhamento leva halo SEM raio — é um ecrã de despedida, e o
+  // ponteiro a girar promete uma continuação que ali não existe.
+  //
+  // `animar`: com `prefers-reduced-motion` o halo fica (é luz, não
+  // movimento) e tudo o que se mexe desaparece. A framer-motion não é
+  // travada pelo bloco de media query do index.css, que só alcança
+  // animações de CSS — por isso o corte tem de ser feito aqui.
+  raio = true,
+  animar = true,
+}) {
   const k = size / 200;
   const px = (n) => Math.round(n * k * 10) / 10;
+
+  if (!animar) {
+    return (
+      <div style={{ position: "relative", display: "inline-block" }}>
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: `${px(400)}px`,
+            height: `${px(340)}px`,
+            maxWidth: "94vw",
+            background:
+              "radial-gradient(closest-side at 50% 46%, rgba(232,213,163,0.62) 0%, rgba(236,222,184,0.40) 38%, rgba(246,240,226,0.18) 60%, rgba(250,247,240,0) 78%)",
+            pointerEvents: "none",
+          }}
+        />
+        <img
+          src={logoUrl}
+          alt={alt}
+          style={{
+            width: `${size}px`,
+            height: "auto",
+            display: "block",
+            position: "relative",
+            filter: `saturate(1.08) contrast(1.06) drop-shadow(0 ${px(2)}px ${px(10)}px rgba(201,168,76,0.35)) drop-shadow(0 ${px(1)}px ${px(2)}px rgba(160,120,48,0.25))`,
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
@@ -58,6 +107,7 @@ export default function LogoDourado({ size = 200, alt = "Do Luxo à Mesa" }) {
           volta a cada 24s. Quadrado perfeito (rotação sem
           oscilação), centrado via x/y do framer e mascarado
           radialmente para se dissolver como o halo. */}
+      {raio && (
       <motion.span
         aria-hidden="true"
         initial={{ opacity: 0 }}
@@ -84,6 +134,7 @@ export default function LogoDourado({ size = 200, alt = "Do Luxo à Mesa" }) {
           pointerEvents: "none",
         }}
       />
+      )}
       {/* Poeira de ouro: partículas que sobem e cintilam à volta
           do logo — nunca por cima das letras (posições na orla) */}
       {POEIRA.map((p, i) => (
