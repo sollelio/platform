@@ -27,7 +27,7 @@ export const SEPARADOR_POR_OMISSAO = "inicio";
 // id interno (o que o código usa) -> slug (o que o URL mostra)
 export const SLUG_POR_ID = {
   inicio: "inicio",
-  clientes: "clientes",
+  clientes: "contactos",
   calendario: "agenda",
   orcamentos: "documentos",
   operacional: "logistica",
@@ -52,3 +52,31 @@ export const caminhoDoSeparador = (id) =>
 // O id de um slug, ou null se o slug não existir — quem chama decide
 // o que fazer com o null (a AdminPage redirecciona para o Início).
 export const idDoSlug = (slug) => ID_POR_SLUG[slug] || null;
+
+// O caminho da ficha de UM contacto. Existe para os quatro sítios que a
+// compunham à mão deixarem de o fazer: quando o slug mudou de
+// «clientes» para «contactos», foram eles que quase ficaram para trás.
+export const caminhoDoContacto = (id) =>
+  `${caminhoDoSeparador("clientes")}/${id}`;
+
+// ------------------------------------------------------------
+// SLUGS QUE JÁ FORAM VÁLIDOS.
+//
+// Renomear um separador não pode matar o que já circulou: um favorito
+// da Nádia, um endereço colado numa nota, um separador do browser
+// aberto há três dias. Um slug antigo traduz-se para o novo PRESERVANDO
+// o resto do caminho — /admin/clientes/<id> passa a
+// /admin/contactos/<id>, e a ficha certa abre.
+//
+// Não é dívida: é a única forma de um nome poder mudar sem custo. Quando
+// deixar de haver quem use o antigo, apaga-se a linha.
+// ------------------------------------------------------------
+export const SLUG_ANTIGO = {
+  clientes: "contactos", // renomeado a 29/07/2026 (ver docs/glossario.md)
+};
+
+export const caminhoDeSlugAntigo = (slug, ...resto) => {
+  const novo = SLUG_ANTIGO[slug];
+  if (!novo) return null;
+  return ["/admin", novo, ...resto.filter(Boolean)].join("/");
+};

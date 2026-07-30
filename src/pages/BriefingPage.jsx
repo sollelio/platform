@@ -890,7 +890,7 @@ export default function BriefingPage() {
           {/* Conteúdo — as secções do MODELO + a captação */}
           <div className="briefing-body" style={{ padding: "28px 40px" }}>
             {camposCaptacao.length > 0 && (
-              <Section title="Contactos & Primeira Conversa">
+              <Section title="O pedido">
                 {camposCaptacao.map((c) => (
                   <Field
                     key={c.label}
@@ -927,7 +927,7 @@ export default function BriefingPage() {
                 }}
               >
                 Ainda não há respostas do questionário — o briefing enche-se
-                quando o formulário do evento for preenchido.
+                quando o questionário do evento for preenchido.
               </p>
             )}
           </div>

@@ -785,8 +785,8 @@ export default function InicioTab({
               numero={emConversa}
               legenda={
                 emConversa === 1
-                  ? "interessado em conversa"
-                  : "interessados em conversa"
+                  ? "contacto em conversa"
+                  : "contactos em conversa"
               }
               dinheiro={
                 valorEmConversa > 0
@@ -830,7 +830,7 @@ export default function InicioTab({
                 marginTop: "6px",
               }}
             >
-              + Novo interessado
+              + Registar pedido
             </button>
             <button
               onClick={() => onNavegar && onNavegar("calendario")}
@@ -900,7 +900,7 @@ export default function InicioTab({
                   margin: 0,
                 }}
               >
-                Novo interessado
+                Novo pedido
               </h3>
               <button
                 onClick={() => setNovoInteressado(false)}
@@ -928,7 +928,7 @@ export default function InicioTab({
             </p>
             <CaptacaoForm
               modoInterno
-              textoBotao="Criar interessado"
+              textoBotao="Registar pedido"
               onSubmetido={() => {
                 setNovoInteressado(false);
                 if (onDadosMudaram) onDadosMudaram();

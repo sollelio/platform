@@ -517,8 +517,8 @@ export default function MaintenancePage() {
               <PathCard
                 href={TEST_URL}
                 icon={<CoupleMiniIcon />}
-                label="Ver como um casal"
-                desc="Experimenta o questionário tal como os noivos o veem."
+                label="Ver como o organizador"
+                desc="Experimenta o questionário tal como o organizador o vê."
                 delay={1.0}
               />
               <PathCard

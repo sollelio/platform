@@ -8,10 +8,11 @@ import {
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import { Icone } from "./Navegacao";
 import RemoverEventoModal from "./RemoverEventoModal";
+import { caminhoDoSeparador } from "../../lib/rotasAdmin";
 import { Esqueleto } from "./acabamento";
 
 // ============================================================
-// ClienteVista — a casa de UMA cliente, em /admin/clientes/:clienteId.
+// ClienteVista — a casa de UM contacto, em /admin/contactos/:clienteId.
 //
 // Substitui o painel lateral que abria ao lado da lista: as mesmas
 // quatro coisas que ele tinha (quem é a pessoa, os eventos dela,
@@ -489,7 +490,7 @@ export default function ClienteVista({
 function VoltarAosClientes() {
   return (
     <Link
-      to="/admin/clientes"
+      to={caminhoDoSeparador("clientes")}
       replace
       style={{
         display: "inline-flex",

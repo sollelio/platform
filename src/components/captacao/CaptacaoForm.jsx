@@ -10,7 +10,7 @@ import { registarErroFormulario } from "../../lib/errosForm";
 // ============================================================
 // CaptacaoForm — os campos da captação, PARTILHADOS entre:
 //   • a página pública /interesse (o interessado preenche)
-//   • os modais "+ Novo interessado" (funil e Início)
+//   • os modais "+ Registar pedido" (funil e Início)
 //
 // UM formulário, UMA verdade: os campos, labels e regras são os
 // MESMOS em todas as portas (pedido explícito de consistência).
@@ -324,7 +324,7 @@ export default function CaptacaoForm({
         >
           {duplicado
             ? "Este pedido já existia"
-            : "Telefone conhecido — juntámos ao cliente existente"}
+            : "Telefone conhecido — juntámos ao contacto existente"}
         </p>
         <p
           style={{

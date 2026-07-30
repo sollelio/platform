@@ -104,7 +104,7 @@ const formatDate = (date) => {
 export const exportClienteExcel = (submission) => {
   const rows = []
 
-  rows.push(['Do Luxo à Mesa — Questionário dos Noivos'])
+  rows.push(['Do Luxo à Mesa — Questionário do Evento'])
   rows.push([`${submission.nome_noivo} & ${submission.nome_noiva}`])
   rows.push([`Evento: ${formatDate(submission.data_evento)} | Estado: ${submission.status}`])
   rows.push([])

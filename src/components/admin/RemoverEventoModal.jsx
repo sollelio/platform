@@ -6,7 +6,7 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 // RemoverEventoModal — a confirmação de remoção de um evento.
 //
 // Extraída do painel de cliente da ClientesLista SEM lhe mudar uma
-// palavra nem um pixel: a vista nova (/admin/clientes/:clienteId) e o
+// palavra nem um pixel: a vista nova (/admin/contactos/:clienteId) e o
 // painel antigo passam a mostrar exactamente o mesmo diálogo, em vez
 // de haver duas cópias a divergir com o tempo. Enquanto o painel
 // existir, os dois chamam isto; quando o painel sair do fluxo, sai só

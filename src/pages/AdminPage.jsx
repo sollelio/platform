@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
 import {
   SEPARADOR_POR_OMISSAO,
+  caminhoDeSlugAntigo,
   caminhoDoSeparador,
   idDoSlug,
 } from "../lib/rotasAdmin";
@@ -988,7 +989,7 @@ export default function AdminPage() {
     const url = `${window.location.origin}/?codigo=${invite.code}`;
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     const emoji = tipo?.icone === "couple" ? "💍" : "✨";
-    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\nPlaneamos cada detalhe. Criamos memórias inesquecíveis. ✨`;
+    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso questionário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\nPlaneamos cada detalhe. Criamos memórias inesquecíveis. ✨`;
   };
 
   // `silencioso`: os refetches do realtime não mostram esqueletos — o
@@ -1114,13 +1115,24 @@ export default function AdminPage() {
         display: ehDesktop ? "flex" : "block",
       }}
     >
-      {/* Slug desconhecido: corrige o URL para o Início, sem deixar a
-          entrada errada no histórico. Vai aqui, e não num return
-          antecipado, porque este componente tem dezenas de hooks e um
-          return a meio partia a ordem deles. Enquanto o redireccionamento
-          não acontece, o ecrã já mostra o Início — não pisca nada. */}
+      {/* Slug que a app não conhece. Duas hipóteses, por esta ordem:
+          1. É um slug que JÁ FOI válido (/admin/clientes, renomeado para
+             /admin/contactos). Traduz-se, PRESERVANDO o resto do caminho
+             — um favorito da ficha de um contacto abre a ficha certa, não
+             o Início.
+          2. Não é nada que a app reconheça: cai no Início.
+          Vai aqui, e não num return antecipado, porque este componente
+          tem dezenas de hooks e um return a meio partia a ordem deles.
+          Enquanto o redireccionamento não acontece, o ecrã já mostra o
+          Início — não pisca nada. */}
       {!idDoSeparador && (
-        <Navigate to={caminhoDoSeparador(SEPARADOR_POR_OMISSAO)} replace />
+        <Navigate
+          to={
+            caminhoDeSlugAntigo(separador, p1, p2) ||
+            caminhoDoSeparador(SEPARADOR_POR_OMISSAO)
+          }
+          replace
+        />
       )}
 
       {/* ===== CASCA DE NAVEGAÇÃO (bloco 12a) =====
@@ -1235,7 +1247,7 @@ export default function AdminPage() {
         {activeTab === "mensagens" && <MensagensTab />}
 
         {/* ---- TAB CLIENTES ----
-             Com um id no caminho (/admin/clientes/:clienteId) mostra-se
+             Com um id no caminho (/admin/contactos/:clienteId) mostra-se
              a casa dessa cliente; sem ele, a lista/funil de sempre. É a
              mesma secção do menu — por isso o item «Clientes» continua
              aceso nos dois casos. */}

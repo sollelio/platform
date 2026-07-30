@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { caminhoDoSeparador } from "../lib/rotasAdmin";
+import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
 import { getEventTypes, estadoFormularioDoEvento } from "../lib/invites";
 import { getPagamentosEvento, resumoPagamentos } from "../lib/pagamentos";
@@ -483,7 +483,7 @@ export default function EventoPage() {
     const origemCliente = location.state?.origemCliente;
     const caminho =
       tab === "clientes" && origemCliente
-        ? `/admin/clientes/${origemCliente}`
+        ? caminhoDoContacto(origemCliente)
         : caminhoDoSeparador(tab);
     const destino = { caminho, state: extra || null };
     if (porGuardar > 0) {

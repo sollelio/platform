@@ -86,7 +86,7 @@ function App() {
             realtime, o drawer aberto, o painel «Novo Formulário» meio
             preenchido. Dez rotas irmãs remontavam-na a cada clique.
             :p1 e :p2 ficam declarados desde já para os níveis que vêm
-            a seguir (/admin/clientes/:clienteId,
+            a seguir (/admin/contactos/:clienteId,
             /admin/documentos/:id/:tipo, /admin/logistica/:vista)
             entrarem sem mexer outra vez na árvore. */}
         <Route

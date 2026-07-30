@@ -112,7 +112,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
             maxWidth: "440px",
           }}
         >
-          Cada tipo de evento define as perguntas que o casal ou família vê no
+          Cada tipo de evento define as perguntas que o organizador vê no
           questionário.
         </p>
         <button

@@ -46,13 +46,13 @@ preenche não nasce do nada — atravessa **três níveis**, cada um com o seu n
 |---|---|---|---|
 | 1 · o molde | A estrutura de um tipo de evento: os passos e os campos. "Casamento = 5 passos, 44 campos." Feito uma vez, reutilizável. | Nádia (raramente) | **modelo de evento** |
 | 2 · a instância | Um formulário concreto para um evento, feito a partir do molde. "O formulário da Marta, baseado no molde Festinhas." | Nádia (por evento) | **formulário** |
+| 3 · a cara pública | O mesmo formulário, do lado de quem o preenche. As perguntas que o organizador vê e responde. | Organizador | **questionário** |
 
 > **Sobre "molde":** é a *metáfora* que explica o conceito (a estrutura a partir da qual se
 > faz cada formulário), não o nome. O separador chama-se **"Modelos de Evento"** — "modelo" é
 > a palavra que as pessoas já esperam para "estrutura reutilizável" (modelo de documento,
 > modelo de email), enquanto "molde" é físico de mais para uma estrutura de dados. A metáfora
 > ajuda a entender; o nome tem de ser reconhecível.
-| 3 · a cara pública | O mesmo formulário, do lado de quem o preenche. As perguntas que o organizador vê e responde. | Organizador | **questionário** |
 
 O nível 2 e o nível 3 são **o mesmo objecto visto de dois lados**:
 
@@ -62,6 +62,22 @@ O nível 2 e o nível 3 são **o mesmo objecto visto de dois lados**:
 É a mesma dupla-face de sempre (como `slug ↔ id`): uma coisa, duas leituras conforme quem
 olha. O separador da Nádia chama-se **"Formulários"** (é o trabalho dela) e a página
 pública fala em **"questionário"** (é o que o organizador faz). Não competem — encaixam.
+
+### Qual das duas palavras usar (a regra de desempate)
+
+Nem sempre é óbvio, porque há frases *no ecrã da Nádia* que falam do que o **organizador**
+faz. A regra:
+
+> **A palavra segue de quem é a acção que a frase descreve — não de quem está a ler o ecrã.**
+
+Exemplo real: no briefing (que a Nádia lê) havia a frase *"as respostas do questionário…
+quando o formulário for preenchido"* — duas palavras para a mesma coisa, na mesma frase.
+Como ambas as metades falam do que o **organizador faz** (responder, preencher), a palavra é
+**questionário** nas duas. Se a frase falasse do que a Nádia faz ("cria o formulário", "envia
+o formulário"), seria **formulário**.
+
+Corolário: duas palavras diferentes para o mesmo objecto na **mesma frase** lê-se sempre como
+erro, seja qual for o lado. Se acontecer, escolhe uma segundo a regra acima.
 
 > **Modelo de evento** (o molde) → **formulário** (a instância que a Nádia cria) →
 > **questionário** (o que o organizador responde).
@@ -306,6 +322,51 @@ descrição dos modelos; alinhar a mensagem de WhatsApp em "questionário".
 pedido→formulário** (que faz o pedido pré-preencher o formulário e remove o "Copiar" manual).
 Isto é trabalho de fundo, com inventário e bloco a bloco, como foi o routing — não se mistura
 com a limpeza de nomes.
+
+---
+
+## Pendências descobertas no inventário (29/07/2026)
+
+Duas coisas que o varrimento do código revelou e que ficam para a fase seguinte:
+
+**1 · Duas fontes de verdade para os rótulos de fase.** Existe um segundo mapa
+(`FASE_LABEL_PRE_SINAL`, em `clientes.js`) separado do `faseConfig.js`, com palavras
+*diferentes* para os mesmos estados: "Interessada" vs "Interessado", "Orçamento enviado" vs
+"Orçamento", "A aguardar sinal" vs "Aguarda sinal". A Nádia lê nomes diferentes para a mesma
+fase conforme o ecrã. É o mesmo mal que a migração 047 veio corrigir noutro sítio. **Solução:
+uma fonte só, com o `faseConfig.js` a ganhar.**
+
+**2 · "Interessada" está no feminino** — e assume que quem organiza é mulher. É a mesma
+exclusão que o **organizador** veio corrigir: uma empresa ou um cliente homem lê "Interessada"
+e o produto não fala com eles. Resolve-se no mesmo gesto que a pendência 1.
+
+> **Hipótese a discutir com a Nádia (não decidida):** as fases descrevem *estados da relação*,
+> não *pessoas*. "Interesse" em vez de "Interessado/a" resolveria o género e ficaria coerente
+> com "Orçamento", que já é uma coisa e não uma pessoa. Mas mexe em vocabulário que a Nádia já
+> validou — é conversa a ter com ela, não decisão de gabinete.
+
+**3 · Vocabulário que a base de dados escreve (não o React).** O "Novo interessado" do
+CentroNotificacoes vem de um **gatilho da base** (migração 024), e o "Interessada — primeiro
+contacto" de `notas.js` grava-se em histórico. Isto abre uma categoria que a regra geral não
+previa: *nomes que as pessoas leem mas que a máquina escreve*. Mudá-los é **migração, não
+string** — aplica-se a regra de SQL da casa (idempotente, teste primeiro, depois produção).
+
+> **Consequência a decidir:** mudar a fonte **não reescreve o passado**. As notificações e
+> notas já gravadas mantêm a palavra antiga, e fica-se com histórico misto. Ou se aceita isso
+> (mais simples, e o histórico é passado), ou se migram os dados existentes. Decisão consciente
+> a tomar, não obstáculo.
+
+**4 · Slugs públicos já circulados: `/formulario` e `/interesse`.** Têm vocabulário antigo, mas
+**já foram enviados a clientes reais** — há links vivos em conversas de WhatsApp.
+
+> **Regra para os mudar com segurança: o slug antigo nunca morre.** O novo passa a canónico, o
+> antigo fica a redirecionar permanentemente. Assim nada parte, e a coordenação com os outros
+> repositórios deixa de ser bloqueante — muda-se aqui primeiro, os outros atualizam-se depois.
+>
+> **Atenção à cadeia:** o site aponta para o guia interactivo, e o guia aponta para
+> `/interesse`. São **três repositórios em fila** — mudar o slug sem redirect parte o meio da
+> cadeia. (A mesma lógica vale para o token `{LINK_INTERESSE}` dos modelos de mensagem, que
+> está guardado na base: quando se mudar, **aceitar os dois tokens**, não migrar à força.)
 
 ---
 

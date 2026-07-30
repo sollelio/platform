@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getClientes } from "../../lib/clientes";
+import { caminhoDoContacto } from "../../lib/rotasAdmin";
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import FunilBoard from "./FunilBoard";
 import { Icone } from "./Navegacao";
@@ -35,7 +36,7 @@ let ultimaBusca = "";
 //   • Funil  — a esteira comercial por fases (FunilBoard)
 //
 // NA LISTA, clicar numa pessoa vai DIRECTO ao destino: ao evento dela
-// se só tiver um vivo, à casa dela (/admin/clientes/:id) em qualquer
+// se só tiver um vivo, à casa dela (/admin/contactos/:id) em qualquer
 // outro caso. O painel lateral que abria aqui — com os eventos, o
 // «+ Novo evento» e a remoção — mudou-se para essa casa, que tem
 // endereço próprio e sobrevive a um F5.
@@ -207,7 +208,7 @@ export default function ClientesLista({
     navigate(
       vivos.length === 1
         ? `/evento/${vivos[0].id}`
-        : `/admin/clientes/${c.id}`,
+        : caminhoDoContacto(c.id),
     );
   };
 
@@ -446,7 +447,7 @@ export default function ClientesLista({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/admin/clientes/${c.id}`);
+                    navigate(caminhoDoContacto(c.id));
                   }}
                   title="Ficha da cliente"
                   aria-label={`Ficha de ${c.nome}`}

@@ -261,7 +261,7 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
               }
               style={btnAdd}
             >
-              + Adicionar 2.º cliente (casal)
+              + Adicionar 2.º cliente
             </button>
           )}
 

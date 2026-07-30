@@ -39,7 +39,7 @@ export const getClientes = async () => {
 
 // Obtém um cliente com os seus eventos completos, ordenados por data.
 // maybeSingle e não single: com o cliente a viver num URL
-// (/admin/clientes/:clienteId), um id que já não existe — link antigo,
+// (/admin/contactos/:clienteId), um id que já não existe — link antigo,
 // endereço mal colado, cliente entretanto apagado — deixou de ser um
 // caso impossível. O single ATIRAVA (PGRST116) e, numa rota dedicada,
 // não há lista por trás para amparar: dava ecrã em branco. Assim

@@ -367,7 +367,7 @@ export default function FunilBoard({
             whiteSpace: "nowrap",
           }}
         >
-          + Novo interessado
+          + Registar pedido
         </button>
         <button
           onClick={() => setMostrarPerdidos((v) => !v)}
@@ -652,7 +652,7 @@ export default function FunilBoard({
                   margin: 0,
                 }}
               >
-                Novo interessado
+                Novo pedido
               </h3>
               <button
                 onClick={() => setNovoInteressado(false)}
@@ -680,7 +680,7 @@ export default function FunilBoard({
             </p>
             <CaptacaoForm
               modoInterno
-              textoBotao="Criar interessado"
+              textoBotao="Registar pedido"
               onSubmetido={() => {
                 setNovoInteressado(false);
                 carregar();
