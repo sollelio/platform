@@ -65,7 +65,11 @@ export const createInvite = async ({
 export const getEventTypes = async () => {
   const { data, error } = await supabase
     .from("event_types")
-    .select("id, nome, predefinido, steps")
+    .select("id, nome, predefinido, steps, icone")
+    // ⚠ CORRECÇÃO DE BUG 3/3 — o `icone` faltava no select, e dois
+    // consumidores dependiam dele em silêncio: a mensagem de partilha
+    // nunca usava o 💍 do casamento (caía sempre no ✨), e o objecto
+    // que vai para o formulário levava `icone: undefined`.
     .order("nome");
   if (error) throw error;
   return data;
@@ -221,4 +225,45 @@ export const markInviteUsed = async (inviteId, submissionId) => {
       .eq("id", invite.reserva_id);
     if (erroReserva) throw erroReserva;
   }
+};
+
+// ============================================================
+// OS FORMULÁRIOS ÓRFÃOS — a definição num sítio só.
+//
+// Um órfão é um formulário por preencher que não está ligado a evento
+// nenhum. Cada um é uma porta para o duplicado: se for de alguém que já
+// existe, o preenchimento cria cliente E evento novos.
+//
+// Havia duas formas de chegar a eles — a lista global (Formulários) e
+// uma leitura própria (a página do evento, que só lê os convites DESTE
+// evento). Duas formas com a regra escrita duas vezes divergiriam; a
+// regra fica aqui, as formas de acesso é que são duas.
+// ============================================================
+
+export const ehFormularioOrfao = (i) =>
+  i.status !== "Preenchido" && !i.submission_id && !i.submission_alvo_id;
+
+// As TRÊS condições da adopção. Governavam o selector do painel antigo;
+// agora que o aviso dentro do evento também as precisa, saem de lá.
+//   1. um convite nascido de uma RESERVA não se adopta — pertence à
+//      conversão dessa reserva;
+//   2. o tipo tem de coincidir: apontar um Aniversário a um Casamento
+//      reescreveria o tipo e fundiria respostas de outro modelo;
+//   3. um órfão SEM tipo aceita qualquer evento.
+export const podeSerAdoptadoPor = (orfao, evento) =>
+  !!evento &&
+  !orfao.reserva_id &&
+  (!orfao.event_type_id || orfao.event_type_id === evento.event_type_id);
+
+// A leitura própria, para quem não tem a lista global em mão.
+export const getFormulariosOrfaos = async () => {
+  const { data, error } = await supabase
+    .from("invites")
+    .select("*")
+    .is("submission_id", null)
+    .is("submission_alvo_id", null)
+    .neq("status", "Preenchido")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
 };

@@ -50,7 +50,6 @@ import { getPagamentosEvento } from "../../lib/pagamentos";
 //   onSaved(submissaoAtualizada) — após guardar edição
 //   onGerarDocumento(submissao, "orcamento"|"contrato") — abre o
 //     separador Documentos com o documento pré-preenchido deste evento
-//   onFormulario(submissao) — abre o painel Novo Formulário apontado
 //     a este evento (as respostas atualizam-no, não criam duplicados)
 //   onModeloCriado() — após criar um modelo novo via classificação
 //     (o AdminPage recarrega os eventTypes)
@@ -73,8 +72,6 @@ export default function SubmissionDrawer({
   onStatusChange,
   onSaved,
   onGerarDocumento,
-  onFormulario,
-  onVerFormulario,
   invites = [],
   // Sem saber que convites existem, «este evento não tem formulário» é
   // um palpite — e o palpite errado cria um formulário a mais que, ao
@@ -191,14 +188,23 @@ export default function SubmissionDrawer({
     selected.id,
   );
   const formularioSubmetido = estadoFormulario === "preenchido";
-  const temConvitePendente = estadoFormulario === "pendente";
+  // O selo do Formulário passa a NAVEGAR para a aba Documentos do
+  // evento, com o realce na linha certa — o mesmo padrão que os outros
+  // gestos da Jornada aqui do lado já usam.
+  //
+  // Antes abria o painel de criação no separador Formulários (por
+  // callback e route state). A criação mudou-se para dentro do evento, e
+  // manter aqui uma segunda porta era manter dois sítios a criar a mesma
+  // coisa — que é o que este trabalho existe para desfazer. O drawer
+  // passa a ser visor: mostra o estado e leva ao sítio onde se resolve.
+  //
+  // Vale para as CINCO superfícies que montam este drawer (Início,
+  // Contactos, funil, Agenda, notificações).
   const abrirFormulario = () => {
     if (formularioSubmetido || convitesPorChegar) return;
-    if (temConvitePendente) {
-      if (onVerFormulario) onVerFormulario(selected);
-    } else if (onFormulario) {
-      onFormulario(selected);
-    }
+    navigate(`/evento/${selected.id}/documentos`, {
+      state: { realce: { alvo: "formulario", n: Date.now() } },
+    });
   };
 
   const dadosMensagens = {

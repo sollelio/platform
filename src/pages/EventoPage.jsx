@@ -10,8 +10,13 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
-import { getEventTypes, estadoFormularioDoEvento } from "../lib/invites";
+import {
+  apontarConviteAoEvento,
+  getEventTypes,
+  getFormulariosOrfaos,
+} from "../lib/invites";
 import { getPagamentosEvento, resumoPagamentos } from "../lib/pagamentos";
+import { getReservaProvisoriaDoEvento } from "../lib/reservas";
 import {
   getResumoSubmissao,
   getValorAtual,
@@ -104,6 +109,14 @@ export default function EventoPage() {
   const [submissao, setSubmissao] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
   const [invites, setInvites] = useState([]);
+  // Os formulários ÓRFÃOS (sem evento nenhum). Leitura PRÓPRIA e à parte:
+  // a carga principal lê só os convites DESTE evento, e um órfão é, por
+  // definição, de nenhum. É a metade que apanha o erro no instante em que
+  // ele nasce — quando ela ia criar um segundo formulário para alguém que
+  // já tem um solto.
+  const [orfaos, setOrfaos] = useState([]);
+  // A reserva provisória deste evento, se houver.
+  const [reservaProvisoria, setReservaProvisoria] = useState(null);
   const [plano, setPlano] = useState({ previstos: [], pagamentos: [] });
   const [estado, setEstado] = useState("a-carregar");
 
@@ -239,6 +252,26 @@ export default function EventoPage() {
     return () => {
       cancelado = true;
     };
+  }, [id]);
+
+  // Os ÓRFÃOS, à parte do Promise.all da carga principal e de propósito:
+  // um órfão que não se leia é um aviso que não aparece, não uma página
+  // partida. Se falhar, cala-se — nunca afirma «não há órfãos».
+  useEffect(() => {
+    let cancelado = false;
+    getFormulariosOrfaos()
+      .then((lista) => !cancelado && setOrfaos(lista))
+      .catch((e) => console.error("Erro ao ler formulários órfãos:", e));
+    getReservaProvisoriaDoEvento(id)
+      .then((r) => !cancelado && setReservaProvisoria(r))
+      .catch((e) => console.error("Erro ao ler a reserva do evento:", e));
+    return () => {
+      cancelado = true;
+    };
+    // `id` nas dependências: mudar de evento SEM remontar a página
+    // (é o mesmo componente com outro :id) tem de reler a reserva —
+    // senão ficava a do evento anterior, e o convite nascia ligado à
+    // reserva errada.
   }, [id]);
 
   // O canal DESTE evento (Lote 4A): a página é onde vive a edição do
@@ -473,9 +506,10 @@ export default function EventoPage() {
   // funil») — e a saidaPendente guarda o STATE COMPLETO, para a
   // confirmação inline não perder a intenção pelo caminho.
   // O separador deixou de viajar no state: vai no CAMINHO. O state
-  // continua a levar só os pedidos pontuais que ainda existem
-  // (verPerdidos, formularioDe), consumidos uma vez pela AdminPage.
-  // O gerarDoc desapareceu: o documento tem endereço próprio.
+  // continua a levar só o pedido pontual que ainda existe (verPerdidos),
+  // consumido uma vez pela AdminPage. O gerarDoc desapareceu (o documento
+  // tem endereço próprio) e o formularioDe também (a criação e o
+  // «Preencher» resolvem-se dentro do evento).
   const voltarAoAdmin = (tab = "clientes", extra) => {
     // Se se veio da ficha de uma cliente, volta-se para lá — só nesse
     // caso. Nos outros pontos de entrada (Início, Agenda, funil, link
@@ -611,6 +645,28 @@ export default function EventoPage() {
               <DocumentosEvento
                 submissao={submissao}
                 invites={invites}
+                eventTypes={eventTypes}
+                onConviteCriado={(convite) =>
+                  setInvites((lista) => [convite, ...lista])
+                }
+                orfaos={orfaos}
+                reservaProvisoria={reservaProvisoria}
+                onNavegar={(destino) => navigate(destino)}
+                onAvisar={(m) => setErroAccao(m)}
+                onAdoptarOrfao={async (orfao) => {
+                  const atualizado = await apontarConviteAoEvento(
+                    orfao.id,
+                    id,
+                  );
+                  // Passa a ser o formulário DESTE evento e sai da lista
+                  // dos soltos — as duas metades no mesmo gesto, senão a
+                  // linha muda de estado e o aviso fica lá a oferecer o
+                  // mesmo órfão outra vez.
+                  setInvites((lista) => [atualizado, ...lista]);
+                  setOrfaos((lista) =>
+                    lista.filter((o) => o.id !== atualizado.id),
+                  );
+                }}
                 realce={realce}
                 onRealceConsumido={() => setRealce(null)}
                 onContagem={(n) => reportarContagem("documentos", n)}
@@ -620,26 +676,14 @@ export default function EventoPage() {
                   )
                 }
                 onVerFormulario={() => {
-                  // "Ver respostas" de um formulário respondido não
-                  // precisa de sair da página: as respostas leem-se na
-                  // Visão Geral (o destino antigo, a lista de convites
-                  // do admin, era um beco — o modal do convite
-                  // preenchido não mostra respostas). Pendente segue
-                  // para o admin, onde se preenche/partilha.
-                  const { estado } = estadoFormularioDoEvento(invites, id);
-                  if (estado === "preenchido") {
-                    irParaAba("visao-geral");
-                    return;
-                  }
-                  navigate(caminhoDoSeparador("convites"), {
-                    state: { formularioDe: id },
-                  });
+                  // "Ver respostas" lê-se na Visão Geral, sem sair da
+                  // página (o destino antigo — a lista de convites do
+                  // admin — era um beco: o modal do convite preenchido
+                  // não mostra respostas). O caso PENDENTE já não passa
+                  // por aqui: o «Preencher» resolve-se na própria aba.
+                  irParaAba("visao-geral");
                 }}
-                onCriarFormulario={() =>
-                  navigate(caminhoDoSeparador("convites"), {
-                    state: { formularioDe: id },
-                  })
-                }
+
               />
             </Painel>
           )}

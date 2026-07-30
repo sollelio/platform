@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { documentosDoEvento, marcarPassoDocumento } from "../../lib/documentos";
-import { estadoFormularioDoEvento } from "../../lib/invites";
+import {
+  createInvite,
+  estadoFormularioDoEvento,
+  podeSerAdoptadoPor,
+} from "../../lib/invites";
+import PainelNovoFormulario from "./PainelNovoFormulario";
+import {
+  abrirQuestionarioComoCliente,
+  dataDoRascunho,
+  getAllFields,
+  getDefaultCampos,
+  validarRascunho,
+} from "../../lib/camposFormulario";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { Icone } from "./Navegacao";
 import { Esqueleto } from "./acabamento";
@@ -246,9 +258,27 @@ const medidaBotao = (variante) => ({
 export default function DocumentosEvento({
   submissao,
   invites = [],
+  // O painel de criação precisa dos modelos: é deles que saem os campos
+  // para escolher. A página tem-nos e não os passava.
+  eventTypes = [],
+  // O convite criado tem de subir, para a linha mudar de estado no
+  // instante em que ela espera confirmação (a página não subscreve
+  // realtime de convites).
+  onConviteCriado,
+  // Os formulários soltos (sem evento nenhum) e o gesto de adoptar um.
+  // O aviso que sai daqui é a metade que apanha o erro no instante em
+  // que ele nasce: ela ia criar um segundo formulário para alguém que
+  // já tem um à espera.
+  orfaos = [],
+  onAdoptarOrfao,
+  // A reserva provisória deste evento, se houver — o convite nasce
+  // ligado a ela para que submeter a confirme.
+  reservaProvisoria = null,
+  // Para o «Preencher» sair daqui em vez de atravessar o backoffice.
+  onNavegar,
+  onAvisar,
   onGerarDocumento,
   onVerFormulario,
-  onCriarFormulario,
   realce = null,
   onRealceConsumido,
   onContagem,
@@ -320,6 +350,105 @@ export default function DocumentosEvento({
   }, [documentos]);
 
   const proximoDoc = DOC_DA_FASE[submissao?.fase] || null;
+
+  // ------------------------------------------------------------
+  // O PAINEL DE CRIAÇÃO, agora AQUI.
+  //
+  // Estado local da aba, não do route state: a intenção nasce nesta
+  // linha e resolve-se nesta linha, não precisa de viajar por rota
+  // nenhuma. E a aba fica montada quando se sai dela (display:none, ver
+  // EventoPage), por isso um painel meio composto sobrevive a ir aos
+  // Pagamentos e voltar — o que morre é sair do evento, e isso é a
+  // decisão do Hélio.
+  // ------------------------------------------------------------
+  const [aCompor, setACompor] = useState(false);
+  const [rascunho, setRascunho] = useState(null);
+  const [errosRascunho, setErrosRascunho] = useState({});
+  const [aCriar, setACriar] = useState(false);
+  const [aAdoptar, setAAdoptar] = useState(null);
+
+  // «Preencher» — a Nádia responde ela própria. Sai daqui directamente:
+  // antes fazia uma viagem ao separador Formulários só para chegar ao
+  // mesmo sítio, e essa viagem era o último uso do handshake de
+  // navegação que agora desaparece.
+  const preencher = (convite) =>
+    abrirQuestionarioComoCliente(convite, eventTypes, {
+      avisar: (m) => onAvisar && onAvisar(m),
+      navegar: (destino) => onNavegar && onNavegar(destino),
+    });
+
+  // AS TRÊS CONDIÇÕES, da lib — não repetidas aqui. Sem elas o aviso
+  // ofereceria adopções inválidas: um Aniversário apontado a um
+  // Casamento reescreve o tipo e funde respostas de outro modelo, e um
+  // convite vindo de reserva não se adopta de forma alguma.
+  const orfaosAdoptaveis = (orfaos || []).filter((o) =>
+    podeSerAdoptadoPor(o, submissao),
+  );
+
+  const abrirPainel = () => {
+    const tipoId = submissao?.event_type_id || eventTypes[0]?.id || "";
+    const tipo = eventTypes.find((et) => et.id === tipoId);
+
+    // A DATA já preenchida, pelo id REAL do campo do modelo. O caminho
+    // antigo (que passava pelo separador Formulários) fazia isto, e ao
+    // trazê-lo para cá esqueci-me — o painel abria vazio e obrigava-a a
+    // reescrever uma data que a app já sabe.
+    const campoData = getAllFields(tipo).find((f) => f.type === "date");
+    const valores = {};
+    const camposAtivos = [...getDefaultCampos(tipo)];
+    if (campoData && submissao?.data_evento) {
+      valores[campoData.id] = submissao.data_evento;
+      camposAtivos.push(campoData.id);
+    }
+
+    setRascunho({
+      eventTypeId: tipoId,
+      camposAtivos,
+      valores,
+      // O vínculo à reserva vem dos DADOS, não da navegação: é ele que
+      // faz a reserva passar a «Confirmada» quando a cliente submeter.
+      reservaId: reservaProvisoria?.id || null,
+      // O alvo é este evento, sempre. É o que faz o painel ser curto.
+      submissionAlvoId: submissao?.id || null,
+    });
+    setErrosRascunho({});
+    setACompor(true);
+  };
+
+  const criarFormulario = async () => {
+    const erros = validarRascunho(rascunho, eventTypes);
+    if (Object.keys(erros).length > 0) {
+      setErrosRascunho(erros);
+      return;
+    }
+    if (!rascunho.eventTypeId) {
+      setErrosRascunho({
+        geral: "Escolhe o tipo de evento antes de criar o formulário.",
+      });
+      return;
+    }
+    setACriar(true);
+    try {
+      const convite = await createInvite({
+        dataEvento: dataDoRascunho(rascunho, eventTypes),
+        eventTypeId: rascunho.eventTypeId,
+        respostas: rascunho.valores,
+        reservaId: rascunho.reservaId || null,
+        submissionAlvoId: submissao.id,
+      });
+      if (onConviteCriado) onConviteCriado(convite);
+      setACompor(false);
+      setRascunho(null);
+      setErrosRascunho({});
+    } catch (e) {
+      console.error("Erro ao criar o formulário:", e);
+      setErrosRascunho({
+        geral:
+          "Não foi possível criar o formulário. Verifica a ligação e tenta outra vez.",
+      });
+    }
+    setACriar(false);
+  };
 
   // O estado da linha Formulário vem da fonte única (lib/invites) — a
   // mesma conta da Jornada e do drawer. "preenchido-noutro" é o rasto
@@ -420,7 +549,9 @@ export default function DocumentosEvento({
         icone="formularios"
         titulo="Formulário"
         descricao={
-          estadoFormulario === "nenhum"
+          aCompor
+            ? "A compor…"
+            : estadoFormulario === "nenhum"
             ? "Ainda não foi criado"
             : estadoFormulario === "preenchido"
               ? `Criado ${dataCurta(convite.created_at)} · respondido pela cliente`
@@ -428,7 +559,13 @@ export default function DocumentosEvento({
                 ? "As respostas ficaram noutro evento (convite antigo sem alvo) — cria um formulário novo apontado a este evento"
                 : `Criado ${dataCurta(convite.created_at)} · à espera de resposta`
         }
-        tom={estadoFormulario === "nenhum" ? "adormecido" : undefined}
+        tom={
+          aCompor
+            ? "destaque"
+            : estadoFormulario === "nenhum"
+              ? "adormecido"
+              : undefined
+        }
         passos={
           <>
             <Passo
@@ -443,15 +580,19 @@ export default function DocumentosEvento({
         accoes={
           estadoFormulario === "pendente" || estadoFormulario === "preenchido" ? (
             <button
-              onClick={() => onVerFormulario && onVerFormulario(submissao)}
+              onClick={() =>
+                formularioFeito
+                  ? onVerFormulario && onVerFormulario(submissao)
+                  : preencher(convite)
+              }
               className={classeBotao("ouro")}
               style={medidaBotao("ouro")}
             >
               {formularioFeito ? "Ver respostas" : "Preencher"}
             </button>
-          ) : (
+          ) : aCompor ? null : (
             <button
-              onClick={() => onCriarFormulario && onCriarFormulario(submissao)}
+              onClick={abrirPainel}
               className={classeBotao("ouro")}
               style={medidaBotao("ouro")}
             >
@@ -460,6 +601,140 @@ export default function DocumentosEvento({
           )
         }
       />
+
+      {/* O AVISO DOS ÓRFÃOS — a prevenção no sítio onde o erro nasce.
+          Aparece só quando este evento NÃO tem formulário e ela ainda não
+          começou a compor um: é nesse instante que criar um segundo faria
+          nascer o duplicado. Adoptar é preferir o que já existe. */}
+      {!aCompor &&
+        estadoFormulario === "nenhum" &&
+        orfaosAdoptaveis.length > 0 && (
+          <div
+            style={{
+              maxWidth: "640px",
+              marginLeft: "48px",
+              backgroundColor: "#FEF3E2",
+              border: "1px solid #F0D9B5",
+              borderRadius: "10px",
+              padding: "12px 14px",
+              margin: "-2px 0 9px 48px",
+            }}
+          >
+            <p
+              style={{
+                margin: "0 0 6px",
+                fontSize: "12.5px",
+                color: "#92400E",
+                lineHeight: 1.6,
+              }}
+            >
+              {orfaosAdoptaveis.length === 1
+                ? "Há um formulário pendente sem evento associado"
+                : `Há ${orfaosAdoptaveis.length} formulários pendentes sem evento associado`}
+              , do mesmo tipo. Se for desta cliente,{" "}
+              <strong>não crie um segundo</strong> — aponta o que já existe.
+            </p>
+            {orfaosAdoptaveis.slice(0, 3).map((o) => (
+              <div
+                key={o.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  backgroundColor: "white",
+                  border: "1px solid #F0D9B5",
+                  borderRadius: "9px",
+                  padding: "8px 11px",
+                  marginTop: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "11.5px",
+                    color: "var(--gray-mid)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {o.code}
+                  {o.created_at ? ` · ${dataCurta(o.created_at)}` : ""}
+                </span>
+                <button
+                  onClick={async () => {
+                    setAAdoptar(o.id);
+                    try {
+                      if (onAdoptarOrfao) await onAdoptarOrfao(o);
+                    } catch (e) {
+                      console.error("Erro ao apontar o formulário:", e);
+                    }
+                    setAAdoptar(null);
+                  }}
+                  disabled={aAdoptar === o.id}
+                  style={{
+                    marginLeft: "auto",
+                    border: "1px solid #F0D9B5",
+                    backgroundColor: "white",
+                    color: "#92400E",
+                    fontWeight: "600",
+                    fontSize: "11px",
+                    padding: "5px 12px",
+                    borderRadius: "999px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {aAdoptar === o.id ? "A apontar…" : "É deste"}
+                </button>
+              </div>
+            ))}
+            {orfaosAdoptaveis.length > 3 && (
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  fontSize: "11.5px",
+                  color: "#92400E",
+                }}
+              >
+                … e mais {orfaosAdoptaveis.length - 3} em Formulários.
+              </p>
+            )}
+          </div>
+        )}
+
+      {/* O PAINEL, por baixo da linha e indentado — a coluna estreita é
+          deliberada: a aba tem de continuar a ler-se como cinco linhas
+          calmas, e o painel foi desenhado para uma coluna, não para a
+          largura toda de uma página de evento.
+          `eventosParaEscolher={null}`: o alvo é ESTE evento, e um
+          selector de evento dentro de um evento seria UI morta.
+          `orfaos={null}`: esta página não tem visão global dos convites
+          — ausência DECLARADA, nunca uma lista vazia silenciosa. O aviso
+          dos órfãos dentro do evento é a metade seguinte do trabalho. */}
+      {aCompor && rascunho && (
+        <div style={{ maxWidth: "640px", marginLeft: "48px" }}>
+          <PainelNovoFormulario
+            showNewInvite={aCompor}
+            setShowNewInvite={setACompor}
+            newInvite={rascunho}
+            setNewInvite={setRascunho}
+            newInviteErrors={errosRascunho}
+            setNewInviteErrors={setErrosRascunho}
+            creatingInvite={aCriar}
+            eventTypes={eventTypes}
+            submissions={[submissao]}
+            invites={invites}
+            orfaos={null}
+            eventosParaEscolher={null}
+            reservaContexto={null}
+            /* Só para trazer os «Dados do pedido» (o cabeçalho «Vai
+               atualizar o evento de» fica de fora — ver o painel). */
+            eventoContexto={submissao}
+            setEventoContexto={() => {}}
+            handleCreateInvite={criarFormulario}
+            handleApontarConvite={() => {}}
+          />
+        </div>
+      )}
       </div>
 
       {Object.entries(TIPOS).map(([tipo, cfg]) => {

@@ -258,3 +258,28 @@ export const agruparReservasPorDia = (reservas) => {
   }
   return mapa;
 };
+
+// ============================================================
+// A reserva PROVISÓRIA ligada a um evento — se houver.
+//
+// Existe porque o vínculo já está nos DADOS (reservas.submission_id) e
+// não precisava de viajar na navegação. O convite tem de nascer com o
+// reserva_id: é ele que faz a reserva passar a «Convertida» quando a
+// cliente submete (migração 036). Sem isto, criar o formulário dentro do
+// evento deixava a reserva provisória para sempre.
+//
+// Efeito lateral bem-vindo: passa a acontecer SEMPRE que se cria o
+// formulário de um evento com reserva à espera — antes só acontecia se
+// ela entrasse pelo botão da Agenda.
+// ============================================================
+export const getReservaProvisoriaDoEvento = async (submissionId) => {
+  if (!submissionId) return null;
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("*")
+    .eq("submission_id", submissionId)
+    .eq("estado", ESTADOS_RESERVA.PROVISORIA)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+};

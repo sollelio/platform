@@ -237,7 +237,40 @@ export function Icone({ nome, tamanho = 18 }) {
 // não chamar nada; com um <a href>, não chamar nada deixa o browser ir.
 const ehSeparador = (id) => typeof id === "string" && !id.startsWith("__");
 
-function ItemNav({ item, ativo, onClick }) {
+// ------------------------------------------------------------
+// A CONTAGEM ao lado de um item do menu. Não pulsa, não anima, não pede
+// atenção: só está lá. É a diferença entre uma secção que se esquece e
+// uma que se vê — e a regra da casa é que o movimento marca
+// acontecimentos, não estados. Um estado permanente na visão periférica
+// é imposição, não aviso.
+// ------------------------------------------------------------
+function Contagem({ quantos }) {
+  if (!quantos) return null;
+  return (
+    <span
+      style={{
+        marginLeft: "auto",
+        minWidth: "18px",
+        height: "18px",
+        padding: "0 5px",
+        borderRadius: "999px",
+        backgroundColor: "#FEF3E2",
+        border: "1px solid #F0D9B5",
+        color: "#92400E",
+        fontSize: "10px",
+        fontWeight: "700",
+        lineHeight: "16px",
+        textAlign: "center",
+        boxSizing: "border-box",
+        flexShrink: 0,
+      }}
+    >
+      {quantos > 99 ? "99+" : quantos}
+    </span>
+  );
+}
+
+function ItemNav({ item, ativo, onClick, contagem }) {
   const estilo = {
     display: "flex",
     alignItems: "center",
@@ -267,6 +300,7 @@ function ItemNav({ item, ativo, onClick }) {
       >
         {item.label}
       </span>
+      <Contagem quantos={contagem} />
     </>
   );
 
@@ -393,6 +427,8 @@ export function SidebarNav({
   onSair,
   naoLidas = 0,
   onAbrirNotificacoes,
+  // { [idDoSeparador]: número } — contagens discretas ao lado dos itens.
+  contagens = {},
 }) {
   return (
     <div
@@ -429,6 +465,7 @@ export function SidebarNav({
           item={item}
           ativo={activeTab === item.id}
           onClick={(ev) => onNavegar(item.id, ev)}
+          contagem={contagens[item.id]}
         />
       ))}
 
@@ -439,6 +476,7 @@ export function SidebarNav({
           item={item}
           ativo={activeTab === item.id}
           onClick={(ev) => onNavegar(item.id, ev)}
+          contagem={contagens[item.id]}
         />
       ))}
 
@@ -455,6 +493,8 @@ export function SidebarNav({
             item={item}
             ativo={activeTab === item.id}
             onClick={(ev) => onNavegar(item.id, ev)}
+            contagem={contagens[item.id]}
+          contagem={contagens[item.id]}
           />
         ))}
         <ItemNav
@@ -543,7 +583,7 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
 // ------------------------------------------------------------
 // FOLHA "MAIS" — telemóvel
 // ------------------------------------------------------------
-export function SheetMais({ activeTab, onNavegar, onSair, onFechar }) {
+export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = {} }) {
   return (
     <div
       onClick={onFechar}
@@ -584,6 +624,7 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar }) {
               onNavegar(item.id, ev);
               onFechar();
             }}
+            contagem={contagens[item.id]}
           />
         ))}
         <div

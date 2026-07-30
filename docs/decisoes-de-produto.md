@@ -30,10 +30,15 @@ o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
   `+491726435834`). Porquê: é o identificador que a Nádia realmente tem.
 - **27/07/2026 — A RPC do questionário NÃO recusa formulário sem alvo com
   evento vivo na mesma data.** O aviso vai para a **criação do formulário no
-  backoffice**, ao lado do seletor de alvo (1A). Porquê: a recusa na RPC
-  dispararia no ecrã de quem preenche, que não tem como a corrigir.
-  *(Implementação: Lote 4D. Nota: o id interno continua `convites` — só o
-  vocabulário mudou.)*
+  backoffice**. Porquê: a recusa na RPC dispararia no ecrã de quem preenche,
+  que não tem como a corrigir.
+  *(Estado a 30/07/2026: **nunca foi implementado** — não existe verificação
+  de colisão de datas no painel. O que existe é o dedupe do pedido (mesmo
+  telefone + mesma data), que é outra coisa. A âncora original era «ao lado
+  do seletor de alvo», mas esse selector deixa de existir: o painel em
+  Formulários passa a ser só «cliente novo». A casa do 1A é precisamente
+  esse painel — é lá que se cria sem alvo. Fica pendente; o id interno
+  continua `convites`.)*
 - **27/07/2026 — O aviso de duplicado no pedido público nunca mostra
   nomes ao anónimo** — o nome do contacto existente só aparece a sessões
   autenticadas. Porquê: a RLS é a fronteira; a porta pública não revela
@@ -117,3 +122,62 @@ o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
   comprar ou negociar datas); manter sem marca fazia o badge gritar
   por hipóteses — e um badge que grita por hipóteses deixa de ser
   lido.
+
+## Formulários — onde se criam (30/07/2026)
+
+- **30/07/2026 — O que não tem evento vive em «Formulários»; o que tem
+  evento vive no evento.** Não são excepções, é a regra: a acção fica onde
+  a intenção nasce, e quando não há evento a intenção nasce em Formulários
+  porque não há mais nada onde nascer. Em Formulários ficam: o «cliente
+  novo» (sem alvo, o fluxo principal de captação), os órfãos, e a
+  supervisão. No evento fica a criação do formulário desse evento, com
+  painel curto (o alvo é conhecido; um selector de evento dentro de um
+  evento seria UI morta). Porquê: acabava o teleporte — a intenção nascia
+  no evento e a acção acontecia noutro ecrã.
+- **30/07/2026 — Os órfãos: lista em Formulários *e* aviso no evento** (as
+  duas direcções, não uma). A lista dá casa ao órfão que nunca vai ser
+  visitado; o aviso dentro do evento apanha o erro no instante em que
+  nasce — quando ela ia criar o segundo formulário. Efeito: o selector de
+  alvo passa a **último recurso**, não gesto principal. Porquê escolher as
+  duas: escolher uma era escolher qual dos dois buracos deixar aberto.
+  *O aviso respeita as três condições da adopção* (`!reserva_id`, e mesmo
+  `event_type_id` ou órfão sem tipo) — apontar um Aniversário a um
+  Casamento reescreveria o tipo e fundiria respostas de outro modelo.
+- **30/07/2026 — A lista de lacunas usa `FASES_POS_SINAL`** (cliente ·
+  projecto · contrato), a mesma lista canónica da conferência da Logística
+  — **não uma lista nova**. Afinações: eventos passados ficam de fora (não
+  têm lacuna, têm história); eventos sem data entram (não se pode afirmar
+  que passaram, e entre esconder e mostrar a mais, mostra-se). Porquê:
+  cada pedido e cada reserva nascem em «interessado» — sem critério, a
+  lista de lacunas era a lista de leads. E fecha com o glossário: o
+  questionário prepara a montagem de um evento confirmado; um interessado
+  precisa de orçamento, não de questionário.
+- **30/07/2026 — Um formulário que já existe nunca desaparece da
+  supervisão.** O critério de fase decide **que lacunas se mostram**, não
+  que formulários. Porquê: sem isto, um formulário já enviado
+  desaparecia por o evento estar na fase «errada», e ela ficava sem saber
+  que o tinha enviado.
+- **30/07/2026 — As linhas «sem formulário» não têm botão de criar** — a
+  acção honesta é abrir o evento. Porquê: com botão, a página voltava a
+  ser sítio de criação para coisas que têm evento, e a regra desfazia-se.
+- **30/07/2026 — O caminho da reserva antiga sem evento morreu.** Contagem
+  em produção: zero. Fica uma guarda que **diz**, em vez de abrir um painel
+  a meio, se alguma vez reaparecer. Porquê: retrocompatibilidade sem
+  utilizadores é peso morto.
+- **30/07/2026 — O vínculo `reserva_id` vem dos dados, não da navegação.**
+  A aba lê a reserva provisória do evento em vez de receber o id por
+  handshake. Porquê: acrescentar um handshake no lote em que se removeu
+  outro seria trocar uma fragilidade por outra. Efeito lateral
+  bem-vindo: passa a acontecer sempre que ela cria o formulário de um
+  evento com reserva à espera, não só entrando pelo botão da Agenda.
+- **30/07/2026 — Sem aviso bloqueante para anunciar a mudança** — em vez
+  disso, uma linha de orientação junto ao botão em Formulários. Porquê: o
+  botão não desaparece (o «cliente novo» fica), a disrupção é pequena, e
+  avisos bloqueantes ensinam a dispensar avisos.
+
+## Validação — regra da casa
+
+- **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
+  Porquê: duas vezes neste projeto o build passou com um erro que o eslint
+  apanhou e que teria rebentado no ecrã da Nádia (uma importação em falta
+  que viajou com um handler). O build sozinho não chega.

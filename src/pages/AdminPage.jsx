@@ -9,15 +9,20 @@ import {
 import { supabase } from "../lib/supabase";
 import {
   createInvite,
+  ehFormularioOrfao,
   getEventTypes,
-  estadoFormularioDoEvento,
   apontarConviteAoEvento,
 } from "../lib/invites";
-import { validateField } from "../lib/validation";
+import {
+  abrirQuestionarioComoCliente,
+  dataDoRascunho,
+  getDefaultCampos,
+  getTituloConvite,
+  validarRascunho,
+} from "../lib/camposFormulario";
 import {
   normalizeSubmission,
   getValorAtual,
-  getResumoSubmissao,
 } from "../lib/submissionFields";
 import {
   getDadosParaDocumento,
@@ -25,11 +30,14 @@ import {
   updateStatus,
 } from "../lib/clientes";
 import EventTypesTab from "../components/admin/EventTypesTab";
-import CampoSeletor from "../components/admin/CampoSeletor";
 import SubmissionDrawer from "../components/admin/SubmissionDrawer";
 import DashboardTab from "../components/admin/DashboardTab";
 import ClientesLista from "../components/admin/ClientesLista";
 import ClienteVista from "../components/admin/ClienteVista";
+import PainelNovoFormulario from "../components/admin/PainelNovoFormulario";
+import FormulariosOrfaos from "../components/admin/FormulariosOrfaos";
+import LacunasFormulario from "../components/admin/LacunasFormulario";
+import { ehLacunaDeFormulario } from "../components/admin/faseConfig";
 import AvisosBloqueantes from "../components/admin/AvisosBloqueantes";
 import DeleteInviteModal from "../components/admin/DeleteInviteModal";
 import ShareSheet from "../components/admin/ShareSheet";
@@ -55,7 +63,6 @@ import PainelNotificacoes, {
 } from "../components/admin/CentroNotificacoes";
 import { useNotificacoes } from "../lib/notificacoes";
 import { getReservas } from "../lib/reservas";
-import FormField from "../components/form/FormField";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Gera um título legível para um formulário (ex: "André & Andreia").
@@ -66,178 +73,10 @@ import { motion, AnimatePresence } from "framer-motion";
 // Os dados que a captação já recolheu sobre o evento-alvo — para a
 // Nádia consultar e COPIAR enquanto compõe o formulário (em vez de
 // o cliente ver um cartão na página pública, que ela dispensou).
-function DadosCaptacao({ submissao }) {
-  const [aberto, setAberto] = useState(false);
-  const [copiado, setCopiado] = useState(null);
-  if (!submissao) return null;
-  const r = submissao.respostas || {};
-  const linhas = [
-    ["Nome", r.nomeDoCliente || r.nomeResponsavel],
-    ["Tipo de evento (outro)", r.tipoEventoOutro],
-    ["WhatsApp", r.numeroWhatsapp],
-    ["Contacto", r.contactoPrincipal],
-    ["Data do evento", submissao.data_evento || r.dataEvento],
-    [
-      "Nº convidados",
-      submissao.numero_convidados ?? r.numeroConvidados ?? null,
-    ],
-    ["Local", r.localEvento],
-    ["Espaço", r.tipoLocal],
-    [
-      "Serviços",
-      [
-        ...(Array.isArray(r.servicos) ? r.servicos : []),
-        ...(Array.isArray(r.servicosBuffet) ? r.servicosBuffet : []),
-        ...(Array.isArray(r.servicosBalcao) ? r.servicosBalcao : []),
-      ].join(", ") || null,
-    ],
-    ["Notas da conversa", r.mensagemInicial || r.maisDetalhes || null],
-  ].filter(([, v]) => v !== null && v !== undefined && `${v}`.trim() !== "");
-  if (linhas.length === 0) return null;
-
-  const copiar = async (rotulo, valor) => {
-    try {
-      await navigator.clipboard.writeText(`${valor}`);
-      setCopiado(rotulo);
-      setTimeout(() => setCopiado(null), 1600);
-    } catch {
-      /* clipboard indisponível — sem drama */
-    }
-  };
-
-  return (
-    <div style={{ marginTop: "10px" }}>
-      <button
-        onClick={() => setAberto(!aberto)}
-        style={{
-          border: "none",
-          background: "none",
-          cursor: "pointer",
-          fontSize: "11px",
-          fontWeight: "600",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--gold-dark)",
-          padding: 0,
-        }}
-      >
-        {aberto ? "▾" : "▸"} Dados da captação ({linhas.length})
-      </button>
-      {aberto && (
-        <div
-          style={{
-            marginTop: "8px",
-            borderTop: "1px solid var(--gold-light)",
-            paddingTop: "8px",
-          }}
-        >
-          {linhas.map(([rotulo, valor]) => (
-            <div
-              key={rotulo}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "10px",
-                padding: "4px 0",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--charcoal)",
-                  minWidth: 0,
-                  lineHeight: 1.5,
-                }}
-              >
-                <span style={{ color: "var(--gray-mid)" }}>{rotulo}: </span>
-                {`${valor}`}
-              </span>
-              <button
-                onClick={() => copiar(rotulo, valor)}
-                style={{
-                  flexShrink: 0,
-                  border: "1px solid var(--gold-light)",
-                  backgroundColor: "white",
-                  borderRadius: "999px",
-                  padding: "3px 10px",
-                  fontSize: "11px",
-                  color:
-                    copiado === rotulo ? "#166534" : "var(--gold-dark)",
-                  cursor: "pointer",
-                }}
-              >
-                {copiado === rotulo ? "✓ Copiado" : "Copiar"}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function getTituloConvite(invite, submissions, eventTypes) {
-  let fonte = null;
-  if (invite?.submission_id && submissions) {
-    fonte = submissions.find((s) => s.id === invite.submission_id) || null;
-  }
-  // Convite AINDA por preencher mas apontado a um evento (onboarding):
-  // o nome vem do evento-alvo — senão o cartão fica "Casamento · CÓDIGO"
-  // e ninguém sabe de quem é o formulário.
-  if (!fonte && invite?.submission_alvo_id && submissions) {
-    fonte =
-      submissions.find((s) => s.id === invite.submission_alvo_id) || null;
-  }
-  if (!fonte) {
-    fonte = {
-      event_type_id: invite?.event_type_id,
-      respostas: invite?.respostas || {},
-    };
-  }
-
-  const resumo = getResumoSubmissao(fonte, eventTypes);
-  const tipo = eventTypes?.find((et) => et.id === invite?.event_type_id);
-
-  // Se caiu no genérico (título === nome do tipo, ou "Evento" sem tipo),
-  // usa nome do tipo + código do convite como identificador.
-  const caiuNoGenerico = tipo && resumo.titulo === tipo.nome;
-  const semTitulo = !tipo && resumo.titulo === "Evento";
-  if (caiuNoGenerico || semTitulo) {
-    return tipo
-      ? `${tipo.nome} · ${invite.code}`
-      : invite?.code || "Formulário sem nome";
-  }
-  return resumo.titulo;
-}
-
-// Junta os campos de todos os passos de um tipo de evento numa única
-// lista, guardando também o título do passo a que cada um pertence
-// (usado no Painel de Novo Formulário, para a irmã escolher campos)
-function getAllFields(tipo) {
-  if (!tipo || !tipo.steps) return [];
-  return tipo.steps.flatMap((step) =>
-    (step.fields || []).map((f) => ({ ...f, stepTitle: step.title })),
-  );
-}
-
-// Todos os tipos de evento arrancam vazios no Painel de Novo Formulário,
-// sem excepções — nem o Casamento tem campos por defeito. A irmã
-// escolhe sempre o que quer pelo campo de busca.
-function getDefaultCampos(tipo) {
-  return [];
-}
-
-// A partir do estado do painel, devolve a informação completa (label,
-// tipo, validações...) de cada campo activo — partilhado entre o render
-// e a validação ao criar o formulário
-function getCamposActivosInfo(eventTypes, newInvite) {
-  const tipo = eventTypes.find((et) => et.id === newInvite.eventTypeId);
-  const todosOsCampos = getAllFields(tipo);
-  return newInvite.camposAtivos
-    .map((id) => todosOsCampos.find((f) => f.id === id))
-    .filter(Boolean);
-}
+// O DadosCaptacao mudou-se para components/admin/PainelNovoFormulario.jsx
+// (único consumidor). As funções de campos e o título de um convite
+// mudaram-se para lib/camposFormulario.js, porque passaram a ter dois
+// donos: esta página e o painel extraído.
 
 export default function AdminPage() {
   const location = useLocation();
@@ -319,7 +158,6 @@ export default function AdminPage() {
     reservaId: null,
     submissionAlvoId: null,
   });
-  const [reservaContexto, setReservaContexto] = useState(null);
   // Evento-alvo do formulário (onboarding): quando presente, o convite
   // criado aponta a esse evento e as respostas ATUALIZAM-no.
   const [eventoContexto, setEventoContexto] = useState(null);
@@ -412,38 +250,16 @@ export default function AdminPage() {
   // do que já está em memória, e navega para o formulário como
   // se fosse o casal/família a abri-lo
   const handlePreencherFormulario = (invite) => {
-    // «Não carregou» não é «não existe»: sem os modelos em mão, a
-    // mensagem certa não é «o tipo de evento já não existe».
-    if (modelosPorChegar) {
+    if (
+      !abrirQuestionarioComoCliente(invite, eventTypes, {
+        modelosPorChegar,
+        avisar: setAvisoConvites,
+        navegar: navigate,
+      })
+    ) {
+      // Travou: o aviso tem de ser visto, e a barra dele vive nesta secção.
       navegarPara("convites");
-      setAvisoConvites(
-        "Ainda não foi possível ler os tipos de evento. Recarrega a página e tenta outra vez.",
-      );
-      return;
     }
-    const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
-    if (!tipo) {
-      navegarPara("convites");
-      setAvisoConvites(
-        "O tipo de evento deste formulário já não existe. Recarrega a página; se o aviso persistir, verifica o modelo no editor de Tipos de Evento.",
-      );
-      return;
-    }
-    // Um modelo sem passos partia o formulário do cliente (ecrã em
-    // branco) — diz-se aqui, onde há quem leia, e não lá.
-    if (!Array.isArray(tipo.steps) || tipo.steps.length === 0) {
-      navegarPara("convites");
-      setAvisoConvites(
-        `O modelo "${tipo.nome}" não tem passos — o formulário abriria em branco. Abre o editor de Tipos de Evento e compõe os passos desse modelo antes de partilhar o convite.`,
-      );
-      return;
-    }
-    const inviteCompleto = {
-      ...invite,
-      event_types: { nome: tipo.nome, steps: tipo.steps, icone: tipo.icone },
-    };
-    sessionStorage.setItem("dlm_invite", JSON.stringify(inviteCompleto));
-    navigate("/formulario");
   };
 
   // Chamado pelos botões 💰 Orçamento / 📃 Contrato do drawer do evento:
@@ -566,162 +382,43 @@ export default function AdminPage() {
     );
   };
 
-  // Chamado pelo botão 📋 Formulário do drawer: abre o painel Novo
-  // Formulário JÁ APONTADO àquele evento (submission_alvo_id, migração
-  // 013). Ao submeter, as respostas atualizam o evento existente em vez
-  // de criar cliente + evento novos. Segue o padrão da reserva: o tipo
-  // vem pré-selecionado do evento e a data pré-preenchida se o modelo
-  // tiver campo de data.
-  // Abrir o formulário PENDENTE de um evento para PREENCHER — o mesmo
-  // destino do botão "✏ Preencher" do cartão. É para onde vão o botão
-  // do drawer e a etapa da Jornada quando o convite existe por
-  // preencher (nunca há caminho para duplicados).
-  const handleVerFormularioDoEvento = (submissao) => {
-    const { convite, estado } = estadoFormularioDoEvento(
-      invites,
-      submissao.id,
-    );
-    if (estado === "pendente") {
-      handlePreencherFormulario(convite);
-    } else {
-      // rede de segurança: sem convite legível, ao menos a lista
-      navegarPara("convites");
-      setShowNewInvite(false);
-    }
-  };
 
-  const handleFormularioDoEvento = (submissao) => {
-    // A guarda que impede o pior desta família: sem saber que convites
-    // existem, este caminho concluiria «este evento não tem formulário»
-    // e criaria um NOVO — que, ao ser preenchido, faz nascer um cliente
-    // e um evento DUPLICADOS em vez de actualizar os que já existem.
-    // Perante o desconhecido, não se adivinha: diz-se e pára-se.
-    if (convitesPorChegar) {
-      navegarPara("convites");
-      setAvisoConvites(
-        "Ainda não foi possível ler os formulários que já existem. Recarrega a página antes de criar um novo — criá-lo às cegas pode duplicar o cliente e o evento.",
-      );
-      return;
-    }
-    const tipoId = submissao.event_type_id || eventTypes[0]?.id || "";
-    const tipo = eventTypes.find((et) => et.id === tipoId);
-    const campoData = getAllFields(tipo).find((f) => f.type === "date");
 
-    const valores = {};
-    const camposAtivos = [];
-    if (campoData && submissao.data_evento) {
-      valores[campoData.id] = submissao.data_evento;
-      camposAtivos.push(campoData.id);
-    }
+  // O handshake «formularioDe» DESAPARECEU. Trazia no state da navegação
+  // o pedido «abre o formulário deste evento», vindo da página do evento
+  // — um mecanismo de uso único, consumido com replace e guardado por um
+  // ref para não se repetir. Já não é preciso: a criação e o «Preencher»
+  // resolvem-se DENTRO do evento, e uma intenção que não muda de página
+  // não precisa de viajar por rota nenhuma.
 
-    const resumo = getResumoSubmissao(submissao, eventTypes);
-    setSelected(null); // fecha o drawer
-    navegarPara("convites");
-    setReservaContexto(null);
-    setEventoContexto({
-      id: submissao.id,
-      titulo: resumo.titulo,
-      tipoNome: tipo?.nome || "",
-      data: submissao.data_evento || null,
-    });
-    setNewInvite({
-      eventTypeId: tipoId,
-      camposAtivos,
-      valores,
-      reservaId: null,
-      submissionAlvoId: submissao.id,
-    });
-    setShowNewInvite(true);
-    setCreatedInvite(null);
-  };
-
-  // O botão "Criar formulário" da página do evento chega cá com o id
-  // no state (o padrão do gerarDoc acima) e cumpre-se quando eventos,
-  // convites e modelos já estão carregados. A decisão vem da fonte
-  // única (estadoFormularioDoEvento): sem convite, abre o painel Novo
-  // Formulário JÁ APONTADO ao evento (submission_alvo_id) — as
-  // respostas atualizam o evento existente em vez de criar cliente +
-  // evento duplicados. Pendente, abre-o para preencher; preenchido,
-  // mostra as respostas. Duas frestas fechadas: se os convites não
-  // carregaram, NÃO se cria nada (criar às cegas era arriscar um
-  // duplicado); e o evento em falta responde com um aviso no ecrã em
-  // vez de um no-op silencioso.
-  const pedidoDeFormulario = location.state?.formularioDe;
-  const pedidoDeFormularioConsumido = useRef(false);
-  useEffect(() => {
-    if (!pedidoDeFormulario || pedidoDeFormularioConsumido.current) return;
-    if (loading || loadingInvites || loadingEventTypes) return;
-    pedidoDeFormularioConsumido.current = true;
-    // consome o pedido do histórico — voltar atrás não o repete
-    navigate(caminhoDoSeparador("convites"), { replace: true, state: null });
-    if (erroInvites) {
-      setAvisoConvites(
-        "Não foi possível ler os formulários existentes — para não criar um duplicado, recarrega a página e volta a tentar a partir da ficha do evento.",
-      );
-      return;
-    }
-    const evento = submissions.find((s) => s.id === pedidoDeFormulario);
-    if (!evento) {
-      setAvisoConvites(
-        "Não foi possível encontrar o evento deste formulário. Recarrega a página e volta a tentar a partir da ficha do evento.",
-      );
-      return;
-    }
-    const { convite, estado } = estadoFormularioDoEvento(invites, evento.id);
-    if (estado === "pendente") {
-      handlePreencherFormulario(convite);
-    } else if (estado === "preenchido") {
-      setSelectedInvite(convite);
-    } else {
-      // "nenhum" — e também "preenchido-noutro": o evento continua sem
-      // respostas próprias, por isso o caminho honesto é criar um
-      // formulário novo já apontado (o painel avisa do convite
-      // desviado no bloco "estado do alvo").
-      handleFormularioDoEvento(evento);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidoDeFormulario, loading, loadingInvites, loadingEventTypes]);
-
-  // Chamado pela Agenda quando a irmã clica "Tornar cliente" numa reserva.
-  // Muda para a tab Formulários, abre o painel pré-preenchido e carimba
-  // o convite com o id da reserva.
+  // ------------------------------------------------------------
+  // A QUARTA PORTA, fechada (30/07/2026).
   //
-  // O nome da cliente NÃO é pré-preenchido num campo (não sabemos para que
-  // campo do modelo iria) — aparece só como referência na nota do topo.
-  // A data é pré-preenchida SE o modelo tiver um campo do tipo "date":
-  // procuramos esse campo pelo seu type e usamos o id REAL dele (os ids
-  // são gerados a partir do label, ex: "Data do Evento" -> "dataDoEvento",
-  // por isso não podem ser adivinhados).
+  // «✓ Tornar cliente» numa reserva abria o painel de criação AQUI, no
+  // separador Formulários. Deixou de o fazer: navega para a aba
+  // Documentos do evento da reserva, onde a criação passou a viver.
+  //
+  // Podia fazê-lo porque a contagem em produção deu ZERO reservas sem
+  // evento ligado — o Hélio correu-a. As reservas nascem todas com
+  // evento (ver lib/reservas), portanto o caminho legado que abria o
+  // painel sem alvo não tem utilizadores, e o ramo retrocompatível
+  // morre com ele. Se algum dia reaparecer uma reserva sem evento, o
+  // ramo de guarda abaixo di-lo em vez de abrir um painel a meio.
+  //
+  // Nada viaja no state a não ser o realce: o vínculo à reserva está
+  // nos DADOS (reservas.submission_id) e a aba lê-o de lá. Foi assim
+  // que este gesto deixou de precisar de handshake.
+  // ------------------------------------------------------------
   const handleCriarQuestionarioDeReserva = (reserva) => {
-    const tipoId = reserva.event_type_id || eventTypes[0]?.id || "";
-    const tipo = eventTypes.find((et) => et.id === tipoId);
-
-    // procurar o primeiro campo de data no modelo escolhido
-    const campoData = getAllFields(tipo).find((f) => f.type === "date");
-
-    const valores = {};
-    const camposAtivos = [];
-    if (campoData && reserva.data_evento) {
-      valores[campoData.id] = reserva.data_evento;
-      camposAtivos.push(campoData.id); // sem isto, o campo não aparece no painel
+    if (!reserva?.submission_id) {
+      setErroEstado(
+        "Esta reserva não tem evento associado, por isso não há onde criar o formulário. Converte-a primeiro em evento na Agenda.",
+      );
+      return;
     }
-
-    navegarPara("convites");
-    setReservaContexto(reserva);
-    setEventoContexto(null);
-    setNewInvite({
-      eventTypeId: tipoId,
-      camposAtivos,
-      valores,
-      reservaId: reserva.id,
-      // Reservas novas trazem o evento ligado (submission_id): o
-      // formulário ATUALIZA esse evento (bloco 6) em vez de criar
-      // cliente + evento novos. Reservas antigas (sem ligação) caem
-      // no caminho antigo — retrocompatível.
-      submissionAlvoId: reserva.submission_id || null,
+    navigate(`/evento/${reserva.submission_id}/documentos`, {
+      state: { realce: { alvo: "formulario", n: Date.now() } },
     });
-    setShowNewInvite(true);
-    setCreatedInvite(null);
   };
 
   // Os ecos do realtime chegam em rajadas (INSERT+UPDATE do formulário,
@@ -835,65 +532,15 @@ export default function AdminPage() {
 
   // Quando a irmã muda o tipo de evento no painel, os campos activos
   // recomeçam do zero (os campos de um tipo não fazem sentido noutro)
-  const handleChangeEventType = (novoId) => {
-    const tipo = eventTypes.find((et) => et.id === novoId);
-    setNewInvite((prev) => ({
-      ...prev,
-      eventTypeId: novoId,
-      camposAtivos: getDefaultCampos(tipo),
-      valores: {},
-    }));
-    setNewInviteErrors({});
-  };
 
-  const handleAddCampo = (fieldId) => {
-    setNewInvite((prev) => ({
-      ...prev,
-      camposAtivos: [...prev.camposAtivos, fieldId],
-    }));
-  };
 
-  const handleRemoveCampo = (fieldId) => {
-    setNewInvite((prev) => {
-      const valoresSemEste = { ...prev.valores };
-      delete valoresSemEste[fieldId];
-      return {
-        ...prev,
-        camposAtivos: prev.camposAtivos.filter((id) => id !== fieldId),
-        valores: valoresSemEste,
-      };
-    });
-    setNewInviteErrors((prev) => {
-      const n = { ...prev };
-      delete n[fieldId];
-      return n;
-    });
-  };
 
-  const handleChangeValorCampo = (fieldId, valor) => {
-    setNewInvite((prev) => ({
-      ...prev,
-      valores: { ...prev.valores, [fieldId]: valor },
-    }));
-    setNewInviteErrors((prev) => {
-      if (!prev[fieldId]) return prev;
-      const n = { ...prev };
-      delete n[fieldId];
-      return n;
-    });
-  };
 
   const handleCreateInvite = async () => {
     // Valida o FORMATO dos campos que ela preencheu (ex: email inválido,
     // data no passado) — mas nunca a obrigatoriedade, já que qualquer
     // campo pode estar ausente do painel
-    const camposActivosInfo = getCamposActivosInfo(eventTypes, newInvite);
-    const errors = {};
-    camposActivosInfo.forEach((field) => {
-      const valor = newInvite.valores[field.id];
-      const erro = validateField({ ...field, required: false }, valor);
-      if (erro) errors[field.id] = erro;
-    });
+    const errors = validarRascunho(newInvite, eventTypes);
     if (Object.keys(errors).length > 0) {
       setNewInviteErrors(errors);
       return;
@@ -914,8 +561,18 @@ export default function AdminPage() {
 
     setCreatingInvite(true);
     try {
+      // ⚠ CORRECÇÃO DE BUG 1/3 — assinalada à parte da extracção.
+      // Lia-se a chave LITERAL "dataEvento", mas o pré-preenchimento
+      // escreve pelo id REAL do campo do modelo (gerado da etiqueta:
+      // «Data do Evento» -> "dataDoEvento"). Resultado: invites.data_evento
+      // ficava a NULL mesmo em eventos COM data, e os cartões da
+      // supervisão diziam «Sem data» — precisamente a coluna por que uma
+      // lista de lacunas se quer ordenar.
+      // Mesmo padrão que o formulário público já usa (ver valorPorTipo em
+      // FormPage.jsx): procura-se o primeiro campo do tipo "date" e lê-se
+      // pelo id dele, com a chave literal como último recurso.
       const invite = await createInvite({
-        dataEvento: newInvite.valores.dataEvento || null,
+        dataEvento: dataDoRascunho(newInvite, eventTypes),
         eventTypeId,
         respostas: newInvite.valores,
         reservaId: newInvite.reservaId || null,
@@ -932,11 +589,23 @@ export default function AdminPage() {
         reservaId: null,
         submissionAlvoId: null,
       });
-      setReservaContexto(null);
       setEventoContexto(null);
       setShowNewInvite(false);
     } catch (e) {
-      console.error(e);
+      // ⚠ CORRECÇÃO DE BUG 2/3 — assinalada à parte da extracção.
+      // O catch só fazia console.error: a Nádia carregava em «Criar
+      // Formulário», o botão voltava de «A criar...» ao normal, e NADA
+      // acontecia nem se explicava.
+      //
+      // E havia um segundo silêncio, mais antigo: o `geral` que o ramo do
+      // tipo em falta já escrevia NUNCA era desenhado — o painel só lia
+      // newInviteErrors[campo.id], por campo. Agora há uma linha para ele
+      // (ver o rodapé do painel), e é por lá que ambos falam.
+      console.error("Erro ao criar o formulário:", e);
+      setNewInviteErrors({
+        geral:
+          "Não foi possível criar o formulário. Verifica a ligação e tenta outra vez.",
+      });
     }
     setCreatingInvite(false);
   };
@@ -945,19 +614,17 @@ export default function AdminPage() {
   // criar um SEGUNDO convite, aponta o antigo ao evento escolhido. A
   // guarda (só convites por preencher) vive no servidor, em
   // apontarConviteAoEvento.
-  const handleApontarConvite = async (convite) => {
-    if (!newInvite.submissionAlvoId) return;
+  // O alvo passa a vir POR ARGUMENTO: a adopção deixou de ser um efeito
+  // secundário de estar a criar outro formulário (onde o alvo era o do
+  // painel) e passou a acto próprio, na secção dos órfãos, com uma
+  // escolha por linha.
+  const handleApontarConvite = async (convite, eventoId) => {
+    if (!eventoId) return;
     try {
-      const atualizado = await apontarConviteAoEvento(
-        convite.id,
-        newInvite.submissionAlvoId,
-      );
+      const atualizado = await apontarConviteAoEvento(convite.id, eventoId);
       setInvites((prev) =>
         prev.map((i) => (i.id === atualizado.id ? atualizado : i)),
       );
-      setShowNewInvite(false);
-      setEventoContexto(null);
-      setNewInvite((prev) => ({ ...prev, submissionAlvoId: null }));
       setAvisoConvites(null);
       setSelectedInvite(atualizado);
     } catch (e) {
@@ -1101,6 +768,28 @@ export default function AdminPage() {
 
   // «Por chegar» = ainda a carregar OU falhou. Nos dois casos a vista
   // não SABE, e não saber nunca deve ser dito como «não há nada».
+  // Os formulários pendentes SEM evento associado — cada um é uma porta
+  // aberta à duplicação. O cálculo vive aqui porque exige a lista GLOBAL
+  // de convites, que só esta página tem.
+  const orfaosPendentes = invites.filter(ehFormularioOrfao);
+
+  // As LACUNAS: eventos que são trabalho a sério (pós-sinal), ainda por
+  // acontecer, e sem formulário nenhum. Zero idas novas à base — as duas
+  // listas já estão em memória. Ordenadas pela data mais próxima: é a
+  // que primeiro deixa de se poder resolver.
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const lacunasDeFormulario = submissions
+    .filter((ev) => ehLacunaDeFormulario(ev, invites, hojeISO))
+    .sort((a, b) =>
+      (a.data_evento || "9999").localeCompare(b.data_evento || "9999"),
+    );
+
+  // A contagem ao lado de «Formulários» no menu. É o que impede a secção
+  // dos órfãos de ser uma secção silenciosa: o propósito dela é o
+  // esquecimento, e uma secção que ela nunca abre não resolve
+  // esquecimento nenhum. Não pulsa — só está lá.
+  const contagensDoMenu = { convites: orfaosPendentes.length };
+
   const eventosPorChegar = loading || falhaSubmissions;
   const convitesPorChegar = loadingInvites || !!erroInvites;
   const modelosPorChegar = loadingEventTypes || falhaEventTypes;
@@ -1140,6 +829,7 @@ export default function AdminPage() {
           Telemóvel: cabeçalho fino + barra inferior (+ folha Mais). */}
       {ehDesktop ? (
         <SidebarNav
+          contagens={contagensDoMenu}
           activeTab={activeTab}
           onNavegar={handleNavegar}
           onSair={handleLogout}
@@ -1333,14 +1023,33 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Botão novo Formulário */}
+            {/* Botão novo Formulário — agora com a linha que diz onde é
+                o resto. Sem aviso bloqueante (decisão do Hélio): o botão
+                mudou de nome e traz a explicação ao lado, o que basta.
+                Um portão que ela tem de reconhecer para uma mudança que
+                se explica numa linha era desproporcionado. */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "14px",
                 marginBottom: "20px",
               }}
             >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "12px",
+                  color: "var(--gray-mid)",
+                  textAlign: "right",
+                  maxWidth: "330px",
+                  lineHeight: 1.5,
+                }}
+              >
+                Para um evento que já existe, o formulário cria-se{" "}
+                <strong>no próprio evento</strong>.
+              </p>
               <button
                 onClick={() => {
                   setCreatedInvite(null);
@@ -1356,8 +1065,7 @@ export default function AdminPage() {
                   // as respostas de um cliente novo caírem no evento
                   // errado. O seletor "Formulário para" dentro do painel
                   // volta a apontar quando for essa a intenção.
-                  setReservaContexto(null);
-                  setEventoContexto(null);
+                              setEventoContexto(null);
                   setNewInvite((prev) => ({
                     ...prev,
                     reservaId: null,
@@ -1377,597 +1085,58 @@ export default function AdminPage() {
                   boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
                 }}
               >
-                + Novo Formulário
+                + Formulário para cliente novo
               </button>
             </div>
 
-            {/* Formulário novo Formulário */}
-            <style>{`
-              .painel-convite-scroll::-webkit-scrollbar { width: 6px; }
-              .painel-convite-scroll::-webkit-scrollbar-thumb {
-                background-color: var(--gold-light);
-                border-radius: 999px;
-              }
-              .painel-convite-scroll::-webkit-scrollbar-track { background: transparent; }
-            `}</style>
+            {/* O painel de criação — extraído para componente próprio
+                (Passo 1). O estado continua a viver AQUI: este passo é
+                mudança de sítio, não de comportamento. */}
+            <PainelNovoFormulario
+              showNewInvite={showNewInvite}
+              setShowNewInvite={setShowNewInvite}
+              newInvite={newInvite}
+              setNewInvite={setNewInvite}
+              newInviteErrors={newInviteErrors}
+              setNewInviteErrors={setNewInviteErrors}
+              creatingInvite={creatingInvite}
+              eventTypes={eventTypes}
+              submissions={submissions}
+              invites={invites}
+              eventoContexto={eventoContexto}
+              setEventoContexto={setEventoContexto}
+              /* NULL: em Formulários já não se escolhe evento. A regra da
+                 casa é «o que não tem evento vive aqui; o que tem vive no
+                 evento» — e um selector de eventos aqui era a segunda
+                 porta para o mesmo acto. */
+              eventosParaEscolher={null}
+              handleCreateInvite={handleCreateInvite}
+            />
 
-            {showNewInvite &&
-              (() => {
-                const tipoActual = eventTypes.find(
-                  (et) => et.id === newInvite.eventTypeId,
-                );
-                const todosOsCampos = getAllFields(tipoActual);
-                const camposActivosInfo = getCamposActivosInfo(
-                  eventTypes,
-                  newInvite,
-                );
-                const camposDisponiveis = todosOsCampos.filter(
-                  (f) => !newInvite.camposAtivos.includes(f.id),
-                );
-                // Convites pendentes ÓRFÃOS (sem alvo e por preencher):
-                // cada um é uma porta aberta à duplicação — se for de um
-                // cliente que já existe, o preenchimento cria cliente +
-                // evento novos. O aviso mostra-os antes de se criar mais
-                // um; com um evento-alvo escolhido, "É deste evento"
-                // adota o antigo em vez de criar um segundo.
-                const pendentesSemAlvo = invites.filter(
-                  (i) =>
-                    i.status !== "Preenchido" &&
-                    !i.submission_id &&
-                    !i.submission_alvo_id,
-                );
-                // O evento-alvo escolhido e o estado do formulário
-                // DELE — para avisar quando já existe um convite
-                // (pendente, respondido, ou desviado para um duplicado)
-                // antes de se criar mais um.
-                const alvoSelecionado = newInvite.submissionAlvoId
-                  ? submissions.find(
-                      (s) => s.id === newInvite.submissionAlvoId,
-                    ) || null
-                  : null;
-                const estadoDoAlvo = alvoSelecionado
-                  ? estadoFormularioDoEvento(invites, alvoSelecionado.id)
-                  : null;
+            {/* Os órfãos ANTES da lista, de propósito: é o primeiro que
+                ela vê ao abrir Formulários. O propósito desta secção é o
+                esquecimento — pô-la no fim era garantir que não se lê. */}
+            <FormulariosOrfaos
+              orfaos={orfaosPendentes}
+              submissions={submissions}
+              eventTypes={eventTypes}
+              onAdoptar={handleApontarConvite}
+            />
 
-                return (
-                  <div
-                    style={{
-                      backgroundColor: "white",
-                      borderRadius: "16px",
-                      boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                      marginBottom: "20px",
-                      border: "1px solid var(--gold-light)",
-                      display: "flex",
-                      flexDirection: "column",
-                      maxHeight: "min(640px, 80vh)",
-                    }}
-                  >
-                    {/* Corpo — ganha scroll próprio quando há muitos campos.
-                        A barra de scroll é estilizada (mais fina, dourada)
-                        para ficar claro que esta zona desliza */}
-                    <div
-                      className="painel-convite-scroll"
-                      style={{
-                        padding: "24px",
-                        overflowY: "auto",
-                        flex: 1,
-                        scrollbarWidth: "thin",
-                        scrollbarColor: "var(--gold-light) transparent",
-                      }}
-                    >
-                      <h3
-                        style={{
-                          fontSize: "14px",
-                          color: "var(--charcoal)",
-                          margin: "0 0 20px 0",
-                          fontFamily: "Playfair Display, serif",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        Novo Formulário
-                      </h3>
+            {/* As lacunas ANTES da lista: primeiro o que falta, depois o
+                estado do que existe. Gradiente de urgência a descer. */}
+            <LacunasFormulario
+              lacunas={lacunasDeFormulario}
+              eventTypes={eventTypes}
+              invites={invites}
+              aCarregar={eventosPorChegar || convitesPorChegar}
+              onAbrirEvento={(ev) => navigate(`/evento/${ev.id}/documentos`)}
+            />
 
-                      {reservaContexto && (
-                        <div
-                          style={{
-                            backgroundColor: "#FBF7EF",
-                            border: "1px solid var(--gold-light)",
-                            borderRadius: "10px",
-                            padding: "12px 14px",
-                            marginBottom: "16px",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: "10px",
-                              color: "var(--gray-mid)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                              margin: "0 0 4px 0",
-                            }}
-                          >
-                            A criar para a reserva de
-                          </p>
-                          <p
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: "600",
-                              color: "var(--charcoal)",
-                              margin: 0,
-                            }}
-                          >
-                            {reservaContexto.nome_cliente}
-                            {reservaContexto.contacto
-                              ? ` · ${reservaContexto.contacto}`
-                              : ""}
-                          </p>
-                        </div>
-                      )}
-
-                      {eventoContexto && (
-                        <div
-                          style={{
-                            backgroundColor: "#FBF7EF",
-                            border: "1px solid var(--gold-light)",
-                            borderRadius: "10px",
-                            padding: "12px 14px",
-                            marginBottom: "16px",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: "10px",
-                              color: "var(--gold-dark)",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                              margin: "0 0 4px 0",
-                            }}
-                          >
-                            Vai atualizar o evento de
-                          </p>
-                          <p
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: "600",
-                              color: "var(--charcoal)",
-                              margin: 0,
-                            }}
-                          >
-                            {eventoContexto.titulo}
-                            {eventoContexto.tipoNome
-                              ? ` · ${eventoContexto.tipoNome}`
-                              : ""}
-                          </p>
-                          <DadosCaptacao
-                            submissao={submissions.find(
-                              (x) => x.id === newInvite.submissionAlvoId,
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {/* O ALVO do formulário — a diferença entre
-                          ATUALIZAR um evento existente e criar cliente +
-                          evento novos. Antes só se chegava a um convite
-                          apontado por caminhos programáticos (drawer,
-                          Jornada, página do evento); criado à mão, o
-                          convite nascia sempre órfão — a porta da
-                          duplicação. Escolher "nenhum" limpa o alvo. */}
-                      {!reservaContexto && (
-                        <div style={{ marginBottom: "14px" }}>
-                          <label
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: "600",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.07em",
-                              color: "var(--charcoal)",
-                              display: "block",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            Formulário para
-                          </label>
-                          <select
-                            value={newInvite.submissionAlvoId || ""}
-                            onChange={(e) => {
-                              const alvoId = e.target.value;
-                              if (!alvoId) {
-                                setEventoContexto(null);
-                                setNewInvite((prev) => ({
-                                  ...prev,
-                                  submissionAlvoId: null,
-                                }));
-                                return;
-                              }
-                              const submissao = submissions.find(
-                                (s) => s.id === alvoId,
-                              );
-                              if (!submissao) return;
-                              // Só muda o ALVO — o tipo, os campos e o
-                              // que já está escrito no painel ficam
-                              // como estão (mudar de ideias não pode
-                              // apagar trabalho).
-                              const tipoDoAlvo = eventTypes.find(
-                                (et) => et.id === submissao.event_type_id,
-                              );
-                              const resumoDoAlvo = getResumoSubmissao(
-                                submissao,
-                                eventTypes,
-                              );
-                              setEventoContexto({
-                                id: submissao.id,
-                                titulo: resumoDoAlvo.titulo,
-                                tipoNome: tipoDoAlvo?.nome || "",
-                                data: submissao.data_evento || null,
-                              });
-                              setNewInvite((prev) => ({
-                                ...prev,
-                                submissionAlvoId: submissao.id,
-                              }));
-                            }}
-                            style={{
-                              width: "100%",
-                              padding: "10px 14px",
-                              borderRadius: "8px",
-                              border: "1.5px solid var(--gold-light)",
-                              fontSize: "13px",
-                              outline: "none",
-                              fontFamily: "Inter, sans-serif",
-                              boxSizing: "border-box",
-                            }}
-                          >
-                            <option value="">
-                              Cliente novo — cria cliente e evento
-                            </option>
-                            {submissions.map((s) => {
-                              const r = getResumoSubmissao(s, eventTypes);
-                              return (
-                                <option key={s.id} value={s.id}>
-                                  {r.titulo}
-                                  {s.data_evento ? ` · ${s.data_evento}` : ""}
-                                  {" — atualiza este evento"}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          {/* Decisão de 27/07 (docs/decisoes-de-produto.md):
-                              a RPC NÃO recusa convite sem alvo — recusaria
-                              no ecrã da cliente, que não tem como corrigir.
-                              O aviso vive AQUI, na criação, não-bloqueante. */}
-                          {/* Quando há convites órfãos, o bloco deles
-                              (abaixo) já pede exatamente esta ação —
-                              dois blocos âmbar iguais diluíam-se. */}
-                          {!newInvite.submissionAlvoId &&
-                            pendentesSemAlvo.length === 0 && (
-                              <p
-                                style={{
-                                  fontSize: "11.5px",
-                                  color: "#92400E",
-                                  backgroundColor: "#FEF3E2",
-                                  border: "1px solid #F0D9B5",
-                                  borderRadius: "8px",
-                                  padding: "8px 12px",
-                                  margin: "8px 0 0 0",
-                                  lineHeight: 1.6,
-                                }}
-                              >
-                                Sem evento escolhido, quando ela submeter
-                                nasce sempre um <strong>evento novo</strong>.
-                                O cartão de cliente só é reaproveitado se o
-                                telefone que ela preencher coincidir com o já
-                                registado — com um número novo, em falta ou
-                                incompleto, nasce também um cartão em
-                                duplicado. Se este formulário é para alguém
-                                que já está no funil, escolhe o evento dela
-                                aqui em cima.
-                              </p>
-                            )}
-                        </div>
-                      )}
-
-                      {/* O estado do formulário do ALVO escolhido — já
-                          tem convite pendente? respondido? desviado
-                          para um duplicado? Diz-se ANTES de se criar
-                          mais um. */}
-                      {estadoDoAlvo && estadoDoAlvo.estado !== "nenhum" && (
-                        <p
-                          style={{
-                            fontSize: "12px",
-                            color: "#92400E",
-                            backgroundColor: "#FEF3E2",
-                            border: "1px solid #F0D9B5",
-                            borderRadius: "10px",
-                            padding: "10px 14px",
-                            margin: "0 0 16px 0",
-                            lineHeight: "1.6",
-                          }}
-                        >
-                          {estadoDoAlvo.estado === "pendente"
-                            ? `⚠ Este evento já tem um formulário por preencher (código ${estadoDoAlvo.convite.code}). Partilha ou preenche esse — criar um segundo deixa dois códigos vivos para a mesma cliente.`
-                            : estadoDoAlvo.estado === "preenchido"
-                              ? `ℹ Este evento já tem um formulário respondido (código ${estadoDoAlvo.convite.code}). Um novo formulário volta a atualizar o evento por cima das respostas existentes.`
-                              : `⚠ O convite ${estadoDoAlvo.convite.code} apontado a este evento foi preenchido, mas as respostas ficaram noutro evento (o rasto de um duplicado por reparar). Criar aqui um formulário novo apontado é o caminho certo.`}
-                        </p>
-                      )}
-
-                      {!reservaContexto && pendentesSemAlvo.length > 0 && (
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#92400E",
-                            backgroundColor: "#FEF3E2",
-                            border: "1px solid #F0D9B5",
-                            borderRadius: "10px",
-                            padding: "12px 14px",
-                            marginBottom: "16px",
-                            lineHeight: "1.6",
-                          }}
-                        >
-                          <p style={{ margin: "0 0 6px 0", fontWeight: "700" }}>
-                            ⚠{" "}
-                            {pendentesSemAlvo.length === 1
-                              ? "Há um formulário pendente sem evento associado"
-                              : `Há ${pendentesSemAlvo.length} formulários pendentes sem evento associado`}
-                          </p>
-                          <p style={{ margin: "0 0 8px 0" }}>
-                            Se algum for desta cliente, não cries um segundo —
-                            {newInvite.submissionAlvoId
-                              ? " usa «É deste evento» para o apontar ao evento escolhido."
-                              : " escolhe primeiro o evento em «Formulário para» e aponta-o."}
-                          </p>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {pendentesSemAlvo.slice(0, 4).map((c) => {
-                              const tipoDoConvite = eventTypes.find(
-                                (et) => et.id === c.event_type_id,
-                              );
-                              // Apontar só quando é seguro: sem reserva
-                              // pendurada e com o MESMO tipo de evento
-                              // do alvo (um convite de Batizado adotado
-                              // por um Casamento reescreveria o tipo e
-                              // faria merge de respostas de outro
-                              // modelo).
-                              const podeApontar =
-                                !!alvoSelecionado &&
-                                !c.reserva_id &&
-                                (!c.event_type_id ||
-                                  c.event_type_id ===
-                                    alvoSelecionado.event_type_id);
-                              return (
-                                <li key={c.id} style={{ marginBottom: "4px" }}>
-                                  {getTituloConvite(c, submissions, eventTypes)}{" "}
-                                  · {c.code}
-                                  {tipoDoConvite
-                                    ? ` · ${tipoDoConvite.nome}`
-                                    : ""}
-                                  {podeApontar && (
-                                    <button
-                                      onClick={() => handleApontarConvite(c)}
-                                      style={{
-                                        marginLeft: "8px",
-                                        padding: "3px 10px",
-                                        borderRadius: "999px",
-                                        fontSize: "11px",
-                                        fontWeight: "600",
-                                        border: "1px solid #F0D9B5",
-                                        backgroundColor: "white",
-                                        color: "#92400E",
-                                        cursor: "pointer",
-                                      }}
-                                    >
-                                      É deste evento
-                                    </button>
-                                  )}
-                                </li>
-                              );
-                            })}
-                            {pendentesSemAlvo.length > 4 && (
-                              <li>
-                                … e mais {pendentesSemAlvo.length - 4} na lista
-                                abaixo.
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-
-                      {eventTypes.length > 1 && (
-                        <div
-                          id="tour-novo-convite-tipo"
-                          style={{ marginBottom: "14px" }}
-                        >
-                          <label
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: "600",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.07em",
-                              color: "var(--charcoal)",
-                              display: "block",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            Tipo de Evento
-                          </label>
-                          <select
-                            value={newInvite.eventTypeId}
-                            onChange={(e) =>
-                              handleChangeEventType(e.target.value)
-                            }
-                            style={{
-                              width: "100%",
-                              padding: "10px 14px",
-                              borderRadius: "8px",
-                              border: "1.5px solid var(--gold-light)",
-                              fontSize: "13px",
-                              outline: "none",
-                              fontFamily: "Inter, sans-serif",
-                              boxSizing: "border-box",
-                            }}
-                          >
-                            {eventTypes.map((et) => (
-                              <option key={et.id} value={et.id}>
-                                {et.nome}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Campos escolhidos pela irmã para este convite —
-                          variam por tipo de evento, e até de convite para
-                          convite. Não há nenhum campo fixo: tudo o que
-                          aparece aqui (incluindo a Data do Evento, quando
-                          o tipo de evento a tiver definida) pode ser
-                          removido. */}
-                      {camposActivosInfo.length > 0 ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "16px",
-                          }}
-                        >
-                          {camposActivosInfo.map((field) => (
-                            <div
-                              key={field.id}
-                              style={{ position: "relative" }}
-                            >
-                              <p
-                                style={{
-                                  fontSize: "10px",
-                                  color: "var(--gray-mid)",
-                                  margin: "0 0 2px 0",
-                                }}
-                              >
-                                {field.stepTitle}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCampo(field.id)}
-                                title="Remover campo"
-                                style={{
-                                  position: "absolute",
-                                  top: 0,
-                                  right: 0,
-                                  fontSize: "11px",
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  color: "var(--gray-mid)",
-                                  padding: "2px 4px",
-                                }}
-                              >
-                                ✕ remover
-                              </button>
-                              <FormField
-                                field={{ ...field, required: false }}
-                                value={newInvite.valores[field.id]}
-                                onChange={(id, val) =>
-                                  handleChangeValorCampo(id, val)
-                                }
-                                error={newInviteErrors[field.id]}
-                                onClearError={(id) =>
-                                  setNewInviteErrors((prev) => {
-                                    const n = { ...prev };
-                                    delete n[id];
-                                    return n;
-                                  })
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--gray-mid)",
-                            margin: 0,
-                          }}
-                        >
-                          Ainda não escolheste nenhum campo — usa a busca em
-                          baixo para adicionar o que quiseres preencher já.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Rodapé — fica sempre visível, mesmo que o corpo
-                        acima tenha scroll */}
-                    <div
-                      style={{
-                        padding: "16px 24px",
-                        borderTop: "1px solid var(--gold-light)",
-                        backgroundColor: "#FBF7EF",
-                        borderRadius: "0 0 16px 16px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div
-                        id="tour-campo-seletor"
-                        style={{ marginBottom: "14px" }}
-                      >
-                        <CampoSeletor
-                          camposDisponiveis={camposDisponiveis}
-                          onAdd={handleAddCampo}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "10px",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            setShowNewInvite(false);
-                            setNewInviteErrors({});
-                            setEventoContexto(null);
-                            setNewInvite((prev) => ({
-                              ...prev,
-                              submissionAlvoId: null,
-                            }));
-                          }}
-                          style={{
-                            padding: "10px 20px",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                            border: "1.5px solid var(--gold-light)",
-                            color: "var(--gray-mid)",
-                            backgroundColor: "white",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          id="tour-criar-convite"
-                          onClick={handleCreateInvite}
-                          disabled={creatingInvite}
-                          style={{
-                            padding: "10px 24px",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            cursor: "pointer",
-                            backgroundColor: creatingInvite
-                              ? "var(--gold-light)"
-                              : "var(--gold)",
-                            color: "white",
-                            border: "none",
-                          }}
-                        >
-                          {creatingInvite ? "A criar..." : "Criar Formulário"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-            {/* Lista de convites */}
+            {/* Lista de convites — o estado do que EXISTE. Um formulário
+                já criado nunca desaparece daqui, mesmo que o evento dele
+                esteja numa fase que não entra nas lacunas: o critério
+                decide que FALTAS se mostram, não que formulários. */}
             <InvitesList
               invites={invites}
               loading={loadingInvites || eventosPorChegar}
@@ -2136,6 +1305,7 @@ export default function AdminPage() {
       )}
       {!ehDesktop && maisAberto && (
         <SheetMais
+          contagens={contagensDoMenu}
           activeTab={activeTab}
           onNavegar={handleNavegar}
           onSair={handleLogout}
@@ -2172,8 +1342,6 @@ export default function AdminPage() {
           setFunilVersao((v) => v + 1);
         }}
         onGerarDocumento={handleGerarDocumento}
-        onFormulario={handleFormularioDoEvento}
-        onVerFormulario={handleVerFormularioDoEvento}
         onModeloCriado={fetchEventTypes}
         invites={invites}
       />

@@ -1,3 +1,5 @@
+import { estadoFormularioDoEvento } from "../../lib/invites";
+
 // ============================================================
 // faseConfig — as fases do funil comercial num sítio só, partilhadas
 // entre a lista de clientes (pastilhas), o funil (colunas + avanço),
@@ -96,3 +98,28 @@ export const STATUS_COLORS = {
   Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
   Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
 };
+// ============================================================
+// ehLacunaDeFormulario — um evento que ainda NÃO tem formulário e
+// devia ter.
+//
+// Vive AQUI e não numa lib porque depende de FASES_POS_SINAL, e a regra
+// da casa é que lib/ não importa de components/ (ver a nota em
+// lib/clientes.js, onde a lista teve de ser espelhada por essa razão).
+// Duplicá-la aqui seria «uma lista nova», que o registo de decisões
+// proíbe para exactamente este caso — por isso o predicado é que vem ao
+// encontro da lista, e não o contrário.
+//
+// O CRITÉRIO: trabalho a sério (pós-sinal), ainda por acontecer, sem
+// formulário. Um interessado precisa de orçamento, não de questionário;
+// um evento que já aconteceu não tem lacuna, tem história. Sem data
+// ENTRA — não se pode afirmar que passou, e entre esconder e mostrar a
+// mais, mostra-se.
+// ============================================================
+export function ehLacunaDeFormulario(evento, invites, hojeISO) {
+  if (!FASES_POS_SINAL.includes(evento.fase)) return false;
+  if (evento.data_evento && evento.data_evento < hojeISO) return false;
+  const { estado } = estadoFormularioDoEvento(invites, evento.id);
+  // "preenchido-noutro" também é lacuna: este evento continua sem
+  // respostas próprias, e o caminho é criar um formulário apontado a ele.
+  return estado === "nenhum" || estado === "preenchido-noutro";
+}

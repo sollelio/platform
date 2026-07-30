@@ -170,20 +170,47 @@ botões "Copiar", **deixa de fazer sentido como está** — a ponte torna-o desn
 
 ---
 
-## "Formulários" é uma vista de estado, não um balcão de criação
+## Onde se cria um formulário: a regra da casa
 
-Onde um formulário se **cria** e onde se **vê o estado de todos** são coisas diferentes:
+> **O que não tem evento vive em "Formulários". O que tem evento vive no evento.**
 
-- **Criar/gerir o formulário de um evento** → acontece **dentro do evento** (aba Documentos).
-  O formulário é sempre *de um evento*, por isso nasce e vive lá, ao pé de tudo o resto desse
-  evento. Sem saltar para outro separador.
-- **Ver o estado de todos os formulários ao mesmo tempo** → é a página **"Formulários"**: um
-  painel de supervisão onde a Nádia vê, de uma vez, quais estão por preencher e quais já foram
-  respondidos, através de todos os eventos.
+- **Formulário de um evento que já existe** → cria-se **dentro do evento** (aba Documentos), com
+  um painel curto: o alvo já é conhecido, por isso não há selector de evento nem nada que o
+  suponha desconhecido.
+- **Cliente novo (não há evento ainda)** → cria-se em **"Formulários"**. Este é o **fluxo
+  principal de captação** da app: o formulário sem alvo, que ao ser preenchido cria cliente +
+  evento de uma vez. Está documentado como legítimo no `decisoes-de-produto.md` e no cabeçalho
+  da migração 036.
+- **Órfãos** (formulários que perderam o evento — apagar um evento faz `SET NULL` no alvo) →
+  vivem em **"Formulários"**, com a rede de reparação ("É deste evento"). Por definição não têm
+  evento onde morar, e cada órfão é uma porta para cliente+evento duplicados.
+- **Supervisão de tudo** (que formulários existem, em que estado) → **"Formulários"**.
 
-> Regra: a **acção** (criar) fica onde a intenção nasce — no evento. A **supervisão** (ver o
-> conjunto) é que é transversal. Hoje está trocado: a intenção nasce no evento mas a criação
-> acontece na página Formulários, obrigando a um salto. Isto inverte-se.
+**Isto não são excepções à regra — é a regra.** A acção fica onde a intenção nasce; quando não
+há evento, a intenção nasce em Formulários, porque não há mais nada onde nascer.
+
+> **Implementado a 30/07/2026.** Antes havia um *teleporte*: a intenção nascia no evento (botão
+> "Formulário por criar") e a acção acontecia em Formulários. Agora, se há evento faz-se no
+> evento; Formulários guarda só o que não tem evento, mais a supervisão.
+
+**A página "Formulários" tem três secções, num gradiente de urgência a descer:**
+
+| Secção | O quê | A acção |
+|---|---|---|
+| **Sem evento associado** · N | os órfãos | apontar ao evento (último recurso) |
+| **Sem formulário** · N | as lacunas — eventos pós-sinal que ainda não têm | abrir o evento |
+| A lista | o estado do que já existe | partilhar · preencher · apagar |
+
+Primeiro o que está solto, depois o que falta, por fim o que já existe.
+
+**O critério das lacunas:** `FASES_POS_SINAL` (cliente · projecto · contrato) — a mesma lista
+canónica da conferência da Logística, **não uma lista nova**. Fecha com este glossário: o
+questionário existe para preparar a montagem de um evento **confirmado**; um interessado precisa
+de orçamento, não de questionário.
+
+**Nota de desenho:** as linhas "sem formulário" **não levam botão de criar** — a acção honesta é
+*abrir o evento*. Senão a página volta a ser sítio de criação para coisas que têm evento, e a
+regra desfaz-se.
 
 ---
 
@@ -314,8 +341,9 @@ Nem tudo aqui tem o mesmo peso. Por ordem de esforço:
 **Só nomes (strings — leve):** "Clientes" → "Contactos"; "casal/família" → "organizador" na
 descrição dos modelos; alinhar a mensagem de WhatsApp em "questionário".
 
-**Arquitectura de navegação (médio):** mover a criação de formulários para dentro do evento;
-"Formulários" passa a vista de estado transversal.
+**Arquitectura de navegação (médio) — ✅ FEITO a 30/07/2026:** a criação de formulários mudou-se
+para dentro do evento; "Formulários" passou a supervisão (mais o "cliente novo" e os órfãos, que
+não têm evento onde morar).
 
 **Arquitectura de dados e fluxo (sério — projeto próprio):** a aba **"O pedido"** no evento
 (que preserva dados originais + imagens de referência, hoje perdidas); e a **ponte
