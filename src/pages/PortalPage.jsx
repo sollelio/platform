@@ -415,6 +415,21 @@ export default function PortalPage() {
   const dias = ev?.dias_para;
   const passou = typeof dias === "number" && dias < 0;
 
+  // CADUCOU — a data pedida passou e o negócio nunca fechou.
+  //
+  // Não é o mesmo que «o evento já foi»: é um pedido que não vingou. A
+  // migração 055 já tira a mentira («foi um gosto pôr a sua mesa» numa festa
+  // que nunca houve), mas sem isto a página continuava a apontar para a
+  // frente — a anunciar «O GRANDE DIA» numa data que passou e a prometer um
+  // orçamento cinco meses depois. Prometer o que não se vai cumprir é pior
+  // do que calar.
+  //
+  // Sai tudo da Jornada que a RPC já devolve: nenhum campo novo.
+  const fechou = jornada.some(
+    (e) => e.etapa === "sinal" && e.estado !== ETAPA_POR_ACONTECER,
+  );
+  const caducou = passou && !fechou;
+
   const textoActual =
     actual?.etapa === "grande_dia" && passou
       ? TEXTO_GRANDE_DIA_PASSADO
@@ -424,7 +439,7 @@ export default function PortalPage() {
   // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
   // de desenho, e a página não tem que a conhecer.
   const novidades = comporNovidades(dados);
-  const pendencias = comporPendencias(dados);
+  const pendencias = comporPendencias(dados, caducou);
 
   return (
     <div
@@ -477,13 +492,26 @@ export default function PortalPage() {
               }}
             />
             <div style={{ position: "relative" }}>
-              <p style={overline()}>O grande dia</p>
+              {/* Caducado, a âncora deixa de anunciar «o grande dia»: essa
+                  promessa já não se pode fazer. Passa a nomear o que a data
+                  é de facto — o dia que ela nos pediu. */}
+              <p style={overline()}>
+                {caducou ? "A data que nos pediu" : "O grande dia"}
+              </p>
               <p style={{ ...playfair, fontSize: "36px", lineHeight: 1.15, marginTop: "12px", fontVariantNumeric: "tabular-nums" }}>
                 {diaEMes(ev.data)}
               </p>
               <p style={{ fontSize: "11.5px", color: "#9B9B9B", marginTop: "8px", letterSpacing: "0.02em", fontVariantNumeric: "tabular-nums", marginBottom: 0 }}>
                 {semanaEAno(ev.data)}
               </p>
+
+              {caducou && (
+                <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "16px 0 0", textWrap: "pretty" }}>
+                  Esta data já passou. Se ainda quiser fazer alguma coisa
+                  connosco, responda à mensagem por onde recebeu esta ligação —
+                  ficamos à espera de si.
+                </p>
+              )}
 
               {!passou && (
                 <>
@@ -578,7 +606,10 @@ export default function PortalPage() {
         {/* A seguir: engaste vazio e fio que se dissolve para baixo, para
             não ler como trilho de progresso. Overline cinzenta — só o
             presente é dourado. */}
-        {proxima && ROTULO_ETAPA[proxima.etapa] && (
+        {/* CADUCADO: «a seguir» e «e depois» calam-se. Prometer um
+            orçamento, um projecto e um grande dia a quem já viu a data
+            passar sem negócio é prometer o que não se vai cumprir. */}
+        {!caducou && proxima && ROTULO_ETAPA[proxima.etapa] && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div aria-hidden="true" style={{ width: "1px", height: "22px", background: "linear-gradient(180deg, #E8D5A3, rgba(232,213,163,0.25))" }} />
             <div aria-hidden="true" style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#FDFBF5", border: "1px solid #E8DCC0" }} />
@@ -597,7 +628,7 @@ export default function PortalPage() {
         )}
 
         {/* e depois — … : desaparece quando não sobra nada. */}
-        {resto.length > 0 && (
+        {!caducou && resto.length > 0 && (
           <p style={{ marginTop: "26px", textAlign: "center", fontSize: "11.5px", lineHeight: 1.9, color: "#9B9B9B", letterSpacing: "0.02em", textWrap: "pretty", padding: "0 12px", marginBottom: 0 }}>
             e depois —{" "}
             <span style={{ color: "var(--gray-mid)" }}>
@@ -613,7 +644,10 @@ export default function PortalPage() {
             uma devolve null quando não tem matéria, sem deixar espaço
             nem rótulo. Num evento só com o pedido respondido — o caso
             comum, 8 em 13 — só as três primeiras se pintam. */}
-        <OQueFaltaDeSi {...pendencias} />
+        {/* CADUCADO: nem sequer o estado vazio. «Nada, está tudo
+            entregue» é uma boa notícia, e aqui não há boa notícia — não se
+            entregou nada, o pedido é que não vingou. */}
+        {!caducou && <OQueFaltaDeSi {...pendencias} />}
 
         <AsNovidades
           visitaAnterior={dados?.visita_anterior}

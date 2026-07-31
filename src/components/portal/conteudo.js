@@ -67,7 +67,7 @@ export function comporNovidades(dados) {
   return { novidades, jaCaEstava };
 }
 
-export function comporPendencias(dados) {
+export function comporPendencias(dados, caducou = false) {
   const pendencias = [];
   const doNossoLado = [];
   const q = dados?.questionario || {};
@@ -94,6 +94,11 @@ export function comporPendencias(dados) {
       corpo: `Está consigo desde ${diaEMes(m.orcamento)}, à espera de uma resposta. Sem pressa nenhuma.`,
     });
   }
+
+  // CADUCADO: cala-se tudo o que aponta para a frente. Prometer preparar um
+  // orçamento cinco meses depois da data pedida é pior do que não dizer
+  // nada — e a âncora já explicou, com dignidade, o que aconteceu.
+  if (caducou) return { pendencias: [], doNossoLado: [] };
 
   // O que não pede acção nenhuma da parte dela.
   if (!m.orcamento && !etapaFeita("orcamento")) {

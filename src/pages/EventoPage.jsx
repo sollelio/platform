@@ -27,6 +27,7 @@ import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
+import { FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
@@ -155,6 +156,9 @@ export default function EventoPage() {
   const [realce, setRealce] = useState(null);
   // A folha do acompanhamento (a porta do portal da cliente).
   const [portalAberto, setPortalAberto] = useState(false);
+  // Hoje em ISO, para comparar com `data_evento` (que é DATE, sem hora):
+  // comparar strings YYYY-MM-DD não depende de fuso nenhum.
+  const hojeISO = new Date().toISOString().slice(0, 10);
   useEffect(() => {
     const r = location.state?.realce;
     if (!r) return;
@@ -471,6 +475,15 @@ export default function EventoPage() {
     null;
   const ligacaoWhatsApp = numeroWhatsapp ? linkWhatsApp(numeroWhatsapp) : null;
 
+  // CADUCADO: a data pedida passou e o negócio nunca fechou. Usa a lista
+  // canónica FASES_POS_SINAL — a mesma da conferência da Logística, das
+  // lacunas de formulário e da etapa 7 da Jornada. Não é lista nova.
+  const dataPassou =
+    !!submissao?.data_evento && submissao.data_evento < hojeISO;
+  const negocioFechou = FASES_POS_SINAL.includes(submissao?.fase);
+  const portalIndisponivel =
+    submissao?.fase === "perdido" || (dataPassou && !negocioFechou);
+
   // Mudar de separador não mexe na edição: ela fica onde estava, e a
   // Visão geral encontra-a intacta quando se voltar.
   const irParaAba = (novaAba) => {
@@ -614,15 +627,24 @@ export default function EventoPage() {
               : undefined
           }
           onPortal={
-            // Em PERDIDO o botão desaparece: não há acompanhamento a propor
-            // a quem já não é cliente. A decisão vive aqui e não na moldura
-            // — é regra de negócio, e a moldura só sabe desenhar. É o mesmo
-            // mecanismo do WhatsApp, que também se ausenta quando não há
-            // número. Recuperar o evento traz o botão de volta, porque a
-            // fase deixa de ser perdido.
-            submissao.fase === "perdido"
-              ? undefined
-              : () => setPortalAberto(true)
+            // O botão ausenta-se em dois casos, e a decisão vive aqui e não
+            // na moldura — é regra de negócio, e a moldura só sabe desenhar.
+            // É o mesmo mecanismo do WhatsApp, que também se ausenta quando
+            // não há número.
+            //
+            // 1 · PERDIDO — não há acompanhamento a propor a quem já não é
+            //     cliente. Recuperar o evento traz o botão de volta.
+            //
+            // 2 · CADUCADO — a data pedida passou e o negócio nunca fechou.
+            //     Um portal aqui aponta para a frente num assunto que
+            //     morreu, e a página teria de se desdizer.
+            //
+            // ⚠ A CONJUNÇÃO É QUE IMPORTA no segundo caso. Um evento que
+            //    JÁ ACONTECEU (data passada COM sinal pago) mantém o botão
+            //    de propósito: «O grande dia · foi um gosto pôr a sua mesa»
+            //    é uma boa última página, e ela pode querer partilhá-la
+            //    depois da festa.
+            portalIndisponivel ? undefined : () => setPortalAberto(true)
           }
           onEtapa={irComGesto}
           onProximoGesto={irComGesto}
