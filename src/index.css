@@ -568,6 +568,25 @@ h3 {
   animation: realce-pulso 1.2s ease-out 2;
 }
 
+/* A mola das novidades do acompanhamento — a ÚNICA coisa que anima ao abrir
+   naquela página, e só o que é novo desde a última visita. Ease luxo, não o
+   ressalto: uma novidade não é um clímax. A passagem por −2px aos 62% é o
+   assentar. */
+@keyframes portal-mola {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.986);
+  }
+  62% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .jornada-bola,
   .pilula-seta {

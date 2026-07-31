@@ -14,6 +14,19 @@ import {
   ETAPA_POR_ACONTECER,
   ETAPA_FEITA_DATADA,
 } from "../lib/portal";
+import {
+  OQueFaltaDeSi,
+  AsNovidades,
+  ComoComecou,
+  AsSuasCores,
+  HoraAHora,
+  APlaca,
+  ASuaVisao,
+} from "../components/portal/divisoes";
+import {
+  comporNovidades,
+  comporPendencias,
+} from "../components/portal/conteudo";
 
 // ============================================================
 // PortalPage — /acompanhar/:token, a vitrina do evento para quem o organiza.
@@ -407,6 +420,12 @@ export default function PortalPage() {
       ? TEXTO_GRANDE_DIA_PASSADO
       : TEXTO_AGORA[actual?.etapa];
 
+  // O CONTEÚDO das novidades e das pendências vive ao lado das divisões que
+  // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
+  // de desenho, e a página não tem que a conhecer.
+  const novidades = comporNovidades(dados);
+  const pendencias = comporPendencias(dados);
+
   return (
     <div
       style={{
@@ -586,6 +605,47 @@ export default function PortalPage() {
             </span>
           </p>
         )}
+
+        {/* ── AS DIVISÕES DA FASE 2 ──────────────────────────────────
+            A ordem é fixa (folha de decisões): o que falta de si · as
+            novidades · como começou · as suas cores · hora a hora · a
+            placa · a sua visão. O que varia é QUANTAS aparecem — cada
+            uma devolve null quando não tem matéria, sem deixar espaço
+            nem rótulo. Num evento só com o pedido respondido — o caso
+            comum, 8 em 13 — só as três primeiras se pintam. */}
+        <OQueFaltaDeSi {...pendencias} />
+
+        <AsNovidades
+          visitaAnterior={dados?.visita_anterior}
+          novidades={novidades.novidades}
+          jaCaEstava={novidades.jaCaEstava}
+          reduzir={reduzir}
+        />
+
+        <ComoComecou
+          imagens={dados?.pedido?.imagens || []}
+          mensagem={dados?.pedido?.mensagem}
+          assinatura={[ev?.titulo, diaEMes(dados?.pedido?.quando)]
+            .filter(Boolean)
+            .join(" · ")}
+        />
+
+        <AsSuasCores paleta={dados?.questionario?.paleta || []} />
+
+        <HoraAHora horas={dados?.questionario?.horas || []} />
+
+        <APlaca
+          principal={dados?.questionario?.placa?.principal}
+          secundario={dados?.questionario?.placa?.secundario}
+          deCasal={!!ev?.de_casal}
+          titulo={ev?.titulo}
+          data={ev?.data}
+        />
+
+        <ASuaVisao
+          visao={dados?.questionario?.visao || []}
+          entregueEm={dados?.questionario?.entregue_em}
+        />
 
         {!ev?.local && (
           <CampoPorDefinir
