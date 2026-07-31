@@ -109,6 +109,27 @@ export const getPortal = async (token) => {
 
 // ---------- A porta, do lado da Nádia ----------
 
+// A porta VIVA de um evento, ou null se não houver nenhuma. Vai à tabela
+// directamente porque a RLS já a fecha ao público (só `authenticated`
+// lê), e porque a RPC de leitura precisa de um token que aqui ainda não
+// existe.
+//
+// ⚠ NÃO usar `dlm_portal_ver` para pré-visualizar do lado do backoffice:
+// essa função INCREMENTA `n_acessos` e carimba `ultimo_acesso_em`. Uma
+// espreitadela da Nádia passaria a contar como visita da cliente, e o
+// sinal de vida — a única coisa que lhe diz se vale a pena insistir —
+// deixava de valer nada.
+export const getAcessoDoEvento = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("portal_acessos")
+    .select("token, criado_em, expira_em, ultimo_acesso_em, n_acessos")
+    .eq("submission_id", eventoId)
+    .is("revogado_em", null)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+};
+
 // Devolve o token. Se já houver acesso vivo, devolve esse — nunca cria
 // dois (há um índice único parcial na base a garanti-lo).
 export const abrirPortal = async (eventoId) => {

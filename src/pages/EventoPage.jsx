@@ -26,6 +26,7 @@ import {
 import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
+import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
 import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
@@ -152,6 +153,8 @@ export default function EventoPage() {
   // Consome-se UMA vez: o state da rota é logo substituído por vazio,
   // para o back/forward não repetirem o acontecimento.
   const [realce, setRealce] = useState(null);
+  // A folha do acompanhamento (a porta do portal da cliente).
+  const [portalAberto, setPortalAberto] = useState(false);
   useEffect(() => {
     const r = location.state?.realce;
     if (!r) return;
@@ -610,6 +613,17 @@ export default function EventoPage() {
               ? () => window.open(ligacaoWhatsApp, "_blank")
               : undefined
           }
+          onPortal={
+            // Em PERDIDO o botão desaparece: não há acompanhamento a propor
+            // a quem já não é cliente. A decisão vive aqui e não na moldura
+            // — é regra de negócio, e a moldura só sabe desenhar. É o mesmo
+            // mecanismo do WhatsApp, que também se ausenta quando não há
+            // número. Recuperar o evento traz o botão de volta, porque a
+            // fase deixa de ser perdido.
+            submissao.fase === "perdido"
+              ? undefined
+              : () => setPortalAberto(true)
+          }
           onEtapa={irComGesto}
           onProximoGesto={irComGesto}
           onStatusChange={aoMudarEstado}
@@ -837,6 +851,12 @@ export default function EventoPage() {
           </button>
         </div>
       )}
+
+      <PortalDoClienteSheet
+        evento={submissao}
+        aberto={portalAberto}
+        onFechar={() => setPortalAberto(false)}
+      />
     </div>
   );
 }

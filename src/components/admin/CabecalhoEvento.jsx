@@ -303,6 +303,7 @@ export default function CabecalhoEvento({
   onRecuperar,
   onImprimir,
   onWhatsApp,
+  onPortal,
   onEditar,
   editando = false,
   edicaoNoutroSeparador = false,
@@ -368,6 +369,20 @@ export default function CabecalhoEvento({
         >
           <Icone nome="mensagens" tamanho={15} />
           WhatsApp
+        </button>
+      )}
+      {/* A porta do acompanhamento vive AQUI, colada ao WhatsApp: gerar a
+          ligação e enviá-la são o mesmo momento, e é neste sítio que ela
+          está quando pensa na cliente. Some na linha compacta a editar,
+          como as vizinhas — não é acção de saída. */}
+      {onPortal && !(compacto && soEdicao) && (
+        <button
+          onClick={onPortal}
+          className={CLASSE_BOTAO.ouro}
+          style={medidaBotao}
+          title="A ligação que a cliente pode abrir para acompanhar o evento"
+        >
+          {compacto ? "Acompanhar" : "Acompanhamento"}
         </button>
       )}
       {/* Editar BRIEFING — o nome não é enfeite. Este botão vive na
