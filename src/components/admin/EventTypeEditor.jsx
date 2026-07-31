@@ -71,12 +71,19 @@ export function blankEditingSteps() {
   return [{ uid: makeUid(), title: "Passo 1", subtitle: "", fields: [] }];
 }
 
+// As mensagens que o organizador lê quando erra um campo. TERCEIRA PESSOA,
+// como o resto do que sai de casa (identidade-visual.md §6) — estas são a
+// raiz, não uma cópia: cada campo NOVO leva daqui a sua mensagem para
+// dentro do `steps` do modelo, na base. Corrigir só as linhas já gravadas
+// não chega; sem isto, o editor volta a semear segunda pessoa amanhã.
+//
+// As duas impessoais ficam como estão: já não tratam ninguém por tu.
 function buildErrorMsg(validate) {
   if (validate === "phone")
-    return "Introduz um número de telefone válido (ex: 912 345 678)";
-  if (validate === "email") return "Introduz um endereço de email válido";
+    return "Introduza um número de telefone válido (ex: 912 345 678)";
+  if (validate === "email") return "Introduza um endereço de email válido";
   if (validate === "futureDate") return "Esta data não pode ser no passado";
-  if (validate === "positive") return "Introduz um número positivo";
+  if (validate === "positive") return "Introduza um número positivo";
   return "Este campo é obrigatório";
 }
 

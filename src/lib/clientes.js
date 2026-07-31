@@ -559,9 +559,39 @@ export const getDadosParaDocumento = async (submission, eventTypes) => {
   const tipo = eventTypes?.find((et) => et.id === submission.event_type_id);
   const resumo = getResumoSubmissao(submission, eventTypes);
 
-  // Contraentes do contrato
-  const noivo = ler("nomeNoivo");
-  const noiva = ler("nomeNoiva");
+  // ── Contraentes do contrato ────────────────────────────────────────────
+  //
+  // REDE DE TRÊS CAMADAS, como a morada já tinha. Antes lia-se só
+  // `nomeNoivo`/`nomeNoiva` — as chaves canónicas do FIELD_MAP — e essas
+  // NÃO APARECEM UMA ÚNICA VEZ em `submissions.respostas`. Os ids dos
+  // modelos são gerados a partir das etiquetas (`toCamelId` no
+  // EventTypeEditor), por isso «Nome do Noivo» dá `nomeDoNoivo` e nunca
+  // `nomeNoivo`. Resultado: os três contratos de casal já emitidos saíram
+  // com UM contraente só, na redacção do singular, sem nada no papel a
+  // assinalar que faltava uma parte.
+  //
+  // ⚠ A LISTA DA NOIVA CONTÉM `nomeDaNoivo`, E ISSO NÃO É ENGANO.
+  // No modelo Casamento as etiquetas saíram trocadas («Nome do Noiva»,
+  // «Nome da Noivo») e os ids nasceram delas. A ordem dos campos e os
+  // exemplos («Ex: João Silva» primeiro) provam a intenção, e o modelo
+  // Noivado — correcto — confirma-a. A migração 053 corrige as etiquetas;
+  // os ids ficam trocados para sempre, porque já têm respostas guardadas
+  // debaixo deles. Não «arrumes» esta lista a olhar só para os nomes.
+  //
+  // O caminho limpo para o futuro é marcar `papel` nos campos do modelo —
+  // hoje nenhum dos 192 campos tem papel nenhum.
+  const CHAVES_NOIVO = ["nomeNoivo", "nomeDoNoivo", "nomeDoNoiva"];
+  const CHAVES_NOIVA = ["nomeNoiva", "nomeDaNoiva", "nomeDaNoivo"];
+  const lerPrimeiro = (chaves) => {
+    for (const c of chaves) {
+      const v = ler(c);
+      if (v) return v;
+    }
+    return null;
+  };
+
+  const noivo = lerPrimeiro(CHAVES_NOIVO);
+  const noiva = lerPrimeiro(CHAVES_NOIVA);
   let contraentes;
   if (noivo && noiva) {
     contraentes = [
@@ -581,10 +611,26 @@ export const getDadosParaDocumento = async (submission, eventTypes) => {
     ];
   }
 
+  // Um modelo é DE CASAL quando tem os dois campos de nome. Não se adivinha
+  // pelo nome do modelo (há casamentos chamados de tudo): pergunta-se ao
+  // próprio modelo que campos tem.
+  //
+  // Serve só para AVISAR, nunca para bloquear: um baptizado com um
+  // contraente está certo, e um aviso que aparece sempre é um aviso que se
+  // aprende a ignorar.
+  const idsDoModelo = (tipo?.steps || []).flatMap((p) =>
+    (p.fields || []).map((f) => f.id),
+  );
+  const modeloDeCasal =
+    idsDoModelo.some((id) => CHAVES_NOIVO.includes(id)) &&
+    idsDoModelo.some((id) => CHAVES_NOIVA.includes(id));
+
   return {
     submissionId: submission.id,
     titulo: resumo.titulo,
     cliente,
+    // O contrato pergunta isto antes de deixar imprimir em silêncio.
+    modeloDeCasal,
 
     // ---- Orçamento ----
     nomeCliente: cliente?.nome || resumo.titulo || "",

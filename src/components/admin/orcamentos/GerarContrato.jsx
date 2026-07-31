@@ -198,6 +198,32 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
         {/* ===== FORMULÁRIO ===== */}
         <div>
           <h3 style={h3Style}>Contraente(s) — Cliente</h3>
+          {/* O aviso do contraente em falta.
+              Um contrato de casal com um contraente só NÃO parece partido:
+              o documento muda para a redacção do singular e lê-se como um
+              contrato completo. Já saíram três assim. Sem nada no papel a
+              assinalar a falta, o aviso tem de estar aqui, antes de imprimir.
+              Desaparece sozinho ao acrescentar o 2.º — depende do estado
+              vivo, não do prefill. Avisa, não bloqueia. */}
+          {prefill?.modeloDeCasal && contraentes.length < 2 && (
+            <div
+              style={{
+                backgroundColor: "#FEF3E2",
+                border: "1px solid #F0D9B5",
+                borderRadius: "10px",
+                padding: "12px 14px",
+                marginBottom: "12px",
+                fontSize: "12.5px",
+                lineHeight: 1.6,
+                color: "#92400E",
+              }}
+            >
+              Este é um evento de casal e o contrato vai sair com{" "}
+              <strong>um contraente só</strong> — no singular, sem nada a
+              assinalar que falta uma parte. Se são dois, acrescente o 2.º
+              cliente aqui abaixo antes de imprimir.
+            </div>
+          )}
           {contraentes.map((c, i) => (
             <div
               key={c.uid}
