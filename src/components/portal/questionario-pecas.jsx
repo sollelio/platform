@@ -1,4 +1,5 @@
-import { playfair, overline, ehCodigoDeCor, HACHURA } from "./base";
+import { useEffect, useRef } from "react";
+import { playfair, overline, diaMesAno, ehCodigoDeCor, HACHURA } from "./base";
 import { VistoDourado, Losango } from "./pecas";
 
 // ============================================================
@@ -108,17 +109,33 @@ export function CartaoDePasso({ titulo, contagem, children, style }) {
 // explicação do fecho. Nunca é um botão morto — um campo fechado que não
 // responde ao toque lê-se como avaria.
 export function LinhaDeResposta({
-  rotulo, valor, tipo, opcoes, podeMudar, primeira, ultima, aoTocar, children, nota,
+  rotulo, valor, tipo, opcoes, podeMudar, primeira, ultima, aberta, aoTocar, children, nota,
 }) {
+  const botaoRef = useRef(null);
+  const antesAberta = useRef(aberta);
+
+  // Quando a caixa fecha, o foco caía para o body e o teclado perdia o
+  // sítio. Devolve-se ao botão da própria linha — mas só se mais nada tiver
+  // ficado com o foco, para abrir OUTRA linha não roubar o autoFocus dela.
+  useEffect(() => {
+    if (antesAberta.current && !aberta) {
+      const f = document.activeElement;
+      if (!f || f === document.body) botaoRef.current?.focus();
+    }
+    antesAberta.current = aberta;
+  }, [aberta]);
+
   return (
     <div
       style={{
-        borderTop: primeira ? FILETE_LINHA : FILETE_LINHA,
+        borderTop: primeira ? "none" : FILETE_LINHA,
         padding: ultima ? "14px 0 2px" : "14px 0",
       }}
     >
       <button
+        ref={botaoRef}
         onClick={aoTocar}
+        aria-expanded={aberta}
         style={{
           display: "block", width: "100%", textAlign: "left",
           background: "none", border: "none", padding: 0, margin: 0,
@@ -163,7 +180,7 @@ export function ValorDaResposta({ valor, tipo, opcoes, comPauta }) {
 
   if (tipo === "paleta") return <Paleta cores={valor} />;
 
-  if (tipo === "radio" || tipo === "checkbox") {
+  if (tipo === "radio" || tipo === "checkbox" || tipo === "select") {
     const escolhidas = Array.isArray(valor) ? valor : [valor];
     return (
       <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
@@ -192,6 +209,16 @@ export function ValorDaResposta({ valor, tipo, opcoes, comPauta }) {
       <p style={{ ...playfair, fontStyle: "italic", fontSize: "14.5px", lineHeight: 1.75, color: "var(--charcoal)", margin: 0, ...(comPauta ? { display: "block", borderBottom: PAUTA_REPOUSO, paddingBottom: "10px" } : null) }}>
         {String(valor)}
       </p>
+    );
+  }
+
+  // Uma data ISO nunca se mostra crua: «2026-08-04» é «4 de Agosto de 2026».
+  // Se não se conseguir ler, sai como veio — mais vale cru do que errado.
+  if (tipo === "date") {
+    return (
+      <span style={{ fontSize: "13px", lineHeight: 1.5, ...pauta }}>
+        {diaMesAno(String(valor)) || String(valor)}
+      </span>
     );
   }
 
@@ -301,7 +328,7 @@ export function MarcaDeAutoria({ quando, antes, aberta }) {
       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginTop: "7px" }}>
         <Losango tamanho={4} opacidade={1} style={{ marginTop: 0 }} />
         <span style={{ fontSize: "10.5px", lineHeight: 1.6, color: "#9B9B9B" }}>
-          actualizado pela equipa {quando}
+          actualizado pela equipa a {quando}
         </span>
       </div>
     );
@@ -311,7 +338,7 @@ export function MarcaDeAutoria({ quando, antes, aberta }) {
       <span style={{ marginTop: "6px", flexShrink: 0 }}><Losango tamanho={5} opacidade={1} style={{ marginTop: 0 }} /></span>
       <div>
         <p style={{ fontSize: "12px", lineHeight: 1.6, color: "var(--charcoal)", margin: 0, textWrap: "pretty" }}>
-          Actualizado pela equipa {quando}.
+          Actualizado pela equipa a {quando}.
         </p>
         {antes !== null && antes !== undefined && antes !== "" && (
           <p style={{ fontSize: "11px", lineHeight: 1.65, color: "#9B9B9B", margin: "7px 0 0", textWrap: "pretty" }}>
@@ -340,7 +367,7 @@ export function BlocoDeFecho({ motivo, quando, porque, aoPedir, style }) {
     <CaixaAberta style={style}>
       <p style={overline()}>{motivo}</p>
       <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, margin: "10px 0 0", textWrap: "balance" }}>
-        Esta resposta fechou {quando}.
+        Esta resposta fechou a {quando}.
       </p>
       <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
         {porque}
@@ -379,7 +406,7 @@ export function PassoPorResponder({ nome, contagem, quando, aoTocar }) {
           {nome}
         </span>
         <span style={{ fontSize: "11.5px", lineHeight: 1.6, color: "#9B9B9B", display: "block", marginTop: "3px" }}>
-          {contagem} por responder{quando ? ` — mas só nos fazem falta ${quando}.` : "."}
+          {contagem} por responder{quando ? ` — mas só nos fazem falta a ${quando}.` : "."}
         </span>
       </span>
     </button>

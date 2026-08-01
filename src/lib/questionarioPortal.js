@@ -31,7 +31,8 @@ export const verQuestionario = async (token) => {
 };
 
 // Grava UM campo. É assim, e não tudo no fim, porque é o que a página
-// promete à cliente desde a fase 1: «fica guardado à medida que escreve».
+// promete à cliente: cada resposta fica guardada quando carrega em
+// «Guardar» — e ela volta quando quiser.
 //
 // O valor vai como JSON — um texto é `"assim"`, um número é `12`, uma
 // escolha múltipla é um array. Quem chama passa o valor cru; a serialização

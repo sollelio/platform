@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { linkWhatsApp } from "../../lib/mensagens";
+import { MarcaVisto, MarcaCruz } from "./marcas";
 
 // ============================================================
 // CentroNotificacoes — a Caixa de Entrada da Nádia.
@@ -541,7 +542,7 @@ function DetalheDoPortal({ corpo, citacao, contexto, onAbrirFicha }) {
 // num círculo com ✓. Em modo de seleção, o medalhão "esvazia"
 // (contorno dourado) para mostrar que está à espera de ser escolhido.
 // ------------------------------------------------------------
-function MedalhaoSelecao({ titulo, emSelecao, selecionada, onToggle }) {
+function MedalhaoSelecao({ titulo, emSelecao, selecionada, protegida, onToggle }) {
   const face = {
     position: "absolute",
     inset: 0,
@@ -560,7 +561,13 @@ function MedalhaoSelecao({ titulo, emSelecao, selecionada, onToggle }) {
         e.stopPropagation();
         onToggle();
       }}
-      title={selecionada ? "Desmarcar" : "Selecionar"}
+      title={
+        protegida
+          ? "Este aviso guarda a fila do contrato em papel — não se remove"
+          : selecionada
+            ? "Desmarcar"
+            : "Selecionar"
+      }
       aria-pressed={selecionada}
       style={{
         flexShrink: 0,
@@ -601,19 +608,18 @@ function MedalhaoSelecao({ titulo, emSelecao, selecionada, onToggle }) {
         >
           {iniciais(titulo)}
         </span>
-        {/* verso: a escolha feita */}
+        {/* verso: a escolha feita — a marca desenhada da casa, não o
+            glifo de texto (variava de peso conforme a fonte do sistema) */}
         <span
           style={{
             ...face,
             transform: "rotateY(180deg)",
             background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
             color: "white",
-            fontSize: "18px",
-            fontWeight: "700",
             boxShadow: "0 3px 10px rgba(201,168,76,0.45)",
           }}
         >
-          ✓
+          <MarcaVisto t={16} cor="white" />
         </span>
       </motion.span>
     </button>
@@ -696,6 +702,7 @@ function CartaoNotificacao({
           titulo={n.titulo}
           emSelecao={modoSelecao}
           selecionada={!!selecionada}
+          protegida={n.tipo === "contrato_papel"}
           onToggle={onToggleSelecao}
         />
 
@@ -760,7 +767,8 @@ function CartaoNotificacao({
           </p>
         </div>
 
-        {/* seta que roda ao expandir (esconde-se em modo de seleção) */}
+        {/* seta que roda ao expandir (esconde-se em modo de seleção) —
+            chevron desenhado, não o glifo › (marca é desenho, não texto) */}
         {!modoSelecao && (
           <motion.span
             animate={{ rotate: expandida ? 90 : 0 }}
@@ -768,11 +776,26 @@ function CartaoNotificacao({
             style={{
               flexShrink: 0,
               color: "var(--gold)",
-              fontSize: "13px",
-              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            ›
+            <svg
+              width={12}
+              height={12}
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              style={{ display: "block" }}
+            >
+              <path
+                d="M6 3.5 L10.5 8 L6 12.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </motion.span>
         )}
       </div>
@@ -794,10 +817,18 @@ function CartaoNotificacao({
                 contexto={
                   n.dados?.tipo_documento && n.dados?.versao
                     ? `${ROTULO_DOC[n.dados.tipo_documento] || n.dados.tipo_documento}, versão ${n.dados.versao}`
-                    : n.dados?.campo || null
+                    : // Um pedido de código traz o documento em
+                      // `dados.contexto` — sem esta queda, o aviso não
+                      // dizia para QUE documento era o código.
+                      n.dados?.contexto
+                      ? ROTULO_DOC[n.dados.contexto] || n.dados.contexto
+                      : n.dados?.campo || null
                 }
+                // O TIPO segue junto: é ele que diz à AdminPage ONDE o
+                // aviso manda ir (a folha do Acompanhamento, a ficha, ou
+                // o separador Avaliações) — sem ele, tudo caía no drawer.
                 onAbrirFicha={() =>
-                  onAbrirEvento && onAbrirEvento(n.submission_id)
+                  onAbrirEvento && onAbrirEvento(n.submission_id, n.tipo)
                 }
               />
             ) : (
@@ -866,15 +897,33 @@ function ConteudoCaixa({
   const [selecao, setSelecao] = useState(null);
   const [confirmando, setConfirmando] = useState(false);
 
-  const lidas = lista.filter((n) => n.lida_em);
+  // Um aviso de contrato em papel NÃO se remove: é a própria fila de
+  // confirmação (a folha do Acompanhamento lê getPapelPorConfirmar desta
+  // tabela, e `dados.caminho` é o único fio até à fotografia). Removê-lo
+  // apagava a secção «Contrato assinado em papel» para sempre. Marcar
+  // como lida continua livre — só a remoção é que se recusa.
+  const protegida = (n) => n.tipo === "contrato_papel";
+  const removiveis = lista.filter((n) => !protegida(n));
+  const haProtegidas = removiveis.length < lista.length;
+
+  const lidas = removiveis.filter((n) => n.lida_em);
   const emSelecao = selecao !== null;
   const nSel = selecao ? selecao.size : 0;
-  const todasSelecionadas = nSel > 0 && nSel === lista.length;
+  const todasSelecionadas = nSel > 0 && nSel === removiveis.length;
 
-  // O destaque (vindo do toast) conta logo como lido.
+  // O destaque (vindo do toast) expande-se e conta logo como lido — e
+  // com a DEPENDÊNCIA, não só na montagem: clicar no toast com a Caixa
+  // já aberta também tem de cumprir a promessa do «Ver o pedido».
+  // A expansão ajusta-se DURANTE o render (estado preso à prop); só a ida
+  // ao servidor fica no efeito. (onMarcarLida é useCallback estável.)
+  const [destaqueVisto, setDestaqueVisto] = useState(null);
+  if (destaqueId && destaqueVisto !== destaqueId) {
+    setDestaqueVisto(destaqueId);
+    setExpandidaId(destaqueId);
+  }
   useEffect(() => {
     if (destaqueId) onMarcarLida(destaqueId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [destaqueId, onMarcarLida]);
 
   const alternarExpansao = (id) => {
     setExpandidaId((atual) => (atual === id ? null : id));
@@ -894,6 +943,10 @@ function ConteudoCaixa({
   };
 
   const alternarSelecao = (id) => {
+    // Os protegidos não entram na escolha — nem pelo medalhão, nem pelo
+    // toque no cartão em modo de seleção.
+    const alvo = lista.find((n) => n.id === id);
+    if (alvo && protegida(alvo)) return;
     setConfirmando(false);
     setExpandidaId(null);
     setSelecao((atual) => {
@@ -979,7 +1032,6 @@ function ConteudoCaixa({
             onClick={onFechar}
             aria-label="Fechar"
             style={{
-              fontSize: "18px",
               color: "var(--gray-mid)",
               background: "none",
               border: "none",
@@ -988,7 +1040,7 @@ function ConteudoCaixa({
               padding: "6px",
             }}
           >
-            ✕
+            <MarcaCruz t={14} />
           </button>
         </div>
 
@@ -1004,7 +1056,7 @@ function ConteudoCaixa({
           >
             {naoLidas > 0 && (
               <BotaoCabecalho onClick={onMarcarTodas}>
-                ✓ Marcar todas como lidas
+                Marcar todas como lidas
               </BotaoCabecalho>
             )}
             <BotaoCabecalho onClick={() => entrarEmSelecao()}>
@@ -1015,7 +1067,7 @@ function ConteudoCaixa({
                 cor="var(--gray-mid)"
                 onClick={() => entrarEmSelecao(lidas.map((n) => n.id))}
               >
-                ✕ Limpar lidas ({lidas.length})
+                Limpar lidas ({lidas.length})
               </BotaoCabecalho>
             )}
           </div>
@@ -1028,7 +1080,7 @@ function ConteudoCaixa({
               margin: "10px 0 0 0",
             }}
           >
-            Toca nos pedidos que queres remover — os medalhões viram ✓.
+            Toque nos pedidos que quer remover — os medalhões ficam marcados.
           </p>
         )}
       </div>
@@ -1045,15 +1097,29 @@ function ConteudoCaixa({
       >
         {lista.length === 0 ? (
           <div style={{ textAlign: "center", padding: "72px 24px" }}>
-            <p
+            {/* losango no traço da casa — quadrado rodado, não o glifo ✦ */}
+            <svg
+              width={22}
+              height={22}
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
               style={{
-                fontSize: "26px",
+                display: "block",
+                margin: "0 auto 10px",
                 color: "var(--gold-light)",
-                margin: "0 0 10px 0",
               }}
             >
-              ✦
-            </p>
+              <rect
+                x="4.6"
+                y="4.6"
+                width="6.8"
+                height="6.8"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                transform="rotate(45 8 8)"
+              />
+            </svg>
             <p
               style={{
                 fontSize: "16px",
@@ -1072,8 +1138,8 @@ function ConteudoCaixa({
                 lineHeight: 1.6,
               }}
             >
-              Quando alguém preencher o formulário de interesse,
-              <br />o pedido aparece aqui ao segundo.
+              Quando alguém preencher o formulário de interesse — ou mexer no
+              acompanhamento de um evento — aparece aqui ao segundo.
             </p>
           </div>
         ) : (
@@ -1213,7 +1279,7 @@ function ConteudoCaixa({
                     onClick={() =>
                       setSelecao(
                         new Set(
-                          todasSelecionadas ? [] : lista.map((n) => n.id),
+                          todasSelecionadas ? [] : removiveis.map((n) => n.id),
                         ),
                       )
                     }
@@ -1232,6 +1298,20 @@ function ConteudoCaixa({
                       ? "Desmarcar todas"
                       : "Selecionar todas"}
                   </button>
+                  {haProtegidas && (
+                    <p
+                      style={{
+                        fontSize: "10.5px",
+                        lineHeight: 1.5,
+                        color: "var(--gray-mid)",
+                        margin: "4px 0 0",
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      Os avisos de contrato em papel ficam — são a fila de
+                      confirmação.
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={sairDaSelecao}
@@ -1291,6 +1371,29 @@ export default function PainelNotificacoes({
   onApagarVarias,
   onAbrirEvento,
 }) {
+  const painelRef = useRef(null);
+  const origemRef = useRef(null);
+
+  // Escape fecha (sem roubar a tecla a um campo com o cursor lá dentro —
+  // o padrão do SubmissionDrawer), o foco entra no painel ao abrir e
+  // volta ao sino ao fechar.
+  useEffect(() => {
+    if (!aberto) return undefined;
+    origemRef.current = document.activeElement;
+    painelRef.current?.focus({ preventScroll: true });
+    const aoTeclar = (e) => {
+      if (e.key !== "Escape") return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      onFechar();
+    };
+    document.addEventListener("keydown", aoTeclar);
+    return () => {
+      document.removeEventListener("keydown", aoTeclar);
+      if (origemRef.current?.focus) origemRef.current.focus();
+    };
+  }, [aberto, onFechar]);
+
   return (
     <AnimatePresence>
       {aberto && (
@@ -1311,6 +1414,11 @@ export default function PainelNotificacoes({
           }}
         >
           <motion.div
+            ref={painelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Caixa de Entrada"
+            tabIndex={-1}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -1355,6 +1463,11 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
   // acima de tocarSino) — sem isto, o sino fica sempre mudo.
   useDesbloquearSino();
 
+  // Com movimento reduzido no sistema, o shimmer e a barra de vida
+  // ficam quietos (o framer-motion trata das molas via MotionConfig;
+  // estas duas são keyframes CSS e tratam-se aqui).
+  const reduzido = useReducedMotion();
+
   // Toca o sino a cada chegada
   useEffect(() => {
     if (nova) tocarSino();
@@ -1368,6 +1481,9 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
   }, [nova?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tipo = nova ? nomeDoTipo(nova, eventTypes) : null;
+  // Um aviso do PORTAL não é um pedido de interesse — o toast veste-o
+  // com o overline e o resumo dele, não com o molde da captação.
+  const doPortal = nova ? TIPOS_DO_PORTAL[nova.tipo] || null : null;
   const dataEvento =
     nova?.dados?.data_evento || nova?.dados?.respostas?.dataEvento || null;
   const convidados =
@@ -1424,7 +1540,9 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                 width: "45%",
                 background:
                   "linear-gradient(105deg, transparent, rgba(232,213,163,0.45), transparent)",
-                animation: "dlm-shimmer 2.4s ease-in-out 0.3s 2",
+                animation: reduzido
+                  ? "none"
+                  : "dlm-shimmer 2.4s ease-in-out 0.3s 2",
                 pointerEvents: "none",
               }}
             />
@@ -1453,11 +1571,28 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "17px",
                   boxShadow: "0 4px 12px rgba(201,168,76,0.4)",
                 }}
               >
-                ✦
+                {/* losango no traço da casa, não o glifo ✦ */}
+                <svg
+                  width={14}
+                  height={14}
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden
+                  style={{ display: "block" }}
+                >
+                  <rect
+                    x="4.6"
+                    y="4.6"
+                    width="6.8"
+                    height="6.8"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    transform="rotate(45 8 8)"
+                  />
+                </svg>
               </motion.span>
 
               <div style={{ minWidth: 0, flex: 1 }}>
@@ -1471,7 +1606,7 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                     margin: "0 0 3px 0",
                   }}
                 >
-                  Novo pedido de interesse
+                  {doPortal ? "Do acompanhamento" : "Novo pedido de interesse"}
                 </p>
                 <p
                   style={{
@@ -1497,18 +1632,20 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {[
-                    tipo,
-                    dataEvento
-                      ? new Date(dataEvento).toLocaleDateString("pt-PT", {
-                          day: "numeric",
-                          month: "long",
-                        })
-                      : null,
-                    convidados ? `${convidados} convidados` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "Toca para ver os detalhes"}
+                  {doPortal
+                    ? doPortal.resumo
+                    : [
+                        tipo,
+                        dataEvento
+                          ? new Date(dataEvento).toLocaleDateString("pt-PT", {
+                              day: "numeric",
+                              month: "long",
+                            })
+                          : null,
+                        convidados ? `${convidados} convidados` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Toque para ver os detalhes"}
                 </p>
                 <p
                   style={{
@@ -1531,7 +1668,6 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                 aria-label="Dispensar"
                 style={{
                   flexShrink: 0,
-                  fontSize: "14px",
                   color: "var(--gray-mid)",
                   background: "none",
                   border: "none",
@@ -1540,11 +1676,12 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                   padding: "2px",
                 }}
               >
-                ✕
+                <MarcaCruz t={14} />
               </button>
             </div>
 
-            {/* a vida do toast a esgotar-se */}
+            {/* a vida do toast a esgotar-se — estática com movimento
+                reduzido (o auto-fecho continua a contar na mesma) */}
             <span
               aria-hidden="true"
               style={{
@@ -1552,7 +1689,9 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                 height: "3px",
                 background:
                   "linear-gradient(90deg, var(--gold), var(--gold-light))",
-                animation: `dlm-toast-vida ${DURACAO_TOAST_S}s linear forwards`,
+                animation: reduzido
+                  ? "none"
+                  : `dlm-toast-vida ${DURACAO_TOAST_S}s linear forwards`,
               }}
             />
           </motion.div>

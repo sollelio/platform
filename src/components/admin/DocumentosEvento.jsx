@@ -423,7 +423,7 @@ export default function DocumentosEvento({
     }
     if (!rascunho.eventTypeId) {
       setErrosRascunho({
-        geral: "Escolhe o tipo de evento antes de criar o formulário.",
+        geral: "Escolha o tipo de evento antes de criar o formulário.",
       });
       return;
     }
@@ -444,7 +444,7 @@ export default function DocumentosEvento({
       console.error("Erro ao criar o formulário:", e);
       setErrosRascunho({
         geral:
-          "Não foi possível criar o formulário. Verifica a ligação e tenta outra vez.",
+          "Não foi possível criar o formulário. Verifique a ligação e tente novamente.",
       });
     }
     setACriar(false);
@@ -472,7 +472,13 @@ export default function DocumentosEvento({
       );
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível guardar o estado. Tenta outra vez.");
+      // O trancado é TERMINAL — convidar a repetir era prometer que a
+      // repetição ia mudar alguma coisa, e não ia.
+      setErro(
+        /DOCUMENTO_TRANCADO/.test(e?.message || "")
+          ? "Este contrato está assinado e trancado — não se altera. Um erro resolve-se com contrato novo."
+          : "Não foi possível guardar o estado. Tente novamente.",
+      );
     }
   };
 
@@ -758,11 +764,15 @@ export default function DocumentosEvento({
                     tipo === "orcamento" && submissao?.valor_acordado
                       ? formatarEuros(submissao.valor_acordado)
                       : null,
-                    doc.assinado_em
-                      ? `${cfg.ultimo} em ${dataCurta(doc.assinado_em)}`
-                      : doc.enviado_em
-                        ? `enviado em ${dataCurta(doc.enviado_em)}`
-                        : "gerado, por enviar",
+                    // Trancado é terminal e a linha di-lo — os passos
+                    // deixam de ser botões (ver onClick abaixo).
+                    doc.trancado_em
+                      ? `assinado e trancado em ${dataCurta(doc.trancado_em)} — não se altera`
+                      : doc.assinado_em
+                        ? `${cfg.ultimo} em ${dataCurta(doc.assinado_em)}`
+                        : doc.enviado_em
+                          ? `enviado em ${dataCurta(doc.enviado_em)}`
+                          : "gerado, por enviar",
                   ]
                     .filter(Boolean)
                     .join(" · ")
@@ -782,7 +792,11 @@ export default function DocumentosEvento({
                   rotulo={doc?.enviado_em ? "enviado" : "enviar"}
                   data={doc?.enviado_em ? dataCurta(doc.enviado_em) : null}
                   feito={!!doc?.enviado_em}
-                  onClick={doc ? () => alternarPasso(doc, "enviado") : undefined}
+                  onClick={
+                    doc && !doc.trancado_em
+                      ? () => alternarPasso(doc, "enviado")
+                      : undefined
+                  }
                 />
                 <Passo
                   rotulo={
@@ -793,7 +807,9 @@ export default function DocumentosEvento({
                   data={doc?.assinado_em ? dataCurta(doc.assinado_em) : null}
                   feito={!!doc?.assinado_em}
                   onClick={
-                    doc ? () => alternarPasso(doc, "assinado") : undefined
+                    doc && !doc.trancado_em
+                      ? () => alternarPasso(doc, "assinado")
+                      : undefined
                   }
                 />
               </>

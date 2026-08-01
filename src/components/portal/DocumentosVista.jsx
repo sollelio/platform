@@ -14,7 +14,7 @@ import {
   SeloVersao, Folha, Timbre, LinhaServico, TotalOrcamento, CapsulaCheia,
   TiraContexto, Dupla, CapsulaVazada, LigacaoDiscreta, CelulasCodigo,
   BlocoRecusa, BlocoRegisto, FaixaSelo, CampoAssinatura, CampoRecado,
-  EngasteTirar, TituloDocumento, VeuValor,
+  EngasteTirar, TituloDocumento, VeuValor, EstiloImpressao,
 } from "./documentos-pecas";
 import {
   getDocumentosPortal, verDocumentoPortal, pedirCodigo, verificarCodigo,
@@ -125,7 +125,7 @@ function AvisoVersaoNova({ token, tipo, sessaoId, doc, ant, rotulo, onAbrir, onV
         Saiu um {rotulo.toLowerCase()} novo{tipo === "orcamento" ? ", com o que nos pediu" : ""}.
       </p>
       <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
-        Esta é a versão {doc.versao}, de {diaEMes(doc.publicado_em)}.
+        Esta é a versão {doc.versao}, de {diaEMes(diaLocalISO(doc.publicado_em))}.
       </p>
 
       {dif && (dif.houve || doc.velado) && (
@@ -138,7 +138,7 @@ function AvisoVersaoNova({ token, tipo, sessaoId, doc, ant, rotulo, onAbrir, onV
         </div>
         <div>
           <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.5, margin: 0, color: "var(--charcoal)" }}>
-            A sua resposta de {diaEMes(ant.acto_em)} fica onde está.
+            A sua resposta de {diaEMes(diaLocalISO(ant.acto_em))} fica onde está.
           </p>
           <p style={{ fontSize: "11.5px", lineHeight: 1.7, color: "#9B9B9B", margin: "6px 0 0", textWrap: "pretty" }}>
             Vale para a versão {ant.versao}, a que leu nesse dia, e não se
@@ -182,6 +182,36 @@ function AvisoVersaoNova({ token, tipo, sessaoId, doc, ant, rotulo, onAbrir, onV
 
 const naoVazia = (s) => typeof s === "string" && s.trim() !== "";
 const nomeCompleto = (s) => /\S{2,}\s+\S{2,}/.test((s || "").trim());
+
+// O dia de calendário LOCAL de um timestamptz. Os carimbos de actos e de
+// publicações são instantes — fatiá-los em UTC (slice da string ISO) fazia
+// a data fugir um dia para quem lê a oeste de Greenwich. As colunas DATE
+// (dataEvento) ficam com partesDaData, que não passa por um Date local.
+// (Candidato a subir para base.js quando a área partilhada o adoptar.)
+const diaLocalISO = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// O interstício da versão nova dispensa-se uma vez por visita. Com try,
+// como o resto do ficheiro: em modo privado o sessionStorage pode recusar,
+// e aí o estado local (interVisto) segura a dispensa nesta montagem.
+const lerVeuVisto = (token, tipo, versao) => {
+  try {
+    return sessionStorage.getItem(`dlm_vnova_${token}_${tipo}_${versao}`);
+  } catch {
+    return null;
+  }
+};
+const marcarVeuVisto = (token, tipo, versao) => {
+  try {
+    sessionStorage.setItem(`dlm_vnova_${token}_${tipo}_${versao}`, "1");
+  } catch {
+    /* o estado local segura a dispensa nesta visita */
+  }
+};
 
 // ---------- resolver das cláusulas ----------
 // As cláusulas viajam CONGELADAS no instantâneo (com os marcadores), e
@@ -267,12 +297,22 @@ function CorpoOrcamento({ doc }) {
     const dias = Number(inst.__validadeDias) || 30;
     const d = new Date(doc.publicado_em);
     d.setDate(d.getDate() + dias);
-    return d.toISOString().slice(0, 10);
+    // No calendário de quem lê — o slice UTC podia adiantar (ou atrasar)
+    // a validade um dia inteiro.
+    return diaLocalISO(d);
   }, [doc.publicado_em, inst.__validadeDias]);
 
   return (
     <>
-      <Timbre logoUrl={logoUrl} nome="Orçamento" versao={doc.versao} quando={doc.publicado_em} />
+      <Timbre logoUrl={logoUrl} nome="Orçamento" versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} />
+      {/* O véu explica-se acima da dobra: sem esta linha, a folha abria
+          em hachuras sem uma palavra sobre o que são. */}
+      {doc.velado && (
+        <p style={{ fontSize: "11px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "12px 22px 0", textAlign: "center", textWrap: "pretty" }}>
+          Os valores estão velados — o caminho para os abrir está no fim da
+          folha.
+        </p>
+      )}
       <TituloDocumento
         meta={[
           inst.dataEvento ? diaMesAno(inst.dataEvento) : null,
@@ -320,7 +360,7 @@ function CorpoProjecto({ doc }) {
   );
   return (
     <>
-      <Timbre logoUrl={logoUrl} nome="Projecto" versao={doc.versao} quando={doc.publicado_em} />
+      <Timbre logoUrl={logoUrl} nome="Projecto" versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} />
       <TituloDocumento meta="A partir do que nos contou no questionário.">
         {naoVazia(inst.subtitulo) ? inst.subtitulo : "A mesa que lhe desenhámos"}
       </TituloDocumento>
@@ -393,10 +433,19 @@ function CorpoContrato({ doc, resumoSo = false }) {
             </div>
           ))}
           {doc.velado && (
-            <div style={{ display: "flex", gap: "11px", alignItems: "center" }}>
-              <div aria-hidden="true" style={{ width: "5px", height: "5px", backgroundColor: "var(--gold)", transform: "rotate(45deg)", flex: "none", opacity: 0.55 }} />
-              <span style={{ fontSize: "12px", color: "var(--charcoal)", marginRight: "6px" }}>O valor do serviço é de</span>
-              <VeuValor largura={78} altura={13} />
+            <div style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>
+              <div aria-hidden="true" style={{ width: "5px", height: "5px", backgroundColor: "var(--gold)", transform: "rotate(45deg)", flex: "none", marginTop: "6px", opacity: 0.55 }} />
+              {/* «é de» e a hachura andam juntos: sem o nowrap, a linha
+                  partia entre «é» e «de», com o losango a meio. */}
+              <p style={{ fontSize: "12px", lineHeight: 1.65, color: "var(--charcoal)", margin: 0 }}>
+                O valor do serviço{" "}
+                <span style={{ whiteSpace: "nowrap" }}>
+                  é de{" "}
+                  <span style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }}>
+                    <VeuValor largura={78} altura={13} />
+                  </span>
+                </span>
+              </p>
             </div>
           )}
         </div>
@@ -499,7 +548,7 @@ function Lista({ token, meta }) {
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
                 <div>
                   <p style={{ ...playfair, fontSize: "18px", lineHeight: 1.25 }}>{ROTULO_DOCUMENTO[tipo]}</p>
-                  <SeloVersao versao={d.versao} quando={d.publicado_em} style={{ marginTop: "7px" }} />
+                  <SeloVersao versao={d.versao} quando={diaLocalISO(d.publicado_em)} style={{ marginTop: "7px" }} />
                 </div>
                 {espera ? (
                   <span style={{ fontSize: "10.5px", letterSpacing: "0.02em", color: "var(--gold-dark)", backgroundColor: "#FEF9EC", border: "1px solid #E8D5A3", borderRadius: "999px", padding: "4px 11px", flex: "none" }}>
@@ -517,7 +566,7 @@ function Lista({ token, meta }) {
                     undefined e caía no último ramo: um contrato assinado
                     dizia «Aceitou-o», e um pedido de alteração também. */}
                 {d.acto
-                  ? `${actoTexto(d.acto, tipo)} a ${diaEMes(d.acto_em)}. Fica guardado tal como o leu nesse dia.`
+                  ? `${actoTexto(d.acto, tipo)} a ${diaEMes(diaLocalISO(d.acto_em))}. Fica guardado tal como o leu nesse dia.`
                   : tipo === "proposta"
                     ? "A sua mesa desenhada — cores, louça, flores e o cenário. Diga-nos se está como imaginou."
                     : tipo === "contrato"
@@ -533,11 +582,17 @@ function Lista({ token, meta }) {
                 </CapsulaVazada>
               ) : (
                 <div style={{ marginTop: "12px" }}>
+                  {/* O sublinhado vive num <span> interior: o padding do
+                      Link sobe o alvo de toque aos 44px e a margem negativa
+                      devolve o espaço — o aspecto não mexe. */}
                   <Link
                     to={`/acompanhar/${token}/documentos/${tipo}`}
-                    style={{ fontSize: "12px", letterSpacing: "0.03em", color: "var(--charcoal)", borderBottom: "1px solid #E8D5A3", paddingBottom: "3px", textDecoration: "none" }}
+                    className="foco"
+                    style={{ display: "inline-block", fontSize: "12px", letterSpacing: "0.03em", color: "var(--charcoal)", textDecoration: "none", padding: "12px 10px", margin: "-12px -10px" }}
                   >
-                    Ver o {ROTULO_DOCUMENTO[tipo].toLowerCase()}
+                    <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+                      Ver o {ROTULO_DOCUMENTO[tipo].toLowerCase()}
+                    </span>
                   </Link>
                 </div>
               )}
@@ -546,6 +601,20 @@ function Lista({ token, meta }) {
         })}
       </div>
 
+      {/* O caminho de regresso — a área não pode ser um beco. O mesmo
+          desenho da porta discreta da jornada, no sentido inverso. */}
+      <p style={{ textAlign: "center", marginTop: "28px" }}>
+        <Link
+          to={`/acompanhar/${token}`}
+          className="foco"
+          style={{ display: "inline-block", fontSize: "12px", letterSpacing: "0.03em", color: "var(--gray-mid)", textDecoration: "none", padding: "12px 10px", margin: "-12px -10px" }}
+        >
+          <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+            Voltar ao acompanhamento
+          </span>
+        </Link>
+      </p>
+
       <Assinatura style={{ marginTop: "32px" }} />
     </div>
   );
@@ -553,23 +622,45 @@ function Lista({ token, meta }) {
 
 // ---------- o fluxo do código ----------
 
-function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarregarMeta }) {
+function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar, onRecarregarMeta }) {
   // O «agora» fixa-se quando o ecrã abre: o render tem de ser puro, e a
   // pergunta «já passaram duas horas?» não precisa de relógio vivo.
   const [agora] = useState(() => new Date().getTime());
-  // 'espera' | 'celulas' | 'recusado' — a entrada decide-se pelo estado do
-  // pedido: se há código emitido, vai-se direito às células.
+  // 'pedir' | 'espera' | 'celulas' | 'recusado' — a entrada decide-se pelo
+  // estado do pedido: código emitido vai direito às células, pedido entra
+  // na espera, e sem pedido nenhum (sessão morta, chegada por outro
+  // documento) pede-se — nunca se pedem seis dígitos que nunca foram
+  // enviados.
   const v = meta?.verificacao;
-  const [modo, setModo] = useState(v?.estado === "pedido" ? "espera" : "celulas");
+  const [modo, setModo] = useState(
+    v?.estado === "pedido" ? "espera" : v?.estado === "emitido" ? "celulas" : "pedir",
+  );
   const [codigo, setCodigo] = useState("");
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [recusa, setRecusa] = useState(null);
+  // Rede em baixo não é recusa: o erro fica no lugar do gesto e o modo
+  // 'recusado' reserva-se às respostas do servidor.
+  const [erroRede, setErroRede] = useState(null);
+  const [erroPedido, setErroPedido] = useState(null);
+  const [avisoIncompleto, setAvisoIncompleto] = useState(false);
 
-  const titulo = `${ROTULO_DOCUMENTO[tipo]} · versão ${versao}`;
+  const titulo = `${ROTULO_DOCUMENTO[tipo]} · versão ${versao} · velados`;
+
+  const aoMudarCodigo = (valor) => {
+    setCodigo(valor);
+    setAvisoIncompleto(false);
+    setErroRede(null);
+  };
 
   const verificar = async () => {
-    if (codigo.length < 6 || aTrabalhar) return;
+    if (aTrabalhar) return;
+    if (codigo.length < 6) {
+      // A cápsula responde sempre ao toque — nunca é um botão morto.
+      setAvisoIncompleto(true);
+      return;
+    }
     setATrabalhar(true);
+    setErroRede(null);
     try {
       const r = await verificarCodigo(token, codigo);
       if (r?.estado === "verificado") {
@@ -582,15 +673,16 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
       }
     } catch (e) {
       console.error(e);
-      setRecusa("Não foi possível verificar. A ligação falhou a meio.");
-      setModo("recusado");
+      setErroRede("Não foi possível verificar. Verifique a ligação e tente novamente.");
     } finally {
       setATrabalhar(false);
     }
   };
 
   const pedirOutro = async () => {
+    if (aTrabalhar) return;
     setATrabalhar(true);
+    setErroPedido(null);
     try {
       await pedirCodigo(token, tipo);
       // Este pedido matou, no servidor, o código anterior e a sessão que ele
@@ -602,6 +694,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
       setModo("espera");
     } catch (e) {
       console.error(e);
+      setErroPedido("Não foi possível pedir o código. Verifique a ligação e tente novamente.");
     } finally {
       setATrabalhar(false);
     }
@@ -611,11 +704,18 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
   const esperaLonga =
     pedidoEm && agora - new Date(pedidoEm).getTime() > 2 * 60 * 60 * 1000;
 
+  const faltam = 6 - codigo.length;
+  const FALTAM_EXTENSO = ["um", "dois", "três", "quatro", "cinco", "seis"];
+
   return (
     <div>
       <TiraContexto
         titulo={titulo}
-        direita={<span style={{ fontSize: "10.5px", color: "#9B9B9B" }}>valores velados</span>}
+        direita={
+          <LigacaoDiscreta onClick={onVoltar} apagada style={{ fontSize: "10.5px", flex: "none" }}>
+            voltar ao documento
+          </LigacaoDiscreta>
+        }
       />
 
       {/* Ela escreveu um código há minutos e está a ver este ecrã outra vez.
@@ -632,6 +732,35 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
         </div>
       )}
 
+      {/* Sem código pedido nem emitido — sessão morta, ou um acto que exige
+          código pedido a partir daqui. Pedir seis dígitos que nunca foram
+          enviados era um beco; primeiro pede-se. */}
+      {modo === "pedir" && (
+        <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
+          <p style={overline()}>O código</p>
+          <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
+            Para responder, é preciso o código que a Nádia lhe envia.
+          </p>
+          <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "14px 0 0", textWrap: "pretty" }}>
+            Ela envia-lho pela conversa que já tem consigo, no número que
+            temos na sua ficha.
+          </p>
+
+          <CapsulaVazada onClick={pedirOutro} aTrabalhar={aTrabalhar} style={{ marginTop: "24px" }}>
+            {aTrabalhar ? "A pedir…" : "Pedir o código"}
+          </CapsulaVazada>
+          {erroPedido && (
+            <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
+          )}
+
+          <div style={{ marginTop: "18px" }}>
+            <LigacaoDiscreta href={WHATSAPP_URL} apagada>
+              Falar pelo WhatsApp
+            </LigacaoDiscreta>
+          </div>
+        </div>
+      )}
+
       {modo === "espera" && (
         <div style={{ padding: "44px 30px 0", textAlign: "center" }}>
           {/* O sopro da espera: o único movimento fora do cabeçalho —
@@ -645,7 +774,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
           </div>
 
           <p style={{ ...overline(), marginTop: "22px" }}>O código</p>
-          <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance" }}>
+          <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
             A Nádia já sabe que precisa dele.
           </p>
           <FileteComLosango margem="20px 0" />
@@ -659,7 +788,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
           </p>
 
           <div style={{ marginTop: "26px", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px" }}>
-            <CapsulaVazada onClick={() => setModo("celulas")} style={{ width: "auto", padding: "13px 26px" }}>
+            <CapsulaVazada onClick={() => setModo("celulas")} style={{ width: "auto", padding: "15px 26px" }}>
               Já tenho o código
             </CapsulaVazada>
             <LigacaoDiscreta href={WHATSAPP_URL} apagada>
@@ -679,12 +808,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
       {modo === "celulas" && (
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
-          <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance" }}>
+          <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
             Escreva os seis dígitos que a Nádia lhe enviou.
           </p>
 
           <div style={{ marginTop: "24px" }}>
-            <CelulasCodigo valor={codigo} onValor={setCodigo} aVerificar={aTrabalhar} />
+            <CelulasCodigo valor={codigo} onValor={aoMudarCodigo} onSubmeter={verificar} aVerificar={aTrabalhar} />
           </div>
 
           {/* 24 horas por decisão da casa — o desenho dizia trinta minutos
@@ -696,11 +825,22 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
           <CapsulaVazada onClick={verificar} aTrabalhar={aTrabalhar} style={{ marginTop: "24px", opacity: codigo.length === 6 ? 1 : 0.5 }}>
             {aTrabalhar ? "A abrir…" : "Abrir os valores"}
           </CapsulaVazada>
+          {avisoIncompleto && faltam > 0 && (
+            <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0" }}>
+              {faltam === 1 ? "Falta um dígito." : `Faltam ${FALTAM_EXTENSO[faltam - 1]} dígitos.`}
+            </p>
+          )}
+          {erroRede && (
+            <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroRede}</p>
+          )}
 
           <div style={{ marginTop: "26px", paddingTop: "18px", borderTop: "1px solid #F0E6D0", textAlign: "center" }}>
             <LigacaoDiscreta onClick={pedirOutro} apagada>
               Não recebi o código
             </LigacaoDiscreta>
+            {erroPedido && (
+              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
+            )}
           </div>
         </div>
       )}
@@ -708,7 +848,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
       {modo === "recusado" && (
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
-          <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance" }}>
+          <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
             Este código não abriu.
           </p>
 
@@ -720,13 +860,23 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
 
           <BlocoRecusa
             facto={recusa || "O código não confere — ou já passou o prazo dele."}
-            saida="Acontece: um dígito trocado, ou um código de ontem. Pede-se outro e segue-se."
+            saida="Acontece: um dígito trocado, ou um código de ontem. Corrige-se ou pede-se outro, e segue-se."
           />
 
           <CapsulaVazada onClick={pedirOutro} aTrabalhar={aTrabalhar} style={{ marginTop: "20px" }}>
             Pedir outro código
           </CapsulaVazada>
+          {erroPedido && (
+            <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
+          )}
+          {/* Um dígito trocado corrige-se sem matar o código emitido — a
+              recusa não pode ser um meio-caminho morto. */}
           <div style={{ marginTop: "16px" }}>
+            <LigacaoDiscreta onClick={() => { setRecusa(null); setModo("celulas"); }}>
+              Escrever o código outra vez
+            </LigacaoDiscreta>
+          </div>
+          <div style={{ marginTop: "14px" }}>
             <LigacaoDiscreta href={WHATSAPP_URL} apagada>
               Falar pelo WhatsApp
             </LigacaoDiscreta>
@@ -743,26 +893,42 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarr
 
 // ---------- pedir alteração ----------
 
-function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
+// O formulário é CONTROLADO: marcados, recado e nome vivem na vista. Assim,
+// quando a sessão do código morre a meio, o caminho «pedir o código» sai e
+// volta com o texto dela intacto — «o que escreveu fica nesta página» tem
+// de ser verdade.
+function PedirAlteracao({
+  token, tipo, doc, sessaoId,
+  marcados, onMarcados, recado, onRecado, nome, onNome,
+  onEnviado, onVoltar, onPedirCodigo,
+}) {
   const inst = doc.instantaneo || {};
-  const [marcados, setMarcados] = useState([]);
-  const [recado, setRecado] = useState("");
-  const [nome, setNome] = useState("");
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [erro, setErro] = useState(null);
+  const [sessaoMorta, setSessaoMorta] = useState(false);
 
   const linhas = tipo === "orcamento" && Array.isArray(inst.linhas) ? inst.linhas : [];
   const seccoes = tipo === "proposta" && Array.isArray(inst.seccoes)
     ? inst.seccoes.filter((s) => naoVazia(s.titulo)) : [];
 
+  // A chave é a IDENTIDADE da linha (uid, com a posição como rede) — duas
+  // linhas com a mesma descrição já não alternam juntas.
+  const chaveLinha = (l, i) => l.uid || `linha-${i}`;
+  const chaveSeccao = (s, i) => s.uid || `sec-${i}`;
+
   const alternar = (chave) =>
-    setMarcados((prev) =>
-      prev.includes(chave) ? prev.filter((c) => c !== chave) : [...prev, chave]);
+    onMarcados(
+      marcados.includes(chave) ? marcados.filter((c) => c !== chave) : [...marcados, chave]);
 
   const enviar = async () => {
     if (aTrabalhar) return;
+    // Na mensagem vão os NOMES, traduzidos a partir das chaves.
+    const nomes = [
+      ...linhas.map((l, i) => ({ chave: chaveLinha(l, i), nome: l.descricao || "serviço" })),
+      ...seccoes.map((s, i) => ({ chave: chaveSeccao(s, i), nome: s.titulo || "secção" })),
+    ].filter((x) => marcados.includes(x.chave)).map((x) => x.nome);
     const partes = [];
-    if (marcados.length > 0) partes.push(`Tirar: ${marcados.join(", ")}.`);
+    if (nomes.length > 0) partes.push(`Tirar: ${nomes.join(", ")}.`);
     if (naoVazia(recado)) partes.push(recado.trim());
     if (partes.length === 0) {
       setErro("Diga-nos o que quer mudar — uma frase chega.");
@@ -774,10 +940,11 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
     }
     setATrabalhar(true);
     setErro(null);
+    setSessaoMorta(false);
     try {
       const r = await registarActo(token, tipo, sessaoId, "pediu_alteracao", nome, partes.join("\n"), doc?.versao);
       if (r?.estado === "ok") onEnviado();
-      else if (r?.estado === "precisa_codigo") setErro("A sessão do código terminou. Volte ao documento e abra os valores outra vez.");
+      else if (r?.estado === "precisa_codigo") setSessaoMorta(true);
       else setErro("Não foi possível enviar. Tente novamente.");
     } catch (e) {
       console.error(e);
@@ -795,7 +962,7 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
       />
       <div style={{ padding: "30px 26px 0" }}>
         <p style={overline()}>Pedir alteração</p>
-        <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance" }}>
+        <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance", outline: "none" }}>
           {tipo === "proposta" ? "Em que parte quer mexer?" : "Diga-nos o que quer mudar."}
         </p>
         <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
@@ -809,10 +976,16 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
             <p style={overline("#9B9B9B", "0.22em", "9px")}>Se for para tirar algum serviço</p>
             <div style={{ marginTop: "6px" }}>
               {linhas.map((l, i) => {
-                const chave = l.descricao || `serviço ${i + 1}`;
+                const chave = chaveLinha(l, i);
                 const marcado = marcados.includes(chave);
+                // A linha inteira alterna — o engaste sozinho era um alvo
+                // de 26px; o botão continua a ser o controlo acessível.
                 return (
-                  <div key={l.uid || i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "13px 0", borderBottom: "1px solid #F3EBDA" }}>
+                  <div
+                    key={chave}
+                    onClick={() => alternar(chave)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "13px 0", borderBottom: "1px solid #F3EBDA", cursor: "pointer" }}
+                  >
                     <div>
                       <p style={{
                         fontSize: "12.5px", fontWeight: 500, lineHeight: 1.4, margin: 0,
@@ -820,7 +993,7 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
                         textDecoration: marcado ? "line-through" : "none",
                         textDecorationColor: "#D8C6B8",
                       }}>
-                        {chave}
+                        {l.descricao || `serviço ${i + 1}`}
                       </p>
                       <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
                         {doc.velado ? `${l.qtd} × —` : `${l.qtd} × ${formatarEuroPT(l.valor)}`}
@@ -840,9 +1013,16 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
         {seccoes.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "20px" }}>
             {seccoes.map((s, i) => {
-              const marcado = marcados.includes(s.titulo);
+              const chave = chaveSeccao(s, i);
+              const marcado = marcados.includes(chave);
+              // O cartão inteiro alterna; o engaste fica como controlo
+              // acessível (aria-pressed) com stopPropagation.
               return (
-                <div key={s.uid || i} style={{ backgroundColor: "white", border: `1.5px solid ${marcado ? "#9C5A3C" : "#F0E6D0"}`, borderRadius: "14px", padding: "10px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+                <div
+                  key={chave}
+                  onClick={() => alternar(chave)}
+                  style={{ backgroundColor: "white", border: `1.5px solid ${marcado ? "#9C5A3C" : "#F0E6D0"}`, borderRadius: "14px", padding: "10px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)", cursor: "pointer" }}
+                >
                   {naoVazia(s.imagem) ? (
                     <img src={s.imagem} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -854,7 +1034,7 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
                     <p style={{ fontSize: "11.5px", fontWeight: 500, margin: 0, color: marcado ? "#9B9B9B" : "var(--charcoal)" }}>
                       {s.titulo}
                     </p>
-                    <EngasteTirar marcado={marcado} onToggle={() => alternar(s.titulo)} tamanho={18} />
+                    <EngasteTirar marcado={marcado} onToggle={() => alternar(chave)} tamanho={18} />
                   </div>
                 </div>
               );
@@ -862,7 +1042,7 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
           </div>
         )}
 
-        <CampoRecado valor={recado} onValor={setRecado} />
+        <CampoRecado valor={recado} onValor={onRecado} />
 
         {/* O trilho quer «quem (nome escrito)» em TODOS os actos — o
             desenho não trazia este campo, a decisão fechada sim. */}
@@ -873,7 +1053,7 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
           <input
             id="nome-alteracao"
             value={nome}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => onNome(e.target.value)}
             autoComplete="name"
             style={{ flex: 1, minWidth: 0, border: "none", borderBottom: "1.5px solid #E8DCC0", outline: "none", background: "transparent", padding: "0 0 6px", fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: "16px", color: "var(--charcoal)" }}
           />
@@ -881,6 +1061,19 @@ function PedirAlteracao({ token, tipo, doc, sessaoId, onEnviado, onVoltar }) {
 
         {erro && (
           <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "14px 0 0", textWrap: "pretty" }}>{erro}</p>
+        )}
+        {/* A sessão morreu a meio: diz-se o que aconteceu e dá-se o caminho
+            — e o texto dela fica, porque o estado vive na vista. */}
+        {sessaoMorta && (
+          <div style={{ margin: "14px 0 0" }}>
+            <p style={{ fontSize: "12px", lineHeight: 1.7, color: "#9C5A3C", margin: 0, textWrap: "pretty" }}>
+              A sessão do código terminou. Peça um código novo — o que
+              escreveu fica nesta página.
+            </p>
+            <div style={{ marginTop: "8px" }}>
+              <LigacaoDiscreta onClick={onPedirCodigo}>Pedir o código</LigacaoDiscreta>
+            </div>
+          </div>
         )}
 
         <CapsulaVazada onClick={enviar} aTrabalhar={aTrabalhar} style={{ marginTop: "20px" }}>
@@ -921,6 +1114,24 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
   // acabar de escrever um código para ouvir «peça o código» é avaria, não
   // é regra.
   const [motivoCodigo, setMotivoCodigo] = useState(null);
+  // «ja_feito»: o registo que fica é o do servidor, não o que ela acabou de
+  // escrever — o refetch traz o acto real e esta flag explica-o numa linha.
+  const [jaTinha, setJaTinha] = useState(false);
+  // «versao_mudou»: além da frase, o gesto — «Recarregar agora» sem sair da app.
+  const [erroVersao, setErroVersao] = useState(false);
+  // Pedir o código a partir do cartão do véu com a rede em baixo.
+  const [erroPedido, setErroPedido] = useState(null);
+  // De onde se veio para o ecrã do código — 'alterar' regressa ao pedido
+  // com o texto intacto em vez de cair no documento.
+  const [voltarPara, setVoltarPara] = useState(null);
+  // O interstício dispensado nesta montagem (chave tipo_versão), para o
+  // caso de o sessionStorage recusar a escrita.
+  const [interVisto, setInterVisto] = useState(null);
+  // O formulário do pedido de alteração vive AQUI (controlado): sobrevive
+  // à ida ao ecrã do código e volta intacto.
+  const [altMarcados, setAltMarcados] = useState([]);
+  const [altRecado, setAltRecado] = useState("");
+  const [altNome, setAltNome] = useState("");
 
   const sessao = lerSessao(token);
   const sessaoId = sessao?.id || null;
@@ -988,31 +1199,72 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
 
   const doc = docGuardado?.chave === chaveDoc ? docGuardado.dados : null;
 
-  const recarregarMeta = async () => setRecarga((r) => r + 1);
+  // A cada mudança de ecrã: topo (seco, sem smooth — respeita o movimento
+  // reduzido por natureza) e o foco no título do passo, quando o há.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.getElementById("acomp-passo-titulo")?.focus({ preventScroll: true });
+  }, [passo, tipo, versaoAntiga]);
+
+  // Mudou de documento: o que era de um não fala pelo outro — a linha do
+  // «já tinha resposta», o formulário do pedido e o regresso ao pedido.
+  // Reset DURANTE o render (padrão do react.dev para estado preso a uma
+  // prop): num efeito, o ecrã antigo pintava um quadro no documento novo.
+  const [tipoVisto, setTipoVisto] = useState(tipo);
+  if (tipoVisto !== tipo) {
+    setTipoVisto(tipo);
+    setJaTinha(false);
+    setErroPedido(null);
+    setVoltarPara(null);
+    setAltMarcados([]);
+    setAltRecado("");
+    setAltNome("");
+  }
+
+  // Busca e assenta o meta DE VERDADE antes de devolver a mão: o refetch
+  // por recarga corria em paralelo com o do documento, e o ecrã de espera
+  // só aparecia se o do meta ganhasse a corrida. A recarga não se toca —
+  // o documento não muda por se pedir um código.
+  const recarregarMeta = async () => {
+    const m = await getDocumentosPortal(token);
+    if (m?.estado === "activo") setMeta(m);
+  };
 
   const agir = async (acto, nome, mensagem) => {
     setATrabalhar(true);
     setErro(null);
+    setErroVersao(false);
     try {
       const r = await registarActo(token, tipo, sessaoId, acto, nome, mensagem, doc?.versao);
       if (r?.estado === "versao_mudou") {
         // Saiu versão nova enquanto ela lia. O acto NÃO se gravou — e é
-        // isso que se lhe diz, com o caminho à frente.
+        // isso que se lhe diz, com o caminho à frente (e o gesto ao lado).
+        setErroVersao(true);
         setErro(
           `Entretanto saiu uma versão nova (versão ${r.versao}). Recarregue a página e leia-a antes de responder — a sua resposta não foi registada.`,
         );
-      } else if (r?.estado === "ok" || r?.estado === "ja_feito") {
+      } else if (r?.estado === "ok") {
         setFeito({ acto, nome, quando: r?.quando || new Date().toISOString() });
         setPasso("feito");
+        setRecarga((x) => x + 1);
+      } else if (r?.estado === "ja_feito") {
+        // Já havia resposta registada — e é ELA que fica, não o nome e a
+        // hora que ela acabou de escrever. O refetch traz o acto real e o
+        // ecrã cai no pé recolhido (ou no repouso do contrato), com uma
+        // linha a dizê-lo.
+        setJaTinha(true);
         setRecarga((x) => x + 1);
       } else if (r?.estado === "precisa_codigo") {
         // Duas razões diferentes, e confundi-las era mandá-la escrever
         // outra vez o código que acabou de escrever. `codigo_de_outro_
         // documento` (061) quer dizer que a sessão está viva, mas nasceu
         // noutro documento — e assinar exige um código pedido AQUI.
+        // Sem esse motivo, limpa-se o aviso — senão reaparecia sem razão.
         if (r?.motivo === "codigo_de_outro_documento") {
           esquecerSessao(token);
           setMotivoCodigo("outro_documento");
+        } else {
+          setMotivoCodigo(null);
         }
         setPasso("codigo");
       } else if (r?.estado === "nome_em_falta") {
@@ -1099,7 +1351,15 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
   const versaoNova = !doc.acto && metaDoc.acto_anterior && !versaoAntiga;
 
   // ── o interstício da versão nova ──
-  if (versaoNova && passo === "doc" && !sessionStorage.getItem(`dlm_vnova_${token}_${tipo}_${doc.versao}`)) {
+  // Dispensar não refaz fetch nenhum: o documento já estava em mãos, e o
+  // render seguinte cai directo nele. O estado local (interVisto) segura a
+  // dispensa quando o sessionStorage recusa a escrita.
+  if (
+    versaoNova &&
+    passo === "doc" &&
+    interVisto !== `${tipo}_${doc.versao}` &&
+    !lerVeuVisto(token, tipo, doc.versao)
+  ) {
     return (
       <AvisoVersaoNova
         token={token}
@@ -1109,8 +1369,8 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         ant={metaDoc.acto_anterior}
         rotulo={rotulo}
         onAbrir={() => {
-          sessionStorage.setItem(`dlm_vnova_${token}_${tipo}_${doc.versao}`, "1");
-          setRecarga((r) => r + 1);
+          marcarVeuVisto(token, tipo, doc.versao);
+          setInterVisto(`${tipo}_${doc.versao}`);
         }}
         onVerAntiga={() => setVersaoAntiga(metaDoc.acto_anterior.versao)}
       />
@@ -1127,8 +1387,16 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         versao={doc.versao}
         meta={meta}
         onRecarregarMeta={recarregarMeta}
-        onVerificado={() => {
+        onVoltar={() => {
+          setVoltarPara(null);
           setPasso("doc");
+        }}
+        onVerificado={() => {
+          // Quem veio do pedido de alteração volta ao pedido, com o texto
+          // intacto (o formulário vive nesta vista); os restantes caem no
+          // documento já sem véu.
+          setPasso(voltarPara === "alterar" ? "alterar" : "doc");
+          setVoltarPara(null);
           setRecarga((r) => r + 1);
         }}
       />
@@ -1142,8 +1410,22 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         tipo={tipo}
         doc={doc}
         sessaoId={sessaoId}
+        marcados={altMarcados}
+        onMarcados={setAltMarcados}
+        recado={altRecado}
+        onRecado={setAltRecado}
+        nome={altNome}
+        onNome={setAltNome}
         onVoltar={() => setPasso("doc")}
+        onPedirCodigo={() => {
+          setVoltarPara("alterar");
+          setMotivoCodigo(null);
+          setPasso("codigo");
+        }}
         onEnviado={() => {
+          setAltMarcados([]);
+          setAltRecado("");
+          setAltNome("");
           setFeito({ acto: "pediu_alteracao", quando: new Date().toISOString() });
           setPasso("feito");
           setRecarga((r) => r + 1);
@@ -1177,7 +1459,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         />
         <div style={{ padding: "30px 26px 0" }}>
           <p style={overline()}>Assinar em papel</p>
-          <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance" }}>
+          <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance", outline: "none" }}>
             Também se faz à mão.
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
@@ -1229,6 +1511,16 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             Em papel, a data que conta é a que escrever na folha.
           </p>
         </div>
+
+        {/* A cópia imprimível, escondida no ecrã: «Imprimir o contrato»
+            imprimia as INSTRUÇÕES, não o contrato. No papel sai isto. */}
+        <div className="acomp-imprimivel" style={{ display: "none" }}>
+          <Folha>
+            <Timbre logoUrl={logoUrl} nome="Contrato" versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} />
+            <CorpoContrato doc={doc} />
+          </Folha>
+        </div>
+        <EstiloImpressao />
       </div>
     );
   }
@@ -1244,7 +1536,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <p style={overline()}>
               {ehAssinatura ? "Está assinado" : ehAlteracao ? "Seguiu" : tipo === "proposta" ? "Aprovado" : "Aceite"}
             </p>
-            <p style={{ ...playfair, fontSize: ehAssinatura ? "23px" : "22px", lineHeight: 1.3, marginTop: "10px", textWrap: "balance" }}>
+            <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: ehAssinatura ? "23px" : "22px", lineHeight: 1.3, marginTop: "10px", textWrap: "balance", outline: "none" }}>
               {ehAssinatura
                 ? "O contrato ficou fechado."
                 : ehAlteracao
@@ -1267,8 +1559,8 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <BlocoRegisto
               linhas={[
                 ...(feito.nome ? [["Assinado por", feito.nome]] : []),
-                ["Versão", `Versão ${doc.versao}, de ${diaEMes(doc.publicado_em)}`],
-                ["Data e hora", `${diaMesAno(feito.quando)}, às ${horaCurta(feito.quando)}`],
+                ["Versão", `Versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}`],
+                ["Data e hora", `${diaMesAno(diaLocalISO(feito.quando))}, às ${horaCurta(feito.quando)}`],
                 ["Verificação", "Com o código que a Nádia lhe enviou"],
               ]}
             />
@@ -1305,22 +1597,24 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
     const inst = doc.instantaneo || {};
     const clausulas = Array.isArray(inst.__contrato?.clausulas) ? inst.__contrato.clausulas : [];
     return (
-      <div style={{ padding: "22px 16px 30px" }}>
+      <div className="acomp-imprimivel" style={{ padding: "22px 16px 30px" }}>
         <Folha selada>
           <FaixaSelo
             visto={<VistoDourado />}
             quem={doc.acto?.nome || "si"}
-            quando={`${dataPorExtenso(String(doc.acto?.quando || "").slice(0, 10))} às ${horaCurta(doc.acto?.quando)}`}
+            quando={`${dataPorExtenso(diaLocalISO(doc.acto?.quando) || "")} às ${horaCurta(doc.acto?.quando)}`}
           />
           <div style={{ padding: "22px 22px 24px" }}>
             <div style={{ textAlign: "center" }}>
               <img src={logoUrl} alt="Do Luxo à Mesa" style={{ width: "74px", height: "auto", display: "block", margin: "0 auto", opacity: 0.8 }} />
-              <SeloVersao versao={doc.versao} quando={doc.publicado_em} comDe={false} style={{ marginTop: "14px" }} />
+              <SeloVersao versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} comDe={false} style={{ marginTop: "14px" }} />
             </div>
-            <div style={{ marginTop: "20px", paddingTop: "18px", borderTop: "1px solid #F3EBDA" }}>
+            {/* No papel sai o contrato completo (o bloco só-de-impressão a
+                seguir); o resumo recolhido e o índice ficam no ecrã. */}
+            <div className="acomp-nao-imprime" style={{ marginTop: "20px", paddingTop: "18px", borderTop: "1px solid #F3EBDA" }}>
               <CorpoContrato doc={doc} resumoSo />
             </div>
-            <div style={{ margin: "20px 22px 0", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
+            <div className="acomp-nao-imprime" style={{ margin: "20px 22px 0", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
               <p style={overline("#9B9B9B", "0.22em", "9px")}>
                 As {clausulas.length} cláusulas
               </p>
@@ -1333,10 +1627,20 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 </LigacaoDiscreta>
               </div>
             </div>
+            {/* «Imprimir em A4» imprimia o resumo recolhido, sem as
+                cláusulas. Este bloco só existe no papel. */}
+            <div className="acomp-so-imprime" style={{ display: "none", marginTop: "20px", paddingTop: "18px", borderTop: "1px solid #F3EBDA" }}>
+              <CorpoContrato doc={doc} />
+            </div>
           </div>
         </Folha>
 
-        <div style={{ marginTop: "18px", textAlign: "center" }}>
+        <div className="acomp-nao-imprime" style={{ marginTop: "18px", textAlign: "center" }}>
+          {jaTinha && (
+            <p style={{ fontSize: "11.5px", lineHeight: 1.75, color: "#9B9B9B", margin: "0 0 10px", textWrap: "pretty" }}>
+              Este documento já tinha uma resposta registada — é ela que fica.
+            </p>
+          )}
           <p style={{ fontSize: "11.5px", lineHeight: 1.75, color: "#9B9B9B", margin: 0, textWrap: "pretty" }}>
             Este documento está fechado. Se houver um erro, faz-se um contrato
             novo — este fica como está.
@@ -1346,6 +1650,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <LigacaoDiscreta onClick={voltarLista} apagada>Os seus documentos</LigacaoDiscreta>
           </div>
         </div>
+        <EstiloImpressao />
       </div>
     );
   }
@@ -1361,7 +1666,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         {tipo === "proposta" && <CorpoProjecto doc={doc} />}
         {tipo === "contrato" && (
           <>
-            <Timbre logoUrl={logoUrl} nome="Contrato" versao={doc.versao} quando={doc.publicado_em} />
+            <Timbre logoUrl={logoUrl} nome="Contrato" versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} />
             <CorpoContrato doc={doc} />
             <div style={{ padding: "22px 22px 0" }}>
               <div aria-hidden="true" style={{ height: "1px", width: "26px", background: "linear-gradient(90deg, #E8D5A3, rgba(232,213,163,0))" }} />
@@ -1374,8 +1679,11 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         )}
 
         {/* ── O VÉU E O CAMINHO DO CÓDIGO ── */}
-        {veiado && !versaoAntiga && (
-          <div style={{ margin: "0 22px 24px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "20px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+        {/* Também na versão antiga: hachuras sem cartão dos valores nem
+            caminho para o código eram um beco. O pé do acto, esse sim,
+            continua excluído em versaoAntiga. */}
+        {veiado && (
+          <div className="acomp-nao-imprime" style={{ margin: "0 22px 24px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "20px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
             <p style={overline()}>Os valores</p>
             <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
               Os valores mostram-se a quem é da casa.
@@ -1397,18 +1705,31 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <CapsulaVazada
               aTrabalhar={aTrabalhar}
               onClick={async () => {
+                setErroPedido(null);
+                setVoltarPara(null);
+                // Com código EMITIDO, «continuar» não pode pedir outro —
+                // matava no servidor o código que a Nádia já enviou (061).
+                // Vai-se direito às células escrevê-lo.
+                if (meta?.verificacao?.estado === "emitido") {
+                  setMotivoCodigo(null);
+                  setPasso("codigo");
+                  return;
+                }
                 setATrabalhar(true);
                 try {
+                  // Com estado 'pedido' isto é um eco (a 061 §a actualiza o
+                  // contexto — útil para o âmbito do assinar); nos restantes
+                  // estados é o pedido a sério. Do lado do servidor matou o
+                  // código anterior e a sessão dele; deitar fora a local
+                  // mantém o ecrã a dizer a verdade.
                   await pedirCodigo(token, tipo);
-                  // Do lado do servidor este pedido matou o código anterior
-                  // e a sessão dele (061). Deitar fora a local mantém o
-                  // ecrã a dizer a verdade.
                   esquecerSessao(token);
                   setMotivoCodigo(null);
                   await recarregarMeta();
                   setPasso("codigo");
                 } catch (e) {
                   console.error(e);
+                  setErroPedido("Não foi possível pedir o código. Verifique a ligação e tente novamente.");
                 } finally {
                   setATrabalhar(false);
                 }
@@ -1419,20 +1740,23 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 ? "Já pedi · continuar"
                 : "Pedir o código"}
             </CapsulaVazada>
+            {erroPedido && (
+              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
+            )}
           </div>
         )}
 
         {/* ── O PÉ DO ACTO ── */}
         {!veiado && !jaRespondeu && !versaoAntiga && tipo !== "contrato" && (
-          <div style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
+          <div className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
             <p style={overline()}>A sua resposta</p>
             <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
               {tipo === "proposta" ? "É esta a mesa que imaginou?" : "Está de acordo com este orçamento?"}
             </p>
             <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
               {tipo === "proposta"
-                ? `Aprova a versão ${doc.versao}, de ${diaEMes(doc.publicado_em)}. É por ela que compramos as flores e montamos no dia.`
-                : `Responde à versão ${doc.versao}, de ${diaEMes(doc.publicado_em)} — a que tem aqui em cima. Se aceitar, desenhamos o projecto a seguir.`}
+                ? `Aprova a versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}. É por ela que compramos as flores e montamos no dia.`
+                : `Responde à versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que tem aqui em cima. Se aceitar, desenhamos o projecto a seguir.`}
             </p>
 
             {/* O aceite também é um acto com nome escrito. */}
@@ -1448,7 +1772,22 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 style={{ flex: 1, minWidth: 0, border: "none", borderBottom: "1.5px solid #E8DCC0", outline: "none", background: "transparent", padding: "0 0 6px", fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: "16px", color: "var(--charcoal)" }}
               />
             </div>
-            {erro && <p style={{ fontSize: "12px", color: "#9C5A3C", margin: "12px 0 0" }}>{erro}</p>}
+            {erro && (
+              <p style={{ fontSize: "12px", color: "#9C5A3C", margin: "12px 0 0" }}>
+                {erro}
+                {erroVersao && (
+                  <>
+                    {" "}
+                    <LigacaoDiscreta
+                      onClick={() => { setErro(null); setErroVersao(false); setRecarga((r) => r + 1); }}
+                      style={{ fontSize: "12px" }}
+                    >
+                      Recarregar agora
+                    </LigacaoDiscreta>
+                  </>
+                )}
+              </p>
+            )}
 
             <Dupla
               rotuloPrimario={aTrabalhar ? "…" : tipo === "proposta" ? "Aprovar" : "Aceitar"}
@@ -1473,7 +1812,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
 
         {/* ── A ASSINATURA DO CONTRATO ── */}
         {!veiado && !jaRespondeu && !versaoAntiga && tipo === "contrato" && (
-          <div style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
+          <div className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
             <p style={overline()}>A assinatura</p>
             <p style={{ ...playfair, fontSize: "20px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
               O que fica assinado
@@ -1486,7 +1825,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 doc.instantaneo?.valor
                   ? `O valor de ${formatarEuroPT(doc.instantaneo.valor)}, nas condições das cláusulas.`
                   : "O valor e as condições das cláusulas.",
-                `A versão ${doc.versao} deste contrato, de ${diaEMes(doc.publicado_em)} — a que acabou de ler.`,
+                `A versão ${doc.versao} deste contrato, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que acabou de ler.`,
                 "Que depois de assinado não muda mais, nem do seu lado nem do nosso.",
               ].map((r, i) => (
                 <div key={i} style={{ display: "flex", gap: "11px", alignItems: "flex-start" }}>
@@ -1506,7 +1845,22 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             </div>
 
             <CampoAssinatura nome={nomeAssina} onNome={aoEscreverNome} completo={completo} />
-            {erro && <p style={{ fontSize: "12px", color: "#9C5A3C", margin: "12px 0 0", textAlign: "center" }}>{erro}</p>}
+            {erro && (
+              <p style={{ fontSize: "12px", color: "#9C5A3C", margin: "12px 0 0", textAlign: "center" }}>
+                {erro}
+                {erroVersao && (
+                  <>
+                    {" "}
+                    <LigacaoDiscreta
+                      onClick={() => { setErro(null); setErroVersao(false); setRecarga((r) => r + 1); }}
+                      style={{ fontSize: "12px" }}
+                    >
+                      Recarregar agora
+                    </LigacaoDiscreta>
+                  </>
+                )}
+              </p>
+            )}
 
             <CapsulaCheia
               onClick={() => agir("assinou", nomeAssina)}
@@ -1531,18 +1885,25 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
 
         {/* Já respondeu a esta versão: o pé recolhe para uma linha. */}
         {jaRespondeu && !assinado && (
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "16px 22px" }}>
-            <VistoDourado />
-            <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-              {doc.acto.acto === "pediu_alteracao"
-                ? `Pediu uma alteração a ${diaEMes(doc.acto.quando)} — estamos a tratar dela.`
-                : `${tipo === "proposta" ? "Aprovado" : "Aceite"} por ${doc.acto.nome} a ${diaEMes(doc.acto.quando)}.`}
-            </p>
+          <div style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "16px 22px" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
+              <VistoDourado />
+              <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                {doc.acto.acto === "pediu_alteracao"
+                  ? `Pediu uma alteração a ${diaEMes(diaLocalISO(doc.acto.quando))} — estamos a tratar dela.`
+                  : `${tipo === "proposta" ? "Aprovado" : "Aceite"} por ${doc.acto.nome} a ${diaEMes(diaLocalISO(doc.acto.quando))}.`}
+              </p>
+            </div>
+            {jaTinha && (
+              <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: "8px 0 0", textAlign: "center", textWrap: "pretty" }}>
+                Este documento já tinha uma resposta registada — é ela que fica.
+              </p>
+            )}
           </div>
         )}
       </Folha>
 
-      <div style={{ marginTop: "16px", textAlign: "center", display: "flex", justifyContent: "center", gap: "20px" }}>
+      <div className="acomp-nao-imprime" style={{ marginTop: "16px", textAlign: "center", display: "flex", justifyContent: "center", gap: "20px" }}>
         <LigacaoDiscreta onClick={() => window.print()} apagada>
           Imprimir em A4
         </LigacaoDiscreta>
@@ -1557,15 +1918,10 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         )}
       </div>
 
-      {/* A impressão A4: só a folha fica visível — o mesmo truque do
-          GerarContrato, para o browser imprimir papel e não a página. */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .acomp-imprimivel, .acomp-imprimivel * { visibility: visible; }
-          .acomp-imprimivel { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
+      {/* A impressão A4: só a folha fica visível — a peça partilhada com o
+          ramo «papel» e o repouso, para o browser imprimir papel e não a
+          página. */}
+      <EstiloImpressao />
     </div>
   );
 }

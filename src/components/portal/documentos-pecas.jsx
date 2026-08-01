@@ -190,6 +190,7 @@ export function CapsulaCheia({
     <button
       onClick={inerte ? undefined : onClick}
       disabled={inerte || aTrabalhar}
+      className="foco"
       style={{
         ...baseCapsula,
         font: "600 11px Inter, sans-serif",
@@ -215,6 +216,7 @@ export function Dupla({ rotuloPrimario, rotuloSecundario, onPrimario, onSecundar
         <button
           onClick={onPrimario}
           disabled={aTrabalhar}
+          className="foco"
           style={{
             ...baseCapsula,
             color: "#FFFDF7",
@@ -229,6 +231,7 @@ export function Dupla({ rotuloPrimario, rotuloSecundario, onPrimario, onSecundar
         <button
           onClick={onSecundario}
           disabled={aTrabalhar}
+          className="foco"
           style={{
             ...baseCapsula,
             color: "var(--gold-dark)",
@@ -261,6 +264,7 @@ export function CapsulaVazada({ children, onClick, to, aTrabalhar = false, style
   return (
     <Elemento
       {...proprios}
+      className="foco"
       style={{
         textDecoration: to ? "none" : undefined,
         display: "block",
@@ -274,7 +278,7 @@ export function CapsulaVazada({ children, onClick, to, aTrabalhar = false, style
         backgroundColor: "white",
         border: "1px solid var(--gold)",
         borderRadius: "999px",
-        padding: "13px 20px",
+        padding: "15px 20px",
         cursor: aTrabalhar ? "wait" : "pointer",
         opacity: aTrabalhar ? 0.6 : 1,
         transition: "background-color 140ms ease, color 140ms ease",
@@ -288,12 +292,16 @@ export function CapsulaVazada({ children, onClick, to, aTrabalhar = false, style
 }
 
 // A ligação sublinhada — a acção secundária de sempre.
+// #9B9B9B fica reservado a texto que não se toca: a variante apagada usa o
+// cinzento pleno (var(--gray-mid), ≈5,1:1) e distingue-se pelos tamanhos que
+// os chamadores já passam; a plena sobe a charcoal, coerente com as ligações
+// inline da Lista.
 export function LigacaoDiscreta({ children, onClick, href, apagada = false, style }) {
   const estilo = {
     display: "inline-block",
     fontSize: "11.5px",
     letterSpacing: "0.03em",
-    color: apagada ? "#9B9B9B" : "var(--gray-mid)",
+    color: apagada ? "var(--gray-mid)" : "var(--charcoal)",
     border: "none",
     borderBottom: "1px solid #E8D5A3",
     borderRadius: 0,
@@ -307,13 +315,13 @@ export function LigacaoDiscreta({ children, onClick, href, apagada = false, styl
   };
   if (href) {
     return (
-      <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={estilo}>
+      <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="foco" style={estilo}>
         {children}
       </a>
     );
   }
   return (
-    <button onClick={onClick} style={estilo}>
+    <button onClick={onClick} className="foco" style={estilo}>
       {children}
     </button>
   );
@@ -322,7 +330,7 @@ export function LigacaoDiscreta({ children, onClick, href, apagada = false, styl
 // ---------- Células do código ----------
 // Seis células acima dos 44 px de alvo. Sem contagem decrescente à vista:
 // o prazo diz-se por palavras.
-export function CelulasCodigo({ valor, onValor, aVerificar = false }) {
+export function CelulasCodigo({ valor, onValor, onSubmeter, aVerificar = false }) {
   const digitos = (valor || "").padEnd(6, " ").slice(0, 6).split("");
   const activa = Math.min((valor || "").length, 5);
   return (
@@ -350,9 +358,13 @@ export function CelulasCodigo({ valor, onValor, aVerificar = false }) {
       <input
         value={valor}
         onChange={(e) => onValor(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onSubmeter) onSubmeter();
+        }}
         inputMode="numeric"
         autoComplete="one-time-code"
         aria-label="O código de seis dígitos"
+        className="foco"
         style={{
           position: "absolute", inset: 0, width: "100%", height: "100%",
           opacity: 0, cursor: "text", fontSize: "16px",
@@ -430,10 +442,11 @@ export function FaixaSelo({ visto, quem, quando }) {
 export function CampoAssinatura({ nome, onNome, completo }) {
   return (
     <div style={{ marginTop: "26px" }}>
-      <p style={{ ...overline("#9B9B9B", "0.22em", "9px"), textAlign: "center" }}>
+      <label htmlFor="assinatura-nome" style={{ ...overline("#9B9B9B", "0.22em", "9px"), display: "block", textAlign: "center" }}>
         Escreva o seu nome completo
-      </p>
+      </label>
       <input
+        id="assinatura-nome"
         type="text"
         value={nome}
         onChange={(e) => onNome(e.target.value)}
@@ -497,23 +510,62 @@ export function CampoRecado({ valor, onValor }) {
 }
 
 // O traço de «tirar» — o único outro lugar do tijolo.
+// O botão passou a ter 44×44 de área de toque; o círculo de `tamanho` px é
+// só o desenho, num <span> interior. A margem negativa devolve o espaço que
+// o alvo maior ocuparia — o layout não mexe. O stopPropagation deixa a
+// linha inteira alternar por fora sem o toque no engaste contar duas vezes.
 export function EngasteTirar({ marcado, onToggle, tamanho = 26 }) {
+  const margem = -((44 - tamanho) / 2);
   return (
     <button
-      onClick={onToggle}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
       aria-pressed={marcado}
+      className="foco"
       style={{
-        width: `${tamanho}px`, height: `${tamanho}px`, borderRadius: "50%",
-        backgroundColor: "#FDFBF5",
-        border: `1px solid ${marcado ? "#9C5A3C" : "#E8DCC0"}`,
+        width: "44px", height: "44px", margin: `${margem}px`,
+        background: "transparent", border: "none",
         flex: "none", cursor: "pointer", padding: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
-      {marcado && (
-        <span aria-hidden="true" style={{ display: "block", width: "9px", height: "1.5px", backgroundColor: "#9C5A3C" }} />
-      )}
+      <span
+        style={{
+          width: `${tamanho}px`, height: `${tamanho}px`, borderRadius: "50%",
+          backgroundColor: "#FDFBF5",
+          border: `1px solid ${marcado ? "#9C5A3C" : "#E8DCC0"}`,
+          boxSizing: "border-box",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        {marcado && (
+          <span aria-hidden="true" style={{ display: "block", width: "9px", height: "1.5px", backgroundColor: "#9C5A3C" }} />
+        )}
+      </span>
     </button>
+  );
+}
+
+// ---------- Estilo de impressão ----------
+// O truque do GerarContrato, partilhado pelos três ramos que imprimem
+// (documento em mãos, «assinar em papel», contrato em repouso): só a
+// árvore .acomp-imprimivel fica visível; o display:block !important
+// acorda as cópias imprimíveis montadas com display:none (e o bloco
+// .acomp-so-imprime dentro delas); .acomp-nao-imprime tira do papel os
+// botões e as ligações que só fazem sentido no ecrã.
+export function EstiloImpressao() {
+  return (
+    <style>{`
+      @media print {
+        body * { visibility: hidden; }
+        .acomp-imprimivel, .acomp-imprimivel * { visibility: visible; }
+        .acomp-imprimivel { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+        .acomp-so-imprime { display: block !important; }
+        .acomp-nao-imprime { display: none !important; }
+      }
+    `}</style>
   );
 }
 

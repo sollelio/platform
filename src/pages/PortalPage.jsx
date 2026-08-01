@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
@@ -97,7 +97,7 @@ function CampoPorDefinir({ campo, ajuda }) {
           gap: "12px",
         }}
       >
-        <p style={overline("#9B9B9B", "0.16em")}>{campo}</p>
+        <p style={overline("#9B9B9B")}>{campo}</p>
         <span
           style={{
             fontSize: "11px",
@@ -124,7 +124,7 @@ function CampoPorDefinir({ campo, ajuda }) {
 // Serve o link morto E o erro de rede: a mesma peça, palavras diferentes.
 // Inexistente, revogado e expirado são indistinguíveis de propósito — não
 // se confirma nem se desmente a existência de um token.
-function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir }) {
+function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) {
   return (
     <div
       style={{
@@ -172,6 +172,17 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir }) {
           {corpo}
         </p>
 
+        {aoRepetir && (
+          <div style={{ marginTop: "28px" }}>
+            <CapsulaVazada
+              onClick={aoRepetir}
+              style={{ width: "auto", display: "inline-block", padding: "13px 26px" }}
+            >
+              Tentar novamente
+            </CapsulaVazada>
+          </div>
+        )}
+
         {comSaidas && (
           <div style={{ marginTop: "28px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
             {WHATSAPP_URL && (
@@ -198,18 +209,20 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir }) {
               href={SITE_URL}
               style={{
                 display: "inline-block",
+                padding: "10px 12px",
+                margin: "-10px -12px",
                 fontSize: "11.5px",
                 letterSpacing: "0.03em",
                 // #6B6B6B e não #9B9B9B: isto clica-se, e o cinzento
                 // apagado não chega ao contraste mínimo.
                 color: "var(--gray-mid)",
-                borderBottom: "1px solid #E8D5A3",
-                paddingBottom: "3px",
                 textDecoration: "none",
                 transition: "color 140ms ease",
               }}
             >
-              doluxoamesa.pt
+              <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+                doluxoamesa.pt
+              </span>
             </a>
           </div>
         )}
@@ -225,6 +238,9 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir }) {
 export default function PortalPage() {
   const { token, vista, sub } = useParams();
   const [resultado, setResultado] = useState(null);
+  // Conta as repetições pedidas pela cortina de erro: o «Tentar novamente»
+  // incrementa-a e o efeito refaz o pedido — sem window.location.reload.
+  const [tentativa, setTentativa] = useState(0);
   const reduzir = useReducedMotion();
 
   useEffect(() => {
@@ -246,7 +262,106 @@ export default function PortalPage() {
     return () => {
       cancelado = true;
     };
-  }, [token]);
+  }, [token, tentativa]);
+
+  // A jornada refresca ao regressar de uma vista — em silêncio: os dados
+  // velhos ficam no ecrã até os frescos chegarem (nada de esqueleto), o que
+  // preserva o restauro do scroll. Um falhanço aqui não escurece nada: o
+  // que está pintado continua válido.
+  const vistaAnterior = useRef(vista);
+  useEffect(() => {
+    const vinhaDeVista = vistaAnterior.current !== undefined && vista === undefined;
+    vistaAnterior.current = vista;
+    if (!vinhaDeVista) return;
+    let cancelado = false;
+    getPortal(token)
+      .then((d) => {
+        if (cancelado || d?.estado !== "activo") return;
+        setResultado({ token, estado: "pronto", dados: d });
+      })
+      .catch(() => {
+        /* silencioso — os dados velhos ficam */
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [vista, token]);
+
+  // O título do separador fala à cliente na língua da casa — «Sistema DLM»
+  // é vocabulário interno e fica no backoffice.
+  useEffect(() => {
+    const porVista = {
+      documentos: "Os seus documentos",
+      questionario: "O questionário",
+      avaliar: "A avaliação",
+    };
+    document.title = `${porVista[vista] || "O seu acompanhamento"} — Do Luxo à Mesa`;
+  }, [vista]);
+
+  // Cada troca de vista entra pelo topo (seco, sem smooth); o regresso à
+  // jornada devolve ao ponto onde se estava. O foco acompanha, para o
+  // teclado e os leitores de ecrã não ficarem perdidos no ecrã anterior.
+  // O browser também tenta restaurar o scroll no «voltar» — de forma
+  // assíncrona e com o ecrã ANTERIOR ainda pintado, o que o faz aterrar num
+  // ponto grampeado qualquer. Enquanto o portal está montado, a restauração
+  // é nossa.
+  useEffect(() => {
+    const anterior = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = anterior;
+    };
+  }, []);
+
+  // O ponto de leitura da jornada memoriza-se EM CONTÍNUO: no instante da
+  // troca de vista o DOM novo — mais curto — já grampeou o scroll a zero, e
+  // quem lê nessa altura lê mentira.
+  const scrollDaJornada = useRef(0);
+  // O ponto de leitura regista-se a cada scroll — MAS o próprio grampeio da
+  // troca de vista dispara um evento de scroll, às vezes antes de a limpeza
+  // do efeito correr. O sinal que o distingue: nesse instante a página
+  // ENCOLHEU (o DOM da vista, mais curto, já entrou). Uma leitura com a
+  // página mais baixa do que estava ignora-se; crescer (imagens a assentar)
+  // é normal e actualiza a referência.
+  useLayoutEffect(() => {
+    if (vista !== undefined) return;
+    let altura = document.documentElement.scrollHeight;
+    const ler = () => {
+      const h = document.documentElement.scrollHeight;
+      if (h < altura) return;
+      altura = h;
+      scrollDaJornada.current = window.scrollY;
+    };
+    window.addEventListener("scroll", ler, { passive: true });
+    return () => window.removeEventListener("scroll", ler);
+  }, [vista]);
+
+  const sitioAnterior = useRef({ vista, sub });
+  const focoRef = useRef(null);
+  useLayoutEffect(() => {
+    const antes = sitioAnterior.current;
+    sitioAnterior.current = { vista, sub };
+    if (antes.vista === vista && antes.sub === sub) return;
+    if (vista !== undefined) {
+      window.scrollTo(0, 0);
+    } else {
+      // A jornada acabou de remontar e nos primeiros quadros ainda não tem
+      // a altura toda (imagens a assentar) — um só scrollTo ficava
+      // grampeado a meio. Insiste-se por alguns quadros, e pára.
+      const alvo = scrollDaJornada.current;
+      window.scrollTo(0, alvo);
+      // setTimeout e não requestAnimationFrame: num separador em segundo
+      // plano o rAF não dispara, e o restauro ficava a meio para sempre.
+      let tentativas = 10;
+      const insistir = () => {
+        if (window.scrollY >= alvo - 2 || tentativas-- <= 0) return;
+        window.scrollTo(0, alvo);
+        setTimeout(insistir, 40);
+      };
+      setTimeout(insistir, 40);
+    }
+    focoRef.current?.focus({ preventScroll: true });
+  }, [vista, sub]);
 
   // O estado DERIVA de a resposta guardada ser deste token, em vez de ser
   // reposto por um setState no corpo do efeito (que o linter proíbe, com
@@ -259,6 +374,21 @@ export default function PortalPage() {
   const dados = desteToken ? resultado.dados : null;
 
   if (estado === "a-carregar") {
+    // Dentro de uma área (documentos, questionário, avaliação) o esqueleto
+    // tem a forma da área — sem o logo grande da jornada, que aparecia e
+    // desaparecia num piscar ao recarregar um URL fundo.
+    if (vista) {
+      return (
+        <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
+          <div style={{ maxWidth: "480px", margin: "0 auto", padding: "34px 26px", boxSizing: "border-box" }}>
+            <Esqueleto w={150} h={12} style={{ margin: "0 auto 14px" }} />
+            <Esqueleto w={240} h={24} style={{ margin: "0 auto 26px" }} />
+            <Esqueleto w="100%" h={150} r={14} style={{ margin: "0 0 14px" }} />
+            <Esqueleto w="100%" h={150} r={14} />
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         style={{
@@ -267,12 +397,12 @@ export default function PortalPage() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          padding: "44px 26px 34px",
+          padding: "40px 26px 34px",
           boxSizing: "border-box",
         }}
       >
         <LogoDourado size={150} animar={!reduzir} />
-        <div style={{ width: "100%", maxWidth: "338px", marginTop: "24px", textAlign: "center" }}>
+        <div style={{ width: "100%", maxWidth: "338px", marginTop: "20px", textAlign: "center" }}>
           <Esqueleto w={110} h={10} style={{ margin: "0 auto 12px" }} />
           <Esqueleto w={220} h={28} style={{ margin: "0 auto 10px" }} />
           <Esqueleto w={150} h={12} style={{ margin: "0 auto 34px" }} />
@@ -306,7 +436,11 @@ export default function PortalPage() {
         reduzir={reduzir}
         sobretitulo="Um momento"
         titulo="Não foi possível abrir o acompanhamento."
-        corpo="Verifique a ligação à internet e recarregue a página. A sua ligação continua válida."
+        corpo="Verifique a ligação à internet e tente novamente. A ligação que recebeu de nós continua válida."
+        aoRepetir={() => {
+          setResultado(null);
+          setTentativa((t) => t + 1);
+        }}
       />
     );
   }
@@ -318,7 +452,7 @@ export default function PortalPage() {
   if (vista === "avaliar") {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
-        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+        <div ref={focoRef} tabIndex={-1} style={{ maxWidth: "480px", margin: "0 auto", outline: "none" }}>
           <AvaliacaoVista token={token} />
         </div>
       </div>
@@ -332,7 +466,7 @@ export default function PortalPage() {
   if (vista === "questionario") {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
-        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+        <div ref={focoRef} tabIndex={-1} style={{ maxWidth: "480px", margin: "0 auto", outline: "none" }}>
           {/* key POR SUB, pela mesma razão dos documentos: sem remontar, o
               estado de um passo pintava-se no seguinte. */}
           <QuestionarioVista
@@ -352,7 +486,7 @@ export default function PortalPage() {
   if (vista === "documentos") {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
-        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+        <div ref={focoRef} tabIndex={-1} style={{ maxWidth: "480px", margin: "0 auto", outline: "none" }}>
           {/* key POR DOCUMENTO: sem isto o componente não desmonta ao
               mudar de :sub, e o estado do documento anterior (passo,
               acto feito, nome escrito, versão antiga aberta) pintava-se
@@ -401,6 +535,11 @@ export default function PortalPage() {
     (e) => e.etapa === "sinal" && e.estado !== ETAPA_POR_ACONTECER,
   );
   const caducou = passou && !fechou;
+  // O dia zero de um pedido que nunca fechou: ainda não «passou», mas
+  // anunciar «O grande dia — é hoje» a quem não fechou negócio é a mesma
+  // mentira do caducado, um dia mais cedo. Cala-se o mesmo; só a frase
+  // «Esta data já passou» fica presa ao caducou verdadeiro.
+  const caducaHoje = dias === 0 && !fechou;
 
   // NO PRÓPRIO DIA a jornada fica presa em «A preparação»: a etapa 7 só
   // acende com a data JÁ passada (055), e bem — de manhã a festa ainda não
@@ -412,8 +551,12 @@ export default function PortalPage() {
   const ehHoje = dias === 0 && fechou;
   const etapaActual = ehHoje ? "grande_dia" : actual?.etapa;
 
-  const textoActual =
-    etapaActual === "grande_dia" && passou
+  // No caducado o cartão fecha-se no título e na data: qualquer frase de
+  // etapa («Sem pressa para decidir») contradiz o «Esta data já passou» da
+  // âncora. O que havia para dizer, a âncora já disse com dignidade.
+  const textoActual = caducou
+    ? null
+    : etapaActual === "grande_dia" && passou
       ? TEXTO_GRANDE_DIA_PASSADO
       : TEXTO_AGORA[etapaActual];
 
@@ -426,8 +569,8 @@ export default function PortalPage() {
   // O CONTEÚDO das novidades e das pendências vive ao lado das divisões que
   // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
   // de desenho, e a página não tem que a conhecer.
-  const novidades = comporNovidades(dados);
-  const pendenciasBase = comporPendencias(dados, caducou);
+  const novidadesBase = comporNovidades(dados);
+  const pendenciasBase = comporPendencias(dados, caducou || caducaHoje);
   // A ligação constrói-se aqui porque só a página conhece o token: o
   // orçamento pendente passa a levar à área dos documentos.
   const pendencias = {
@@ -440,9 +583,32 @@ export default function PortalPage() {
           : p,
     ),
   };
-  // Há área de documentos para mostrar quando o envio já aconteceu — o
-  // publicar carimba o enviado_em, por isso este marco chega.
-  const temDocumentos = !!dados?.marcos_datados?.orcamento;
+  // As novidades que apontam para um documento levam a ligação com elas —
+  // «Já pode vê-lo» sem caminho era um convite de mãos vazias. ATENÇÃO: a
+  // rota do projecto é `proposta` (ROTULO_DOCUMENTO, lib/portal.js).
+  const HREF_NOVIDADE = {
+    orcamento: ["documentos/orcamento", "Ver o orçamento"],
+    projecto: ["documentos/proposta", "Ver o projecto"],
+    contrato: ["documentos/contrato", "Ver o contrato"],
+    questionario: ["questionario", "Ver as suas respostas"],
+  };
+  const novidades = {
+    ...novidadesBase,
+    novidades: novidadesBase.novidades.map((n) =>
+      HREF_NOVIDADE[n.chave]
+        ? {
+            ...n,
+            href: `/acompanhar/${token}/${HREF_NOVIDADE[n.chave][0]}`,
+            hrefRotulo: HREF_NOVIDADE[n.chave][1],
+          }
+        : n,
+    ),
+  };
+  // Há área de documentos para mostrar quando algum já foi publicado — o
+  // orçamento é o comum, mas um projecto ou contrato publicados sem ele
+  // não podem ficar sem porta.
+  const m = dados?.marcos_datados || {};
+  const temDocumentos = !!(m.orcamento || m.projecto || m.contrato);
 
   return (
     <div
@@ -452,19 +618,19 @@ export default function PortalPage() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "44px 26px 34px",
+        padding: "40px 26px 34px",
         boxSizing: "border-box",
       }}
     >
       <LogoDourado size={150} animar={!reduzir} />
 
-      <div style={{ width: "100%", maxWidth: "338px" }}>
+      <main ref={focoRef} tabIndex={-1} style={{ width: "100%", maxWidth: "338px", outline: "none" }}>
         {/* Cabeçalho */}
-        <div style={{ marginTop: "24px", textAlign: "center" }}>
+        <div style={{ marginTop: "20px", textAlign: "center" }}>
           <p style={overline()}>O seu evento</p>
-          <p style={{ ...playfair, fontSize: "27px", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: "11px", textWrap: "balance" }}>
+          <h1 style={{ ...playfair, fontSize: "27px", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: "11px", textWrap: "balance", fontWeight: 400 }}>
             {ev?.titulo || "O seu evento"}
-          </p>
+          </h1>
           {(ev?.modelo || ev?.convidados) && (
             <p style={{ fontSize: "12px", color: "#9B9B9B", marginTop: "7px", letterSpacing: "0.01em", marginBottom: 0 }}>
               {[ev?.modelo, ev?.convidados ? `${ev.convidados} convidados` : null]
@@ -477,7 +643,7 @@ export default function PortalPage() {
         {/* A âncora: a data no lugar da barra de progresso. É promessa,
             não registo — por isso nunca leva medalhão nem visto. */}
         {ev?.data ? (
-          <div style={{ position: "relative", marginTop: "30px", textAlign: "center" }}>
+          <div style={{ position: "relative", marginTop: "24px", textAlign: "center" }}>
             <div
               aria-hidden="true"
               style={{
@@ -499,7 +665,7 @@ export default function PortalPage() {
                   promessa já não se pode fazer. Passa a nomear o que a data
                   é de facto — o dia que ela nos pediu. */}
               <p style={overline()}>
-                {caducou ? "A data que nos pediu" : "O grande dia"}
+                {caducou || caducaHoje ? "A data que nos pediu" : "O grande dia"}
               </p>
               <p style={{ ...playfair, fontSize: "36px", lineHeight: 1.15, marginTop: "12px", fontVariantNumeric: "tabular-nums" }}>
                 {diaEMes(ev.data)}
@@ -516,7 +682,7 @@ export default function PortalPage() {
                 </p>
               )}
 
-              {!passou && (
+              {!passou && !caducaHoje && (
                 <>
                   <FileteComLosango />
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "8px" }}>
@@ -548,10 +714,26 @@ export default function PortalPage() {
         {/* A frase de cerimónia: Playfair redondo, sem aspas — é voz da
             casa, e o itálico com «» fica reservado para a fala de uma
             pessoa com nome. */}
-        {!passou && (
-          <p style={{ marginTop: "26px", textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", textWrap: "pretty", padding: "0 6px", marginBottom: 0 }}>
-            {ev?.data ? FRASE_DE_CERIMONIA : FRASE_DE_CERIMONIA_SEM_DATA}
-          </p>
+        {!passou && !caducaHoje && (
+          <>
+            <p style={{ marginTop: "20px", textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", textWrap: "pretty", padding: "0 6px", marginBottom: 0 }}>
+              {ev?.data ? FRASE_DE_CERIMONIA : FRASE_DE_CERIMONIA_SEM_DATA}
+            </p>
+            {/* O fio que atravessa a dobra: num telefone com as barras do
+                browser, a cerimónia acabava exactamente onde o ecrã acaba —
+                e a página lia-se como completa. Este fio fica cortado a
+                meio pela dobra e diz, sem palavras, que há caminho para
+                baixo. É o mesmo gesto do fio antes do «A seguir». */}
+            <div
+              aria-hidden="true"
+              style={{
+                width: "1px",
+                height: "22px",
+                margin: "18px auto 0",
+                background: "linear-gradient(180deg, #E8D5A3, rgba(232,213,163,0.25))",
+              }}
+            />
+          </>
         )}
 
         {/* ── AS FOTOGRAFIAS (fase 6) ─────────────────────────────────
@@ -565,12 +747,19 @@ export default function PortalPage() {
             Caducado não mostra nada: um pedido que não vingou não tem dia
             para fotografar. */}
         {!caducou && (
-          <AsFotografias
-            fotografias={dados?.fotografias}
-            dataEvento={ev?.data}
-            horas={dados?.questionario?.horas || []}
-            jaAvaliou={!!dados?.avaliacao?.feita_em}
-          />
+          /* A capa sangra de margem a margem (roteiro §9.3): o wrapper anula
+             a coluna e o padding da página até à largura do viewport, com
+             tecto de 560px para o portal aberto num monitor não esticar uma
+             fotografia de parede a parede. Os textos e o mosaico, lá dentro,
+             voltam a alinhar pela coluna. */
+          <div style={{ margin: "0 calc(50% - min(50vw, 280px))" }}>
+            <AsFotografias
+              fotografias={dados?.fotografias}
+              dataEvento={ev?.data}
+              horas={dados?.questionario?.horas || []}
+              jaAvaliou={!!dados?.avaliacao?.feita_em}
+            />
+          </div>
         )}
 
         {/* ── O CONVITE A AVALIAR (fase 7) ────────────────────────────
@@ -643,16 +832,18 @@ export default function PortalPage() {
         {actual && ROTULO_ETAPA[actual.etapa] && (
           <CartaoBranco
             padding="30px 20px 21px"
-            style={{ marginTop: "36px", position: "relative", textAlign: "center" }}
+            style={{ marginTop: "28px", position: "relative", textAlign: "center" }}
           >
             <Medalhao />
-            <p style={overline()}>Onde estamos agora</p>
+            <h2 style={overline()}>Onde estamos agora</h2>
             <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.25, marginTop: "10px", textWrap: "balance" }}>
               {ROTULO_ETAPA[etapaActual]}
             </p>
             {/* Sem carimbo, a linha da data NÃO EXISTE: não há «?», não
-                há data inventada — o cartão fecha-se sem ela. */}
-            {actual.estado === ETAPA_FEITA_DATADA && diaEMes(actual.quando) && (
+                há data inventada — o cartão fecha-se sem ela. E com o
+                rótulo trocado para «É hoje», a data que há é a da etapa
+                REAL — pintá-la sob o título trocado era mentir. */}
+            {!ehHoje && actual.estado === ETAPA_FEITA_DATADA && diaEMes(actual.quando) && (
               <p style={{ fontSize: "11.5px", color: "#9B9B9B", marginTop: "7px", letterSpacing: "0.02em", fontVariantNumeric: "tabular-nums", marginBottom: 0 }}>
                 {diaEMes(actual.quando)}
               </p>
@@ -671,7 +862,7 @@ export default function PortalPage() {
         {/* CADUCADO: «a seguir» e «e depois» calam-se. Prometer um
             orçamento, um projecto e um grande dia a quem já viu a data
             passar sem negócio é prometer o que não se vai cumprir. */}
-        {!caducou && proxima && ROTULO_ETAPA[proxima.etapa] && (
+        {!caducou && !caducaHoje && !ehHoje && proxima && ROTULO_ETAPA[proxima.etapa] && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div aria-hidden="true" style={{ width: "1px", height: "22px", background: "linear-gradient(180deg, #E8D5A3, rgba(232,213,163,0.25))" }} />
             <EngasteVazio />
@@ -690,7 +881,7 @@ export default function PortalPage() {
         )}
 
         {/* e depois — … : desaparece quando não sobra nada. */}
-        {!caducou && resto.length > 0 && (
+        {!caducou && !caducaHoje && !ehHoje && resto.length > 0 && (
           <p style={{ marginTop: "26px", textAlign: "center", fontSize: "11.5px", lineHeight: 1.9, color: "#9B9B9B", letterSpacing: "0.02em", textWrap: "pretty", padding: "0 12px", marginBottom: 0 }}>
             e depois —{" "}
             <span style={{ color: "var(--gray-mid)" }}>
@@ -708,25 +899,29 @@ export default function PortalPage() {
             comum, 8 em 13 — só as três primeiras se pintam. */}
         {/* CADUCADO: nem sequer o estado vazio. «Nada, está tudo
             entregue» é uma boa notícia, e aqui não há boa notícia — não se
-            entregou nada, o pedido é que não vingou. */}
-        {!caducou && <OQueFaltaDeSi {...pendencias} />}
+            entregou nada, o pedido é que não vingou. E DEPOIS DO DIA
+            (negócio fechado) também não: «daqui até ao dia, o trabalho é
+            nosso» não se diz de um dia que já foi — a página é memória. */}
+        {!passou && !caducaHoje && <OQueFaltaDeSi {...pendencias} />}
 
         {/* A porta discreta da área dos documentos — só quando há alguma
             coisa publicada do outro lado. */}
         {!caducou && temDocumentos && (
-          <p style={{ textAlign: "center", margin: "18px 0 0" }}>
+          <p style={{ textAlign: "center", margin: "6px 0 0" }}>
             <Link
               to={`/acompanhar/${token}/documentos`}
               style={{
+                display: "inline-block",
+                padding: "12px 10px",
                 fontSize: "12px",
                 letterSpacing: "0.03em",
                 color: "var(--gray-mid)",
-                borderBottom: "1px solid #E8D5A3",
-                paddingBottom: "3px",
                 textDecoration: "none",
               }}
             >
-              Os seus documentos
+              <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+                Os seus documentos
+              </span>
             </Link>
           </p>
         )}
@@ -772,7 +967,7 @@ export default function PortalPage() {
 
         {ev?.local && (
           <div style={{ marginTop: "30px", paddingTop: "17px", borderTop: "1px solid #F0E6D0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-            <p style={overline("#9B9B9B", "0.16em")}>O local</p>
+            <p style={overline("#9B9B9B")}>O local</p>
             <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: 0, textAlign: "right" }}>{ev.local}</p>
           </div>
         )}
@@ -783,7 +978,7 @@ export default function PortalPage() {
         </p>
 
         <Assinatura style={{ marginTop: "34px" }} />
-      </div>
+      </main>
     </div>
   );
 }

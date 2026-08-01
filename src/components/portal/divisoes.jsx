@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   overline, playfair, diaMesAno, semanaEDia,
@@ -30,6 +31,34 @@ import {
 // ============================================================
 
 // ------------------------------------------------------------
+// A ligação sublinhada dos cartões — pendências e novidades.
+//
+// O alvo de toque cresce para ≥44px com padding compensado por margem
+// negativa; o sublinhado vive num <span> interior para ficar colado ao
+// texto (no elemento exterior, o traço descia com o padding).
+// ------------------------------------------------------------
+function LigacaoDeCartao({ to, rotulo }) {
+  return (
+    <Link
+      to={to}
+      style={{
+        display: "inline-block",
+        padding: "12px 10px",
+        margin: "0 -10px -12px",
+        fontSize: "12px",
+        letterSpacing: "0.03em",
+        color: "var(--charcoal)",
+        textDecoration: "none",
+      }}
+    >
+      <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+        {rotulo}
+      </span>
+    </Link>
+  );
+}
+
+// ------------------------------------------------------------
 // 4 · O QUE FALTA DE SI
 //
 // Diz-se pelo alívio, não pela cobrança. E a ausência de pendências diz
@@ -42,7 +71,7 @@ export function OQueFaltaDeSi({ pendencias = [], doNossoLado = [] }) {
     <Divisao>
       {vazia ? (
         <>
-          <p style={{ ...overline(), textAlign: "center" }}>O que falta de si</p>
+          <h2 style={{ ...overline(), textAlign: "center" }}>O que falta de si</h2>
           <div style={{ position: "relative", marginTop: "22px" }}>
             <CartaoBranco padding="30px 18px" style={{ textAlign: "center" }}>
               <Medalhao />
@@ -76,23 +105,7 @@ export function OQueFaltaDeSi({ pendencias = [], doNossoLado = [] }) {
                 <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
                   {p.corpo}
                 </p>
-                {p.href && (
-                  <Link
-                    to={p.href}
-                    style={{
-                      display: "inline-block",
-                      marginTop: "12px",
-                      fontSize: "12px",
-                      letterSpacing: "0.03em",
-                      color: "var(--charcoal)",
-                      borderBottom: "1px solid #E8D5A3",
-                      paddingBottom: "3px",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {p.hrefRotulo || "Abrir"}
-                  </Link>
-                )}
+                {p.href && <LigacaoDeCartao to={p.href} rotulo={p.hrefRotulo || "Abrir"} />}
               </CartaoBranco>
             ))}
           </div>
@@ -117,15 +130,36 @@ export function OQueFaltaDeSi({ pendencias = [], doNossoLado = [] }) {
 // última vez».
 // ------------------------------------------------------------
 export function AsNovidades({ visitaAnterior, novidades = [], jaCaEstava = [], reduzir }) {
+  // A mola corre UMA vez por janela de visita (o roteiro é explícito). A
+  // divisão remonta a cada regresso à jornada; o timestamp da visita
+  // anterior identifica a janela sem precisar do token.
+  const chaveMola = `dlm_mola_${visitaAnterior || ""}`;
+  const [molaJaCorreu] = useState(() => {
+    try {
+      return !!sessionStorage.getItem(chaveMola);
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (!visitaAnterior) return;
+    try {
+      sessionStorage.setItem(chaveMola, "1");
+    } catch {
+      /* privado/cheio — a mola repete, que é o mal menor */
+    }
+  }, [chaveMola, visitaAnterior]);
+
   if (!visitaAnterior) return null;
   const quando = semanaEDia(visitaAnterior);
   const vazia = novidades.length === 0;
+  const animar = !reduzir && !molaJaCorreu;
 
   return (
     <Divisao>
       {vazia ? (
         <>
-          <p style={{ ...overline(), textAlign: "center" }}>O que mudou desde a última vez</p>
+          <h2 style={{ ...overline(), textAlign: "center" }}>O que mudou desde a última vez</h2>
           <FraseDeFecho
             frase={quando ? `Desde ${quando.split(",")[0]}, nada mudou por aqui.` : "Nada mudou por aqui."}
             corpo="O trabalho continua do nosso lado, sem novidade para dar. Quando houver, esta divisão acende-se primeiro."
@@ -143,7 +177,7 @@ export function AsNovidades({ visitaAnterior, novidades = [], jaCaEstava = [], r
                 key={n.chave}
                 padding="19px 20px"
                 style={
-                  reduzir
+                  !animar
                     ? undefined
                     : {
                         // Ease luxo, não o ressalto: uma novidade não é um
@@ -166,6 +200,7 @@ export function AsNovidades({ visitaAnterior, novidades = [], jaCaEstava = [], r
                     {n.corpo}
                   </p>
                 )}
+                {n.href && <LigacaoDeCartao to={n.href} rotulo={n.hrefRotulo || "Abrir"} />}
               </CartaoBranco>
             ))}
           </div>

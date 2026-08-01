@@ -4,6 +4,7 @@ import {
   mudarFotografia, reordenarFotografias, momentoPorOmissao,
 } from "../../lib/fotografias";
 import { marcarEstadoDaFoto } from "../../lib/avaliacao";
+import { Esqueleto } from "./acabamento";
 
 // ============================================================
 // FotografiasEvento — a aba das fotografias do dia (fase 6).
@@ -113,10 +114,13 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
     let ordem = fotos.length;
 
     // UMA A UMA, de propósito: no espaço a rede é o que é, e um lote de
-    // doze em paralelo falha inteiro. Assim, o que subiu fica.
+    // doze em paralelo falha inteiro. Assim, o que subiu fica — e
+    // APARECE no instante, não só quando o lote inteiro acabar: com a
+    // rede da rua, esperar pelo fim é esperar minutos a olhar para nada.
     for (const f of ficheiros) {
       try {
-        await carregarFotografia(eventoId, f, { momento, ordem });
+        const criada = await carregarFotografia(eventoId, f, { momento, ordem });
+        setFotos((l) => [...l, criada]);
         ordem += 1;
       } catch (err) {
         console.error(err);
@@ -179,7 +183,35 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
   };
 
   if (estado === "a-carregar") {
-    return <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>A carregar…</p>;
+    // A forma do que vem, nunca a frase «A carregar…» — a regra dos
+    // esqueletos da casa: a linha do botão e três cartões da grelha.
+    return (
+      <div style={{ maxWidth: "980px" }}>
+        <Esqueleto w={200} h={36} r={10} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: "16px",
+            marginTop: "22px",
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <Esqueleto key={i} h={240} r={12} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (estado === "erro") {
+    // Uma leitura que falhou tem de parecer uma falha — «Nenhuma
+    // ainda» aqui seria mentira, e podia levar a carregar em dobro.
+    return (
+      <p style={{ fontSize: "13px", color: "#B91C1C" }}>
+        Não foi possível ler as fotografias. Recarregue a página.
+      </p>
+    );
   }
 
   return (
@@ -195,9 +227,9 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
         }}
       >
         Tudo o que carregar aqui <strong style={{ fontWeight: 600 }}>a cliente vê</strong>,
-        na página de acompanhamento. A primeira é a capa — arraste-a para cima
-        com as setas, e ponha lá a mais adiantada: o trabalho a meio aparece
-        por baixo.
+        na página de acompanhamento. A primeira é a capa — suba a mais
+        adiantada para o primeiro lugar com as setas: o trabalho a meio
+        aparece por baixo.
       </p>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "16px" }}>
@@ -302,9 +334,27 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                 <input
                   type="text"
                   defaultValue={f.assunto || ""}
-                  onBlur={(e) => {
+                  onBlur={async (e) => {
                     const v = e.target.value.trim();
-                    if (v !== (f.assunto || "")) mudarFotografia(f.id, { assunto: v || null }).catch(console.error);
+                    if (v === (f.assunto || "")) return;
+                    const campo = e.target;
+                    try {
+                      await mudarFotografia(f.id, { assunto: v || null });
+                      // O estado local acompanha — sem isto, a comparação
+                      // seguinte usava o valor velho e gravava outra vez.
+                      setFotos((l) =>
+                        l.map((x) =>
+                          x.id === f.id ? { ...x, assunto: v || null } : x,
+                        ),
+                      );
+                    } catch (err) {
+                      console.error(err);
+                      setErro("Não foi possível guardar a legenda. Tente novamente.");
+                      // O input é uncontrolled — repor o valor à mão é a
+                      // forma de o ecrã voltar à verdade da base.
+                      campo.value = f.assunto || "";
+                      recarregar();
+                    }
                   }}
                   placeholder="Assunto (ex.: A mesa principal)"
                   style={{
@@ -334,7 +384,8 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                             : "Ninguém olhou ainda. Não publica, e não se diz à cliente porquê"
                       }
                       style={{
-                        flex: 1, padding: "5px 4px", fontSize: "10.5px",
+                        // 44px de alvo: a aba usa-se ao telemóvel, no espaço.
+                        flex: 1, minHeight: "44px", padding: "5px 4px", fontSize: "10.5px",
                         fontFamily: "inherit", borderRadius: "999px", cursor: "pointer",
                         color: f.publicavel === e.valor ? e.cor : "var(--gray-mid)",
                         backgroundColor: f.publicavel === e.valor ? "#FBF9F4" : "white",
@@ -356,7 +407,7 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                       key={m.valor}
                       onClick={() => trocarMomento(f, m.valor)}
                       style={{
-                        flex: 1, padding: "5px 6px", fontSize: "11px",
+                        flex: 1, minHeight: "44px", padding: "5px 6px", fontSize: "11px",
                         fontFamily: "inherit", borderRadius: "999px", cursor: "pointer",
                         color: f.momento === m.valor ? "var(--gold-dark)" : "var(--gray-mid)",
                         backgroundColor: f.momento === m.valor ? "#FEF9EC" : "white",
@@ -370,28 +421,28 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "10px" }}>
                   <button onClick={() => mover(i, -1)} disabled={i === 0} title="Subir"
-                    style={{ ...botao, padding: "5px 10px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === 0 ? 0.35 : 1 }}>
+                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === 0 ? 0.35 : 1 }}>
                     ↑
                   </button>
                   <button onClick={() => mover(i, 1)} disabled={i === fotos.length - 1} title="Descer"
-                    style={{ ...botao, padding: "5px 10px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === fotos.length - 1 ? 0.35 : 1 }}>
+                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === fotos.length - 1 ? 0.35 : 1 }}>
                     ↓
                   </button>
                   <span style={{ flex: 1 }} />
                   {aConfirmarApagar === f.id ? (
                     <>
                       <button onClick={() => apagar(f)}
-                        style={{ ...botao, padding: "5px 10px", fontSize: "11.5px", border: "none", backgroundColor: "#B91C1C", color: "white" }}>
+                        style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "none", backgroundColor: "#B91C1C", color: "white" }}>
                         Apagar
                       </button>
                       <button onClick={() => setAConfirmarApagar(null)}
-                        style={{ ...botao, padding: "5px 10px", fontSize: "11.5px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)" }}>
+                        style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)" }}>
                         Não
                       </button>
                     </>
                   ) : (
                     <button onClick={() => setAConfirmarApagar(f.id)}
-                      style={{ ...botao, padding: "5px 10px", fontSize: "11.5px", border: "1px solid #FECACA", backgroundColor: "white", color: "#B91C1C" }}>
+                      style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid #FECACA", backgroundColor: "white", color: "#B91C1C" }}>
                       Apagar
                     </button>
                   )}

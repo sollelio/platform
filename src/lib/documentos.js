@@ -89,7 +89,9 @@ export async function documentosDoEvento(submissionId) {
   if (!submissionId) return [];
   const { data, error } = await supabase
     .from("documentos")
-    .select("id, tipo, created_at, updated_at, enviado_em, assinado_em")
+    .select(
+      "id, tipo, created_at, updated_at, enviado_em, assinado_em, trancado_em",
+    )
     .eq("submission_id", submissionId);
   if (error) throw error;
   return data || [];

@@ -65,6 +65,13 @@ export const marcarTodasNotificacoesLidas = async () => {
 // Remove um lote de notificações (a seleção da Nádia). Definitivo,
 // mas sem drama: os dados do pedido vivem na ficha do evento — a
 // notificação é só o aviso.
+//
+// ⚠ EXCEPÇÃO: um aviso `contrato_papel` NÃO é só o aviso — é a própria
+// fila do papel (getPapelPorConfirmar, em portal.js, lê DESTA tabela, e
+// `dados.caminho` é o único fio até à fotografia no balde). Removê-lo
+// fazia a secção «Contrato assinado em papel» desaparecer da folha do
+// Acompanhamento para sempre. Quem filtra é o apagarVarias do hook, que
+// tem os tipos em mão; marcar como lida continua livre (migração 060).
 export const apagarNotificacoes = async (ids) => {
   if (!Array.isArray(ids) || ids.length === 0) return;
   try {
@@ -163,11 +170,24 @@ export function useNotificacoes() {
     marcarTodasNotificacoesLidas();
   }, []);
 
-  const apagarVarias = useCallback((ids) => {
-    const conjunto = new Set(ids);
-    setLista((prev) => prev.filter((n) => !conjunto.has(n.id)));
-    apagarNotificacoes(ids);
-  }, []);
+  const apagarVarias = useCallback(
+    (ids) => {
+      // A fila do papel vive nesta tabela: os avisos `contrato_papel`
+      // não se removem daqui (ver o aviso em apagarNotificacoes). A
+      // Caixa já os exclui da seleção — esta guarda é a rede de baixo.
+      const protegidas = new Set(
+        lista
+          .filter((n) => n.tipo === "contrato_papel")
+          .map((n) => n.id),
+      );
+      const permitidas = (ids || []).filter((id) => !protegidas.has(id));
+      if (permitidas.length === 0) return;
+      const conjunto = new Set(permitidas);
+      setLista((prev) => prev.filter((n) => !conjunto.has(n.id)));
+      apagarNotificacoes(permitidas);
+    },
+    [lista],
+  );
 
   const limparNova = useCallback(() => setNova(null), []);
 

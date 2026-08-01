@@ -30,7 +30,9 @@ const campoStyle = {
   width: "100%",
   boxSizing: "border-box",
   padding: "8px 0",
-  fontSize: "15px",
+  // Nunca abaixo de 16px num campo de escrita: o iOS Safari faz zoom
+  // automático ao focar e a página fica ampliada.
+  fontSize: "16px",
   fontFamily: "Inter, sans-serif",
   color: "var(--charcoal)",
   background: "transparent",
@@ -40,7 +42,7 @@ const campoStyle = {
 };
 
 export default function EditorDeCampo({
-  campo, valor, aoMudar, aoGuardar, aoDesistir, aTrabalhar, consequencia,
+  campo, valor, aoMudar, aoGuardar, aoDesistir, aTrabalhar, consequencia, erro, aviso,
 }) {
   const ehNumero = campo.tipo === "number";
 
@@ -62,12 +64,12 @@ export default function EditorDeCampo({
               ...estiloPautaEdicao,
               ...playfair,
               fontStyle: "italic",
-              fontSize: "15.5px",
+              fontSize: "16px",
               lineHeight: 1.7,
               resize: "vertical",
             }}
           />
-        ) : campo.tipo === "radio" || campo.tipo === "checkbox" ? (
+        ) : campo.tipo === "radio" || campo.tipo === "select" || campo.tipo === "checkbox" ? (
           <Pastilhas
             opcoes={campo.opcoes || []}
             valor={valor}
@@ -99,6 +101,20 @@ export default function EditorDeCampo({
         </p>
       )}
 
+      {/* O erro da gravação pinta-se AQUI, ao pé do gesto — não no topo da
+          página, fora do ecrã de quem edita lá em baixo. */}
+      {erro && (
+        <p style={{ fontSize: "12px", lineHeight: 1.7, color: "#9C5A3C", margin: "14px 0 0", textAlign: ehNumero ? "center" : "left", textWrap: "pretty" }}>
+          {erro}
+        </p>
+      )}
+
+      {aviso && (
+        <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#A07830", margin: "12px 0 0", textAlign: ehNumero ? "center" : "left", textWrap: "pretty" }}>
+          {aviso}
+        </p>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "13px", marginTop: "18px" }}>
         <CapsulaVazada
           onClick={aoGuardar}
@@ -107,7 +123,7 @@ export default function EditorDeCampo({
         >
           {aTrabalhar ? "A guardar…" : "Guardar"}
         </CapsulaVazada>
-        <LigacaoDiscreta onClick={aoDesistir} apagada>
+        <LigacaoDiscreta onClick={aoDesistir} style={{ padding: "12px 10px 3px", margin: "-12px -10px 0" }}>
           Deixar como estava
         </LigacaoDiscreta>
       </div>
@@ -132,9 +148,20 @@ function TecladoDeNumero({ valor, aoMudar }) {
       </BotaoRedondo>
 
       <div style={{ minWidth: "92px", textAlign: "center" }}>
-        <span style={{ ...playfair, fontSize: "36px", lineHeight: 1, fontVariantNumeric: "tabular-nums", display: "block" }}>
-          {n}
-        </span>
+        {/* Editável: escrever «120» não pode custar 120 toques — os ± ficam
+            para afinar. 36px ≥ 16px, sem zoom do iOS. */}
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          aria-label="O número"
+          value={valor === null || valor === undefined || valor === "" ? "" : String(valor)}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+            aoMudar(v === "" ? "" : Number(v));
+          }}
+          style={{ ...playfair, fontSize: "36px", lineHeight: 1, fontVariantNumeric: "tabular-nums", width: "92px", textAlign: "center", background: "transparent", border: "none", outline: "none", padding: 0 }}
+        />
         <span style={{ display: "block", height: "1.5px", backgroundColor: "var(--gold)", marginTop: "10px" }} />
       </div>
 
@@ -186,6 +213,7 @@ function Pastilhas({ opcoes, valor, multipla, aoMudar }) {
           <button
             key={o}
             onClick={() => alternar(o)}
+            aria-pressed={activa}
             style={{
               fontSize: "11px", fontFamily: "Inter, sans-serif",
               borderRadius: "999px", padding: "7px 13px", cursor: "pointer",

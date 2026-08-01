@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAvaliacoes } from "../../lib/avaliacao";
+import { Esqueleto } from "./acabamento";
 
 // ============================================================
 // AvaliacoesTab — o que as clientes escreveram (fase 7).
@@ -67,7 +68,21 @@ export default function AvaliacoesTab() {
   }, []);
 
   if (estado === "a-carregar") {
-    return <p style={{ fontSize: "13px", color: "var(--gray-mid)" }}>A carregar…</p>;
+    // A forma do que vem — três cartões empilhados —, não uma frase.
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          maxWidth: "820px",
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <Esqueleto key={i} h={120} r={12} />
+        ))}
+      </div>
+    );
   }
 
   if (estado === "erro") {
@@ -188,8 +203,16 @@ export default function AvaliacoesTab() {
                       <Pastilha cor={estadoFoto.cor} texto={`Fotografia: ${estadoFoto.texto}`} />
                     )}
                     <span style={{ flex: 1 }} />
+                    {/* A etiqueta diz o gesto que a ligação faz: com
+                        fotografia, vai rever-se a aba Fotografias (é lá
+                        que se marca «pode ir para o site»); sem ela, a
+                        ligação abre mesmo o evento. */}
                     <Link
-                      to={`/evento/${a.submission_id}/fotografias`}
+                      to={
+                        foto
+                          ? `/evento/${a.submission_id}/fotografias`
+                          : `/evento/${a.submission_id}`
+                      }
                       style={{
                         fontSize: "12px", color: "var(--gold-dark)",
                         textDecoration: "none",
@@ -197,7 +220,7 @@ export default function AvaliacoesTab() {
                         paddingBottom: "2px",
                       }}
                     >
-                      Abrir o evento →
+                      {foto ? "Rever as fotografias →" : "Abrir o evento →"}
                     </Link>
                   </div>
                 </div>

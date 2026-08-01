@@ -110,7 +110,23 @@ export const marcarEstadoDaFoto = async (fotografiaId, estado) => {
 
 // Os eixos por responder ficam por responder, e não faz mal nenhum: é o
 // desenho que o diz. Só se envia o que ela tocou.
-export const eixosRespondidos = (valores) =>
-  Object.entries(valores || {})
-    .filter(([, v]) => v !== null && v !== undefined)
-    .map(([chave, v]) => ({ chave, valor: Math.round(Number(v)) }));
+//
+// COM o mapa de eixos em mão, cada resposta leva o `rotulo` — é ele que
+// o separador Avaliações mostra; sem rótulo gravado, a Nádia via chaves
+// de máquina. O mapa dá também a ordem. Sem o segundo argumento (chamada
+// antiga), o comportamento fica o de sempre: só chave e valor.
+export const eixosRespondidos = (valores, eixos = []) => {
+  const v = valores || {};
+  if (Array.isArray(eixos) && eixos.length > 0) {
+    return eixos
+      .filter((e) => v[e.chave] !== null && v[e.chave] !== undefined)
+      .map((e) => ({
+        chave: e.chave,
+        rotulo: e.rotulo,
+        valor: Math.round(Number(v[e.chave])),
+      }));
+  }
+  return Object.entries(v)
+    .filter(([, x]) => x !== null && x !== undefined)
+    .map(([chave, x]) => ({ chave, valor: Math.round(Number(x)) }));
+};

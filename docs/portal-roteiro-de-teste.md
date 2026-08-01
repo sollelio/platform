@@ -6,9 +6,28 @@ ecrã aparece**, **como o produzir** e **o que confirmar**.
 Lê-se por ordem: o evento vai avançando, e cada passo desbloqueia o seguinte.
 Não é uma lista de ficheiros — é um caminho.
 
-**Antes de começares:** as migrações **049 a 060** têm de estar corridas no
+**Antes de começares:** as migrações **049 a 070** têm de estar corridas no
 ambiente que vais testar. O portal abre em `/acompanhar/:token`; o token
 obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
+
+> **Adenda 01/08/2026 — a revisão UX de ponta a ponta.** Depois desta
+> revisão, alguns passos do roteiro têm comportamento NOVO, deliberado:
+> · a jornada tem um **fio dourado** sob a frase de cerimónia (a dobra);
+> · trocar de vista entra pelo topo e **voltar devolve ao ponto** onde se
+>   estava; a jornada **refresca sozinha** ao regressar de uma vista;
+> · a cortina de erro tem **«Tentar novamente»**;
+> · o código recusado tem **«Escrever o código outra vez»** (pedir outro
+>   fica como segunda via);
+> · a lista de documentos, o questionário e a avaliação têm **«Voltar ao
+>   acompanhamento»**; os ecrãs do código têm «voltar ao documento»;
+> · as novidades levam **ligação** («Ver o orçamento», …) e a mola corre
+>   **uma vez só** por visita — como o §6.3 sempre pediu;
+> · depois do dia, **«O que falta de si» não aparece** (§10: a página é
+>   memória); no caducado o cartão «agora» já não fala da etapa;
+> · a **capa das fotografias sangra** de margem a margem (§9.3);
+> · o separador do browser diz «O seu acompanhamento — Do Luxo à Mesa»;
+> · com a **070** corrida, aceitar o orçamento cala a pendência «à espera
+>   de uma resposta» — sem ela, o comportamento antigo mantém-se.
 
 > **Legenda**
 > 🔧 produz-se no backoffice · 🗄 precisa de SQL · 📱 vê-se no telefone

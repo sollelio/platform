@@ -183,7 +183,7 @@ export const getPedidosCodigo = async (eventoId) => {
   const { data, error } = await supabase
     .from("portal_verificacoes")
     .select(
-      "id, contexto, pedido_em, codigo, emitido_em, expira_em, usado_em, portal_acessos!inner(submission_id)",
+      "id, contexto, pedido_em, codigo, emitido_em, expira_em, usado_em, tentativas, portal_acessos!inner(submission_id)",
     )
     .eq("portal_acessos.submission_id", eventoId)
     .order("pedido_em", { ascending: false });

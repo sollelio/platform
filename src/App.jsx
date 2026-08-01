@@ -5,6 +5,7 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import FormEntryPage from "./pages/FormEntryPage";
 import FormPage from "./pages/FormPage";
 import LoginPage from "./pages/LoginPage";
@@ -21,7 +22,11 @@ import AvisoDataDoEvento from "./components/admin/AvisoDataDoEvento";
 
 // Lê as variáveis de ambiente
 const isLocked = import.meta.env.VITE_SITE_LOCKED === "true";
-const isDev = import.meta.env.VITE_APP_ENV === "development";
+// Lista explícita, e não `!== "production"`: se PROD um dia se esquecer da
+// variável, a cliente NÃO pode ver uma moldura vermelha. O ambiente de
+// ensaio da casa chama-se «test» — era «development» aqui e a faixa nunca
+// aparecia onde fazia falta.
+const isTest = ["development", "test"].includes(import.meta.env.VITE_APP_ENV);
 
 // ============================================================
 // ⚠ CORRECÇÃO DE BUG — independente do routing, assinalada à parte
@@ -54,8 +59,12 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* Faixa de ambiente de teste (só aparece em desenvolvimento) */}
-      {isDev && <EnvBanner />}
+      {/* prefers-reduced-motion respeitado por TODAS as animações
+          framer-motion de uma vez — a regra da identidade §3 deixa de
+          depender de cada componente se lembrar dela. */}
+      <MotionConfig reducedMotion="user">
+      {/* Faixa de ambiente (só em desenvolvimento e em TEST) */}
+      {isTest && <EnvBanner />}
       <Routes>
         <Route path="/" element={<FormEntryPage />} />
         <Route path="/formulario" element={<FormPage />} />
@@ -125,6 +134,7 @@ function App() {
         <Route path="/acompanhar/:token/:vista?/:sub?" element={<PortalPage />} />
         <Route path="*" element={<DestinoDesconhecido />} />
       </Routes>
+      </MotionConfig>
     </BrowserRouter>
   );
 }

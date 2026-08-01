@@ -5,12 +5,9 @@
 // e não dentro da PortalPage, porque a fase 2 acrescentou sete divisões que
 // as usam todas.
 //
-// ⚠ DÍVIDA CONHECIDA: a PortalPage tem cópias locais de `overline`,
-// `playfair`, `FileteComLosango`, `VistoDourado` e das funções de data, da
-// fase 1. Não foram substituídas aqui de propósito — a fase 1 está testada e
-// em produção, e trocar-lhe as fundações no mesmo bloco que acrescenta sete
-// divisões era misturar dois riscos. A consolidação é um bloco à parte, e os
-// valores são idênticos dos dois lados.
+// A dívida das cópias locais na PortalPage (fase 1) fechou na consolidação
+// do fim da fase 7: hoje a página importa tudo daqui e de base.js, e só a
+// Cortina e a pastilha «por definir» ficam locais a ela.
 //
 // Estilos INLINE, como o resto da aplicação. Nada de Tailwind, nada de CSS
 // externo.
@@ -125,7 +122,7 @@ export function Medalhao() {
 export function CabecalhoDivisao({ rotulo, frase, meta }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <p style={overline()}>{rotulo}</p>
+      <h2 style={overline()}>{rotulo}</h2>
       {frase && (
         <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.3, marginTop: "11px", textWrap: "balance" }}>
           {frase}

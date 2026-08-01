@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Esqueleto } from "./acabamento";
 import { FASES_POS_SINAL } from "./faseConfig";
@@ -109,9 +109,30 @@ const oQueElaVaiVer = (fase) => {
   return "O evento ainda está no princípio: ela vai encontrar quase tudo por acontecer. Não é defeito da página — é onde o evento está —, mas talvez prefira esperar por ter mais para lhe mostrar.";
 };
 
+// O erro de uma acção responde JUNTO ao gesto que falhou, nunca no fundo
+// da folha (que rola, e onde ninguém está a olhar). Cada secção pinta o
+// seu; `erro` é { zona, mensagem } e a zona diz onde.
+function ErroDaZona({ erro, zona }) {
+  if (!erro || erro.zona !== zona) return null;
+  return (
+    <p
+      style={{
+        fontSize: "12.5px",
+        lineHeight: 1.6,
+        color: "#B91C1C",
+        margin: "10px 0 0",
+      }}
+    >
+      {erro.mensagem}
+    </p>
+  );
+}
+
 function Conteudo({ evento, onFechar }) {
   // { estado: 'a-carregar' | 'pronto' | 'erro', acesso, docs, pubs, pedidos }
   const [resultado, setResultado] = useState(null);
+  // { zona: 'porta'|'documentos'|'codigos'|'questionario'|'papel'|'fecho',
+  //   mensagem } — ver ErroDaZona.
   const [erro, setErro] = useState(null);
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -170,11 +191,24 @@ function Conteudo({ evento, onFechar }) {
   const papelPorConfirmar = contratoAssinado ? null : papeis[0] || null;
   const endereco = acesso ? enderecoDoPortal(acesso.token) : null;
 
-  const copiar = () => {
+  // «Copiado» só se afirma quando a cópia ACONTECEU — o writeText pode
+  // ser recusado (permissões, foco), e afirmar sucesso punha a Nádia a
+  // colar nada numa conversa de WhatsApp.
+  const copiar = async () => {
     if (!endereco) return;
-    navigator.clipboard.writeText(endereco);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2500);
+    try {
+      await navigator.clipboard.writeText(endereco);
+      setErro((e) => (e?.zona === "porta" ? null : e));
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "porta",
+        mensagem:
+          "Não foi possível copiar automaticamente. Toque no campo e copie a ligação à mão.",
+      });
+    }
   };
 
   const abrir = async () => {
@@ -190,7 +224,10 @@ function Conteudo({ evento, onFechar }) {
       setRecarga((r) => r + 1);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível abrir o acompanhamento. Tente novamente.");
+      setErro({
+        zona: "porta",
+        mensagem: "Não foi possível abrir o acompanhamento. Tente novamente.",
+      });
     } finally {
       setATrabalhar(false);
     }
@@ -205,7 +242,10 @@ function Conteudo({ evento, onFechar }) {
       setAConfirmarFecho(false);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível fechar o acompanhamento. Tente novamente.");
+      setErro({
+        zona: "fecho",
+        mensagem: "Não foi possível fechar o acompanhamento. Tente novamente.",
+      });
     } finally {
       setATrabalhar(false);
     }
@@ -219,11 +259,12 @@ function Conteudo({ evento, onFechar }) {
       setRecarga((r) => r + 1);
     } catch (e) {
       console.error(e);
-      setErro(
-        /CONTRATO_TRANCADO/.test(e?.message || "")
+      setErro({
+        zona: "documentos",
+        mensagem: /CONTRATO_TRANCADO/.test(e?.message || "")
           ? "Este contrato está assinado e trancado — não há versões novas. Para corrigir, faz-se um contrato novo."
           : "Não foi possível publicar. Tente novamente.",
-      );
+      });
     } finally {
       setATrabalhar(false);
     }
@@ -237,7 +278,10 @@ function Conteudo({ evento, onFechar }) {
       setRecarga((r) => r + 1);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível emitir o código. Tente novamente.");
+      setErro({
+        zona: "codigos",
+        mensagem: "Não foi possível emitir o código. Tente novamente.",
+      });
     } finally {
       setATrabalhar(false);
     }
@@ -252,14 +296,21 @@ function Conteudo({ evento, onFechar }) {
       if (url) window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível abrir a fotografia. Tente novamente.");
+      setErro({
+        zona: "papel",
+        mensagem: "Não foi possível abrir a fotografia. Tente novamente.",
+      });
     }
   };
 
   const confirmarPapel = async (notificacaoId) => {
     if (aConfirmarPapel) return;
     if (!nomeNoPapel.trim() || nomeNoPapel.trim().length < 3) {
-      setErro("Escreva o nome tal como está no papel — é ele que fica no registo.");
+      setErro({
+        zona: "papel",
+        mensagem:
+          "Escreva o nome tal como está no papel — é ele que fica no registo.",
+      });
       return;
     }
     setAConfirmarPapel(true);
@@ -267,20 +318,24 @@ function Conteudo({ evento, onFechar }) {
     try {
       const r = await confirmarContratoPapel(notificacaoId, nomeNoPapel.trim());
       if (r?.estado === "ja_assinado") {
-        setErro("Este contrato já estava assinado — nada mudou.");
+        setErro({
+          zona: "papel",
+          mensagem: "Este contrato já estava assinado — nada mudou.",
+        });
       }
       setNomeNoPapel("");
       setRecarga((x) => x + 1);
     } catch (e) {
       console.error(e);
       const m = e?.message || "";
-      setErro(
-        /SEM_CONTRATO_PUBLICADO/.test(m)
+      setErro({
+        zona: "papel",
+        mensagem: /SEM_CONTRATO_PUBLICADO/.test(m)
           ? "Não há contrato publicado neste evento — publique-o antes de confirmar."
           : /FICHEIRO_NAO_ENCONTRADO/.test(m)
             ? "A fotografia já não está no arquivo. Peça-lhe que a carregue outra vez."
             : "Não foi possível confirmar. Tente novamente.",
-      );
+      });
     } finally {
       setAConfirmarPapel(false);
     }
@@ -295,16 +350,29 @@ function Conteudo({ evento, onFechar }) {
       setRecarga((x) => x + 1);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível marcar como tratado. Tente novamente.");
+      setErro({
+        zona: "questionario",
+        mensagem: "Não foi possível marcar como tratado. Tente novamente.",
+      });
     } finally {
       setATrabalhar(false);
     }
   };
 
-  const copiarCodigo = (id, codigo) => {
-    navigator.clipboard.writeText(codigo);
-    setCopiadoCodigo(id);
-    setTimeout(() => setCopiadoCodigo(null), 2500);
+  const copiarCodigo = async (id, codigo) => {
+    try {
+      await navigator.clipboard.writeText(codigo);
+      setErro((e) => (e?.zona === "codigos" ? null : e));
+      setCopiadoCodigo(id);
+      setTimeout(() => setCopiadoCodigo(null), 2500);
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "codigos",
+        mensagem:
+          "Não foi possível copiar automaticamente. O código está no botão — anote-o e envie-o.",
+      });
+    }
   };
 
   // Os pedidos que precisam dela: por emitir, ou emitidos por usar (o
@@ -316,6 +384,21 @@ function Conteudo({ evento, onFechar }) {
   );
 
   const aviso = oQueElaVaiVer(evento.fase);
+
+  // As zonas de erro presentes NESTE render: se a secção do erro já não
+  // está montada (ex.: o refetch levou-a), o parágrafo do fundo apanha-o
+  // — um erro nunca pode desaparecer só porque a secção desapareceu.
+  const zonasMontadas = new Set();
+  if (estado === "pronto") {
+    zonasMontadas.add("porta");
+    if (acesso) {
+      zonasMontadas.add("fecho");
+      if (docs.length > 0) zonasMontadas.add("documentos");
+      if (pedidosVivos.length > 0) zonasMontadas.add("codigos");
+      if (pedidosQ.length > 0) zonasMontadas.add("questionario");
+      if (papelPorConfirmar) zonasMontadas.add("papel");
+    }
+  }
 
   return (
     <>
@@ -403,6 +486,7 @@ function Conteudo({ evento, onFechar }) {
           >
             {aTrabalhar ? "A abrir…" : "Abrir o acompanhamento"}
           </button>
+          <ErroDaZona erro={erro} zona="porta" />
           <p
             style={{
               fontSize: "11.5px",
@@ -457,6 +541,7 @@ function Conteudo({ evento, onFechar }) {
               {copiado ? "Copiado" : "Copiar"}
             </button>
           </div>
+          <ErroDaZona erro={erro} zona="porta" />
 
           {/* O SINAL DE VIDA. É o que lhe diz se vale a pena insistir com a
               cliente ou se ela já lá esteve. */}
@@ -607,6 +692,7 @@ function Conteudo({ evento, onFechar }) {
                   </div>
                 );
               })}
+              <ErroDaZona erro={erro} zona="documentos" />
               <p
                 style={{
                   fontSize: "11px",
@@ -666,7 +752,26 @@ function Conteudo({ evento, onFechar }) {
                       : "Para ver os valores"}{" "}
                     · {dataHora(p.pedido_em)}
                   </p>
-                  {p.codigo && p.emitido_em ? (
+                  {/* Às cinco tentativas erradas a base mata o código —
+                      copiá-lo e enviá-lo seria mandar a cliente bater
+                      numa porta fechada. A linha fica À VISTA (não se
+                      remove em silêncio): é ela que explica porque é
+                      que a cliente está encravada. */}
+                  {(p.tentativas ?? 0) >= 5 ? (
+                    <p
+                      style={{
+                        fontSize: "11.5px",
+                        lineHeight: 1.5,
+                        color: "#92400E",
+                        margin: 0,
+                        flexShrink: 0,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Este código morreu às cinco tentativas — ela terá de
+                      pedir outro.
+                    </p>
+                  ) : p.codigo && p.emitido_em ? (
                     <button
                       onClick={() => copiarCodigo(p.id, p.codigo)}
                       style={{
@@ -706,6 +811,7 @@ function Conteudo({ evento, onFechar }) {
                   )}
                 </div>
               ))}
+              <ErroDaZona erro={erro} zona="codigos" />
               <p
                 style={{
                   fontSize: "11px",
@@ -775,6 +881,7 @@ function Conteudo({ evento, onFechar }) {
                   </div>
                 </div>
               ))}
+              <ErroDaZona erro={erro} zona="questionario" />
               <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#92400E", margin: "9px 0 0" }}>
                 Marcar como tratado não muda a resposta — muda-se no briefing,
                 se ficar acordado. Só fecha o pedido e deixa a cliente voltar a
@@ -849,6 +956,7 @@ function Conteudo({ evento, onFechar }) {
                   outline: "none",
                 }}
               />
+              <ErroDaZona erro={erro} zona="papel" />
 
               <button
                 onClick={() => confirmarPapel(papelPorConfirmar.id)}
@@ -925,6 +1033,7 @@ function Conteudo({ evento, onFechar }) {
                   abrir depois, mas a ligação nova é outra e terá de lha enviar
                   de novo.
                 </p>
+                <ErroDaZona erro={erro} zona="fecho" />
                 <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                   <button
                     onClick={revogar}
@@ -958,7 +1067,9 @@ function Conteudo({ evento, onFechar }) {
         </>
       )}
 
-      {erro && (
+      {/* Último recurso: um erro cuja secção já não está montada (ou sem
+          zona) pinta-se aqui — nunca pode simplesmente desaparecer. */}
+      {erro && !zonasMontadas.has(erro.zona) && (
         <p
           style={{
             fontSize: "12.5px",
@@ -966,7 +1077,7 @@ function Conteudo({ evento, onFechar }) {
             margin: "14px 0 0",
           }}
         >
-          {erro}
+          {erro.mensagem}
         </p>
       )}
 
@@ -988,6 +1099,29 @@ function Conteudo({ evento, onFechar }) {
 }
 
 export default function PortalDoClienteSheet({ evento, aberto, onFechar }) {
+  const painelRef = useRef(null);
+  const origemRef = useRef(null);
+
+  // Escape fecha (sem roubar a tecla a um campo com o cursor lá dentro —
+  // o padrão do SubmissionDrawer), o foco entra no painel ao abrir e
+  // volta a quem abriu ao fechar.
+  useEffect(() => {
+    if (!aberto) return undefined;
+    origemRef.current = document.activeElement;
+    painelRef.current?.focus({ preventScroll: true });
+    const aoTeclar = (e) => {
+      if (e.key !== "Escape") return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      onFechar();
+    };
+    document.addEventListener("keydown", aoTeclar);
+    return () => {
+      document.removeEventListener("keydown", aoTeclar);
+      if (origemRef.current?.focus) origemRef.current.focus();
+    };
+  }, [aberto, onFechar]);
+
   return (
     <AnimatePresence>
       {aberto && evento && (
@@ -1008,6 +1142,11 @@ export default function PortalDoClienteSheet({ evento, aberto, onFechar }) {
           }}
         >
           <motion.div
+            ref={painelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="A página que a cliente pode acompanhar"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

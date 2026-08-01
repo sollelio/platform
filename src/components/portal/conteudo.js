@@ -142,7 +142,11 @@ export function comporPendencias(dados, caducou = false) {
     });
   }
 
-  if (m.orcamento && !etapaFeita("sinal")) {
+  // A resposta dela ao orçamento (070): com resposta dada, a pendência
+  // cala-se — cobrar uma resposta que já foi dada mina a confiança na
+  // página inteira. O que se segue diz-se em «o que está connosco».
+  const resposta = dados?.resposta_orcamento;
+  if (m.orcamento && !etapaFeita("sinal") && !resposta) {
     pendencias.push({
       chave: "orcamento",
       titulo: "O orçamento",
@@ -156,14 +160,22 @@ export function comporPendencias(dados, caducou = false) {
   if (caducou) return { pendencias: [], doNossoLado: [] };
 
   // O que não pede acção nenhuma da parte dela.
+  // A ordem espelha a jornada: orçamento · sinal · projecto · contrato.
   if (!m.orcamento && !etapaFeita("orcamento")) {
     doNossoLado.push("O orçamento — estamos a prepará-lo com o que nos contou.");
   }
-  if (!etapaFeita("contrato") && etapaFeita("sinal")) {
-    doNossoLado.push("O contrato — passamos a escrito o que ficou combinado.");
+  if (resposta && !etapaFeita("sinal")) {
+    doNossoLado.push(
+      resposta.acto === "pediu_alteracao"
+        ? "O orçamento — pediu uma alteração; estamos a revê-lo."
+        : "O sinal — a sua resposta ao orçamento chegou; falta só o passo que guarda a data.",
+    );
   }
   if (!etapaFeita("projecto") && etapaFeita("sinal")) {
     doNossoLado.push("O projecto da mesa — está a ser desenhado com o que nos contou.");
+  }
+  if (!etapaFeita("contrato") && etapaFeita("sinal")) {
+    doNossoLado.push("O contrato — passamos a escrito o que ficou combinado.");
   }
 
   return { pendencias, doNossoLado };

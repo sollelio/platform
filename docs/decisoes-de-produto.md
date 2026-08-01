@@ -363,6 +363,72 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   incluindo as que ficaram só para a casa: são precisamente essas que dizem
   o que melhorar.
 
+## Revisão UX do portal, de ponta a ponta (01/08/2026)
+
+Uma passagem completa — 137 descobertas verificadas uma a uma, ~130
+correcções aplicadas. As decisões que ficam:
+
+- **01/08/2026 — A dobra ganha um fio.** No caso mais comum (evento novo,
+  num telefone com as barras do browser) a cerimónia acabava exactamente
+  onde o ecrã acaba e a página lia-se como completa. Entra um fio dourado
+  de 22px sob a frase de cerimónia — fica cortado pela dobra e diz, sem
+  palavras, que há caminho para baixo. O ritmo vertical apertou ~20px sem
+  violar o respiro de 40px+ do topo (identidade §4).
+- **01/08/2026 — Cada troca de vista entra pelo topo; o regresso à jornada
+  devolve ao ponto onde se estava.** O browser fica fora disto
+  (`scrollRestoration = manual` enquanto o portal vive): a restauração
+  nativa corre assíncrona sobre o DOM errado e aterra num ponto grampeado.
+  O ponto de leitura memoriza-se em contínuo, ignorando leituras em que a
+  página encolheu — é o sinal de que o DOM da vista já trocou.
+- **01/08/2026 — A jornada refresca em silêncio ao regressar de uma
+  vista.** Os dados velhos ficam pintados até os frescos chegarem — nunca
+  um esqueleto no regresso. Sem isto, o convite «Contar como correu»
+  reaparecia a quem acabara de avaliar.
+- **01/08/2026 — Migração 070: `resposta_orcamento` na projecção.** A
+  jornada cobrava resposta ao orçamento já aceite porque o acto não vinha
+  na projecção — e a regra da casa é «se o portal precisa de mais um dado,
+  é SQL, não JavaScript». Só o gesto e o instante; nem nome, nem valores.
+- **01/08/2026 — Código recusado dá para reescrever.** O ecrã da recusa
+  mostrava as células mas sem submissão — e a única saída, «Pedir outro
+  código», MATA o código válido (061). Um dedo trocado custava outra ronda
+  de espera pela Nádia. O servidor dá cinco tentativas exactamente para
+  isto: entra a saída «Escrever o código outra vez»; pedir outro fica como
+  segunda via.
+- **01/08/2026 — O separador do browser fala a língua de quem o lê.** No
+  portal, «O seu acompanhamento / Os seus documentos / O questionário / A
+  avaliação — Do Luxo à Mesa»; no backoffice, «Sistema DLM» (reafirmado no
+  arranque do EventoPage); no index.html fica o neutro «Do Luxo à Mesa».
+  «Sistema DLM» é vocabulário interno e não aparece à cliente.
+- **01/08/2026 — A faixa «Ambiente de Teste» acende em `test` E em
+  `development`, por lista explícita** — nunca `!== "production"`: se PROD
+  um dia se esquecer da variável, a cliente não pode ver uma moldura
+  vermelha. Comparava só com «development» e o ambiente real chama-se
+  «test»; a faixa nunca aparecia onde fazia falta.
+- **01/08/2026 — Depois do dia (negócio fechado), «O que falta de si» não
+  se pinta.** «Daqui até ao dia, o trabalho é nosso» não se diz de um dia
+  que já foi — a página é memória (roteiro §10). E no dia zero de um
+  pedido que nunca fechou (`caducaHoje`) cala-se o mesmo que no caducado —
+  excepto o «Esta data já passou», que nesse dia ainda mentiria.
+- **01/08/2026 — Erros de rede têm sempre um gesto no lugar.** A cortina
+  de erro ganha «Tentar novamente» (refaz o pedido, sem recarregar);
+  pedir código, verificar, guardar resposta e abrir a avaliação com a
+  rede em baixo dizem o que aconteceu junto ao gesto — nunca em silêncio,
+  nunca só no topo da página fora do ecrã.
+- **01/08/2026 — Alvos de toque ≥44px sem mudar o desenho.** O sublinhado
+  vive num `<span>` interior e o alvo cresce por padding compensado com
+  margens negativas. `#9B9B9B` saiu de tudo o que se clica (a regra dura
+  da identidade); a `LigacaoDiscreta` corrigiu-se na origem.
+- **01/08/2026 — `prefers-reduced-motion` passa a valer de uma vez** via
+  `MotionConfig reducedMotion="user"` no App — deixa de depender de cada
+  componente se lembrar da regra. E a mola das novidades corre UMA vez por
+  janela de visita (sessionStorage com o carimbo da visita anterior).
+- **01/08/2026 — `formatarEuroPT` fica «1 291,50 €»** (espaço nos
+  milhares, espaço antes do €), contra a letra da identidade §2
+  («1500,50€»). Porquê: é o formato dos documentos que a cliente recebe, e
+  a coerência portal↔papel manda mais do que o guia. Fica anotado para o
+  Hélio decidir se o guia se corrige ou o formato muda nos dois sítios ao
+  mesmo tempo.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

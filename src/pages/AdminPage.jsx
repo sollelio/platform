@@ -193,11 +193,35 @@ export default function AdminPage() {
   // Notificação a abrir já expandida (quando se vem do toast)
   const [notifDestaque, setNotifDestaque] = useState(null);
 
-  // "Abrir ficha completa" de uma notificação → o drawer do evento.
-  // O evento pode ainda não estar em memória (acabou de chegar):
-  // procura primeiro no estado, senão vai buscá-lo à BD.
-  const handleAbrirEventoDeNotificacao = async (submissionId) => {
+  // "Abrir ficha completa" de uma notificação → o sítio onde o PRÓPRIO
+  // aviso manda ir. Um pedido de código diz «emita o código na folha do
+  // evento» — abrir o drawer da captação era prometer uma coisa e
+  // entregar outra. Só a captação fica no drawer.
+  const handleAbrirEventoDeNotificacao = async (submissionId, tipo) => {
     if (!submissionId) return;
+    // Estes quatro tratam-se na folha do Acompanhamento — a página do
+    // evento abre-a por state, consumido uma vez (padrão do realce).
+    if (
+      ["codigo_pedido", "pedido_alteracao", "contrato_papel", "questionario_pedido"].includes(tipo)
+    ) {
+      setNotifAberto(false);
+      navigate(`/evento/${submissionId}`, {
+        state: { abrirAcompanhamento: true },
+      });
+      return;
+    }
+    // As respostas lêem-se na própria página do evento.
+    if (tipo === "questionario_entregue") {
+      setNotifAberto(false);
+      navigate(`/evento/${submissionId}`);
+      return;
+    }
+    // A avaliação vive no separador Avaliações.
+    if (tipo === "avaliacao_recebida") {
+      setNotifAberto(false);
+      navigate(caminhoDoSeparador("avaliacoes"));
+      return;
+    }
     let ev = submissions.find((s) => s.id === submissionId);
     if (!ev) {
       const { data } = await supabase
@@ -212,7 +236,7 @@ export default function AdminPage() {
       setSelected(ev);
     } else {
       setErroEstado(
-        "Não foi possível abrir este evento — recarrega a página e tenta outra vez.",
+        "Não foi possível abrir este evento — recarregue a página e tente novamente.",
       );
     }
   };
@@ -348,7 +372,7 @@ export default function AdminPage() {
         if (cancelado) return;
         if (!evento) {
           setErroEstado(
-            "Não foi possível encontrar o evento deste documento. Recarrega a página e volta a tentar a partir da ficha do evento.",
+            "Não foi possível encontrar o evento deste documento. Recarregue a página e volte a tentar a partir da ficha do evento.",
           );
           // Volta à lista em vez de deixar o ecrã eternamente "a
           // preparar": ela fica com o aviso à vista E com um sítio onde
@@ -362,7 +386,7 @@ export default function AdminPage() {
         console.error("Erro ao preparar o documento:", e);
         if (!cancelado) {
           setErroEstado(
-            "Não foi possível preparar o documento. Volta à ficha do evento e tenta outra vez.",
+            "Não foi possível preparar o documento. Volte à ficha do evento e tente novamente.",
           );
         }
       }
@@ -555,7 +579,7 @@ export default function AdminPage() {
         "Nenhum tipo de evento disponível para associar ao convite.",
       );
       setNewInviteErrors({
-        geral: "Não foi possível criar o formulário. Tenta novamente.",
+        geral: "Não foi possível criar o formulário. Tente novamente.",
       });
       return;
     }
@@ -605,7 +629,7 @@ export default function AdminPage() {
       console.error("Erro ao criar o formulário:", e);
       setNewInviteErrors({
         geral:
-          "Não foi possível criar o formulário. Verifica a ligação e tenta outra vez.",
+          "Não foi possível criar o formulário. Verifique a ligação e tente novamente.",
       });
     }
     setCreatingInvite(false);
@@ -631,7 +655,7 @@ export default function AdminPage() {
     } catch (e) {
       console.error("Erro ao apontar o convite ao evento:", e);
       setAvisoConvites(
-        "Não foi possível apontar o formulário ao evento (pode ter sido preenchido entretanto). Recarrega a página e tenta outra vez.",
+        "Não foi possível apontar o formulário ao evento (pode ter sido preenchido entretanto). Recarregue a página e tente novamente.",
       );
     }
   };
@@ -645,7 +669,7 @@ export default function AdminPage() {
       console.error("Erro ao remover convite:", error);
       // Fecha o modal ANTES de avisar — o véu escuro dele tapava a barra.
       setInviteToDelete(null);
-      setAvisoConvites("Não foi possível remover o formulário. Tenta novamente.");
+      setAvisoConvites("Não foi possível remover o formulário. Tente novamente.");
       return;
     }
     setInvites((prev) => prev.filter((i) => i.id !== inviteToDelete.id));
@@ -722,7 +746,7 @@ export default function AdminPage() {
     } else {
       console.error("Erro ao ir buscar convites:", error);
       setErroInvites(
-        "Não foi possível carregar os formulários. Recarrega a página.",
+        "Não foi possível carregar os formulários. Recarregue a página.",
       );
     }
     setLoadingInvites(false);

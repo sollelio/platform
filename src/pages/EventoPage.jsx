@@ -171,6 +171,37 @@ export default function EventoPage() {
     navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
+  // O separador do browser reafirma o título INTERNO no arranque: quem
+  // chega directo a /evento/:id (favorito, link colado) não pode ficar
+  // com o título público que o portal tenha deixado. O AdminPage já o
+  // repõe via notificacoes.js; esta é a outra porta de entrada.
+  useEffect(() => {
+    document.title = "Sistema DLM — Do Luxo à Mesa";
+  }, []);
+
+  // O aviso da Caixa de Entrada manda «trate na folha do Acompanhamento»
+  // — este state, consumido UMA vez (o padrão do realce), cumpre a
+  // promessa abrindo a folha assim que o evento pousa. Respeita o
+  // portalIndisponivel: num evento perdido ou caducado a folha não abre.
+  const [pedidoAcompanhamento, setPedidoAcompanhamento] = useState(false);
+  // O consumo faz-se DURANTE o render (estado preso ao location.state);
+  // só a limpeza do histórico fica no efeito — é ela o sistema externo.
+  if (location.state?.abrirAcompanhamento && !pedidoAcompanhamento) {
+    setPedidoAcompanhamento(true);
+  }
+  useEffect(() => {
+    if (!location.state?.abrirAcompanhamento) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
+  if (pedidoAcompanhamento && estado === "pronto" && submissao) {
+    const passou =
+      !!submissao.data_evento && submissao.data_evento < hojeISO;
+    const fechou = FASES_POS_SINAL.includes(submissao.fase);
+    const indisponivel = submissao.fase === "perdido" || (passou && !fechou);
+    if (!indisponivel) setPortalAberto(true);
+    setPedidoAcompanhamento(false);
+  }
+
   const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;
 
   // MONTAGEM PERSISTENTE: um separador visitado fica montado (escondido,
@@ -255,7 +286,7 @@ export default function EventoPage() {
         // lista de convites vazia, e a Jornada concluía «formulário por
         // criar» num evento que já tinha um respondido. Uma leitura que
         // falhou tem de parecer uma falha, não uma ausência.
-        const [evento, modelos, { data: convites }, pagamentos] =
+        const [evento, modelos, { data: convites }, pagamentos, fotos] =
           await Promise.all([
             getEventoCompleto(id),
             getEventTypes(),
@@ -265,6 +296,14 @@ export default function EventoPage() {
               .or(`submission_id.eq.${id},submission_alvo_id.eq.${id}`)
               .throwOnError(),
             getPagamentosEvento(id),
+            // Só a CONTAGEM (head) — é ela que dá a etiqueta da aba
+            // Fotografias sem esperar que a aba seja visitada, o mesmo
+            // padrão dos pagamentos. A aba continua a reportar ao
+            // montar, e fica certa depois de carregar/apagar.
+            supabase
+              .from("evento_fotografias")
+              .select("id", { count: "exact", head: true })
+              .eq("submission_id", id),
           ]);
         if (cancelado) return;
         if (!evento) {
@@ -275,6 +314,10 @@ export default function EventoPage() {
         setEventTypes(modelos || []);
         setInvites(convites || []);
         setPlano(pagamentos);
+        // Sem afirmar «0» quando a contagem em si falhou.
+        if (fotos && !fotos.error) {
+          reportarContagem("fotografias", fotos.count || 0);
+        }
         setEstado("pronto");
       } catch (erro) {
         if (cancelado) return;
@@ -285,7 +328,7 @@ export default function EventoPage() {
     return () => {
       cancelado = true;
     };
-  }, [id]);
+  }, [id, reportarContagem]);
 
   // Os ÓRFÃOS, à parte do Promise.all da carga principal e de propósito:
   // um órfão que não se leia é um aviso que não aparece, não uma página
@@ -493,7 +536,7 @@ export default function EventoPage() {
       </Centrado>
     );
   if (estado === "erro")
-    return <Centrado>Não foi possível abrir o evento. Tenta recarregar.</Centrado>;
+    return <Centrado>Não foi possível abrir o evento. Tente recarregar.</Centrado>;
 
   const numeroWhatsapp =
     getValorAtual(submissao, "numeroWhatsapp") ||
@@ -843,7 +886,7 @@ export default function EventoPage() {
           }}
         >
           <span style={{ fontSize: "13px", color: "var(--charcoal)" }}>
-            Tens {porGuardar}{" "}
+            Tem {porGuardar}{" "}
             {porGuardar === 1 ? "alteração" : "alterações"} por guardar no
             briefing.
           </span>

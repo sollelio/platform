@@ -75,6 +75,13 @@ export default function AvaliacaoVista({ token }) {
     };
   }, [token]);
 
+  // Cada passo abre no topo, com a pergunta à vista. Seco, sem smooth —
+  // respeita o movimento reduzido por natureza. Cobre seguir, voltar e o
+  // obrigado.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [passo]);
+
   if (estado === "a-carregar") {
     return (
       <div style={{ padding: "34px 26px 32px" }}>
@@ -85,10 +92,30 @@ export default function AvaliacaoVista({ token }) {
     );
   }
 
+  // Uma falha de rede não é falta de convite: tem ecrã próprio e o gesto de
+  // tentar de novo — o padrão do questionário. O redirect fica só para quem
+  // não foi mesmo convidada.
+  if (estado === "erro") {
+    return (
+      <div style={{ padding: "34px 26px 32px" }}>
+        <p style={overline()}>A avaliação</p>
+        <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.28, margin: "14px 0 0", textWrap: "balance" }}>
+          Não conseguimos abrir agora.
+        </p>
+        <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
+          Nada se perdeu. Verifique a ligação e volte a tentar.
+        </p>
+        <CapsulaVazada onClick={() => navigate(0)} style={{ marginTop: "26px" }}>
+          Tentar outra vez
+        </CapsulaVazada>
+      </div>
+    );
+  }
+
   // Ainda não passaram os três dias, ou o negócio não fechou. Não há convite
   // nenhum — e quem chega aqui de endereço directo volta ao acompanhamento
   // em vez de ver um ecrã a explicar-se.
-  if (estado === "erro" || !dados?.convidada) {
+  if (!dados?.convidada) {
     return <Navigate to={`/acompanhar/${token}`} replace />;
   }
 
@@ -105,6 +132,14 @@ export default function AvaliacaoVista({ token }) {
     setPasso(prox);
   };
 
+  // O caminho inverso, com o mesmo salto sobre o ecrã da fotografia.
+  const anterior = () => {
+    const i = PASSOS.indexOf(passo);
+    let ant = PASSOS[i - 1];
+    if (ant === "foto" && fotos.length === 0) ant = "eixos";
+    setPasso(ant);
+  };
+
   const enviar = async () => {
     if (aEnviar) return;
     setAEnviar(true);
@@ -112,9 +147,13 @@ export default function AvaliacaoVista({ token }) {
     try {
       const r = await enviarAvaliacao(token, {
         frase: frase.trim(),
-        eixos: eixosRespondidos(valores),
+        // Com o mapa em mão cada resposta leva o rótulo — sem ele, o
+        // separador Avaliações mostrava chaves de máquina à Nádia.
+        eixos: eixosRespondidos(valores, eixos),
         fotografia: foto,
-        autorizar: autorizar === true,
+        // Sem frase não há nada para publicar — nunca se grava autorização
+        // do vazio.
+        autorizar: frase.trim() !== "" && autorizar === true,
         nomeComo,
       });
       if (r?.estado !== "ok") {
@@ -146,7 +185,7 @@ export default function AvaliacaoVista({ token }) {
 
   return (
     <div style={{ padding: "30px 26px 32px" }}>
-      <Percurso passo={passo} />
+      <Percurso passo={passo} temFotos={fotos.length > 0} />
 
       {passo === "frase" && (
         <AFrase
@@ -164,6 +203,7 @@ export default function AvaliacaoVista({ token }) {
           valores={valores}
           aoMudar={(chave, v) => setValores((x) => ({ ...x, [chave]: v }))}
           aoSeguir={seguinte}
+          aoVoltar={anterior}
         />
       )}
 
@@ -177,6 +217,7 @@ export default function AvaliacaoVista({ token }) {
             setFoto(null);
             seguinte();
           }}
+          aoVoltar={anterior}
         />
       )}
 
@@ -191,15 +232,23 @@ export default function AvaliacaoVista({ token }) {
           aEnviar={aEnviar}
           erro={erro}
           aoEnviar={enviar}
+          aoVoltar={anterior}
+          aoCorrigirFrase={() => setPasso("frase")}
         />
       )}
     </div>
   );
 }
 
-// ---------- O percurso: três losangos, sem números e sem barra ----------
-function Percurso({ passo }) {
-  const ordem = ["frase", "eixos", "foto"];
+// ---------- O percurso: losangos, sem números e sem barra ----------
+//
+// A ordem inclui a autorização — senão o percurso apagava-se no último
+// passo e parecia que o fluxo tinha reiniciado — e só conta o ecrã da
+// fotografia quando ele existe.
+function Percurso({ passo, temFotos }) {
+  const ordem = temFotos
+    ? ["frase", "eixos", "foto", "autorizar"]
+    : ["frase", "eixos", "autorizar"];
   const i = ordem.indexOf(passo);
   return (
     <div style={{ display: "flex", justifyContent: "center", gap: "7px" }}>
@@ -246,14 +295,15 @@ function AFrase({ valor, aoMudar, aoSeguir, aoSaltar, jaRespondeu }) {
         }}
       >
         <p style={overline("#9B9B9B", "0.22em", "9px")}>Por palavras suas</p>
+        {/* Sem autoFocus — o teclado não salta à chegada — e a 16px o iOS
+            não dá zoom ao focar. O Playfair itálico mantém a voz. */}
         <textarea
           value={valor}
           onChange={(e) => aoMudar(e.target.value)}
           rows={3}
-          autoFocus
           placeholder="Ninguém se queria sentar, para não desfazer a mesa…"
           style={{
-            ...playfair, fontStyle: "italic", fontSize: "15.5px", lineHeight: 1.75,
+            ...playfair, fontStyle: "italic", fontSize: "16px", lineHeight: 1.75,
             color: "var(--charcoal)", width: "100%", boxSizing: "border-box",
             minHeight: "88px", marginTop: "12px", padding: "0 0 10px",
             background: "transparent", border: "none",
@@ -284,7 +334,7 @@ function AFrase({ valor, aoMudar, aoSeguir, aoSaltar, jaRespondeu }) {
 // O MESMO ECRÃ, com perguntas diferentes: muda o que se pergunta, nunca a
 // forma. A tranquilidade fecha sempre, depois de um filete e maior que as
 // outras — é a resposta que vale mais.
-function OsEixos({ eixos, valores, aoMudar, aoSeguir }) {
+function OsEixos({ eixos, valores, aoMudar, aoSeguir, aoVoltar }) {
   const doServico = eixos.filter((e) => !e.sempre);
   const sempre = eixos.filter((e) => e.sempre);
 
@@ -337,6 +387,11 @@ function OsEixos({ eixos, valores, aoMudar, aoSeguir }) {
       <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "15px 0 0", textAlign: "center", textWrap: "pretty" }}>
         As linhas em que não tocar ficam por responder. Não faz mal nenhum.
       </p>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
+        <LigacaoDiscreta onClick={aoVoltar} apagada>
+          voltar
+        </LigacaoDiscreta>
+      </div>
     </>
   );
 }
@@ -358,6 +413,17 @@ function Eixo({ eixo, valor, aoMudar, grande, style }) {
         max={100}
         value={respondido ? valor : 50}
         aria-label={`${eixo.rotulo} — de «${eixo.esquerda}» a «${eixo.direita}»`}
+        // As palavras das pontas, não «50 de 100» — o número fica só para o
+        // servidor.
+        aria-valuetext={
+          !respondido
+            ? "por responder"
+            : valor < 25
+              ? eixo.esquerda
+              : valor > 75
+                ? eixo.direita
+                : `entre ${eixo.esquerda} e ${eixo.direita}`
+        }
         onChange={(e) => aoMudar(Number(e.target.value))}
         style={{ marginTop: "4px" }}
       />
@@ -374,9 +440,11 @@ function Eixo({ eixo, valor, aoMudar, grande, style }) {
 }
 
 // ---------- Ecrã 5 · A fotografia preferida ----------
-function AFotografia({ fotos, escolhida, aoEscolher, aoSeguir, aoSaltar }) {
-  const mostradas = fotos.slice(0, 6);
-  const resto = fotos.length - mostradas.length;
+//
+// TODAS as fotografias são escolhíveis — a preferida real pode ser a
+// décima. A grelha 2×N rola, como o mosaico.
+function AFotografia({ fotos, escolhida, aoEscolher, aoSeguir, aoSaltar, aoVoltar }) {
+  const mostradas = fotos;
   const escolhidaComConvidados = fotos.find(
     (f) => f.pequena === escolhida && f.com_convidados,
   );
@@ -433,12 +501,6 @@ function AFotografia({ fotos, escolhida, aoEscolher, aoSeguir, aoSaltar }) {
         })}
       </div>
 
-      {resto > 0 && (
-        <p style={{ fontSize: "11px", color: "#9B9B9B", margin: "10px 0 0", textAlign: "center" }}>
-          e mais {resto}
-        </p>
-      )}
-
       {escolhidaComConvidados && (
         <p style={{ fontSize: "11.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "16px 0 0", textWrap: "pretty" }}>
           Escolheu uma com convidados: essa fica só para nós. As pessoas que lá
@@ -455,6 +517,11 @@ function AFotografia({ fotos, escolhida, aoEscolher, aoSeguir, aoSaltar }) {
           Prefiro não escolher
         </LigacaoDiscreta>
       </div>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
+        <LigacaoDiscreta onClick={aoVoltar} apagada>
+          voltar
+        </LigacaoDiscreta>
+      </div>
     </>
   );
 }
@@ -466,6 +533,7 @@ function AFotografia({ fotos, escolhida, aoEscolher, aoSeguir, aoSaltar }) {
 // inerte até ela escolher.
 function AAutorizacao({
   frase, foto, autorizar, aoAutorizar, nomeComo, aoNome, aEnviar, erro, aoEnviar,
+  aoVoltar, aoCorrigirFrase,
 }) {
   const NOMES = [
     { valor: "completo", label: "Nome completo" },
@@ -494,47 +562,72 @@ function AAutorizacao({
           <p style={{ ...playfair, fontStyle: "italic", fontSize: "15.5px", lineHeight: 1.75, color: "var(--charcoal)", margin: "11px 0 0", textWrap: "pretty" }}>
             {frase}
           </p>
+          {/* A frase vista daqui pode ter a vírgula a mais — corrige-se sem
+              recomeçar o fluxo. */}
+          <p style={{ margin: "12px 0 0" }}>
+            <LigacaoDiscreta onClick={aoCorrigirFrase} apagada style={{ fontSize: "10.5px" }}>
+              corrigir
+            </LigacaoDiscreta>
+          </p>
         </div>
       )}
 
-      <p style={{ ...overline("#9B9B9B", "0.22em", "9px"), marginTop: "22px" }}>
-        O nome por baixo
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginTop: "10px" }}>
-        {NOMES.map((n) => (
-          <button
-            key={n.valor}
-            onClick={() => aoNome(n.valor)}
-            style={{
-              fontSize: "11px", fontFamily: "Inter, sans-serif",
-              borderRadius: "999px", padding: "7px 13px", cursor: "pointer",
-              color: nomeComo === n.valor ? "#A07830" : "var(--gray-mid)",
-              backgroundColor: nomeComo === n.valor ? "#FEF9EC" : "white",
-              border: `1px solid ${nomeComo === n.valor ? "var(--gold)" : "#E8DCC0"}`,
-            }}
-          >
-            {n.label}
-          </button>
-        ))}
-      </div>
+      {/* SEM FRASE NÃO HÁ NADA PARA PUBLICAR — nem nome, nem escolha de
+          publicação: autorizar o vazio não se grava. */}
+      {frase ? (
+        <>
+          <p style={{ ...overline("#9B9B9B", "0.22em", "9px"), marginTop: "22px" }}>
+            O nome por baixo
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginTop: "10px" }}>
+            {NOMES.map((n) => (
+              <button
+                key={n.valor}
+                onClick={() => aoNome(n.valor)}
+                style={{
+                  fontSize: "11px", fontFamily: "Inter, sans-serif",
+                  borderRadius: "999px", padding: "12px 15px", cursor: "pointer",
+                  color: nomeComo === n.valor ? "#A07830" : "var(--gray-mid)",
+                  backgroundColor: nomeComo === n.valor ? "#FEF9EC" : "white",
+                  border: `1px solid ${nomeComo === n.valor ? "var(--gold)" : "#E8DCC0"}`,
+                }}
+              >
+                {n.label}
+              </button>
+            ))}
+          </div>
 
-      <p style={{ ...overline("#9B9B9B", "0.22em", "9px"), marginTop: "22px" }}>
-        A publicação
-      </p>
-      <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        <Escolha
-          activa={autorizar === true}
-          titulo="Pode aparecer no nosso site"
-          corpo="Com o nome que escolher, e nunca mais do que a frase."
-          aoTocar={() => aoAutorizar(true)}
-        />
-        <Escolha
-          activa={autorizar === false}
-          titulo="Fica só para a casa"
-          corpo="Serve-nos para saber o que melhorar, e não sai daqui."
-          aoTocar={() => aoAutorizar(false)}
-        />
-      </div>
+          <p style={{ ...overline("#9B9B9B", "0.22em", "9px"), marginTop: "22px" }}>
+            A publicação
+          </p>
+          <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Escolha
+              activa={autorizar === true}
+              titulo="Pode aparecer no nosso site"
+              corpo="Com o nome que escolher, e nunca mais do que a frase."
+              aoTocar={() => aoAutorizar(true)}
+            />
+            <Escolha
+              activa={autorizar === false}
+              titulo="Fica só para a casa"
+              corpo="Serve-nos para saber o que melhorar, e não sai daqui."
+              aoTocar={() => aoAutorizar(false)}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "20px 0 0", textWrap: "pretty" }}>
+            Não escreveu nenhuma frase — não há nada para publicar. O resto
+            segue na mesma.
+          </p>
+          <p style={{ margin: "12px 0 0" }}>
+            <LigacaoDiscreta onClick={aoCorrigirFrase}>
+              escrever uma frase
+            </LigacaoDiscreta>
+          </p>
+        </>
+      )}
 
       {foto?.com_convidados && (
         <p style={{ fontSize: "11.5px", lineHeight: 1.7, color: "#9B9B9B", margin: "14px 0 0", textWrap: "pretty" }}>
@@ -554,12 +647,17 @@ function AAutorizacao({
           Estava escrita à mão e saía noutro amarelo. */}
       <CapsulaCheia
         onClick={aoEnviar}
-        inerte={autorizar === null}
+        inerte={frase ? autorizar === null : false}
         aTrabalhar={aEnviar}
         style={{ marginTop: "22px" }}
       >
         {aEnviar ? "A enviar…" : "Enviar a avaliação"}
       </CapsulaCheia>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
+        <LigacaoDiscreta onClick={aoVoltar} apagada>
+          voltar
+        </LigacaoDiscreta>
+      </div>
     </>
   );
 }
