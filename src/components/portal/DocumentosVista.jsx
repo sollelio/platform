@@ -4,7 +4,7 @@ import logoUrl from "../../assets/logo.png";
 import { Esqueleto } from "../admin/acabamento";
 import {
   overline, playfair, diaMesAno, diaEMes, horaCurta, formatarEuroPT,
-  WHATSAPP_URL, lerSessao, guardarSessao, diferencasDeOrcamento,
+  WHATSAPP_URL, lerSessao, guardarSessao, esquecerSessao, diferencasDeOrcamento,
 } from "./base";
 import {
   FileteComLosango, CartaoBranco, Medalhao, EngasteVazio, VistoDourado,
@@ -555,7 +555,7 @@ function Lista({ token, meta }) {
 
 // ---------- o fluxo do código ----------
 
-function FluxoCodigo({ token, tipo, versao, meta, onVerificado, onRecarregarMeta }) {
+function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onRecarregarMeta }) {
   // O «agora» fixa-se quando o ecrã abre: o render tem de ser puro, e a
   // pergunta «já passaram duas horas?» não precisa de relógio vivo.
   const [agora] = useState(() => new Date().getTime());
@@ -595,6 +595,10 @@ function FluxoCodigo({ token, tipo, versao, meta, onVerificado, onRecarregarMeta
     setATrabalhar(true);
     try {
       await pedirCodigo(token, tipo);
+      // Este pedido matou, no servidor, o código anterior e a sessão que ele
+      // tivesse aberto (061). A local vai atrás — senão o ecrã continuava a
+      // mostrar valores com uma sessão que já não existe.
+      esquecerSessao(token);
       await onRecarregarMeta();
       setRecusa(null);
       setModo("espera");
@@ -615,6 +619,20 @@ function FluxoCodigo({ token, tipo, versao, meta, onVerificado, onRecarregarMeta
         titulo={titulo}
         direita={<span style={{ fontSize: "10.5px", color: "#9B9B9B" }}>valores velados</span>}
       />
+
+      {/* Ela escreveu um código há minutos e está a ver este ecrã outra vez.
+          Sem uma linha a dizer porquê, isto lê-se como avaria — e o que se
+          passa é uma regra: assinar não se autoriza com um código que veio
+          para ver o orçamento. Diz-se, e diz-se sem culpa nenhuma dela. */}
+      {motivo === "outro_documento" && (
+        <div style={{ margin: "16px 26px 0", padding: "13px 15px", backgroundColor: "#FEF9EC", border: "1px solid #E8D5A3", borderRadius: "3px" }}>
+          <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--charcoal)", margin: 0, textWrap: "pretty" }}>
+            O código que usou foi pedido para ver outro documento. Assinar é o
+            passo que fecha o contrato — por isso pede um código pedido a
+            partir daqui.
+          </p>
+        </div>
+      )}
 
       {modo === "espera" && (
         <div style={{ padding: "44px 30px 0", textAlign: "center" }}>
@@ -900,6 +918,11 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
   const [papelEnviado, setPapelEnviado] = useState(false);
   const [versaoAntiga, setVersaoAntiga] = useState(null);
   const [recarga, setRecarga] = useState(0);
+  // Porque é que ela está no ecrã do código. Sem isto, ser recusada por ter
+  // um código de outro documento mostrava-lhe o mesmo pedido de sempre — e
+  // acabar de escrever um código para ouvir «peça o código» é avaria, não
+  // é regra.
+  const [motivoCodigo, setMotivoCodigo] = useState(null);
 
   const sessao = lerSessao(token);
   const sessaoId = sessao?.id || null;
@@ -985,6 +1008,14 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
         setPasso("feito");
         setRecarga((x) => x + 1);
       } else if (r?.estado === "precisa_codigo") {
+        // Duas razões diferentes, e confundi-las era mandá-la escrever
+        // outra vez o código que acabou de escrever. `codigo_de_outro_
+        // documento` (061) quer dizer que a sessão está viva, mas nasceu
+        // noutro documento — e assinar exige um código pedido AQUI.
+        if (r?.motivo === "codigo_de_outro_documento") {
+          esquecerSessao(token);
+          setMotivoCodigo("outro_documento");
+        }
         setPasso("codigo");
       } else if (r?.estado === "nome_em_falta") {
         setErro("Falta o nome completo.");
@@ -1094,6 +1125,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
       <FluxoCodigo
         token={token}
         tipo={tipo}
+        motivo={motivoCodigo}
         versao={doc.versao}
         meta={meta}
         onRecarregarMeta={recarregarMeta}
@@ -1370,6 +1402,11 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 setATrabalhar(true);
                 try {
                   await pedirCodigo(token, tipo);
+                  // Do lado do servidor este pedido matou o código anterior
+                  // e a sessão dele (061). Deitar fora a local mantém o
+                  // ecrã a dizer a verdade.
+                  esquecerSessao(token);
+                  setMotivoCodigo(null);
                   await recarregarMeta();
                   setPasso("codigo");
                 } catch (e) {

@@ -481,11 +481,34 @@ tempo. Os três primeiros eram graves.
 importa, e é a única que exige a coreografia toda (publicar, carregar,
 publicar outra vez, e só então confirmar).
 
-**Ainda por decidir** (não são bugs, são escolhas tuas):
-- Um código pedido para o orçamento **autoriza assinar o contrato** durante
-  60 minutos, e o registo diz «verificado com o código». É verdade a meias.
-- **«Pedir outro código» não anula o anterior** — quem desconfie que lho
-  viram não tem como o matar.
+### 7.2 · As duas coisas em aberto — fechadas (migração 061)
+
+Estavam aqui duas escolhas por decidir. Ao ir resolvê-las, a segunda
+revelou-se **pior do que estava escrita**.
+
+- **Um código do orçamento já não assina o contrato.** Só o acto de
+  ASSINAR ficou apertado: é o que tranca e o que fica como prova, e é o
+  único onde «verificado com o código» tem de ser verdade inteira. Aceitar
+  o orçamento e pedir alteração ficam como estavam — apertá-los obrigava a
+  dois códigos para ler dois documentos, que é atrito sem ganho.
+- **«Pedir outro código» não é que não anulasse o anterior: não fazia
+  nada.** A função via um código vivo, devolvia «pedido» e saía — sem criar
+  pedido e **sem avisar a Nádia**. E o teste de «vivo» não olhava às
+  tentativas, por isso um código já morto às cinco falhas continuava a
+  bloquear pedidos novos. Efeito: a cliente errava cinco vezes, o portal
+  oferecia-lhe «Pedir outro código», ela carregava, via a página de espera
+  a dizer que a Nádia já sabia — e não sabia. Ficava encravada 24 horas.
+  Agora pedir outro **mata o anterior**, o código e a sessão que ele
+  abriu, e levanta um aviso novo que diz «pediu OUTRO código».
+
+Matar também a sessão foi decisão deliberada: matar só o código deixava de
+pé quem já o tinha usado, que é precisamente a pessoa de quem ela
+desconfia. Custo: se estava a ler com os valores abertos, volta a escrever
+um código — que é exactamente o que ela já ia fazer.
+
+**As verificações da 061** estão no fim do ficheiro dela. A **3.3** é a que
+importa: erra cinco vezes, pede outro, e confirma que **aparece mesmo um
+aviso novo** na Caixa de Entrada. Antes desta migração não aparecia nenhum.
 
 ---
 

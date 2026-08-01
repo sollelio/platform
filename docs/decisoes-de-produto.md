@@ -214,6 +214,23 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   alternativa era fazer sair do servidor o que ele decidiu não deixar
   sair.
 
+## Portal — o âmbito do código (01/08/2026)
+
+- **01/08/2026 — Só o acto de ASSINAR exige um código pedido a partir do
+  contrato.** Aceitar o orçamento e pedir alteração continuam a servir-se
+  de qualquer sessão viva. Porquê: assinar é o acto que TRANCA e que fica
+  como prova — é o único onde «verificado com o código» tem de ser verdade
+  inteira. Apertar os outros obrigava a dois códigos para ler dois
+  documentos: atrito sem ganho. Ler nunca foi apertado — o véu já decide o
+  que sai, e são os dados dela.
+- **01/08/2026 — Pedir outro código mata o anterior: o código E a sessão
+  que ele abriu.** Porquê: matar só o código deixava de pé quem já o tinha
+  usado, que é precisamente a pessoa de quem ela desconfia. Custo assumido:
+  se estava a ler com os valores abertos, volta a escrever um código — que
+  é o que ela já ia fazer de qualquer maneira. Um pedido **por atender**
+  continua a não gerar aviso repetido; isso é eco, e a Nádia já o tem à
+  frente.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

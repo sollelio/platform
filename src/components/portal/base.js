@@ -124,6 +124,17 @@ export const guardarSessao = (token, id, validaAte) => {
   }
 };
 
+// Pedir outro código MATA o anterior no servidor (061) — e mata a sessão
+// que ele tinha aberto. Aqui deita-se fora a que estava guardada, para o
+// ecrã não continuar a apresentar-se como quem tem entrada.
+export const esquecerSessao = (token) => {
+  try {
+    sessionStorage.removeItem(chaveSessao(token));
+  } catch {
+    /* nada a fazer — o servidor já a matou, que é o que conta */
+  }
+};
+
 // ---------- O que mudou entre duas versões do orçamento ----------
 //
 // Só o orçamento: é o único documento onde a diferença se diz em linhas e
