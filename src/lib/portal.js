@@ -278,6 +278,55 @@ export const registarActo = async (token, tipo, verificacaoId, acto, nome, mensa
   return data;
 };
 
+// ---------- Fase 3 · a assinatura em papel (059) ----------
+
+// Os contratos carregados em papel. A notificação é o único fio entre a
+// fotografia e o evento — o nome do ficheiro é aleatório de propósito, para
+// não levar o id do evento lá dentro.
+//
+// NÃO se filtra por `lida_em`. Foi o primeiro instinto e estava errado:
+// «aviso por ler» e «assinatura por confirmar» são dois estados sem nada em
+// comum, e abrir o aviso na Caixa de Entrada marca-o lido no servidor. A
+// Nádia lia o aviso que a mandava à folha do evento e, ao chegar lá, a
+// secção de confirmar já não existia — sem mensagem nenhuma a dizer porquê.
+// Quem manda a secção embora é a assinatura existir, e isso lê-se noutro
+// sítio (os actos da publicação).
+export const getPapelPorConfirmar = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("notificacoes")
+    .select("id, created_at, dados, lida_em")
+    .eq("tipo", "contrato_papel")
+    .eq("submission_id", eventoId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+// O balde é PRIVADO: a fotografia só se vê por URL assinado, e de curta
+// duração — quem a vê é a Nádia, autenticada, no momento em que confirma.
+export const urlDoContratoPapel = async (caminho) => {
+  const { data, error } = await supabase.storage
+    .from("contratos-assinados")
+    .createSignedUrl(caminho, 300);
+  if (error) throw error;
+  return data?.signedUrl || null;
+};
+
+// Confirma: grava o acto com o nome que está no papel, carimba e TRANCA.
+//
+// Vai pelo ID DO AVISO, não pelo caminho do ficheiro (060). O servidor tira
+// de lá tudo — o ficheiro, o evento, e o MOMENTO em que ela carregou. É o
+// momento que decide a versão: se saiu contrato novo entretanto, o acto fica
+// preso ao que ela teve mesmo na mão.
+export const confirmarContratoPapel = async (notificacaoId, nome) => {
+  const { data, error } = await supabase.rpc("dlm_portal_confirmar_papel", {
+    p_notificacao_id: notificacaoId,
+    p_nome: nome,
+  });
+  if (error) throw error;
+  return data;
+};
+
 // Os rótulos dos documentos, com a armadilha de sempre à vista:
 // `proposta` É o Projecto. Nunca foi o orçamento.
 export const ROTULO_DOCUMENTO = {

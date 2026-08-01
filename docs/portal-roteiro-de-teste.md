@@ -6,7 +6,7 @@ ecrã aparece**, **como o produzir** e **o que confirmar**.
 Lê-se por ordem: o evento vai avançando, e cada passo desbloqueia o seguinte.
 Não é uma lista de ficheiros — é um caminho.
 
-**Antes de começares:** as migrações **049 a 058** têm de estar corridas no
+**Antes de começares:** as migrações **049 a 060** têm de estar corridas no
 ambiente que vais testar. O portal abre em `/acompanhar/:token`; o token
 obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 
@@ -439,19 +439,49 @@ não portão).
 
 ---
 
-## 7 · O que NÃO tem caminho
+## 7 · As cinco peças sem caminho — resolvidas (01/08/2026)
 
-Estes vêm do desenho e **não conseguem aparecer** hoje. Não os procures.
+Estavam aqui cinco peças do desenho que não conseguiam aparecer. **Já não
+há nenhuma pendente**: três foram construídas, duas foram riscadas do
+desenho por decisão da casa. Fica o registo do que se decidiu e porquê.
 
-| O ecrã / a peça | Porquê | O que falta |
+| A peça | O que se decidiu | Onde ficou |
 |---|---|---|
-| **«Versão nova» — o cartão de diferenças** | O interstício existe, mas **sem o diff**: não mostra «da versão 1 para a 2», nem os riscados, nem o «subiu 18,45 €» | Ler as duas publicações e comparar linha a linha. Não está construído |
-| **Confirmação do contrato em papel** | A cliente carrega a fotografia e lê «Confirmamos e avisamos aqui» — mas **nenhum ecrã do backoffice mostra essa notificação nem o balde** | Uma secção na folha (ou na Caixa de Entrada) que leia `contrato_papel` e mostre o ficheiro |
-| **«As cores» dentro do Projecto** | O desenho põe a paleta no documento; o gerador de Projecto só guarda `titulo · imagem · descrição` | Ou o gerador ganha paleta, ou o desenho aceita que ela vive na divisão «As suas cores» |
-| **As linhas «Sem IVA» e «IVA 23%»** | O gerador de orçamento **não calcula IVA** — só soma as linhas. Mostro um Total só | Decisão da casa sobre facturação. **Não inventei imposto** |
-| **A «folha cortada»** | Escrevi a peça e não a uso: no telefone o documento rola inteiro, e o pé aparece no fim | Nada — é código morto, digo-o para não o procurares |
+| **«Versão nova» — o cartão de diferenças** | ✅ **Construído.** O interstício vai buscar a versão anterior pelo mesmo RPC e compara linha a linha: o que entrou, o que saiu, o que mudou de quantidade ou de valor, e o total antes → depois. Só no **orçamento** — no projecto e no contrato mudou texto, e um comparador de texto diria pior do que a Nádia diz na conversa. **Respeita o véu**: sem sessão diz «o valor mudou» e nunca o número | `base.js` (`diferencasDeOrcamento`) e `DocumentosVista.jsx` (`AvisoVersaoNova` + `CartaoDiferencas`) |
+| **Confirmação do contrato em papel** | ✅ **Construído — acto a sério, sem código.** A confirmação deixa no trilho o nome que está escrito no papel, quem confirmou, quando, e a fotografia; e **tranca** o contrato, tal como o digital. O portal mostra-lhe o mesmo repouso — «Assinado por…» — porque a projecção do acto nunca passou pela verificação | Migração **059** + `PortalDoClienteSheet.jsx` |
+| **«As cores» dentro do Projecto** | ❌ **Riscado do desenho.** A paleta já vive na divisão «As suas cores», tirada do questionário. Repeti-la no documento dizia a mesma coisa duas vezes — e obrigava o gerador de Projecto a guardar uma coisa que a Nádia nunca lá escreveu | Nada a construir |
+| **As linhas «Sem IVA» e «IVA 23%»** | ❌ **Riscado do desenho.** O valor que a Nádia escreve **é** o que a cliente paga: total único. Partir esse número em dois inventava um imposto que a casa não factura assim | Nada a construir |
+| **A «folha cortada»** | ✅ **Apagada.** Era código morto — no telefone o documento rola inteiro e o pé aparece no fim | `documentos-pecas.jsx` |
 
-**Também por decidir** (não são bugs, são escolhas tuas):
+**De caminho**, uma coisa que não estava na lista e apareceu ao puxar por
+ela: as três notificações do portal (`codigo_pedido`, `pedido_alteracao`,
+`contrato_papel`) caíam na Caixa de Entrada **com o molde da captação** —
+subtítulo «Pedido de interesse» debaixo de um título que dizia outra coisa,
+e o painel a procurar respostas de formulário que nunca existiram. Passam a
+ter resumo e painel próprios, com o passo seguinte à vista.
+
+### 7.1 · O que a revisão apanhou depois de tudo testado (migração 060)
+
+Passei as três peças novas por quatro lentes independentes. Encontrou
+defeitos que **nenhum teste manual apanharia**: todos precisam de duas
+fotografias, ou de uma versão publicada a meio, ou de duas mãos ao mesmo
+tempo. Os três primeiros eram graves.
+
+| O defeito | O que acontecia | Onde |
+|---|---|---|
+| **O cartão de diferenças era código morto** | O efeito lia `r.doc`, e a RPC devolve o documento direito — sem embrulho. A guarda disparava sempre e o cartão nunca chegava a ser pintado. Por isso «tudo a funcionar» e o cartão nunca apareceu | `DocumentosVista.jsx` |
+| **Ler o aviso apagava a fila do papel** | Usei «aviso por ler» como sinal de «assinatura por confirmar» — dois estados sem nada em comum. Abrir o cartão na Caixa de Entrada marca-o lido no servidor; ela seguia o «Abrir ficha completa» que o próprio aviso manda seguir e, ao chegar lá, a secção de confirmar já não existia. E «marcar todas como lidas» destruía as filas de todos os eventos de uma vez | `portal.js`, `PortalDoClienteSheet.jsx` |
+| **Sob o véu, o cartão calava as mudanças de preço** | O servidor **tira** a chave `valor` das linhas: sem código, a comparação não vê alteração de preço nenhuma. O ramo que prometia dizer «e o valor mudou» era inalcançável, e a lista aparecia como se fosse completa | `base.js` |
+| **O acto ficava preso à versão mais alta** | Se publicasses contrato novo depois de ela ter assinado o antigo em papel, ficava registado que ela assinou um texto que nunca viu — a mesma regressão que a 058 §3 corrigiu no digital | migração **060** |
+| **A segunda fotografia não chegava** | A 058 suprime avisos repetidos na mesma hora. Ela carregava uma tremida, carregava logo a boa, e confirmavas contra a tremida | migração **060** |
+| **`ja_assinado` deixava o cartão eterno** | e o aviso nunca saía da Caixa de Entrada | migração **060** |
+| **O pedido de alteração não mostrava a frase dela** | A cliente escreve o que quer mudar, fica guardado em `dados.mensagem` — e o painel dizia só «quer mudar alguma coisa». Era mandar-te telefonar a perguntar o que já tinhas em mãos | `CentroNotificacoes.jsx` |
+
+**As verificações da 060** estão no fim do ficheiro dela — a 4.1 é a que
+importa, e é a única que exige a coreografia toda (publicar, carregar,
+publicar outra vez, e só então confirmar).
+
+**Ainda por decidir** (não são bugs, são escolhas tuas):
 - Um código pedido para o orçamento **autoriza assinar o contrato** durante
   60 minutos, e o registo diz «verificado com o código». É verdade a meias.
 - **«Pedir outro código» não anula o anterior** — quem desconfie que lho

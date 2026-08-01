@@ -175,6 +175,45 @@ o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
   botão não desaparece (o «cliente novo» fica), a disrupção é pequena, e
   avisos bloqueantes ensinam a dispensar avisos.
 
+## Portal do Cliente — as peças do desenho sem caminho (01/08/2026)
+
+Cinco peças vinham do desenho e não conseguiam aparecer no código. Decididas
+uma a uma; **duas foram riscadas do desenho, não construídas**.
+
+- **01/08/2026 — Não há IVA no orçamento: o total é único.** O valor que a
+  Nádia escreve **é** o que a cliente paga. Porquê: partir esse número em
+  «sem IVA» + «IVA 23%» inventava um imposto que a casa não factura assim,
+  e obrigava o gerador a calcular uma coisa que ninguém lá escreve. O
+  desenho tinha as duas linhas; saem do desenho.
+- **01/08/2026 — A paleta vive na divisão «As suas cores», não dentro do
+  Projecto.** Porquê: já está lá, tirada do questionário. Repeti-la no
+  documento dizia a mesma coisa duas vezes e obrigava o gerador de Projecto
+  (que só guarda `titulo · imagem · descrição`) a passar a guardar cores
+  que a Nádia nunca escreveu.
+- **01/08/2026 — A assinatura em papel deixa acto A SÉRIO no trilho, sem
+  código.** Fica quem assinou (o nome escrito no papel), quem confirmou (a
+  Nádia), quando, e a fotografia — e **tranca** o contrato, tal como o
+  digital. Porquê: a alternativa era um carimbo de segunda categoria, e
+  metade das clientes desta casa assina em papel. Não se lhes dá prova
+  mais fraca por isso. Custo: `portal_actos.verificacao_id` passou a
+  nullable, com um `CHECK` a garantir que há **sempre uma** das duas
+  provas. Não se pediu código à cliente: o código prova que é ela do outro
+  lado da ligação, e no papel quem responde por isso é a Nádia a olhar
+  para a folha.
+- **01/08/2026 — O cartão de diferenças é só do orçamento.** Compara linha
+  a linha entre versões: o que entrou, o que saiu, o que mudou. Porquê:
+  no projecto e no contrato o que muda é texto, e um comparador de texto
+  diria pior do que a Nádia diz na conversa.
+- **01/08/2026 — Sob o véu, o cartão de diferenças nomeia o que não
+  consegue ver.** O servidor não põe os valores a zero: **tira** a chave
+  `valor` das linhas. Logo, sem código, a comparação é cega a alterações
+  de preço — e um cartão chamado «O que mudou» que cala uma subida de
+  preço é pior do que cartão nenhum, porque dá por completa uma lista que
+  não é. Decisão: mostra o que sabe (que serviços entraram e saíram) e
+  acrescenta que os valores não aparecem sem o código. Porquê: a
+  alternativa era fazer sair do servidor o que ele decidiu não deixar
+  sair.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

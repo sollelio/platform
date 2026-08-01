@@ -123,3 +123,73 @@ export const guardarSessao = (token, id, validaAte) => {
     /* privado/cheio — a sessão vive só em memória nesta visita */
   }
 };
+
+// ---------- O que mudou entre duas versões do orçamento ----------
+//
+// Só o orçamento: é o único documento onde a diferença se diz em linhas e
+// valores. No projecto e no contrato mudou o texto, e um comparador de
+// texto diria pior do que a Nádia diz na conversa.
+//
+// Compara por `uid` — o identificador que a linha traz do orçamento — e só
+// cai na descrição quando não há uid. Isto importa: sem ele, mudar o nome
+// de um serviço aparecia como um a sair e outro a entrar.
+//
+// O VÉU, e o que ele custa: sem sessão verificada o servidor não põe o
+// valor a zero — TIRA a chave `valor` das linhas (058, `v_el - 'valor'`).
+// Logo esta função não consegue ver alterações de preço nenhumas: os dois
+// lados ficam iguais e `valorMudou` é sempre falso.
+//
+// Isso NÃO se resolve aqui, e ainda bem — resolvê-lo era fazer sair do
+// servidor o que ele decidiu não deixar sair. Resolve-se em quem mostra:
+// sob véu o cartão diz o que sabe (que serviços entraram e saíram) e nomeia
+// o que não pode saber, em vez de dar a lista por completa.
+export const diferencasDeOrcamento = (antes, depois) => {
+  const lin = (d) => (Array.isArray(d?.instantaneo?.linhas) ? d.instantaneo.linhas : []);
+  const chave = (l, i) => l.uid || `d:${(l.descricao || "").trim().toLowerCase()}|${i}`;
+
+  const mapaAntes = new Map();
+  lin(antes).forEach((l, i) => mapaAntes.set(chave(l, i), l));
+
+  const vistas = new Set();
+  const entraram = [];
+  const mudaram = [];
+
+  lin(depois).forEach((l, i) => {
+    const k = chave(l, i);
+    vistas.add(k);
+    const a = mapaAntes.get(k);
+    if (!a) {
+      entraram.push({ nome: l.descricao || "Serviço", qtd: l.qtd, valor: l.valor });
+      return;
+    }
+    const qtdMudou = (Number(a.qtd) || 0) !== (Number(l.qtd) || 0);
+    const valorMudou = (Number(a.valor) || 0) !== (Number(l.valor) || 0);
+    if (qtdMudou || valorMudou) {
+      mudaram.push({
+        nome: l.descricao || "Serviço",
+        qtdAntes: a.qtd, qtdDepois: l.qtd,
+        valorAntes: a.valor, valorDepois: l.valor,
+        qtdMudou, valorMudou,
+      });
+    }
+  });
+
+  const sairam = [];
+  mapaAntes.forEach((l, k) => {
+    if (!vistas.has(k)) sairam.push({ nome: l.descricao || "Serviço" });
+  });
+
+  const soma = (d) =>
+    lin(d).reduce((acc, l) => acc + (Number(l.qtd) || 0) * (Number(l.valor) || 0), 0);
+  const totalAntes = soma(antes);
+  const totalDepois = soma(depois);
+
+  return {
+    entraram, sairam, mudaram,
+    totalAntes, totalDepois,
+    // Com véu os valores vêm a zero dos dois lados: a diferença de total
+    // não se mostra, porque não se sabe.
+    totalMudou: totalAntes !== totalDepois,
+    houve: entraram.length > 0 || sairam.length > 0 || mudaram.length > 0,
+  };
+};

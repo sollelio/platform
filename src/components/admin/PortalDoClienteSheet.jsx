@@ -11,6 +11,9 @@ import {
   getPedidosCodigo,
   publicarDocumento,
   emitirCodigo,
+  getPapelPorConfirmar,
+  urlDoContratoPapel,
+  confirmarContratoPapel,
   ROTULO_DOCUMENTO,
 } from "../../lib/portal";
 import { documentosDoEvento } from "../../lib/documentos";
@@ -116,6 +119,11 @@ function Conteudo({ evento, onFechar }) {
   const [recarga, setRecarga] = useState(0);
   // O id do pedido cujo código acabou de ser copiado (feedback do botão).
   const [copiadoCodigo, setCopiadoCodigo] = useState(null);
+  // O nome tal como está escrito no papel — é ele que fica no trilho.
+  const [nomeNoPapel, setNomeNoPapel] = useState("");
+  // Bandeira PRÓPRIA: com a partilhada, confirmar o papel punha o botão de
+  // emitir código a dizer «A emitir…» sem nada estar a ser emitido.
+  const [aConfirmarPapel, setAConfirmarPapel] = useState(false);
 
   const eventoId = evento.id;
 
@@ -126,15 +134,16 @@ function Conteudo({ evento, onFechar }) {
       documentosDoEvento(eventoId),
       getPublicacoes(eventoId),
       getPedidosCodigo(eventoId),
+      getPapelPorConfirmar(eventoId),
     ])
-      .then(([a, docs, pubs, pedidos]) => {
+      .then(([a, docs, pubs, pedidos, papeis]) => {
         if (!cancelado)
-          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos });
+          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis });
       })
       .catch((e) => {
         console.error(e);
         if (!cancelado)
-          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [] });
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [] });
       });
     return () => {
       cancelado = true;
@@ -146,6 +155,15 @@ function Conteudo({ evento, onFechar }) {
   const docs = resultado?.docs ?? [];
   const pubs = resultado?.pubs ?? [];
   const pedidos = resultado?.pedidos ?? [];
+  const papeis = resultado?.papeis ?? [];
+  // Quem manda a secção do papel embora é a ASSINATURA existir — não o
+  // aviso ter sido lido. Lê-se nos actos da publicação do contrato.
+  const contratoAssinado = pubs.some(
+    (p) =>
+      p.tipo === "contrato" &&
+      (p.portal_actos || []).some((x) => x.acto === "assinou"),
+  );
+  const papelPorConfirmar = contratoAssinado ? null : papeis[0] || null;
   const endereco = acesso ? enderecoDoPortal(acesso.token) : null;
 
   const copiar = () => {
@@ -218,6 +236,49 @@ function Conteudo({ evento, onFechar }) {
       setErro("Não foi possível emitir o código. Tente novamente.");
     } finally {
       setATrabalhar(false);
+    }
+  };
+
+  // O papel: ver a fotografia (URL assinado, 5 minutos) e confirmar com o
+  // nome que lá está escrito.
+  const verPapel = async (caminho) => {
+    setErro(null);
+    try {
+      const url = await urlDoContratoPapel(caminho);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível abrir a fotografia. Tente novamente.");
+    }
+  };
+
+  const confirmarPapel = async (notificacaoId) => {
+    if (aConfirmarPapel) return;
+    if (!nomeNoPapel.trim() || nomeNoPapel.trim().length < 3) {
+      setErro("Escreva o nome tal como está no papel — é ele que fica no registo.");
+      return;
+    }
+    setAConfirmarPapel(true);
+    setErro(null);
+    try {
+      const r = await confirmarContratoPapel(notificacaoId, nomeNoPapel.trim());
+      if (r?.estado === "ja_assinado") {
+        setErro("Este contrato já estava assinado — nada mudou.");
+      }
+      setNomeNoPapel("");
+      setRecarga((x) => x + 1);
+    } catch (e) {
+      console.error(e);
+      const m = e?.message || "";
+      setErro(
+        /SEM_CONTRATO_PUBLICADO/.test(m)
+          ? "Não há contrato publicado neste evento — publique-o antes de confirmar."
+          : /FICHEIRO_NAO_ENCONTRADO/.test(m)
+            ? "A fotografia já não está no arquivo. Peça-lhe que a carregue outra vez."
+            : "Não foi possível confirmar. Tente novamente.",
+      );
+    } finally {
+      setAConfirmarPapel(false);
     }
   };
 
@@ -637,6 +698,103 @@ function Conteudo({ evento, onFechar }) {
                 Envie o código pela conversa de WhatsApp que já tem com a
                 cliente — é esse passo que confirma que é mesmo ela. Vale 24
                 horas.
+              </p>
+            </div>
+          )}
+
+          {/* ── O CONTRATO ASSINADO EM PAPEL ─────────────────────────────
+              A cliente descarregou, assinou à mão, fotografou e carregou.
+              O portal prometeu-lhe «confirmamos e avisamos aqui» — é este
+              o ecrã que cumpre a promessa. Confirmar deixa acto a sério no
+              trilho (o nome que está no papel, quem confirmou, e a
+              fotografia) e tranca o contrato, tal como o digital. */}
+          {papelPorConfirmar && (
+            <div
+              style={{
+                marginTop: "18px",
+                backgroundColor: "#FEF3E2",
+                border: "1px solid #F0D9B5",
+                borderRadius: "10px",
+                padding: "13px 14px",
+              }}
+            >
+              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+                Contrato assinado em papel
+              </p>
+              <p
+                style={{
+                  fontSize: "12px",
+                  lineHeight: 1.6,
+                  color: "#92400E",
+                  margin: "0 0 10px",
+                }}
+              >
+                Carregado a {dataHora(papelPorConfirmar.created_at)}. Veja a
+                fotografia, escreva o nome tal como está assinado no papel, e
+                confirme.
+              </p>
+
+              <button
+                onClick={() => verPapel(papelPorConfirmar.dados?.caminho)}
+                disabled={!papelPorConfirmar.dados?.caminho}
+                style={{
+                  ...botao,
+                  padding: "7px 13px",
+                  fontSize: "12px",
+                  border: "1px solid #D9A441",
+                  backgroundColor: "white",
+                  color: "#92400E",
+                  marginBottom: "10px",
+                }}
+              >
+                Ver a fotografia
+              </button>
+
+              <input
+                type="text"
+                value={nomeNoPapel}
+                onChange={(e) => setNomeNoPapel(e.target.value)}
+                placeholder="Nome tal como está no papel"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "9px 11px",
+                  fontSize: "13.5px",
+                  fontFamily: "inherit",
+                  color: "var(--charcoal, #1A1A1A)",
+                  border: "1px solid #F0D9B5",
+                  borderRadius: "8px",
+                  backgroundColor: "white",
+                  outline: "none",
+                }}
+              />
+
+              <button
+                onClick={() => confirmarPapel(papelPorConfirmar.id)}
+                disabled={aConfirmarPapel}
+                style={{
+                  ...botao,
+                  marginTop: "9px",
+                  border: "none",
+                  backgroundColor: "var(--gold)",
+                  color: "white",
+                  opacity: aConfirmarPapel ? 0.6 : 1,
+                  cursor: aConfirmarPapel ? "wait" : "pointer",
+                }}
+              >
+                {aConfirmarPapel ? "A confirmar…" : "Confirmar a assinatura"}
+              </button>
+
+              <p
+                style={{
+                  fontSize: "11px",
+                  lineHeight: 1.6,
+                  color: "#92400E",
+                  margin: "9px 0 0",
+                }}
+              >
+                Depois de confirmar, o contrato fica trancado — nem aqui se
+                muda. Se houver um erro, faz-se contrato novo.
               </p>
             </div>
           )}

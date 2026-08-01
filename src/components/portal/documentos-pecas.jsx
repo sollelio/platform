@@ -57,24 +57,6 @@ export function Timbre({ logoUrl, nome, versao, quando }) {
   );
 }
 
-// A folha cortada: mostra só o pé, com o véu de continuação em cima —
-// o documento continua acima, nunca se corta a direito.
-export function FolhaCortada({ children, corte = 44 }) {
-  return (
-    <div style={{ position: "relative", overflow: "hidden" }}>
-      <div style={{ marginTop: `-${corte}px`, padding: "0 22px" }}>{children}</div>
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "26px",
-          background: "linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-    </div>
-  );
-}
-
 // ---------- Véu de valor ----------
 // O rectângulo de hachura no LUGAR EXACTO onde o número vai estar.
 export function VeuValor({ largura = 78, altura = 14 }) {

@@ -128,6 +128,42 @@ const iniciais = (nome) =>
     .map((p) => p[0].toUpperCase())
     .join("");
 
+// ------------------------------------------------------------
+// As notificações do PORTAL não são pedidos de interesse.
+// ------------------------------------------------------------
+// A Caixa de Entrada nasceu para uma coisa só: o formulário público.
+// O portal passou a lá pôr mais três — um pedido de código, um pedido de
+// alteração e um contrato assinado em papel — e elas caíam no molde da
+// captação: subtítulo «Pedido de interesse» debaixo de um título que
+// dizia outra coisa, e o painel aberto a procurar respostas que nunca
+// existiram. O título vem do servidor e está certo; o que faltava era
+// tudo o resto.
+const TIPOS_DO_PORTAL = {
+  codigo_pedido: {
+    resumo: "Pediu um código para ver",
+    corpo:
+      "A cliente pediu para abrir o que tem valores. Emita o código na " +
+      "folha do evento e envie-lho pela conversa de WhatsApp que já tem " +
+      "com ela — é esse passo que confirma que é mesmo ela.",
+  },
+  pedido_alteracao: {
+    resumo: "Pediu uma alteração",
+    corpo:
+      "A cliente leu e quer mudar alguma coisa antes de aceitar. " +
+      "Fale com ela e, se ficar acordado, publique uma versão nova.",
+    // Ela ESCREVEU o que quer mudar, e a frase vem guardada no aviso
+    // (`dados.mensagem`, gravada pela 058). Não a mostrar era mandar a
+    // Nádia telefonar a perguntar uma coisa que já tinha em mãos.
+    citar: (d) => d?.mensagem || null,
+  },
+  contrato_papel: {
+    resumo: "Carregou o contrato assinado em papel",
+    corpo:
+      "Abra a folha do evento para ver a fotografia e confirmar a " +
+      "assinatura. Confirmar tranca o contrato.",
+  },
+};
+
 // Nome do tipo de evento: modelo conhecido OU o texto livre do cliente.
 const nomeDoTipo = (n, eventTypes) => {
   const tipo = (eventTypes || []).find((et) => et.id === n.event_type_id);
@@ -382,6 +418,98 @@ function DetalhePedido({ n }) {
 }
 
 // ------------------------------------------------------------
+// DetalheDoPortal — o que se abre debaixo de um aviso do portal.
+// ------------------------------------------------------------
+// Deliberadamente curto: aqui não há nada para ler, há uma coisa para
+// fazer, e faz-se na folha do evento. Uma frase a dizer o quê, e o
+// caminho para lá.
+// Os rótulos dos documentos do lado da Nádia. A armadilha do costume:
+// 'proposta' é o PROJECTO.
+const ROTULO_DOC = {
+  orcamento: "Orçamento",
+  proposta: "Projecto",
+  contrato: "Contrato",
+};
+
+function DetalheDoPortal({ corpo, citacao, contexto, onAbrirFicha }) {
+  return (
+    <div
+      style={{
+        marginTop: "12px",
+        paddingTop: "12px",
+        borderTop: "1px solid #F0E6D0",
+      }}
+    >
+      {contexto && (
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: "600",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--gold-dark)",
+            margin: "0 0 8px",
+          }}
+        >
+          {contexto}
+        </p>
+      )}
+
+      {/* As palavras dela, tal e qual — sem resumo e sem paráfrase. É a
+          única coisa deste painel que a Nádia não consegue adivinhar. */}
+      {citacao && (
+        <blockquote
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 14px",
+            borderLeft: "2px solid var(--gold)",
+            backgroundColor: "#FEFCF7",
+            borderRadius: "0 8px 8px 0",
+            fontSize: "13.5px",
+            lineHeight: 1.7,
+            color: "var(--charcoal)",
+            fontStyle: "italic",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {citacao}
+        </blockquote>
+      )}
+
+      <p
+        style={{
+          fontSize: "13px",
+          lineHeight: 1.7,
+          color: "var(--charcoal)",
+          margin: "0 0 12px",
+        }}
+      >
+        {corpo}
+      </p>
+      <button
+        onClick={onAbrirFicha}
+        style={{
+          width: "100%",
+          padding: "10px 16px",
+          borderRadius: "999px",
+          fontSize: "12px",
+          fontWeight: "600",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          border: "none",
+          backgroundColor: "var(--gold)",
+          color: "white",
+          cursor: "pointer",
+          boxShadow: "0 3px 10px rgba(201,168,76,0.3)",
+        }}
+      >
+        Abrir ficha completa →
+      </button>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // MedalhaoSelecao — as iniciais douradas que são também o interruptor
 // de escolha (o gesto do correio moderno): um toque VIRA o medalhão
 // num círculo com ✓. Em modo de seleção, o medalhão "esvazia"
@@ -482,6 +610,7 @@ function CartaoNotificacao({
   onAbrirEvento,
 }) {
   const naoLida = !n.lida_em;
+  const doPortal = TIPOS_DO_PORTAL[n.tipo] || null;
   const tipo = nomeDoTipo(n, eventTypes);
   const dataEvento =
     n.dados?.data_evento || n.dados?.respostas?.dataEvento || null;
@@ -588,7 +717,9 @@ function CartaoNotificacao({
               whiteSpace: "nowrap",
             }}
           >
-            {[
+            {doPortal
+              ? doPortal.resumo
+              : [
               tipo,
               dataEvento
                 ? new Date(dataEvento).toLocaleDateString("pt-PT", {
@@ -597,9 +728,9 @@ function CartaoNotificacao({
                   })
                 : null,
               convidados ? `${convidados} convidados` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ") || "Pedido de interesse"}
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "Pedido de interesse"}
           </p>
         </div>
 
@@ -630,13 +761,28 @@ function CartaoNotificacao({
             style={{ overflow: "hidden" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <DetalhePedido
-              n={{
-                ...n,
-                __abrirFicha: () =>
-                  onAbrirEvento && onAbrirEvento(n.submission_id),
-              }}
-            />
+            {doPortal ? (
+              <DetalheDoPortal
+                corpo={doPortal.corpo}
+                citacao={doPortal.citar ? doPortal.citar(n.dados) : null}
+                contexto={
+                  n.dados?.tipo_documento && n.dados?.versao
+                    ? `${ROTULO_DOC[n.dados.tipo_documento] || n.dados.tipo_documento}, versão ${n.dados.versao}`
+                    : null
+                }
+                onAbrirFicha={() =>
+                  onAbrirEvento && onAbrirEvento(n.submission_id)
+                }
+              />
+            ) : (
+              <DetalhePedido
+                n={{
+                  ...n,
+                  __abrirFicha: () =>
+                    onAbrirEvento && onAbrirEvento(n.submission_id),
+                }}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

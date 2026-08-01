@@ -4,7 +4,7 @@ import logoUrl from "../../assets/logo.png";
 import { Esqueleto } from "../admin/acabamento";
 import {
   overline, playfair, diaMesAno, diaEMes, horaCurta, formatarEuroPT,
-  WHATSAPP_URL, lerSessao, guardarSessao,
+  WHATSAPP_URL, lerSessao, guardarSessao, diferencasDeOrcamento,
 } from "./base";
 import {
   FileteComLosango, CartaoBranco, Medalhao, EngasteVazio, VistoDourado,
@@ -21,6 +21,143 @@ import {
   registarActo, enviarContratoAssinado, ROTULO_DOCUMENTO,
 } from "../../lib/portal";
 import { dataPorExtenso } from "../admin/orcamentos/contratoConfig";
+
+// ============================================================
+// AvisoVersaoNova — o interstício de quando o documento mudou.
+// ============================================================
+// Ela já tinha respondido, e saiu versão nova. Este ecrã diz-lhe três
+// coisas antes de a deixar entrar: que mudou, que a resposta antiga fica
+// de pé, e — no orçamento — O QUE mudou.
+//
+// O cartão das diferenças foi a peça que faltava. Sem ele, «saiu um
+// orçamento novo, com o que nos pediu» obriga-a a comparar duas folhas de
+// cabeça para descobrir se o que pediu está lá. Com ele, lê em cinco
+// segundos e confia.
+//
+// Só no orçamento, e só se a versão anterior chegar: se a rede falhar, o
+// cartão não aparece e o resto do ecrã fica igual — nunca se mostra um
+// esqueleto de uma coisa que talvez não exista.
+function CartaoDiferencas({ dif, velado }) {
+  // A chave leva o grupo e a posição, nunca o texto: um orçamento pode ter
+  // duas linhas com a mesma descrição, e aí a chave repetia-se.
+  const linha = (k, texto, cor, sinal) => (
+    <div key={k} style={{ display: "flex", gap: "9px", alignItems: "baseline", padding: "3px 0" }}>
+      <span style={{ color: cor, fontSize: "12px", lineHeight: 1.6, flex: "none", width: "9px" }}>{sinal}</span>
+      <span style={{ fontSize: "12.5px", lineHeight: 1.6, color: "var(--charcoal)", textWrap: "pretty" }}>{texto}</span>
+    </div>
+  );
+
+  const euro = (v) => (velado ? null : formatarEuroPT(Number(v) || 0));
+
+  return (
+    <div style={{ marginTop: "20px", border: "1px solid #F0E6D0", borderRadius: "3px", backgroundColor: "#FEFCF7", padding: "15px 17px" }}>
+      <p style={{ ...overline(), marginBottom: "9px" }}>O que mudou</p>
+
+      {dif.entraram.map((l, i) =>
+        linha(
+          `e${i}`,
+          velado || l.valor == null
+            ? `Entrou: ${l.nome}`
+            : `Entrou: ${l.nome} — ${euro(l.valor)}`,
+          "#5B7B5B",
+          "+",
+        ),
+      )}
+
+      {dif.mudaram.map((l, i) => {
+        const partes = [];
+        if (l.qtdMudou) partes.push(`de ${l.qtdAntes} para ${l.qtdDepois}`);
+        if (l.valorMudou) partes.push(`${euro(l.valorAntes)} → ${euro(l.valorDepois)}`);
+        return linha(`m${i}`, `${l.nome}: ${partes.join(", ")}`, "var(--gold-dark)", "·");
+      })}
+
+      {dif.sairam.map((l, i) => linha(`s${i}`, `Saiu: ${l.nome}`, "#9C5A3C", "−"))}
+
+      {!velado && dif.totalMudou && (
+        <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "var(--charcoal)", margin: "11px 0 0", paddingTop: "10px", borderTop: "1px solid #F0E6D0", fontVariantNumeric: "tabular-nums" }}>
+          Total: {formatarEuroPT(dif.totalAntes)} → <strong style={{ fontWeight: 600 }}>{formatarEuroPT(dif.totalDepois)}</strong>
+        </p>
+      )}
+
+      {/* Sem sessão verificada, o servidor não manda os valores — nem os de
+          agora nem os de antes. Este cartão NÃO PODE dizer se um preço
+          mudou, e um cartão chamado «O que mudou» que cala uma alteração de
+          preço é pior do que cartão nenhum: dá por completa uma lista que
+          não é. Por isso diz-se o que se sabe, e nomeia-se o que falta. */}
+      <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "10px 0 0", textWrap: "pretty" }}>
+        {!velado
+          ? "A folha completa está a seguir — isto é só o resumo."
+          : dif.houve
+            ? "Os valores não aparecem aqui sem o código — se algum mudou, este resumo não o mostra. A folha completa está a seguir."
+            : "Os serviços são os mesmos. Se algum valor mudou, isso não se vê aqui sem o código."}
+      </p>
+    </div>
+  );
+}
+
+function AvisoVersaoNova({ token, tipo, sessaoId, doc, ant, rotulo, onAbrir, onVerAntiga }) {
+  const [dif, setDif] = useState(null);
+
+  // Vai buscar a versão a que ela respondeu, só para comparar. Passa pelo
+  // mesmo RPC — e portanto pelo mesmo véu.
+  useEffect(() => {
+    if (tipo !== "orcamento") return undefined;
+    let cancelado = false;
+    verDocumentoPortal(token, tipo, sessaoId, ant.versao)
+      .then((r) => {
+        // A RPC devolve o documento DIRECTO — {estado, versao, instantaneo…},
+        // sem embrulho. Ler `r.doc` (que não existe) fazia a guarda disparar
+        // sempre, e o cartão nunca chegava a ser pintado.
+        if (cancelado || r?.estado !== "ok") return;
+        const d = diferencasDeOrcamento(r, doc);
+        if (d.houve || doc.velado) setDif(d);
+      })
+      .catch(() => {}); // sem comparação o ecrã continua a servir
+    return () => {
+      cancelado = true;
+    };
+  }, [token, tipo, sessaoId, ant.versao, doc]);
+
+  return (
+    <div style={{ padding: "34px 26px 32px" }}>
+      <p style={overline()}>O seu {rotulo.toLowerCase()} mudou</p>
+      <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance" }}>
+        Saiu um {rotulo.toLowerCase()} novo{tipo === "orcamento" ? ", com o que nos pediu" : ""}.
+      </p>
+      <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
+        Esta é a versão {doc.versao}, de {diaEMes(doc.publicado_em)}.
+      </p>
+
+      {dif && (dif.houve || doc.velado) && (
+        <CartaoDiferencas dif={dif} velado={!!doc.velado} />
+      )}
+
+      <div style={{ marginTop: "22px", paddingTop: "18px", borderTop: "1px solid #F0E6D0", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+        <div style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#FEF9EC", border: "1px solid #E8D5A3", flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <VistoDourado />
+        </div>
+        <div>
+          <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.5, margin: 0, color: "var(--charcoal)" }}>
+            A sua resposta de {diaEMes(ant.acto_em)} fica onde está.
+          </p>
+          <p style={{ fontSize: "11.5px", lineHeight: 1.7, color: "#9B9B9B", margin: "6px 0 0", textWrap: "pretty" }}>
+            Vale para a versão {ant.versao}, a que leu nesse dia, e não se
+            apaga. Esta é outra — por isso pede uma resposta nova.
+          </p>
+        </div>
+      </div>
+
+      <CapsulaVazada onClick={onAbrir} style={{ marginTop: "22px" }}>
+        Abrir o {rotulo.toLowerCase()} novo
+      </CapsulaVazada>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
+        <LigacaoDiscreta onClick={onVerAntiga} apagada>
+          Ver a versão {ant.versao}, como respondeu
+        </LigacaoDiscreta>
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
 // DocumentosVista — a área dos documentos do acompanhamento (fases 3 e 4).
@@ -934,47 +1071,20 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
 
   // ── o interstício da versão nova ──
   if (versaoNova && passo === "doc" && !sessionStorage.getItem(`dlm_vnova_${token}_${tipo}_${doc.versao}`)) {
-    const ant = metaDoc.acto_anterior;
     return (
-      <div style={{ padding: "34px 26px 32px" }}>
-        <p style={overline()}>O seu {rotulo.toLowerCase()} mudou</p>
-        <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance" }}>
-          Saiu um {rotulo.toLowerCase()} novo{tipo === "orcamento" ? ", com o que nos pediu" : ""}.
-        </p>
-        <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
-          Esta é a versão {doc.versao}, de {diaEMes(doc.publicado_em)}.
-        </p>
-
-        <div style={{ marginTop: "22px", paddingTop: "18px", borderTop: "1px solid #F0E6D0", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-          <div style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#FEF9EC", border: "1px solid #E8D5A3", flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <VistoDourado />
-          </div>
-          <div>
-            <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.5, margin: 0, color: "var(--charcoal)" }}>
-              A sua resposta de {diaEMes(ant.acto_em)} fica onde está.
-            </p>
-            <p style={{ fontSize: "11.5px", lineHeight: 1.7, color: "#9B9B9B", margin: "6px 0 0", textWrap: "pretty" }}>
-              Vale para a versão {ant.versao}, a que leu nesse dia, e não se
-              apaga. Esta é outra — por isso pede uma resposta nova.
-            </p>
-          </div>
-        </div>
-
-        <CapsulaVazada
-          onClick={() => {
-            sessionStorage.setItem(`dlm_vnova_${token}_${tipo}_${doc.versao}`, "1");
-            setRecarga((r) => r + 1);
-          }}
-          style={{ marginTop: "22px" }}
-        >
-          Abrir o {rotulo.toLowerCase()} novo
-        </CapsulaVazada>
-        <div style={{ textAlign: "center", marginTop: "15px" }}>
-          <LigacaoDiscreta onClick={() => setVersaoAntiga(ant.versao)} apagada>
-            Ver a versão {ant.versao}, como respondeu
-          </LigacaoDiscreta>
-        </div>
-      </div>
+      <AvisoVersaoNova
+        token={token}
+        tipo={tipo}
+        sessaoId={sessaoId}
+        doc={doc}
+        ant={metaDoc.acto_anterior}
+        rotulo={rotulo}
+        onAbrir={() => {
+          sessionStorage.setItem(`dlm_vnova_${token}_${tipo}_${doc.versao}`, "1");
+          setRecarga((r) => r + 1);
+        }}
+        onVerAntiga={() => setVersaoAntiga(metaDoc.acto_anterior.versao)}
+      />
     );
   }
 
