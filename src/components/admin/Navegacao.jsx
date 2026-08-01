@@ -25,6 +25,7 @@ export const NAV_GESTAO = [
   { id: "convites", label: "Formulários", icone: "formularios" },
   { id: "mensagens", label: "Mensagens", icone: "mensagens" },
   { id: "dashboard", label: "Dashboard", icone: "dashboard" },
+  { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
 ];
 
 export const NAV_CONFIG = [
@@ -119,6 +120,13 @@ export function Icone({ nome, tamanho = 18 }) {
           {...t}
           d="M12 5c-4.1 0-7.5 2.6-7.5 5.9 0 1.5.7 2.9 1.9 3.9L5.5 18.5l3.7-1.6c.9.3 1.8.4 2.8.4 4.1 0 7.5-2.6 7.5-5.9S16.1 5 12 5z"
         />
+      </>
+    ),
+    // Aspas — o que chega desta área são PALAVRAS de quem lá esteve.
+    avaliacoes: (
+      <>
+        <path {...t} d="M9 7.5C7 7.5 5.5 9 5.5 11S7 14.5 9 14.5c0 1.6-1 2.7-2.4 3.2" />
+        <path {...t} d="M17.5 7.5c-2 0-3.5 1.5-3.5 3.5s1.5 3.5 3.5 3.5c0 1.6-1 2.7-2.4 3.2" />
       </>
     ),
     dashboard: (

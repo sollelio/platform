@@ -48,7 +48,7 @@ const porExtenso = (n) => (n > 0 && n <= 20 ? EXTENSO[n] : String(n));
 // como no resto. A tela mostra a divisão a entrar com mola, mas isso é o
 // que se veria se ela estivesse com a página aberta no instante em que a
 // primeira fotografia chega; ao recarregar, já lá está.
-export default function AsFotografias({ fotografias, dataEvento, horas }) {
+export default function AsFotografias({ fotografias, dataEvento, horas, jaAvaliou }) {
   const [ampliada, setAmpliada] = useState(null); // índice
   const lista = fotografias?.lista || [];
 
@@ -164,7 +164,11 @@ export default function AsFotografias({ fotografias, dataEvento, horas }) {
       {(memoria || ateQueHoras(horas)) && (
         <p style={{ ...playfair, fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", margin: memoria ? "20px 30px 0" : "22px 30px 0", textAlign: "center", textWrap: "balance" }}>
           {memoria
-            ? "Daqui a uns dias pedimos-lhe a sua preferida."
+            ? jaAvaliou
+              // Já a deu. Continuar a prometer pedi-la é a página a
+              // esquecer-se do que ela acabou de fazer.
+              ? "Obrigado por nos ter contado como correu."
+              : "Daqui a uns dias pedimos-lhe a sua preferida."
             : `Ficamos no espaço até às ${ateQueHoras(horas)}.`}
         </p>
       )}

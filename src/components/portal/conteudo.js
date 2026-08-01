@@ -49,6 +49,57 @@ export function comporNovidades(dados) {
     });
   }
 
+  // ── As fases 5, 6 e 7 ────────────────────────────────────────────────
+  //
+  // Esta lista nasceu na fase 2 e ficou a conhecer só os quatro marcos de
+  // então. Mas o que MAIS muda entre duas visitas é justamente o que veio
+  // depois — e as fotografias do dia são a única coisa do portal que muda
+  // de hora a hora. Uma divisão chamada «o que mudou desde a última vez»
+  // que não conhece as fotografias está a falhar no seu único trabalho.
+  //
+  // Nada disto precisou de projecção nova: já vinha tudo.
+  const q = dados?.questionario || {};
+  const f = dados?.fotografias || {};
+  const av = dados?.avaliacao || {};
+
+  if (novo(q.entregue_em)) {
+    novidades.push({
+      chave: "questionario",
+      titulo: "As suas respostas ficaram connosco",
+      corpo: "É delas que sai o trabalho da equipa no dia.",
+    });
+  }
+
+  // As fotografias não têm carimbo próprio na projecção — o que há é a
+  // lista. Conta-se a mais recente, que é o que interessa: chegou coisa
+  // nova desde que ela cá esteve.
+  const ultimaFoto = (f.lista || [])
+    .map((x) => x.quando)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  if (novo(ultimaFoto)) {
+    novidades.push({
+      chave: "fotografias",
+      titulo:
+        f.quando === "memoria"
+          ? "As fotografias do dia já cá estão"
+          : "Estamos a montar, e há fotografias",
+      corpo:
+        f.quando === "memoria"
+          ? "Ficaram aqui, para ver quando quiser."
+          : "Tirámo-las no espaço, há pouco.",
+    });
+  }
+
+  if (novo(av.feita_em)) {
+    novidades.push({
+      chave: "avaliacao",
+      titulo: "Ficámos com as suas palavras",
+      corpo: "A Nádia lê tudo o que nos escrevem.",
+    });
+  }
+
   // «O que já cá estava» — o que existe mas não é novo. Apagado, sem mola.
   const jaCaEstava = [];
   const nImagens = dados?.pedido?.imagens?.length || 0;
@@ -78,7 +129,11 @@ export function comporPendencias(dados, caducou = false) {
 
   // O questionário só se pede depois de haver negócio fechado — antes
   // disso, o que falta é o orçamento, e esse é trabalho nosso.
-  if (!q.entregue_em && etapaFeita("sinal")) {
+  // `tem_perguntas` é a guarda que faltava (069): abaixo de cinco campos o
+  // modelo não tem questionário nenhum, e sem isto a pendência convidava a
+  // responder — em quatro dos seis modelos — com uma ligação que devolvia a
+  // pessoa ao princípio. Um convite que não leva a lado nenhum.
+  if (q.tem_perguntas && !q.entregue_em && etapaFeita("sinal")) {
     pendencias.push({
       chave: "questionario",
       titulo: "O questionário",

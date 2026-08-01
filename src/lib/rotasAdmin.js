@@ -16,7 +16,7 @@
 // Acrescentar um separador é acrescentar UMA linha aqui — e nada mais
 // no resto da app precisa de saber que existe tradução.
 //
-// Cinco dos dez separadores têm slug diferente do id; os outros cinco
+// Cinco dos onze separadores têm slug diferente do id; os outros seis
 // coincidem e estão listados na mesma, de propósito: a tabela é a
 // lista completa, não a lista das excepções.
 // ============================================================
@@ -34,6 +34,7 @@ export const SLUG_POR_ID = {
   convites: "formularios",
   mensagens: "mensagens",
   dashboard: "dashboard",
+  avaliacoes: "avaliacoes",
   tiposEvento: "modelos-evento",
   importar: "importar-clientes",
 };

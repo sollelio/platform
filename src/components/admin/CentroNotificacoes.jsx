@@ -172,6 +172,16 @@ const TIPOS_DO_PORTAL = {
     // A frase dela, tal e qual (063 grava-a em `dados.mensagem`).
     citar: (d) => d?.mensagem || null,
   },
+  avaliacao_recebida: {
+    resumo: "Avaliou o evento",
+    corpo:
+      "Está tudo em Avaliações, com as linhas que ela puxou e a " +
+      "fotografia que escolheu. Se autorizou publicação, é de lá que sai " +
+      "para o site quando houver site.",
+    // As palavras dela, tal e qual. É a melhor notícia que esta caixa dá,
+    // e seria estranho obrigá-la a ir a outro lado para as ler.
+    citar: (d) => d?.mensagem || null,
+  },
   contrato_papel: {
     resumo: "Carregou o contrato assinado em papel",
     corpo:

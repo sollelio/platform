@@ -758,7 +758,132 @@ partir** ao meio — o tempo à direita não quebra linha.
 
 ---
 
-## 10 · Arrumar
+## 10 · A avaliação e a despedida (fase 7)
+
+> **Só três eventos já passaram**, e todos com negócio fechado. São os
+> únicos que vêem alguma coisa desta fase. Se precisares de mais, muda a
+> `data_evento` de um evento de teste — é o interruptor de tudo o que se segue.
+
+### 10.1 · 🔴 Antes dos três dias — não há convite nenhum
+
+**Como o produzir:** 🗄 `update submissions set data_evento = current_date - 1 where id = '<EVENTO>'::uuid;`
+
+**O que confirmar:** 📱 o acompanhamento **não fala do assunto**. Nem rótulo,
+nem «por responder», nem prazo à vista. E `/acompanhar/<token>/avaliar` à mão
+devolve ao acompanhamento.
+
+**Porque três dias:** tempo para as fotografias do dia estarem carregadas e
+para ela ter dormido. Um convite a avaliar na manhã seguinte é uma factura.
+
+### 10.2 · O convite
+
+**Como o produzir:** 🗄 `data_evento = current_date - 4`.
+
+**O que confirmar:** 📱 a divisão **dourada** — «Depois do dia» / «Gostávamos
+de saber como lhe correu.» — numa página que já é toda memória. O dourado não
+é do presente: é do que pede resposta. E a nota que tira a pressão: «Pode ser
+hoje, ou daqui a duas semanas. O convite fica aqui.»
+
+### 10.3 · 🔴 Os eixos saem dos serviços — e são diferentes por evento
+
+**O que confirmar:** 📱 num evento com **Mesa posta + Cenário**, as perguntas
+são «A mesa que encontrou» e «O cenário». Num com **Buffet**, é «A comida».
+**A tranquilidade fecha sempre**, depois do filete e maior que as outras.
+
+**A prova que interessa:** 🗄
+
+```sql
+select e->>'rotulo', e->>'sempre'
+  from jsonb_array_elements(public.dlm_portal_avaliacao('<TOKEN>')->'eixos') as t(e);
+```
+
+Se aparecer «A comida» a quem não comprou buffet, o mapa da 066 está errado —
+e perguntar pelo sabor a quem comprou um cenário é dizer que não se sabe o que
+se lhe vendeu.
+
+**Os deslizadores** não têm número, nem estrelas, nem escala. Só as duas
+pontas por palavras. O que não se toca fica por responder, e o ecrã diz que
+não faz mal.
+
+### 10.4 · 🔴 A fotografia com convidados
+
+**Como o produzir:** 🔧 na aba **Fotografias**, marca uma como **Com
+convidados** e outra como **Sem convidados**. Deixa as restantes **por rever**.
+
+**O que confirmar:** 📱 no ecrã da fotografia preferida:
+- só a marcada tem a pastilha **com convidados**;
+- as **por rever não têm pastilha nenhuma** — é o ponto todo da 068. Se todas
+  aparecerem com pastilha, a página está a dizer à cliente que a fotografia
+  dela tem convidados sem ninguém ter olhado;
+- escolher a marcada mostra a explicação, **e diz que as palavras podem
+  continuar a ser publicadas**. Não é uma recusa.
+
+### 10.5 · A autorização
+
+**O que confirmar:** 📱
+- os dois cartões nascem **por marcar**. Nada vem pré-seleccionado;
+- a cápsula **Enviar a avaliação** é a **única cheia** da fase, e está
+  **inerte** até ela escolher — visível, para se saber o que vem;
+- as três opções de nome: completo · só o primeiro · sem nome.
+
+### 10.6 · O obrigado, e o registo
+
+**O que confirmar:** 📱 medalhão, «Ficámos com as suas palavras.», e as linhas
+do registo — publicação, fotografia, enviado. E, se autorizou, a promessa que
+a torna reversível: «sai do site no mesmo dia, sem ter de explicar porquê.»
+
+### 10.7 · 🔴 A avaliação NÃO fecha a porta
+
+**A verificação desta fase.** 🗄 antes e depois de avaliar:
+
+```sql
+select revogado_em, motivo from portal_acessos where submission_id = '<EVENTO>'::uuid;
+```
+
+**Têm de dar exactamente o mesmo**, e o portal tem de continuar a abrir.
+
+Estava no plano que o acesso morresse ao gravar a avaliação, e mudou: fechar a
+porta a quem acabou de dar uma frase e uma fotografia é o gesto errado no
+momento errado.
+
+### 10.8 · A despedida
+
+**O que confirmar:** 📱 depois de avaliar, o convite **desaparece** e no seu
+lugar ficam as palavras dela, «Até à próxima mesa.» e o prazo — «Esta ligação
+fica aberta até …». **Nenhuma cápsula**: como o contrato assinado, é assim que
+se lê que está fechado sem o dizer.
+
+### 10.9 · Quem nunca avalia
+
+**Como o produzir:** um evento passado sem avaliação nenhuma.
+
+**O que confirmar:** 📱 vê o convite e mais nada. **Não há lugar vazio onde a
+frase estaria, não há lembrete, não há sinal de que faltou alguma coisa.**
+Quando o prazo esgotar, a ligação fecha e a página nunca fez sentir que faltou
+nada.
+
+### 10.10 · O lado da Nádia
+
+**O que confirmar:** 🔧
+- o aviso chega à Caixa de Entrada **com a frase dela**;
+- o separador **Avaliações** mostra a frase, os eixos com a posição a que ela
+  puxou, a fotografia escolhida, e as duas pastilhas — se autorizou (e com que
+  nome) e em que estado está a fotografia;
+- **as que ficaram só para a casa aparecem na mesma.** São as que dizem o que
+  melhorar; uma lista «só as publicáveis» escondia-as.
+
+### 10.11 · Reenviar
+
+**O que confirmar:** 📱 voltar a `/acompanhar/<token>/avaliar` e enviar outra
+vez **actualiza** em vez de recusar. 🗄 E a campainha **não toca duas vezes**:
+
+```sql
+select count(*) from notificacoes where tipo = 'avaliacao_recebida';
+```
+
+---
+
+## 11 · Arrumar
 
 **Três coisas seguram um evento de propósito**, e é preciso soltá-las por
 ordem antes de o apagar:

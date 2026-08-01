@@ -30,11 +30,14 @@ import {
 import DocumentosVista from "../components/portal/DocumentosVista";
 import QuestionarioVista from "../components/portal/QuestionarioVista";
 import AsFotografias from "../components/portal/AsFotografias";
+import AvaliacaoVista from "../components/portal/AvaliacaoVista";
 import {
-  WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, semanaEAno,
+  WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, diaMesAno, semanaEAno,
 } from "../components/portal/base";
+import { CapsulaVazada } from "../components/portal/documentos-pecas";
 import {
-  FileteComLosango, VistoDourado, Assinatura,
+  CartaoBranco, Medalhao, EngasteVazio,
+  FileteComLosango, Assinatura,
 } from "../components/portal/pecas";
 
 // ============================================================
@@ -67,9 +70,15 @@ import {
 // ============================================================
 
 // ---------- Peças reutilizáveis ----------
-// Vivem em components/portal/{base,pecas} desde a fase 2 — as cópias
-// locais da fase 1 morreram aqui na consolidação (Parte 2 da revisão).
-// A Cortina e a pastilha «por definir» ficam: só esta página as usa.
+// Vivem em components/portal/{base,pecas}. As funções puras da fase 1
+// morreram aqui na consolidação da Parte 2; as PEÇAS só morreram na
+// revisão do conjunto, no fim da fase 7 — até lá esta página continuava a
+// desenhar à mão o cartão, o medalhão e o engaste, e este comentário
+// dizia que não. Um comentário que mente é pior do que a duplicação que
+// descreve, porque quem o lê não vai verificar.
+//
+// Ficam locais, e só estas duas: a Cortina e a pastilha «por definir».
+// Nenhuma outra página as usa.
 
 // Pastilha «por definir» — qualquer campo vazio no público. Vem sempre em
 // par: overline do campo à esquerda, pastilha à direita, e uma linha a
@@ -302,6 +311,20 @@ export default function PortalPage() {
     );
   }
 
+  // ---------- A avaliação (fase 7) ----------
+  // Vista à parte: os três gestos são ecrãs inteiros, não divisões. A
+  // própria vista devolve ao acompanhamento se ainda não passaram os três
+  // dias ou se o negócio não fechou.
+  if (vista === "avaliar") {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
+        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+          <AvaliacaoVista token={token} />
+        </div>
+      </div>
+    );
+  }
+
   // ---------- O questionário (fase 5) ----------
   // Vista à parte, com cabeçalho próprio como a dos documentos. A própria
   // vista decide entre o convite, a retoma e a revisão — e manda de volta
@@ -379,10 +402,26 @@ export default function PortalPage() {
   );
   const caducou = passou && !fechou;
 
+  // NO PRÓPRIO DIA a jornada fica presa em «A preparação»: a etapa 7 só
+  // acende com a data JÁ passada (055), e bem — de manhã a festa ainda não
+  // aconteceu. Mas isso tornava «É hoje.» inalcançável, e deixava a página
+  // a falar de compras e listas no dia em que a âncora diz «é hoje».
+  //
+  // Aqui só muda a PALAVRA, não a jornada: a etapa continua por acontecer,
+  // e é o cartão do «agora» que reconhece o dia.
+  const ehHoje = dias === 0 && fechou;
+  const etapaActual = ehHoje ? "grande_dia" : actual?.etapa;
+
   const textoActual =
-    actual?.etapa === "grande_dia" && passou
+    etapaActual === "grande_dia" && passou
       ? TEXTO_GRANDE_DIA_PASSADO
-      : TEXTO_AGORA[actual?.etapa];
+      : TEXTO_AGORA[etapaActual];
+
+  // ── B5 · «O local — ainda por definir» ────────────────────────────────
+  // Depois do dia não se pede o local: o evento aconteceu, e onde foi já
+  // ninguém precisa de dizer. É a mesma regra das outras duas travagens da
+  // página, que este bloco escapava.
+  const pedirLocal = !ev?.local && !passou;
 
   // O CONTEÚDO das novidades e das pendências vive ao lado das divisões que
   // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
@@ -530,45 +569,86 @@ export default function PortalPage() {
             fotografias={dados?.fotografias}
             dataEvento={ev?.data}
             horas={dados?.questionario?.horas || []}
+            jaAvaliou={!!dados?.avaliacao?.feita_em}
           />
+        )}
+
+        {/* ── O CONVITE A AVALIAR (fase 7) ────────────────────────────
+            A ÚNICA divisão dourada de uma página que passou a ser toda
+            memória: o dourado não é do presente, é do que pede resposta.
+
+            Aparece três dias depois do evento e desaparece assim que ela
+            avalia — como qualquer divisão sem matéria. Quem não avalia
+            nunca vê nada de diferente: não há prazo à vista, não há «por
+            responder», não há sinal de que faltou alguma coisa. */}
+        {!caducou
+          && dados?.avaliacao?.convidada
+          && !dados?.avaliacao?.feita_em && (
+          <div style={{ marginTop: "36px", textAlign: "center" }}>
+            <p style={overline()}>Depois do dia</p>
+            <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.28, marginTop: "12px", textWrap: "balance" }}>
+              Gostávamos de saber como lhe correu.
+            </p>
+            <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
+              São três coisas curtas: uma frase, algumas linhas para puxar, e
+              a fotografia de que mais gostou. Leva dois minutos.
+            </p>
+            <div style={{ marginTop: "22px" }}>
+              <CapsulaVazada
+                to={`/acompanhar/${token}/avaliar`}
+                style={{ width: "auto", display: "inline-block", padding: "13px 26px" }}
+              >
+                Contar como correu
+              </CapsulaVazada>
+            </div>
+            <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "14px 0 0", textWrap: "pretty" }}>
+              Pode ser hoje, ou daqui a duas semanas. O convite fica aqui.
+            </p>
+          </div>
+        )}
+
+        {/* ── A DESPEDIDA (fase 7) ────────────────────────────────────
+            Depois de avaliar, o portal não fecha — entra em despedida e
+            vive até o prazo acabar. Nenhuma cápsula: como o contrato
+            assinado, é assim que se lê que está fechado sem o dizer. */}
+        {!caducou && dados?.avaliacao?.feita_em && (
+          <div style={{ marginTop: "36px", textAlign: "center" }}>
+            {dados.avaliacao.frase && (
+              <>
+                <p style={overline("#9B9B9B", "0.22em", "9px")}>as suas palavras</p>
+                <p style={{ ...playfair, fontStyle: "italic", fontSize: "15.5px", lineHeight: 1.75, color: "var(--charcoal)", margin: "12px 0 0", textWrap: "pretty" }}>
+                  {dados.avaliacao.frase}
+                </p>
+                {dados.avaliacao.palavras_no_site && (
+                  <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: "9px 0 0" }}>
+                    {dados.avaliacao.nome_publicado
+                      ? `${dados.avaliacao.nome_publicado} · no nosso site`
+                      : "no nosso site, sem nome"}
+                  </p>
+                )}
+              </>
+            )}
+            <p style={{ ...playfair, fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", margin: "26px 0 0" }}>
+              Até à próxima mesa.
+            </p>
+            {dados.ligacao_ate && (
+              <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "10px 0 0" }}>
+                Esta ligação fica aberta até {diaMesAno(dados.ligacao_ate)}.
+              </p>
+            )}
+          </div>
         )}
 
         {/* Onde estamos agora */}
         {actual && ROTULO_ETAPA[actual.etapa] && (
-          <div
-            style={{
-              marginTop: "36px",
-              position: "relative",
-              backgroundColor: "white",
-              border: "1.5px solid #F0E6D0",
-              borderRadius: "14px",
-              padding: "30px 20px 21px",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-              textAlign: "center",
-            }}
+          <CartaoBranco
+            padding="30px 20px 21px"
+            style={{ marginTop: "36px", position: "relative", textAlign: "center" }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: "-18px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                backgroundColor: "#FEF9EC",
-                border: "1px solid #E8D5A3",
-                boxShadow: "0 0 0 5px var(--cream), 0 4px 12px rgba(201,168,76,0.22)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <VistoDourado />
-            </div>
+            <Medalhao />
             <p style={overline()}>Onde estamos agora</p>
             <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.25, marginTop: "10px", textWrap: "balance" }}>
-              {ROTULO_ETAPA[actual.etapa]}
+              {ROTULO_ETAPA[etapaActual]}
             </p>
             {/* Sem carimbo, a linha da data NÃO EXISTE: não há «?», não
                 há data inventada — o cartão fecha-se sem ela. */}
@@ -582,7 +662,7 @@ export default function PortalPage() {
                 {textoActual}
               </p>
             )}
-          </div>
+          </CartaoBranco>
         )}
 
         {/* A seguir: engaste vazio e fio que se dissolve para baixo, para
@@ -594,7 +674,7 @@ export default function PortalPage() {
         {!caducou && proxima && ROTULO_ETAPA[proxima.etapa] && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div aria-hidden="true" style={{ width: "1px", height: "22px", background: "linear-gradient(180deg, #E8D5A3, rgba(232,213,163,0.25))" }} />
-            <div aria-hidden="true" style={{ width: "26px", height: "26px", borderRadius: "50%", backgroundColor: "#FDFBF5", border: "1px solid #E8DCC0" }} />
+            <EngasteVazio />
             <div style={{ textAlign: "center", marginTop: "13px" }}>
               <p style={overline("#9B9B9B")}>A seguir</p>
               <p style={{ ...playfair, fontSize: "18px", lineHeight: 1.3, marginTop: "8px" }}>
@@ -683,7 +763,7 @@ export default function PortalPage() {
           entregueEm={dados?.questionario?.entregue_em}
         />
 
-        {!ev?.local && (
+        {pedirLocal && (
           <CampoPorDefinir
             campo="O local"
             ajuda="Diga-nos assim que souber — não há pressa nenhuma."

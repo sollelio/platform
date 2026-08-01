@@ -12,7 +12,7 @@ import {
 import EditorDeCampo from "./EditorDeCampo";
 import {
   verQuestionario, responder, pedirAlteracaoCampo, passoRespondido, passoOndeFicou,
-  contagemPorExtenso, ondeFicouPorExtenso, diasAte,
+  contagemPorExtenso, ondeFicouPorExtenso, emDe, diasAte,
 } from "../../lib/questionarioPortal";
 
 // ============================================================
@@ -257,6 +257,13 @@ function ConviteAMeio({ token, passos, ondeFicou, navegar }) {
 
 // O que se diz por cima de um campo fechado. O motivo é MATERIAL — o que
 // aconteceu no mundo — e não administrativo («prazo expirado»).
+// A metade curta do mesmo motivo, para a linha por baixo do valor.
+const SEGUIU_PARA = {
+  compras: "seguiu para as compras",
+  producao: "seguiu para impressão",
+  palavras: "seguiu para a equipa",
+};
+
 const MOTIVO_DO_FECHO = {
   compras: "Já seguiu para as compras",
   producao: "Já seguiu para impressão",
@@ -452,7 +459,12 @@ function Respostas({ token, dados, aoMudar }) {
                     )}
                     {!podeMudar && passo.fechado && !aExplicar && (
                       <p style={{ fontSize: "10.5px", lineHeight: 1.6, color: "#9B9B9B", margin: "7px 0 0" }}>
-                        fechou {diaEMes(passo.fecha_em)} · seguiu para as compras
+                        {/* O motivo é do GRUPO. Dizer «seguiu para as
+                            compras» a um campo que fechou por causa da
+                            impressão ou do briefing é dizer-lhe uma razão
+                            que não é a dela. */}
+                        fechou {diaEMes(passo.fecha_em)} ·{" "}
+                        {SEGUIU_PARA[passo.grupo?.chave] || "seguiu para a equipa"}
                       </p>
                     )}
                   </>
@@ -483,7 +495,9 @@ function Respostas({ token, dados, aoMudar }) {
                   <BlocoDeFecho
                     motivo={MOTIVO_DO_FECHO[passo.grupo?.chave] || "Já seguiu para a equipa"}
                     quando={diaEMes(passo.fecha_em)}
-                    porque={`Fizemos as encomendas com este valor, ${passo.grupo?.porque}. É assim que garantimos que chega tudo a tempo.`}
+                    porque={`${passo.grupo?.porque
+                      ? passo.grupo.porque.charAt(0).toUpperCase() + passo.grupo.porque.slice(1)
+                      : "O trabalho seguiu com este valor"}. É assim que garantimos que chega tudo a tempo.`}
                     aoPedir={
                       <CapsulaVazada
                         onClick={() => setPedido({ campo, passo })}
@@ -633,20 +647,6 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro 
       </div>
     </div>
   );
-}
-
-// «na paleta», «no texto da placa» — a mesma regra do ecrã da retoma:
-// deriva-se do artigo, nunca se adivinha. Sem artigo, cai-se numa frase
-// que não precisa dele.
-function emDe(rotulo) {
-  const t = String(rotulo || "").trim();
-  const espaco = t.indexOf(" ");
-  const arts = { o: "no", a: "na", os: "nos", as: "nas" };
-  if (espaco > 0) {
-    const c = arts[t.slice(0, espaco).toLowerCase()];
-    if (c) return `${c} ${t.slice(espaco + 1).toLowerCase()}`;
-  }
-  return `em ${t.toLowerCase()}`;
 }
 
 // ---------- Ecrã 9 · O pedido enviado ----------

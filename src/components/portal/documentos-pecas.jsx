@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   overline, playfair, HACHURA, formatarEuroPT, diaMesAno,
 } from "./base";
@@ -169,6 +170,44 @@ const baseCapsula = {
   fontFamily: "Inter, sans-serif",
 };
 
+// ---------- A cápsula CHEIA ----------
+//
+// O sinal mais carregado do portal inteiro: «isto vincula». Aceitar,
+// aprovar, assinar, publicar.
+//
+// Existia escrita à mão em TRÊS sítios, e os três discordavam — dois
+// dourados diferentes (#A07830 e #C9A84C), três enchimentos, duas
+// tipografias. Quem assinasse um contrato e depois publicasse uma
+// avaliação via o mesmo gesto em dois amarelos. A vazada, que pesa menos,
+// tinha peça desde a fase 3; esta, que pesa mais, era a única sem.
+//
+// `inerte` é o estado de «ainda não escolheu»: visível, para se saber o que
+// vem, e intocável. Não é `disabled` cinzento — é a mesma cápsula à espera.
+export function CapsulaCheia({
+  children, onClick, inerte = false, aTrabalhar = false, style,
+}) {
+  return (
+    <button
+      onClick={inerte ? undefined : onClick}
+      disabled={inerte || aTrabalhar}
+      style={{
+        ...baseCapsula,
+        font: "600 11px Inter, sans-serif",
+        letterSpacing: "0.14em",
+        padding: "14px 20px",
+        color: inerte ? "#C6BEAE" : "#FFFDF7",
+        backgroundColor: inerte ? "white" : "#A07830",
+        border: `1px solid ${inerte ? "#EFE7D6" : "#A07830"}`,
+        cursor: inerte ? "default" : aTrabalhar ? "wait" : "pointer",
+        opacity: aTrabalhar ? 0.6 : 1,
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Dupla({ rotuloPrimario, rotuloSecundario, onPrimario, onSecundario, aTrabalhar = false, linhaDeBaixo }) {
   return (
     <>
@@ -211,12 +250,19 @@ export function Dupla({ rotuloPrimario, rotuloSecundario, onPrimario, onSecundar
 }
 
 // A cápsula vazada sozinha — pedir o código, abrir valores, enviar pedido.
-export function CapsulaVazada({ children, onClick, aTrabalhar = false, style }) {
+// `to` faz dela uma LIGAÇÃO em vez de botão. Sem isso, as três acções da
+// casa que são navegação tiveram de a copiar à mão — e uma delas ficou com
+// outro enchimento.
+export function CapsulaVazada({ children, onClick, to, aTrabalhar = false, style }) {
+  const Elemento = to ? Link : "button";
+  const proprios = to
+    ? { to }
+    : { onClick, disabled: aTrabalhar };
   return (
-    <button
-      onClick={onClick}
-      disabled={aTrabalhar}
+    <Elemento
+      {...proprios}
       style={{
+        textDecoration: to ? "none" : undefined,
         display: "block",
         width: "100%",
         boxSizing: "border-box",
@@ -237,7 +283,7 @@ export function CapsulaVazada({ children, onClick, aTrabalhar = false, style }) 
       }}
     >
       {children}
-    </button>
+    </Elemento>
   );
 }
 

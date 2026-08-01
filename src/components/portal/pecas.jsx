@@ -62,11 +62,16 @@ export const VistoDourado = ({ tamanho = 14 }) => (
 );
 
 // O losango das listas — o que não pede acção.
-export function Losango({ opacidade = 0.55, tamanho = 5 }) {
+// Havia dois componentes com este nome — este e outro em
+// questionario-pecas.jsx — que diferiam só na margem e na opacidade. Um
+// nome repetido é pior do que código repetido: quem lê um ficheiro julga
+// conhecer o outro. Agora é um, e o que variava passou a parâmetro.
+export function Losango({ opacidade = 0.55, tamanho = 5, style }) {
   return (
     <div aria-hidden="true" style={{
       width: `${tamanho}px`, height: `${tamanho}px`, backgroundColor: "var(--gold)",
       transform: "rotate(45deg)", flex: "none", marginTop: "6px", opacity: opacidade,
+      ...style,
     }} />
   );
 }

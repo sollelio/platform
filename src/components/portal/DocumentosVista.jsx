@@ -11,7 +11,7 @@ import {
   CabecalhoDivisao, Assinatura,
 } from "./pecas";
 import {
-  SeloVersao, Folha, Timbre, LinhaServico, TotalOrcamento,
+  SeloVersao, Folha, Timbre, LinhaServico, TotalOrcamento, CapsulaCheia,
   TiraContexto, Dupla, CapsulaVazada, LigacaoDiscreta, CelulasCodigo,
   BlocoRecusa, BlocoRegisto, FaixaSelo, CampoAssinatura, CampoRecado,
   EngasteTirar, TituloDocumento, VeuValor,
@@ -512,8 +512,12 @@ function Lista({ token, meta }) {
                 )}
               </div>
               <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
+                {/* `d.acto` é um TEXTO na projecção da lista («assinou»), e
+                    um objecto na do documento aberto. Ler `.acto` aqui dava
+                    undefined e caía no último ramo: um contrato assinado
+                    dizia «Aceitou-o», e um pedido de alteração também. */}
                 {d.acto
-                  ? `${actoTexto(d.acto.acto, tipo)} a ${diaEMes(d.acto_em)}. Fica guardado tal como o leu nesse dia.`
+                  ? `${actoTexto(d.acto, tipo)} a ${diaEMes(d.acto_em)}. Fica guardado tal como o leu nesse dia.`
                   : tipo === "proposta"
                     ? "A sua mesa desenhada — cores, louça, flores e o cenário. Diga-nos se está como imaginou."
                     : tipo === "contrato"
@@ -521,18 +525,12 @@ function Lista({ token, meta }) {
                       : "Os serviços e os valores da sua mesa. Responda quando quiser."}
               </p>
               {espera ? (
-                <Link
+                <CapsulaVazada
                   to={`/acompanhar/${token}/documentos/${tipo}`}
-                  style={{
-                    display: "block", textAlign: "center", marginTop: "15px",
-                    font: "600 11px Inter, sans-serif", letterSpacing: "0.14em",
-                    textTransform: "uppercase", color: "var(--gold-dark)",
-                    backgroundColor: "white", border: "1px solid var(--gold)",
-                    borderRadius: "999px", padding: "13px 20px", textDecoration: "none",
-                  }}
+                  style={{ marginTop: "15px" }}
                 >
                   Abrir o {ROTULO_DOCUMENTO[tipo].toLowerCase()}
-                </Link>
+                </CapsulaVazada>
               ) : (
                 <div style={{ marginTop: "12px" }}>
                   <Link
@@ -1510,29 +1508,22 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <CampoAssinatura nome={nomeAssina} onNome={aoEscreverNome} completo={completo} />
             {erro && <p style={{ fontSize: "12px", color: "#9C5A3C", margin: "12px 0 0", textAlign: "center" }}>{erro}</p>}
 
-            <button
-              onClick={() => fileteCheio && agir("assinou", nomeAssina)}
-              disabled={!fileteCheio || aTrabalhar}
-              style={{
-                display: "block", width: "100%", boxSizing: "border-box",
-                textAlign: "center", marginTop: "20px",
-                font: "600 11px Inter, sans-serif", letterSpacing: "0.14em",
-                textTransform: "uppercase", borderRadius: "999px", padding: "14px 20px",
-                fontFamily: "Inter, sans-serif",
-                color: fileteCheio ? "#FFFDF7" : "#C6BEAE",
-                backgroundColor: fileteCheio ? "#A07830" : "white",
-                border: `1px solid ${fileteCheio ? "#A07830" : "#EFE7D6"}`,
-                cursor: fileteCheio ? (aTrabalhar ? "wait" : "pointer") : "default",
-                transition: "background-color 140ms ease, color 140ms ease",
-              }}
+            <CapsulaCheia
+              onClick={() => agir("assinou", nomeAssina)}
+              inerte={!fileteCheio}
+              aTrabalhar={aTrabalhar}
+              style={{ marginTop: "20px" }}
             >
               {aTrabalhar ? "A assinar…" : "Assinar o contrato"}
-            </button>
+            </CapsulaCheia>
 
             <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "16px 0 0", textAlign: "center" }}>
               Prefere em papel?{" "}
+              {/* Dizia «Descarregar para assinar à mão» e não descarregava
+                  nada: mudava de ecrã. O contrato lê-se aqui e imprime-se
+                  daqui — a palavra tem de ser a do gesto que existe. */}
               <LigacaoDiscreta onClick={() => setPasso("papel")} style={{ fontSize: "11px" }}>
-                Descarregar para assinar à mão
+                Assinar à mão e enviar a fotografia
               </LigacaoDiscreta>
             </p>
           </div>

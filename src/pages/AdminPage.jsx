@@ -49,6 +49,7 @@ import InviteDetailModal from "../components/admin/InviteDetailModal";
 import InviteCreatedModal from "../components/admin/InviteCreatedModal";
 import InvitesList from "../components/admin/InvitesList";
 import InicioTab from "../components/admin/InicioTab";
+import AvaliacoesTab from "../components/admin/AvaliacoesTab";
 import MensagensTab from "../components/admin/MensagensTab";
 import ImportarTab from "../components/admin/ImportarTab";
 import {
@@ -935,6 +936,8 @@ export default function AdminPage() {
 
         {/* ---- TAB MENSAGENS (biblioteca de mensagens-tipo) ---- */}
         {activeTab === "mensagens" && <MensagensTab />}
+
+        {activeTab === "avaliacoes" && <AvaliacoesTab />}
 
         {/* ---- TAB CLIENTES ----
              Com um id no caminho (/admin/contactos/:clienteId) mostra-se

@@ -74,7 +74,7 @@ export const carregarFotografia = async (eventoId, ficheiro, { momento, ordem = 
       ordem,
       criado_por: sessao?.user?.id || null,
     })
-    .select("id, url_pequena, url_grande, assunto, momento, ordem, criado_em, caminho")
+    .select("id, url_pequena, url_grande, assunto, momento, ordem, criado_em, caminho, publicavel")
     .single();
   if (error) throw error;
   // O caminho da grande guarda-se junto, para a poder apagar com a linha.
@@ -84,7 +84,7 @@ export const carregarFotografia = async (eventoId, ficheiro, { momento, ordem = 
 export const getFotografias = async (eventoId) => {
   const { data, error } = await supabase
     .from("evento_fotografias")
-    .select("id, url_pequena, url_grande, assunto, momento, ordem, criado_em, caminho")
+    .select("id, url_pequena, url_grande, assunto, momento, ordem, criado_em, caminho, publicavel")
     .eq("submission_id", eventoId)
     .order("ordem")
     .order("criado_em");

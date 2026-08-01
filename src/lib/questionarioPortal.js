@@ -46,15 +46,13 @@ export const responder = async (token, campoId, valor) => {
   return data;
 };
 
-// O carimbo de entrega, e o único aviso à Nádia. Mexer nas respostas depois
-// não levanta aviso novo — seria eco.
-export const entregarQuestionario = async (token) => {
-  const { data, error } = await supabase.rpc("dlm_portal_entregar_questionario", {
-    p_token: token,
-  });
-  if (error) throw error;
-  return data;
-};
+// O CARIMBO DE ENTREGA NÃO SE PEDE DAQUI. Havia aqui uma função para isso e
+// nunca foi chamada por ecrã nenhum — resultado: a cliente respondia a tudo
+// e a pendência continuava a pedir, para sempre.
+//
+// Agora é o próprio `responder` que fecha o questionário quando não falta
+// nada obrigatório (069). Sem botão de submeter, porque o desenho fez de
+// responder e rever o mesmo ecrã.
 
 // Passado o prazo do grupo, alterar deixa de mudar o valor e passa a pedir.
 // Não é recusa: é o mesmo caminho com outra porta.
@@ -132,6 +130,11 @@ export const diasAte = (isoData) => {
 // Mais vale não nomear do que nomear em português torto.
 const ARTIGOS = { o: "no", a: "na", os: "nos", as: "nas" };
 
+// «na paleta», «no texto da placa» — a mesma tabela, para quando o que
+// falta é a preposição e não o sítio. Estava escrita uma segunda vez dentro
+// da vista, e duas tabelas do mesmo português divergem à primeira mão que
+// lhes toque.
+
 export const ondeFicouPorExtenso = (titulo) => {
   const t = String(titulo || "").trim();
   const espaco = t.indexOf(" ");
@@ -139,4 +142,17 @@ export const ondeFicouPorExtenso = (titulo) => {
   const contraccao = ARTIGOS[t.slice(0, espaco).toLowerCase()];
   if (!contraccao) return null;
   return `${contraccao} ${t.slice(espaco + 1)}`;
+};
+
+export const emDe = (rotulo) => {
+  const t = String(rotulo || "").trim();
+  const espaco = t.indexOf(" ");
+  const contraccao = espaco > 0 ? ARTIGOS[t.slice(0, espaco).toLowerCase()] : null;
+  // A MEIO DE UMA FRASE vai tudo em minúscula («mudar na paleta»); no
+  // TÍTULO preserva-se a caixa do modelo («Ficou nas Cores e as Flores»).
+  // É a única coisa que separa esta da `ondeFicouPorExtenso`, e foi por
+  // isso que alguém escreveu a segunda em vez de reutilizar a primeira.
+  return contraccao
+    ? `${contraccao} ${t.slice(espaco + 1).toLowerCase()}`
+    : `em ${t.toLowerCase()}`;
 };

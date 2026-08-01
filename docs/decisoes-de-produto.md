@@ -321,6 +321,48 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   rótulo não bate, a frase não aparece. Porquê: uma hora adivinhada num
   ecrã que diz «estamos no espaço» manda alguém sair de casa à hora errada.
 
+## A avaliação e a despedida — fase 7 (01/08/2026)
+
+- **01/08/2026 — Os eixos da avaliação saem dos SERVIÇOS contratados, e o
+  mapa vive em tabela.** Há eventos sem comida: perguntar pelo sabor a quem
+  comprou um cenário é dizer que não se sabe o que se lhe vendeu. Duas ou
+  três linhas, nunca mais — à quarta deixa de ser um gesto e passa a ser um
+  formulário. **A tranquilidade fecha sempre**, seja o que for que ela
+  contratou: é o que a casa vende de facto.
+- **01/08/2026 — Um eixo aceita VÁRIAS cadeias de serviço.** Descoberto nos
+  dados: o formulário oferece «Cenário fotografável» e os dez eventos que o
+  contrataram têm guardado «Cenário». Pelo catálogo do código, dez em treze
+  ficavam sem eixo nenhum — e sem maneira de dar por isso a olhar para o
+  ecrã. **A ordem das perguntas é do mapa, nunca do array do evento**, que
+  varia de cliente para cliente para a mesma compra.
+- **01/08/2026 — A avaliação NÃO revoga o acesso.** Estava no plano e
+  mudou. Fechar a porta a quem acabou de dar uma frase e uma fotografia é o
+  gesto errado no momento errado: o portal entra em despedida e vive até o
+  prazo acabar, com as fotografias e nada a pedir. O `motivo='avaliado'`
+  fica, a significar revogação **à mão** por esse motivo.
+- **01/08/2026 — O convite aparece três dias depois, não no dia seguinte.**
+  Tempo para as fotografias estarem carregadas e para ela ter dormido. E
+  quem não avalia nunca vê nada de diferente — não há prazo à vista, não há
+  «por responder», não há sinal de que faltou alguma coisa.
+- **01/08/2026 — A autorização é dela e é só sobre AS PALAVRAS. A
+  fotografia é decisão da CASA.** Se tiver convidados reconhecíveis, essas
+  pessoas não consentiram, e a anfitriã não pode consentir por elas — por
+  isso não se lhe pergunta. Quem sabe é quem lá esteve.
+- **01/08/2026 — A fotografia tem TRÊS estados, não dois:** por rever · sem
+  convidados · com convidados. Com um booleano, a página dizia à cliente
+  que a fotografia dela tem convidados **sem ninguém ter olhado** — que é a
+  maioria. «Por rever» não publica e não se explica; só a marcada leva
+  pastilha.
+- **01/08/2026 — O nome publicado calcula-se só no servidor.** Fazer a
+  conta no browser obrigava a mandar o nome inteiro na resposta — e quem
+  escolheu «sem nome» ficava com ele a viajar na mesma.
+- **01/08/2026 — Publicar no site fica de fora.** O site está em
+  reconstrução e não há para onde publicar. Constrói-se a captação e o
+  `publicada_em`; a ponte faz-se quando o site existir.
+- **01/08/2026 — Na vista das avaliações não há véu.** Mostram-se todas,
+  incluindo as que ficaram só para a casa: são precisamente essas que dizem
+  o que melhorar.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

@@ -3,6 +3,7 @@ import {
   getFotografias, carregarFotografia, apagarFotografia,
   mudarFotografia, reordenarFotografias, momentoPorOmissao,
 } from "../../lib/fotografias";
+import { marcarEstadoDaFoto } from "../../lib/avaliacao";
 
 // ============================================================
 // FotografiasEvento — a aba das fotografias do dia (fase 6).
@@ -48,6 +49,19 @@ const botao = {
 const MOMENTOS = [
   { valor: "montagem", label: "Montagem" },
   { valor: "evento", label: "Do evento" },
+];
+
+// A decisão que a cliente NÃO pode tomar. Se a fotografia tiver convidados
+// reconhecíveis, essas pessoas não consentiram — e a anfitriã não pode
+// consentir por elas. Quem sabe é quem lá esteve.
+//
+// TRÊS estados e não dois, porque «por rever» não é «com convidados»: com
+// um booleano, a página dizia à cliente que a fotografia dela tem
+// convidados sem ninguém ter olhado.
+const PUBLICAVEL = [
+  { valor: "por_rever", label: "Por rever", cor: "var(--gray-mid)" },
+  { valor: "sem_convidados", label: "Sem convidados", cor: "#166534" },
+  { valor: "com_convidados", label: "Com convidados", cor: "#9C5A3C" },
 ];
 
 export default function FotografiasEvento({ submissao, reportarContagem }) {
@@ -135,6 +149,17 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
     setFotos((l) => l.map((f) => (f.id === foto.id ? { ...f, momento } : f)));
     try {
       await mudarFotografia(foto.id, { momento });
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível guardar. Tente novamente.");
+      recarregar();
+    }
+  };
+
+  const marcarEstado = async (foto, estado) => {
+    setFotos((l) => l.map((f) => (f.id === foto.id ? { ...f, publicavel: estado } : f)));
+    try {
+      await marcarEstadoDaFoto(foto.id, estado);
     } catch (e) {
       console.error(e);
       setErro("Não foi possível guardar. Tente novamente.");
@@ -293,7 +318,39 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                   Só aparece à cliente antes do evento. Depois, as legendas caem.
                 </p>
 
-                <div style={{ display: "flex", gap: "6px", marginTop: "9px" }}>
+                <p style={{ fontSize: "10px", fontWeight: "600", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--gray-mid)", margin: "12px 0 5px" }}>
+                  Pode ir para o site?
+                </p>
+                <div style={{ display: "flex", gap: "5px" }}>
+                  {PUBLICAVEL.map((e) => (
+                    <button
+                      key={e.valor}
+                      onClick={() => marcarEstado(f, e.valor)}
+                      title={
+                        e.valor === "com_convidados"
+                          ? "Fica sempre só para a casa — os convidados não deram autorização"
+                          : e.valor === "sem_convidados"
+                            ? "Pode aparecer no site, se a cliente autorizar as palavras"
+                            : "Ninguém olhou ainda. Não publica, e não se diz à cliente porquê"
+                      }
+                      style={{
+                        flex: 1, padding: "5px 4px", fontSize: "10.5px",
+                        fontFamily: "inherit", borderRadius: "999px", cursor: "pointer",
+                        color: f.publicavel === e.valor ? e.cor : "var(--gray-mid)",
+                        backgroundColor: f.publicavel === e.valor ? "#FBF9F4" : "white",
+                        border: `1px solid ${f.publicavel === e.valor ? e.cor : "#E8DCC0"}`,
+                        opacity: f.publicavel === e.valor ? 1 : 0.75,
+                      }}
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: "10px", fontWeight: "600", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--gray-mid)", margin: "12px 0 5px" }}>
+                  Momento
+                </p>
+                <div style={{ display: "flex", gap: "6px" }}>
                   {MOMENTOS.map((m) => (
                     <button
                       key={m.valor}

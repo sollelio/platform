@@ -1,5 +1,5 @@
 import { playfair, overline, ehCodigoDeCor, HACHURA } from "./base";
-import { VistoDourado } from "./pecas";
+import { VistoDourado, Losango } from "./pecas";
 
 // ============================================================
 // questionario-pecas.jsx — as peças do questionário no acompanhamento.
@@ -299,7 +299,7 @@ export function MarcaDeAutoria({ quando, antes, aberta }) {
   if (!aberta) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginTop: "7px" }}>
-        <Losango tamanho={4} />
+        <Losango tamanho={4} opacidade={1} style={{ marginTop: 0 }} />
         <span style={{ fontSize: "10.5px", lineHeight: 1.6, color: "#9B9B9B" }}>
           actualizado pela equipa {quando}
         </span>
@@ -308,7 +308,7 @@ export function MarcaDeAutoria({ quando, antes, aberta }) {
   }
   return (
     <div style={{ display: "flex", gap: "10px", marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #F0E6D0" }}>
-      <span style={{ marginTop: "6px", flexShrink: 0 }}><Losango tamanho={5} /></span>
+      <span style={{ marginTop: "6px", flexShrink: 0 }}><Losango tamanho={5} opacidade={1} style={{ marginTop: 0 }} /></span>
       <div>
         <p style={{ fontSize: "12px", lineHeight: 1.6, color: "var(--charcoal)", margin: 0, textWrap: "pretty" }}>
           Actualizado pela equipa {quando}.
@@ -325,16 +325,6 @@ export function MarcaDeAutoria({ quando, antes, aberta }) {
     </div>
   );
 }
-
-const Losango = ({ tamanho = 5 }) => (
-  <span
-    aria-hidden="true"
-    style={{
-      display: "inline-block", width: `${tamanho}px`, height: `${tamanho}px`,
-      backgroundColor: "var(--gold)", transform: "rotate(45deg)", flexShrink: 0,
-    }}
-  />
-);
 
 // ---------- O bloco do campo fechado (ecrã 7) ----------
 //
