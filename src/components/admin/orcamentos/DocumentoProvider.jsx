@@ -49,6 +49,9 @@ const DocumentoContext = createContext(null);
 export function DocumentoProvider({ tipo, submissionId = null, children }) {
   const rid = ridDe(tipo, submissionId);
   const [pronto, setPronto] = useState(false);
+  // TRANCADO (fase 3 do portal): o contrato assinado no acompanhamento não
+  // se altera mais — a base recusa (gatilho da 057), e aqui nem se tenta.
+  const [trancado, setTrancado] = useState(false);
 
   const dadosRef = useRef({});
   const docIdRef = useRef(null);
@@ -61,6 +64,7 @@ export function DocumentoProvider({ tipo, submissionId = null, children }) {
   useEffect(() => {
     let cancelado = false;
     setPronto(false);
+    setTrancado(false);
     dadosRef.current = {};
     docIdRef.current = null;
     sujoRef.current = false;
@@ -72,6 +76,7 @@ export function DocumentoProvider({ tipo, submissionId = null, children }) {
           // 1) BD é a fonte de verdade; o rascunho local vira espelho.
           docIdRef.current = doc.id;
           dadosRef.current = doc.dados || {};
+          if (!cancelado && doc.trancado_em) setTrancado(true);
           espelharRascunhoLocal(rid, dadosRef.current);
         } else {
           const local = lerRascunhoLocal(rid);
@@ -186,17 +191,18 @@ export function DocumentoProvider({ tipo, submissionId = null, children }) {
 
   const setCampo = useCallback(
     (campo, valor) => {
+      if (trancado) return; // assinado: nada se escreve, nem localmente
       dadosRef.current = { ...dadosRef.current, [campo]: valor };
       gravarCampoLocal(rid, campo, valor); // espelho síncrono
       sujoRef.current = true;
       agendar();
     },
-    [rid, agendar],
+    [rid, agendar, trancado],
   );
 
   const api = useMemo(
-    () => ({ rid, getCampo, setCampo }),
-    [rid, getCampo, setCampo],
+    () => ({ rid, getCampo, setCampo, trancado }),
+    [rid, getCampo, setCampo, trancado],
   );
 
   if (!pronto) {
@@ -277,5 +283,8 @@ export function useCampoDocumento(chave, inicial) {
     [persistir],
   );
 
-  return [valor, definir];
+  // O terceiro elemento é o TRANCADO do documento (fase 3): vai no mesmo
+  // array de propósito — um export novo neste ficheiro acordava a regra
+  // only-export-components, e quem destrutura só dois elementos não nota.
+  return [valor, definir, !!ctx?.trancado];
 }

@@ -568,6 +568,35 @@ h3 {
   animation: realce-pulso 1.2s ease-out 2;
 }
 
+/* O filete da assinatura — a única animação da casa com função: dá tempo
+   para reler antes de o botão acender. 2 500 ms lineares, uma vez só,
+   disparado pelo nome completo. */
+@keyframes portal-filete {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.portal-filete {
+  animation: portal-filete 2500ms linear both;
+}
+
+/* O sopro da espera do código — laço de ambiente atrás do medalhão vazio:
+   diz que alguém está a tratar do assunto. É o único movimento fora do
+   cabeçalho. */
+@keyframes portal-sopro {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 0.72; }
+}
+.portal-sopro {
+  animation: portal-sopro 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-filete,
+  .portal-sopro {
+    animation: none;
+  }
+}
+
 /* A mola das novidades do acompanhamento — a ÚNICA coisa que anima ao abrir
    naquela página, e só o que é novo desde a última visita. Ease luxo, não o
    ressalto: uma novidade não é um clímax. A passagem por −2px aos 62% é o

@@ -61,9 +61,9 @@ export const TEXTO_SEGUIR = {
   orcamento: "Estamos a prepará-lo. Assim que estiver pronto, aparece aqui e receberá um aviso.",
   sinal: "Está tudo pronto do nosso lado. É o passo que guarda a data.",
   projecto: "Vamos desenhar a sua mesa consigo: cores, louça, flores, o cenário todo.",
-  contrato: "Passamos a escrito o que ficou combinado, para não haver dúvidas.",
+  contrato: "Passamos a escrito o que ficou combinado, para ficar tudo claro.",
   preparacao: "A casa põe-se em marcha: compras, listas e a montagem ao detalhe.",
-  grande_dia: "Chegamos cedo, pomos a mesa e só saímos quando estiver tudo no sítio.",
+  grande_dia: "Chegamos cedo, pomos a mesa e só saímos quando estiver tudo no lugar.",
 };
 
 // O desenho previu a véspera e o próprio dia, não o dia seguinte. Sem esta
@@ -147,6 +147,143 @@ export const revogarPortal = async (eventoId, motivo = "manual") => {
     p_motivo: motivo,
   });
   if (error) throw error;
+};
+
+// ---------- Fase 3 · documentos, do lado da Nádia ----------
+
+// Publica (congela + mostra + carimba enviado_em). Erros de negócio vêm
+// no message: SEM_DOCUMENTO, CONTRATO_TRANCADO.
+// `extra` congela o texto fixo que rodeia os dados (cláusulas, condições):
+// sem ele, mudar uma cláusula no código mudava um contrato já publicado.
+export const publicarDocumento = async (eventoId, tipo, extra = null) => {
+  const { data, error } = await supabase.rpc("dlm_portal_publicar", {
+    p_submission_id: eventoId,
+    p_tipo: tipo,
+    p_extra: extra,
+  });
+  if (error) throw error;
+  return data;
+};
+
+// As publicações do evento, com os actos de cada uma embutidos — chega
+// para a folha dizer «publicado v2 · aceite a 31/07» sem segunda ida.
+export const getPublicacoes = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("portal_publicacoes")
+    .select("id, tipo, versao, publicado_em, portal_actos(acto, nome_escrito, mensagem, criado_em)")
+    .eq("submission_id", eventoId)
+    .order("versao", { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+// Os pedidos de código deste evento, mais recentes primeiro. O !inner é o
+// filtro: verificações cujo acesso pertence a este evento.
+export const getPedidosCodigo = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("portal_verificacoes")
+    .select(
+      "id, contexto, pedido_em, codigo, emitido_em, expira_em, usado_em, portal_acessos!inner(submission_id)",
+    )
+    .eq("portal_acessos.submission_id", eventoId)
+    .order("pedido_em", { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+// Emite (ou re-devolve) o código de um pedido, para ela enviar pelo
+// WhatsApp. A emissão fica no trilho: emitido_por, emitido_em.
+export const emitirCodigo = async (verificacaoId) => {
+  const { data, error } = await supabase.rpc("dlm_portal_emitir_codigo", {
+    p_verificacao_id: verificacaoId,
+  });
+  if (error) throw error;
+  return data;
+};
+
+// ---------- Fase 3 · documentos, do lado da cliente ----------
+//
+// Todos devolvem objectos com `estado` — a página decide o ecrã. Nenhum
+// destes lança por erro de negócio; só por falha de rede.
+
+export const pedirCodigo = async (token, contexto) => {
+  const { data, error } = await supabase.rpc("dlm_portal_pedir_codigo", {
+    p_token: token,
+    p_contexto: contexto || null,
+  });
+  if (error) throw error;
+  return data;
+};
+
+export const verificarCodigo = async (token, codigo) => {
+  const { data, error } = await supabase.rpc("dlm_portal_verificar", {
+    p_token: token,
+    p_codigo: codigo,
+  });
+  if (error) throw error;
+  return data;
+};
+
+export const getDocumentosPortal = async (token) => {
+  const { data, error } = await supabase.rpc("dlm_portal_documentos", {
+    p_token: token,
+  });
+  if (error) throw error;
+  return data;
+};
+
+export const verDocumentoPortal = async (token, tipo, verificacaoId = null, versao = null) => {
+  const { data, error } = await supabase.rpc("dlm_portal_ver_documento", {
+    p_token: token,
+    p_tipo: tipo,
+    p_verificacao: verificacaoId,
+    p_versao: versao,
+  });
+  if (error) throw error;
+  return data;
+};
+
+// O caminho do papel: sobe a fotografia do contrato assinado para o balde
+// PRIVADO e regista o carregamento (que avisa a Caixa de Entrada). O nome
+// do ficheiro é aleatório, como o das referências — nunca um id.
+export const enviarContratoAssinado = async (token, ficheiro) => {
+  const extensao = (ficheiro.name.split(".").pop() || "jpg").toLowerCase();
+  const caminho = `papel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
+  const { error: errUp } = await supabase.storage
+    .from("contratos-assinados")
+    .upload(caminho, ficheiro, { upsert: false });
+  if (errUp) throw errUp;
+  const { data, error } = await supabase.rpc("dlm_portal_registar_assinado_papel", {
+    p_token: token,
+    p_caminho: caminho,
+  });
+  if (error) throw error;
+  return data;
+};
+
+// acto: 'aceitou' | 'pediu_alteracao' | 'assinou' (assinar só o contrato).
+// `versao` é a que ela LEU: se saiu outra entretanto, a base recusa com
+// `versao_mudou` e ela relê antes de responder (058).
+export const registarActo = async (token, tipo, verificacaoId, acto, nome, mensagem, versao = null) => {
+  const { data, error } = await supabase.rpc("dlm_portal_acto", {
+    p_token: token,
+    p_tipo: tipo,
+    p_verificacao: verificacaoId,
+    p_acto: acto,
+    p_nome: nome,
+    p_mensagem: mensagem || null,
+    p_versao: versao,
+  });
+  if (error) throw error;
+  return data;
+};
+
+// Os rótulos dos documentos, com a armadilha de sempre à vista:
+// `proposta` É o Projecto. Nunca foi o orçamento.
+export const ROTULO_DOCUMENTO = {
+  orcamento: "Orçamento",
+  proposta: "Projecto",
+  contrato: "Contrato",
 };
 
 // O endereço a partilhar. Único sítio onde o caminho se escreve — se o

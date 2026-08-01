@@ -122,7 +122,7 @@ function App() {
             aleatórios, e a projecção da RPC não devolve o id. É a regra
             que a migração 049 existe para respeitar — um id que escape
             expõe o registo completo por outro RPC anónimo. */}
-        <Route path="/acompanhar/:token" element={<PortalPage />} />
+        <Route path="/acompanhar/:token/:vista?/:sub?" element={<PortalPage />} />
         <Route path="*" element={<DestinoDesconhecido />} />
       </Routes>
     </BrowserRouter>

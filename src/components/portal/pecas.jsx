@@ -200,6 +200,26 @@ export function FraseDeFecho({ frase, corpo }) {
   );
 }
 
+// O rodapé-assinatura da casa, nas páginas públicas.
+export function Assinatura({ style }) {
+  return (
+    <p
+      style={{
+        font: "700 9px Inter, sans-serif",
+        letterSpacing: "0.22em",
+        textTransform: "uppercase",
+        color: "var(--gold-dark)",
+        opacity: 0.62,
+        textAlign: "center",
+        margin: 0,
+        ...style,
+      }}
+    >
+      Do Luxo à Mesa · by Luxury Events
+    </p>
+  );
+}
+
 // A moldura de uma divisão: o espaço que a separa da anterior.
 export function Divisao({ children, style }) {
   return <div style={{ marginTop: "38px", ...style }}>{children}</div>;

@@ -16,15 +16,14 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 // antes do evento) vive na coluna pagamento_final e alerta no Início.
 // ============================================================
 
-export const FASE_LABEL = {
-  interessado: "Interessado",
-  orcamento: "Orçamento",
-  sinal: "Aguarda sinal",
-  cliente: "Cliente",
-  projecto: "Projecto",
-  contrato: "Contrato",
-  perdido: "Perdido",
-};
+// Os rótulos e a lista pós-sinal mudaram-se para lib/fases.js — a fonte
+// única que também a camada de dados pode ler (lib/ não importa de
+// components/). Re-exportados daqui para nenhum consumidor mudar.
+// ⚠ importa E re-exporta, não `export … from`: o re-export puro não põe
+// os nomes no ÂMBITO deste módulo, e o ehLacunaDeFormulario lá em baixo
+// usa FASES_POS_SINAL — rebentava em runtime com o build a passar.
+import { FASE_LABEL, FASES_POS_SINAL } from "../../lib/fases";
+export { FASE_LABEL, FASES_POS_SINAL };
 
 export const FASE_COR = {
   interessado: { bg: "#FEF3E2", cor: "#B45309" },
@@ -46,10 +45,6 @@ export const FASES_BOARD = [
   "projecto",
   "contrato",
 ];
-
-// Fases PÓS-SINAL (a data está garantida — o negócio é dela).
-// Usado pela Agenda (sólido vs tracejado) e pelos alertas do Início.
-export const FASES_POS_SINAL = ["cliente", "projecto", "contrato"];
 
 // Para onde avança cada fase (contrato é o fim; perdido recupera-se
 // para interessado via ação própria).

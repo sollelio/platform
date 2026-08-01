@@ -1,3 +1,4 @@
+import { FASE_LABEL } from "../../lib/fases";
 import { FASES_POS_SINAL } from "./faseConfig";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { saldoSinalPendente } from "../../lib/pagamentos";
@@ -104,7 +105,7 @@ export function construirEtapas({
   const etapas = [
     {
       id: "interessado",
-      rotulo: "Interessada",
+      rotulo: FASE_LABEL.interessado,
       feito: true,
       sub: dataCurta(s.created_at),
     },
@@ -237,7 +238,7 @@ export function construirEvidencia({ s, invites, previstos, pagamentos }) {
   const etapas = [
     {
       id: "interessado",
-      rotulo: "Interessada",
+      rotulo: FASE_LABEL.interessado,
       evidencia: true,
       sub: dataCurta(s.created_at),
     },

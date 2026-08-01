@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
 import logoUrl from "../../../assets/logo.png";
 import {
@@ -9,11 +9,7 @@ import {
   dataPorExtenso,
   valorPorExtensoPT,
 } from "./contratoConfig";
-import {
-  formatarEuros,
-  formatarDataPT,
-  parsearValor,
-} from "./orcamentoConfig";
+import { formatarEuros, parsearValor } from "./orcamentoConfig";
 
 // ============================================================
 // GerarContrato — formulário dos dados variáveis + pré-visualização
@@ -53,7 +49,9 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
   const rid = `contrato:${prefill?.submissionId || "manual"}`;
   // 1.ª Contraente — cliente(s). Com prefill, os contraentes vêm já
   // resolvidos (casal = 2, restantes eventos = 1).
-  const [contraentes, setContraentes] = useRascunho(`${rid}:contraentes`, () =>
+  // O 3.º elemento é o tranco do documento (ver DocumentoProvider): um
+  // contrato assinado no acompanhamento não se edita mais.
+  const [contraentes, setContraentes, trancado] = useRascunho(`${rid}:contraentes`, () =>
     prefill?.contraentes?.length
       ? prefill.contraentes.map((c) => novoContraente(c))
       : [novoContraente()],
@@ -136,9 +134,14 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
     `${rid}:localAssinatura`,
     "Ericeira",
   );
+  // Data LOCAL, não UTC: `toISOString()` datava o contrato da véspera
+  // entre a meia-noite e a 1h do horário de verão.
   const [dataAssinatura, setDataAssinatura] = useRascunho(
     `${rid}:dataAssinatura`,
-    new Date().toISOString().slice(0, 10),
+    (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })(),
   );
 
   const atualizarContraente = (uid, campos) =>
@@ -166,6 +169,31 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
 
   return (
     <div>
+      {/* O TRANCO (fase 3): assinado no acompanhamento, o contrato ficou
+          prova. A base recusa alterações (gatilho da 057) e o provider nem
+          as escreve — este aviso diz-o antes de ela perder trabalho a
+          escrever num formulário que já não guarda. Imprimir continua a
+          funcionar: o que se imprime é o que foi assinado. */}
+      {trancado && (
+        <div
+          style={{
+            backgroundColor: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            borderRadius: "12px",
+            padding: "13px 16px",
+            marginBottom: "16px",
+            fontSize: "12.5px",
+            lineHeight: 1.65,
+            color: "#166534",
+          }}
+        >
+          <strong style={{ fontWeight: 600 }}>
+            Este contrato foi assinado no acompanhamento e está trancado.
+          </strong>{" "}
+          As alterações aqui deixam de ser guardadas. Se houver um erro,
+          faz-se um contrato novo; este fica como prova do que foi assinado.
+        </div>
+      )}
       {/* O contrato é multi-página: mantém @page margin 2cm (margens
           bonitas em TODAS as páginas). Os cabeçalhos do browser
           resolvem-se com o swap do título + desligar "Headers and

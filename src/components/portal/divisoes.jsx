@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   overline, playfair, diaMesAno, semanaEDia,
   HACHURA, ehCodigoDeCor, naoVazio,
@@ -75,6 +76,23 @@ export function OQueFaltaDeSi({ pendencias = [], doNossoLado = [] }) {
                 <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
                   {p.corpo}
                 </p>
+                {p.href && (
+                  <Link
+                    to={p.href}
+                    style={{
+                      display: "inline-block",
+                      marginTop: "12px",
+                      fontSize: "12px",
+                      letterSpacing: "0.03em",
+                      color: "var(--charcoal)",
+                      borderBottom: "1px solid #E8D5A3",
+                      paddingBottom: "3px",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {p.hrefRotulo || "Abrir"}
+                  </Link>
+                )}
               </CartaoBranco>
             ))}
           </div>

@@ -73,3 +73,53 @@ export const HACHURA = "repeating-linear-gradient(45deg, #F2ECDF 0 5px, #FAF7EF 
 export const ehCodigoDeCor = (v) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v).trim());
 
 export const naoVazio = (v) => typeof v === "string" && v.trim() !== "";
+
+// ---------- Contacto da casa ----------
+// O número do negócio — o mesmo por onde a casa já fala com as clientes.
+// A mensagem pré-escrita dá contexto a quem chega de uma ligação terminada.
+export const WHATSAPP_URL =
+  "https://wa.me/351927177190?text=Ol%C3%A1%21%20Escrevo%20a%20partir%20da%20p%C3%A1gina%20de%20acompanhamento%20do%20meu%20evento.";
+export const SITE_URL = "https://doluxoamesa.pt";
+
+// ---------- Dinheiro à portuguesa ----------
+// 1 291,50 € — espaço nos milhares, vírgula nos cêntimos, símbolo no fim,
+// espaços inquebráveis para o valor nunca partir ao meio de uma linha.
+export const formatarEuroPT = (n) => {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  const [int, cent] = v.toFixed(2).split(".");
+  const comMilhares = int.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
+  return `${comMilhares},${cent}\u00A0€`;
+};
+
+// «14:32» a partir de um timestamptz, no relógio de quem lê.
+export const horaCurta = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+// ---------- A sessão verificada ----------
+// Depois de o código ser aceite, a sessão (60 minutos) sobrevive a um
+// recarregar: fica no sessionStorage, presa ao token. Nunca guarda o
+// código — só o id da verificação, que sem o token não abre nada.
+const chaveSessao = (token) => `dlm_acomp_sessao_${token}`;
+
+export const lerSessao = (token) => {
+  try {
+    const bruto = sessionStorage.getItem(chaveSessao(token));
+    if (!bruto) return null;
+    const s = JSON.parse(bruto);
+    if (!s?.id || !s?.validaAte || new Date(s.validaAte) < new Date()) return null;
+    return s;
+  } catch {
+    return null;
+  }
+};
+
+export const guardarSessao = (token, id, validaAte) => {
+  try {
+    sessionStorage.setItem(chaveSessao(token), JSON.stringify({ id, validaAte }));
+  } catch {
+    /* privado/cheio — a sessão vive só em memória nesta visita */
+  }
+};

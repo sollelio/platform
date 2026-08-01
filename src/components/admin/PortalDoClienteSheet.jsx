@@ -7,7 +7,32 @@ import {
   abrirPortal,
   revogarPortal,
   enderecoDoPortal,
+  getPublicacoes,
+  getPedidosCodigo,
+  publicarDocumento,
+  emitirCodigo,
+  ROTULO_DOCUMENTO,
 } from "../../lib/portal";
+import { documentosDoEvento } from "../../lib/documentos";
+import { CONTRATO_INTRO, CLAUSULAS } from "./orcamentos/contratoConfig";
+import {
+  CONDICOES_ORCAMENTO,
+  NOTA_RODAPE_ORCAMENTO,
+  VALIDADE_ORCAMENTO_DIAS,
+} from "./orcamentos/orcamentoConfig";
+
+// O que se CONGELA junto com os dados ao publicar: o texto fixo que os
+// rodeia. Sem isto, mudar uma cláusula no código mudava um contrato já
+// publicado — o instantâneo tem de apanhar tudo o que a cliente lê.
+const EXTRA_POR_TIPO = {
+  contrato: { __contrato: { intro: CONTRATO_INTRO, clausulas: CLAUSULAS } },
+  orcamento: {
+    __condicoes: CONDICOES_ORCAMENTO,
+    __nota: NOTA_RODAPE_ORCAMENTO,
+    __validadeDias: VALIDADE_ORCAMENTO_DIAS,
+  },
+  proposta: null,
+};
 
 // ============================================================
 // PortalDoClienteSheet — a porta do acompanhamento, do lado da Nádia.
@@ -80,32 +105,47 @@ const oQueElaVaiVer = (fase) => {
 };
 
 function Conteudo({ evento, onFechar }) {
-  // { estado: 'a-carregar' | 'pronto' | 'erro', acesso }
+  // { estado: 'a-carregar' | 'pronto' | 'erro', acesso, docs, pubs, pedidos }
   const [resultado, setResultado] = useState(null);
   const [erro, setErro] = useState(null);
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [aConfirmarFecho, setAConfirmarFecho] = useState(false);
+  // Depois de publicar ou emitir, pede-se a verdade à base outra vez em
+  // vez de a remendar à mão no estado local.
+  const [recarga, setRecarga] = useState(0);
+  // O id do pedido cujo código acabou de ser copiado (feedback do botão).
+  const [copiadoCodigo, setCopiadoCodigo] = useState(null);
 
   const eventoId = evento.id;
 
   useEffect(() => {
     let cancelado = false;
-    getAcessoDoEvento(eventoId)
-      .then((a) => {
-        if (!cancelado) setResultado({ estado: "pronto", acesso: a });
+    Promise.all([
+      getAcessoDoEvento(eventoId),
+      documentosDoEvento(eventoId),
+      getPublicacoes(eventoId),
+      getPedidosCodigo(eventoId),
+    ])
+      .then(([a, docs, pubs, pedidos]) => {
+        if (!cancelado)
+          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos });
       })
       .catch((e) => {
         console.error(e);
-        if (!cancelado) setResultado({ estado: "erro", acesso: null });
+        if (!cancelado)
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [] });
       });
     return () => {
       cancelado = true;
     };
-  }, [eventoId]);
+  }, [eventoId, recarga]);
 
   const estado = resultado?.estado ?? "a-carregar";
   const acesso = resultado?.acesso ?? null;
+  const docs = resultado?.docs ?? [];
+  const pubs = resultado?.pubs ?? [];
+  const pedidos = resultado?.pedidos ?? [];
   const endereco = acesso ? enderecoDoPortal(acesso.token) : null;
 
   const copiar = () => {
@@ -122,8 +162,10 @@ function Conteudo({ evento, onFechar }) {
       // Idempotente na base: carregar duas vezes devolve o MESMO token
       // (há um índice único parcial a garanti-lo), nunca cria um segundo.
       await abrirPortal(eventoId);
-      const a = await getAcessoDoEvento(eventoId);
-      setResultado({ estado: "pronto", acesso: a });
+      // Recarga em vez de substituir o objecto: escrever só `acesso`
+      // deitava fora docs/pubs/pedidos, e as secções dos documentos e dos
+      // códigos desapareciam até fechar e reabrir a folha.
+      setRecarga((r) => r + 1);
     } catch (e) {
       console.error(e);
       setErro("Não foi possível abrir o acompanhamento. Tente novamente.");
@@ -137,7 +179,7 @@ function Conteudo({ evento, onFechar }) {
     setErro(null);
     try {
       await revogarPortal(eventoId, "manual");
-      setResultado({ estado: "pronto", acesso: null });
+      setRecarga((r) => r + 1);
       setAConfirmarFecho(false);
     } catch (e) {
       console.error(e);
@@ -146,6 +188,52 @@ function Conteudo({ evento, onFechar }) {
       setATrabalhar(false);
     }
   };
+
+  const publicar = async (tipo) => {
+    setATrabalhar(true);
+    setErro(null);
+    try {
+      await publicarDocumento(eventoId, tipo, EXTRA_POR_TIPO[tipo] || null);
+      setRecarga((r) => r + 1);
+    } catch (e) {
+      console.error(e);
+      setErro(
+        /CONTRATO_TRANCADO/.test(e?.message || "")
+          ? "Este contrato está assinado e trancado — não há versões novas. Para corrigir, faz-se um contrato novo."
+          : "Não foi possível publicar. Tente novamente.",
+      );
+    } finally {
+      setATrabalhar(false);
+    }
+  };
+
+  const emitir = async (verificacaoId) => {
+    setATrabalhar(true);
+    setErro(null);
+    try {
+      await emitirCodigo(verificacaoId);
+      setRecarga((r) => r + 1);
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível emitir o código. Tente novamente.");
+    } finally {
+      setATrabalhar(false);
+    }
+  };
+
+  const copiarCodigo = (id, codigo) => {
+    navigator.clipboard.writeText(codigo);
+    setCopiadoCodigo(id);
+    setTimeout(() => setCopiadoCodigo(null), 2500);
+  };
+
+  // Os pedidos que precisam dela: por emitir, ou emitidos por usar (o
+  // código fica à vista para reenviar). Os já usados são trilho, não fila.
+  const pedidosVivos = pedidos.filter(
+    (p) =>
+      !p.usado_em &&
+      (!p.emitido_em || (p.expira_em && new Date(p.expira_em) > new Date())),
+  );
 
   const aviso = oQueElaVaiVer(evento.fase);
 
@@ -171,7 +259,9 @@ function Conteudo({ evento, onFechar }) {
         }}
       >
         Mostra o percurso do evento — o que já aconteceu e o que vem a seguir.
-        Não mostra valores, moradas exactas nem notas internas.
+        Só mostra valores num documento que publicar, e apenas depois do
+        código que lhe enviar. Nunca mostra moradas exactas nem notas
+        internas.
       </p>
 
       {estado === "a-carregar" && (
@@ -330,6 +420,227 @@ function Conteudo({ evento, onFechar }) {
             </p>
           )}
 
+          {/* ── OS DOCUMENTOS NO ACOMPANHAMENTO ──────────────────────────
+              Publicar é o acto que substituiu a caixa «enviado»: congela um
+              instantâneo, mostra-o à cliente e carimba o envio. O que ela
+              vê é o que foi publicado — nunca o documento vivo. */}
+          {docs.length > 0 && (
+            <div
+              style={{
+                marginTop: "20px",
+                paddingTop: "16px",
+                borderTop: "1px solid var(--hairline, #F0E6D0)",
+              }}
+            >
+              <p style={{ ...overline, marginBottom: "10px" }}>
+                Documentos no acompanhamento
+              </p>
+              {["orcamento", "proposta", "contrato"].map((tipo) => {
+                const doc = docs.find((d) => d.tipo === tipo);
+                if (!doc) return null;
+                const pub = pubs.find((p) => p.tipo === tipo) || null;
+                const actos = (pub?.portal_actos || [])
+                  .slice()
+                  .sort((a, b) => (a.criado_em < b.criado_em ? 1 : -1));
+                const acto = actos[0] || null;
+                const trancado = !!doc.trancado_em;
+
+                return (
+                  <div
+                    key={tipo}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                      padding: "9px 0",
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "var(--charcoal)",
+                          margin: 0,
+                        }}
+                      >
+                        {ROTULO_DOCUMENTO[tipo]}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "11.5px",
+                          lineHeight: 1.55,
+                          color: trancado ? "#166534" : "var(--gray-mid)",
+                          margin: "2px 0 0",
+                        }}
+                      >
+                        {trancado
+                          ? `Assinado e trancado a ${dataHora(doc.trancado_em)} — não se altera; um erro resolve-se com contrato novo.`
+                          : !pub
+                            ? "Ainda não publicado — a cliente não o vê."
+                            : acto?.acto === "assinou"
+                              ? `Assinado por ${acto.nome_escrito} a ${dataHora(acto.criado_em)}.`
+                              : acto?.acto === "aceitou"
+                                ? `${tipo === "proposta" ? "Aprovado" : "Aceite"} por ${acto.nome_escrito} a ${dataHora(acto.criado_em)}.`
+                                : acto?.acto === "pediu_alteracao"
+                                  ? `Pediu uma alteração a ${dataHora(acto.criado_em)} — versão ${pub.versao} à espera de resposta.`
+                                  : `Publicado a ${dataHora(pub.publicado_em)} · versão ${pub.versao}.`}
+                      </p>
+                      {/* As palavras DELA têm de chegar aqui inteiras —
+                          um pedido de alteração que ninguém lê é um acto
+                          surdo. Itálico porque é citação dela. */}
+                      {acto?.acto === "pediu_alteracao" && acto.mensagem && (
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            lineHeight: 1.6,
+                            fontStyle: "italic",
+                            color: "var(--charcoal)",
+                            margin: "6px 0 0",
+                            whiteSpace: "pre-line",
+                          }}
+                        >
+                          {acto.mensagem}
+                        </p>
+                      )}
+                    </div>
+                    {!trancado && (
+                      <button
+                        onClick={() => publicar(tipo)}
+                        disabled={aTrabalhar}
+                        style={{
+                          ...botao,
+                          padding: "7px 13px",
+                          fontSize: "11.5px",
+                          border: "1px solid var(--gold)",
+                          backgroundColor: "white",
+                          color: "var(--gold-dark)",
+                          opacity: aTrabalhar ? 0.6 : 1,
+                          cursor: aTrabalhar ? "wait" : "pointer",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {pub ? "Publicar versão nova" : "Publicar no acompanhamento"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <p
+                style={{
+                  fontSize: "11px",
+                  lineHeight: 1.6,
+                  color: "#9B9B9B",
+                  margin: "6px 0 0",
+                }}
+              >
+                Publicar uma versão nova reabre a resposta da cliente: o
+                aceite vale para a versão que ela viu, não para o documento.
+              </p>
+            </div>
+          )}
+
+          {/* ── OS PEDIDOS DE CÓDIGO ─────────────────────────────────────
+              A cliente pediu para ver os valores (ou para assinar). Emitir
+              gera o código; o envio é dela para ela — pelo WhatsApp da
+              conversa que já existe. A emissão fica no trilho de prova. */}
+          {pedidosVivos.length > 0 && (
+            <div
+              style={{
+                marginTop: "18px",
+                backgroundColor: "#FEF3E2",
+                border: "1px solid #F0D9B5",
+                borderRadius: "10px",
+                padding: "13px 14px",
+              }}
+            >
+              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+                {pedidosVivos.length === 1
+                  ? "Pedido de código"
+                  : `${pedidosVivos.length} pedidos de código`}
+              </p>
+              {pedidosVivos.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    padding: "5px 0",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1.5,
+                      color: "#92400E",
+                      margin: 0,
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
+                    {p.contexto && ROTULO_DOCUMENTO[p.contexto]
+                      ? `Para abrir o ${ROTULO_DOCUMENTO[p.contexto].toLowerCase()}`
+                      : "Para ver os valores"}{" "}
+                    · {dataHora(p.pedido_em)}
+                  </p>
+                  {p.codigo && p.emitido_em ? (
+                    <button
+                      onClick={() => copiarCodigo(p.id, p.codigo)}
+                      style={{
+                        ...botao,
+                        padding: "7px 13px",
+                        fontSize: "13px",
+                        letterSpacing: "0.12em",
+                        fontVariantNumeric: "tabular-nums",
+                        border: "none",
+                        backgroundColor:
+                          copiadoCodigo === p.id ? "#166534" : "var(--gold)",
+                        color: "white",
+                        flexShrink: 0,
+                      }}
+                      title="Copiar, para enviar pela conversa de WhatsApp"
+                    >
+                      {copiadoCodigo === p.id ? "Copiado" : p.codigo}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => emitir(p.id)}
+                      disabled={aTrabalhar}
+                      style={{
+                        ...botao,
+                        padding: "7px 13px",
+                        fontSize: "11.5px",
+                        border: "none",
+                        backgroundColor: "var(--gold)",
+                        color: "white",
+                        opacity: aTrabalhar ? 0.6 : 1,
+                        cursor: aTrabalhar ? "wait" : "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {aTrabalhar ? "A emitir…" : "Emitir código"}
+                    </button>
+                  )}
+                </div>
+              ))}
+              <p
+                style={{
+                  fontSize: "11px",
+                  lineHeight: 1.6,
+                  color: "#92400E",
+                  margin: "8px 0 0",
+                }}
+              >
+                Envie o código pela conversa de WhatsApp que já tem com a
+                cliente — é esse passo que confirma que é mesmo ela. Vale 24
+                horas.
+              </p>
+            </div>
+          )}
+
           <div
             style={{
               marginTop: "20px",
@@ -369,7 +680,7 @@ function Conteudo({ evento, onFechar }) {
                     margin: 0,
                   }}
                 >
-                  A ligação que enviou deixa de abrir, e ela passa a ver um ecrã
+                  A ligação que enviou deixa de abrir, e ela passa a ver uma página
                   a dizer que já não está activa. O evento, os documentos e os
                   pagamentos ficam todos — não se apaga nada. Pode voltar a
                   abrir depois, mas a ligação nova é outra e terá de lha enviar

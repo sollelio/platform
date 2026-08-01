@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { FASE_LABEL, FASES_POS_SINAL } from "./fases";
 import { ehFuncaoRpcEmFalta } from "./rpc";
 import {
   getValorAtual,
@@ -476,16 +477,10 @@ export const updateFase = async (submissionId, fase, opcoes = {}) => {
 // "Recebido" é o estado neutro de partida e continua livre em
 // qualquer fase.
 //
-// FASES_POS_SINAL espelha components/admin/faseConfig.js — lib/ não
-// importa de components/ (mesma razão da FASES_VALIDAS acima: evitar
-// a dependência ao contrário).
-const FASES_POS_SINAL = ["cliente", "projecto", "contrato"];
+// FASES_POS_SINAL e FASE_LABEL vêm de lib/fases.js — a fonte única que
+// o faseConfig.js também re-exporta. O segundo mapa de rótulos que
+// vivia aqui («Interessada», «Orçamento enviado») morreu com ela.
 const STATUS_POS_SINAL = ["Em Preparação", "Confirmado", "Concluído"];
-const FASE_LABEL_PRE_SINAL = {
-  interessado: "Interessada",
-  orcamento: "Orçamento enviado",
-  sinal: "A aguardar sinal",
-};
 
 export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
   // A pré-validação local dá a mensagem imediata e explicada, com a
@@ -498,7 +493,7 @@ export const updateStatus = async (submissionId, novoStatus, faseAtual) => {
   const comGuardaDeFase = STATUS_POS_SINAL.includes(novoStatus);
   if (comGuardaDeFase && !FASES_POS_SINAL.includes(faseAtual)) {
     throw new Error(
-      `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL_PRE_SINAL[faseAtual] || faseAtual || "sem fase definida"}".`,
+      `Não é possível marcar "${novoStatus}" antes do sinal — este evento está em "${FASE_LABEL[faseAtual] || faseAtual || "sem fase definida"}".`,
     );
   }
   let query = supabase

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
 import { Esqueleto } from "../components/admin/acabamento";
@@ -27,6 +27,13 @@ import {
   comporNovidades,
   comporPendencias,
 } from "../components/portal/conteudo";
+import DocumentosVista from "../components/portal/DocumentosVista";
+import {
+  WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, semanaEAno,
+} from "../components/portal/base";
+import {
+  FileteComLosango, VistoDourado, Assinatura,
+} from "../components/portal/pecas";
 
 // ============================================================
 // PortalPage — /acompanhar/:token, a vitrina do evento para quem o organiza.
@@ -57,95 +64,10 @@ import {
 // `prefers-reduced-motion` também esses param.
 // ============================================================
 
-// ⚠ POR PREENCHER PELA CASA. Enquanto estiver vazio, a cortina não mostra
-// a cápsula e o texto adapta-se — não fica um ecrã com uma promessa de
-// botão que não existe.
-const WHATSAPP_URL = "";
-const SITE_URL = "https://doluxoamesa.pt";
-
-// Meses e dias em português, escritos à mão em vez de toLocaleDateString:
-// a casa usa grafia pré-acordo («projecto», «acção») e nessa grafia os
-// meses levam maiúscula, que o locale do browser não dá. De caminho,
-// tira-se qualquer dependência do fuso do visitante.
-const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-const SEMANA = ["domingo", "segunda-feira", "terça-feira", "quarta-feira",
-  "quinta-feira", "sexta-feira", "sábado"];
-
-// Lê o dia de calendário directamente da string, sem passar por um Date
-// local. `data_evento` e `pagamentos.data` são DATE convertidos para
-// timestamptz pela RPC; um Date local desloca-os um dia para quem esteja a
-// oeste de Greenwich, e a linguagem da casa serve todo o espaço lusófono —
-// uma cliente no Brasil veria o dia anterior no marco mais importante da
-// vida dela.
-const partesDaData = (iso) => {
-  if (!iso) return null;
-  const [a, m, d] = String(iso).slice(0, 10).split("-").map(Number);
-  if (!a || !m || !d) return null;
-  return { a, m, d, semana: new Date(Date.UTC(a, m - 1, d)).getUTCDay() };
-};
-
-const diaEMes = (iso) => {
-  const p = partesDaData(iso);
-  return p ? `${p.d} de ${MESES[p.m - 1]}` : null;
-};
-
-const semanaEAno = (iso) => {
-  const p = partesDaData(iso);
-  return p ? `${SEMANA[p.semana]}, ${p.a}` : null;
-};
-
-// ---------- Peças reutilizáveis da casa ----------
-
-const overline = (cor = "#A07830", tracking = "0.22em") => ({
-  font: "700 9.5px Inter, sans-serif",
-  letterSpacing: tracking,
-  textTransform: "uppercase",
-  color: cor,
-  margin: 0,
-});
-
-const playfair = {
-  fontFamily: "'Playfair Display', serif",
-  fontWeight: 400,
-  color: "var(--charcoal)",
-  margin: 0,
-};
-
-// Divisor de cerimónia: dois filetes que se dissolvem e um losango ao
-// centro. Nunca uma linha inteira de ponta a ponta.
-function FileteComLosango({ margem = "18px 0 16px" }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "10px",
-        margin: margem,
-      }}
-    >
-      <div style={{ height: "1px", width: "52px", background: "linear-gradient(90deg, rgba(232,213,163,0), #E8D5A3)" }} />
-      <div style={{ width: "5px", height: "5px", backgroundColor: "var(--gold)", transform: "rotate(45deg)" }} />
-      <div style={{ height: "1px", width: "52px", background: "linear-gradient(90deg, #E8D5A3, rgba(232,213,163,0))" }} />
-    </div>
-  );
-}
-
-// O visto da casa, desenhado à mão: stroke 1.9, pontas e uniões redondas.
-// Nada de glifos de texto como marca.
-const VistoDourado = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path
-      d="M3 7.4 L5.9 10.2 L11.2 3.9"
-      stroke="var(--gold)"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+// ---------- Peças reutilizáveis ----------
+// Vivem em components/portal/{base,pecas} desde a fase 2 — as cópias
+// locais da fase 1 morreram aqui na consolidação (Parte 2 da revisão).
+// A Cortina e a pastilha «por definir» ficam: só esta página as usa.
 
 // Pastilha «por definir» — qualquer campo vazio no público. Vem sempre em
 // par: overline do campo à esquerda, pastilha à direita, e uma linha a
@@ -183,25 +105,6 @@ function CampoPorDefinir({ campo, ajuda }) {
         {ajuda}
       </p>
     </>
-  );
-}
-
-function Assinatura({ style }) {
-  return (
-    <p
-      style={{
-        font: "700 9px Inter, sans-serif",
-        letterSpacing: "0.22em",
-        textTransform: "uppercase",
-        color: "var(--gold-dark)",
-        opacity: 0.62,
-        textAlign: "center",
-        margin: 0,
-        ...style,
-      }}
-    >
-      Do Luxo à Mesa · by Luxury Events
-    </p>
   );
 }
 
@@ -309,7 +212,7 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir }) {
 // ---------- A página ----------
 
 export default function PortalPage() {
-  const { token } = useParams();
+  const { token, vista, sub } = useParams();
   const [resultado, setResultado] = useState(null);
   const reduzir = useReducedMotion();
 
@@ -397,6 +300,29 @@ export default function PortalPage() {
     );
   }
 
+  // ---------- A área dos documentos (fases 3 e 4) ----------
+  // A cortina do terminado já respondeu acima; aqui o token está vivo.
+  // A área tem cabeçalho próprio (o timbre da folha) — sem logo grande.
+  if (vista === "documentos") {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
+        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+          {/* key POR DOCUMENTO: sem isto o componente não desmonta ao
+              mudar de :sub, e o estado do documento anterior (passo,
+              acto feito, nome escrito, versão antiga aberta) pintava-se
+              no seguinte — «O contrato está aceite» logo a seguir a
+              aceitar o orçamento. Remontar é a cura da classe inteira. */}
+          <DocumentosVista
+            key={sub || "lista"}
+            token={token}
+            tipo={sub}
+            reduzir={reduzir}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // ---------- A jornada ----------
 
   const ev = dados?.evento;
@@ -439,7 +365,20 @@ export default function PortalPage() {
   // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
   // de desenho, e a página não tem que a conhecer.
   const novidades = comporNovidades(dados);
-  const pendencias = comporPendencias(dados, caducou);
+  const pendenciasBase = comporPendencias(dados, caducou);
+  // A ligação constrói-se aqui porque só a página conhece o token: o
+  // orçamento pendente passa a levar à área dos documentos.
+  const pendencias = {
+    ...pendenciasBase,
+    pendencias: pendenciasBase.pendencias.map((p) =>
+      p.chave === "orcamento"
+        ? { ...p, href: `/acompanhar/${token}/documentos/orcamento`, hrefRotulo: "Ver o orçamento" }
+        : p,
+    ),
+  };
+  // Há área de documentos para mostrar quando o envio já aconteceu — o
+  // publicar carimba o enviado_em, por isso este marco chega.
+  const temDocumentos = !!dados?.marcos_datados?.orcamento;
 
   return (
     <div
@@ -648,6 +587,26 @@ export default function PortalPage() {
             entregue» é uma boa notícia, e aqui não há boa notícia — não se
             entregou nada, o pedido é que não vingou. */}
         {!caducou && <OQueFaltaDeSi {...pendencias} />}
+
+        {/* A porta discreta da área dos documentos — só quando há alguma
+            coisa publicada do outro lado. */}
+        {!caducou && temDocumentos && (
+          <p style={{ textAlign: "center", margin: "18px 0 0" }}>
+            <Link
+              to={`/acompanhar/${token}/documentos`}
+              style={{
+                fontSize: "12px",
+                letterSpacing: "0.03em",
+                color: "var(--gray-mid)",
+                borderBottom: "1px solid #E8D5A3",
+                paddingBottom: "3px",
+                textDecoration: "none",
+              }}
+            >
+              Os seus documentos
+            </Link>
+          </p>
+        )}
 
         <AsNovidades
           visitaAnterior={dados?.visita_anterior}

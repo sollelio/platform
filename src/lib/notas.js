@@ -1,3 +1,4 @@
+import { FASE_LABEL } from "./fases";
 import { supabase } from "./supabase";
 
 // ============================================================
@@ -148,7 +149,7 @@ export function construirHistorico({
     entradas.push({
       id: "sistema:inicio",
       origem: "sistema",
-      texto: "Interessada — primeiro contacto",
+      texto: `${FASE_LABEL.interessado} — primeiro contacto`,
       quando: submissao.created_at,
       inicio: true,
     });
