@@ -512,7 +512,133 @@ aviso novo** na Caixa de Entrada. Antes desta migração não aparecia nenhum.
 
 ---
 
-## 8 · Arrumar
+## 8 · O questionário (fase 5)
+
+O ecrã que mais vezes vai aparecer nesta fase é o **convite** — dos treze
+eventos, só quatro responderam. Testa-o primeiro, e testa-o num evento novo.
+
+> **O mínimo dos 5 campos.** Modelos com menos de cinco campos não têm
+> questionário nenhum no portal. Hoje isso são **Festinhas (3), Requinte (1)
+> e dia dos namorados (1)** — quatro dos seis modelos ficam sem esta área,
+> incluindo os de tipo livre. Não é bug; é a regra a admitir que aqueles
+> modelos ainda não têm perguntas.
+
+### 8.1 · O convite
+
+**Quando aparece:** evento **pós-sinal**, modelo com ≥5 campos, questionário
+por responder. É a pendência «O questionário» na divisão «O que falta de si».
+
+**O que confirmar:** 📱
+- O cartão da pendência tem a ligação **Responder às perguntas**.
+- O ecrã: «Conte-nos como imagina o dia.», filete com losango, o overline
+  **O QUE LHE VAMOS PERGUNTAR** e a lista das partes com os engastes todos
+  **vazios** e as contagens por extenso («seis perguntas»).
+- **Não pode haver** barra de progresso, percentagem, nem a palavra
+  «pendente» ou «em falta». O único número do ecrã é «dez minutos».
+
+### 8.2 · O modelo magro — o ecrã que NÃO existe
+
+**Como o produzir:** 🔧 abre o acompanhamento de um evento de modelo
+**Festinhas**.
+
+**O que confirmar:** não há pendência do questionário. E, à mão,
+`/acompanhar/<token>/questionario` devolve ao acompanhamento — não mostra um
+estado vazio a explicar-se.
+
+### 8.3 · Responder — e o guardado
+
+**Como o produzir:** 📱 **Começar o questionário**.
+
+**O que confirmar:**
+- Um cartão branco por passo, com a contagem à direita («0 de 9»).
+- Cada resposta tem a **pauta dourada** por baixo do valor. Tocar abre a
+  edição **no lugar**, de bordo a bordo do cartão, com as vizinhas à vista.
+  **Não pode ser modal nem página nova.**
+- O botão é a **cápsula vazada**, nunca a dourada cheia.
+- Ao guardar: o **fio do guardado** — círculo pequeno com visto e «Guardado
+  agora mesmo · a equipa fica a saber» —, que **se apaga sozinho** ao fim de
+  poucos segundos.
+- 🗄 E ficou mesmo:
+  `select respostas from submissions where id = '<EVENTO>'::uuid;`
+
+### 8.4 · A retoma
+
+**Como o produzir:** responde a alguns campos, sai, e volta a
+`/acompanhar/<token>/questionario`.
+
+**O que confirmar:** «Ficou n… Continuamos daí?» com o sítio nomeado, os
+engastes em três estados (feita com visto e o nome apagado · actual com aro
+dourado · por vir) e a saída **rever o que já respondeu**.
+
+> Se o título do passo não começar por artigo, o ecrã diz «Continuamos de
+> onde ficou?» e **não** nomeia o sítio. É de propósito: mais vale não
+> nomear do que nomear em português torto.
+
+### 8.5 · 🔴 O campo fechado — e que o fecho é do SERVIDOR
+
+**Como o produzir:** 🔧 no editor de modelos, marca o primeiro passo com
+**Compras e stock**; 🗄 põe a data do evento a três dias:
+`update submissions set data_evento = current_date + 3 where id = '<EVENTO>'::uuid;`
+
+**O que confirmar:** 📱
+- As respostas desse passo **perdem a pauta**, e por baixo lê-se «fechou … ·
+  seguiu para as compras».
+- Tocar numa abre o **bloco de fecho** — e tem de ser a **mesma caixa** do
+  campo em edição. **Nada de tijolo, nada de losango de aviso**: isto não é
+  erro dela.
+- A ordem: motivo material → data → o que foi comprado → a porta.
+- 🗄 **A prova que interessa** — o ecrã pode mentir, o servidor não:
+  `select public.dlm_portal_responder('<TOKEN>','<CAMPO_DESSE_PASSO>','"x"'::jsonb);`
+  Esperado `{"estado":"fechado", ...}` **e o valor não muda**.
+
+### 8.6 · Sem data de evento, nada fecha
+
+**Como o produzir:** 🗄 `update submissions set data_evento = null …`
+
+**O que confirmar:** as respostas voltam a ter pauta, mesmo com o grupo
+marcado. Não se diz «faltam catorze dias» a quem não tem dia.
+
+### 8.7 · O pedido de alteração, e o outro lado
+
+**Como o produzir:** 📱 num campo fechado, **Pedir alteração**.
+
+**O que confirmar:**
+- Tira de contexto em cima, o **valor actual primeiro**, e só depois as
+  palavras dela. Sem rodapé — é ecrã de acto.
+- Depois de enviar: medalhão, «O pedido está com a Nádia.» e as três linhas
+  do registo.
+- 🔧 **Caixa de Entrada:** o aviso aparece com resumo próprio **e com a
+  frase dela**.
+- 🔧 **Folha do Acompanhamento:** o pedido aparece com o campo, o texto e o
+  botão **Marcar como tratado**.
+- 📱 Pedir **outra vez** ao mesmo campo antes de tratar: diz que já está
+  connosco. Depois de tratado, deixa pedir de novo.
+
+> Este último passo é o que impede a armadilha do contrato em papel de se
+> repetir: sem o botão da folha, a cliente pedia uma vez e ficava sem
+> caminho para sempre.
+
+### 8.8 · A marca da equipa
+
+**Como o produzir:** 🔧 no briefing do evento, muda uma resposta e grava.
+
+**O que confirmar:** 📱 a resposta ganha uma linha discreta — losango e
+«actualizado pela equipa a …». Aberta, mostra **«Antes dizia:»** com o valor
+antigo riscado.
+
+**E o contrário, que é o teste que importa:** 🔧 grava o briefing **sem
+mexer em nada**. 📱 Nenhuma marca nova pode aparecer. Se aparecerem marcas
+em toda a parte, o `is distinct from` da 064 não está a filtrar.
+
+### 8.9 · A paleta e a morada
+
+**O que confirmar:** não têm pauta, mesmo com o passo aberto. Tocar abre
+«Esta muda-se connosco», com a mesma porta do pedido. É deliberado: o portal
+não tem selector de cor, e fingir que tem era pior.
+
+---
+
+## 9 · Arrumar
 
 **Três coisas seguram um evento de propósito**, e é preciso soltá-las por
 ordem antes de o apagar:

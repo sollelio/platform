@@ -28,6 +28,7 @@ import {
   comporPendencias,
 } from "../components/portal/conteudo";
 import DocumentosVista from "../components/portal/DocumentosVista";
+import QuestionarioVista from "../components/portal/QuestionarioVista";
 import {
   WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, semanaEAno,
 } from "../components/portal/base";
@@ -300,6 +301,27 @@ export default function PortalPage() {
     );
   }
 
+  // ---------- O questionário (fase 5) ----------
+  // Vista à parte, com cabeçalho próprio como a dos documentos. A própria
+  // vista decide entre o convite, a retoma e a revisão — e manda de volta
+  // para aqui se este modelo não tiver perguntas que cheguem.
+  if (vista === "questionario") {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
+        <div style={{ maxWidth: "480px", margin: "0 auto" }}>
+          {/* key POR SUB, pela mesma razão dos documentos: sem remontar, o
+              estado de um passo pintava-se no seguinte. */}
+          <QuestionarioVista
+            key={sub || "convite"}
+            token={token}
+            sub={sub}
+            reduzir={reduzir}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // ---------- A área dos documentos (fases 3 e 4) ----------
   // A cortina do terminado já respondeu acima; aqui o token está vivo.
   // A área tem cabeçalho próprio (o timbre da folha) — sem logo grande.
@@ -373,7 +395,9 @@ export default function PortalPage() {
     pendencias: pendenciasBase.pendencias.map((p) =>
       p.chave === "orcamento"
         ? { ...p, href: `/acompanhar/${token}/documentos/orcamento`, hrefRotulo: "Ver o orçamento" }
-        : p,
+        : p.chave === "questionario"
+          ? { ...p, href: `/acompanhar/${token}/questionario`, hrefRotulo: "Responder às perguntas" }
+          : p,
     ),
   };
   // Há área de documentos para mostrar quando o envio já aconteceu — o

@@ -156,6 +156,22 @@ const TIPOS_DO_PORTAL = {
     // Nádia telefonar a perguntar uma coisa que já tinha em mãos.
     citar: (d) => d?.mensagem || null,
   },
+  questionario_entregue: {
+    resumo: "Respondeu ao questionário",
+    corpo:
+      "As respostas estão na ficha do evento, e é delas que sai o " +
+      "briefing da montagem. A partir daqui ela ainda pode corrigir o que " +
+      "estiver aberto — o que já fechou passa a chegar como pedido.",
+  },
+  questionario_pedido: {
+    resumo: "Pediu uma alteração ao questionário",
+    corpo:
+      "A resposta que ela quer mudar já tinha fechado. Nada mudou " +
+      "sozinho — trate o pedido na folha do Acompanhamento, onde pode " +
+      "marcá-lo como tratado.",
+    // A frase dela, tal e qual (063 grava-a em `dados.mensagem`).
+    citar: (d) => d?.mensagem || null,
+  },
   contrato_papel: {
     resumo: "Carregou o contrato assinado em papel",
     corpo:
@@ -768,7 +784,7 @@ function CartaoNotificacao({
                 contexto={
                   n.dados?.tipo_documento && n.dados?.versao
                     ? `${ROTULO_DOC[n.dados.tipo_documento] || n.dados.tipo_documento}, versão ${n.dados.versao}`
-                    : null
+                    : n.dados?.campo || null
                 }
                 onAbrirFicha={() =>
                   onAbrirEvento && onAbrirEvento(n.submission_id)

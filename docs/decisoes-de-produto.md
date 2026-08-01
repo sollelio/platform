@@ -231,6 +231,57 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   continua a não gerar aviso repetido; isso é eco, e a Nádia já o tem à
   frente.
 
+## Questionário no acompanhamento — fase 5 (01/08/2026)
+
+- **01/08/2026 — Responder e rever são o MESMO ecrã.** Não há assistente à
+  parte no portal: as respostas vivem agrupadas pelos passos do modelo e
+  mudam-se onde estão. Porquê: o desenho não traz assistente nenhum — e é
+  deliberado, porque o preenchimento de raiz já existe em `/formulario`.
+  Construir um a mais era inventar visual que a tela não mostra. Efeito
+  lateral bem-vindo: responder pela primeira vez e corrigir a dez dias do
+  dia passam a ser o mesmo gesto.
+- **01/08/2026 — O prazo é do GRUPO, e o grupo marca-se no PASSO do
+  modelo.** ~5 decisões por modelo em vez de 40, a Nádia já pensa em passos,
+  e o desenho já agrupa a revisão por passos. **Um passo sem grupo nunca
+  fecha** — nada se tranca por omissão, porque protecção que ninguém pediu é
+  castigo. Ver [[glossario]] · Grupo de prazo.
+- **01/08/2026 — Os prazos são da casa, não do modelo nem do evento.** Três
+  linhas na base (14 / 7 / 2 dias), mudáveis sem migração. Porquê: um
+  casamento e um aniversário compram flores com a mesma antecedência — o que
+  muda é o volume, não o prazo do fornecedor.
+- **01/08/2026 — Modelos com menos de 5 campos não têm questionário no
+  portal.** Nem convite, nem revisão, nem pendência. Sai dos dados: os que
+  são mesmo questionário têm 12 e 44 campos; os outros três têm 1, 1 e 3.
+  Sem este mínimo, um interessado de um modelo de um campo abria «As suas
+  respostas» com o campo que a **captação** encheu por ele — e a página dava
+  por respondido um questionário que não existe. Consequência assumida: o
+  questionário desaparece em 4 dos 6 modelos até a Nádia os encher.
+- **01/08/2026 — Responder não exige código.** Precedente da 061: só o acto
+  que TRANCA exige verificação. Responder não tranca nada, e pedir um código
+  para escrever o nome do bolo é atrito sem ganho.
+- **01/08/2026 — O fecho é do servidor, nunca só do ecrã.** O campo mostra-se
+  em leitura, mas quem recusa a escrita é a RPC. Um fecho que vive só no
+  ecrã não é um fecho.
+- **01/08/2026 — `submissions.respostas` fica como está.** A autoria vive ao
+  lado, em `respostas_autoria`, uma linha por escrita e com o valor
+  anterior. Porquê: reestruturar o mapa das respostas partia dezenas de
+  leitores — briefing, logística, contratos, quatro projecções do portal. De
+  caminho ganha-se histórico.
+- **01/08/2026 — A marca «actualizado pela equipa» só aparece quando o valor
+  MUDA MESMO.** Gravar o briefing sem tocar em nada não marca nada. Sem esta
+  condição, a cliente abria o questionário com uma marca em cima de cada
+  linha — o oposto do pedido, que é marca nenhuma na maioria delas. E diz-se
+  «a equipa», no colectivo: nunca um nome, nada acusa ninguém.
+- **01/08/2026 — A paleta e a morada não se editam no portal.** Não há aqui
+  selector de cor nem formulário de morada, e fingir que há era pior. Mudam-se
+  por pedido — que é, aliás, o que o próprio desenho faz no ecrã do pedido de
+  alteração.
+- **01/08/2026 — «Marcar como tratado» não muda a resposta.** Fecha o pedido
+  e reabre a porta a um pedido novo ao mesmo campo. Mudar a resposta é o
+  briefing, e é outro gesto. Sem este ecrã, a cliente pedia uma vez e ficava
+  sem caminho para sempre — a mesma armadilha do contrato em papel, evitada
+  antes de doer.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

@@ -327,6 +327,35 @@ export const confirmarContratoPapel = async (notificacaoId, nome) => {
   return data;
 };
 
+// ---------- Fase 5 · os pedidos de alteração ao questionário ----------
+//
+// A lição do contrato em papel, aplicada antes de doer: um aviso que chega
+// à Caixa de Entrada tem de ter um ecrã que o atenda. Sem isto,
+// `dlm_portal_pedir_alteracao_campo` recusaria para sempre um segundo
+// pedido ao mesmo campo — `ja_pedido` —, e a cliente ficava sem caminho.
+export const getPedidosDoQuestionario = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("questionario_pedidos")
+    .select("id, campo_id, campo_label, pedido, pedido_em")
+    .eq("submission_id", eventoId)
+    .is("respondido_em", null)
+    .order("pedido_em", { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+// «Tratado» quer dizer que ela falou com a cliente e resolveu — no valor,
+// ou na conversa. Não muda a resposta: mudar a resposta é o briefing, e é
+// outro gesto. Isto só reabre a porta a um pedido novo ao mesmo campo.
+export const marcarPedidoTratado = async (pedidoId) => {
+  const { error } = await supabase
+    .from("questionario_pedidos")
+    .update({ respondido_em: new Date().toISOString() })
+    .eq("id", pedidoId)
+    .is("respondido_em", null);
+  if (error) throw error;
+};
+
 // Os rótulos dos documentos, com a armadilha de sempre à vista:
 // `proposta` É o Projecto. Nunca foi o orçamento.
 export const ROTULO_DOCUMENTO = {

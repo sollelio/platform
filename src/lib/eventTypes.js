@@ -32,3 +32,18 @@ export const deleteEventType = async (id) => {
   const { error } = await supabase.from("event_types").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Os grupos de prazo do questionário (062). Vêm da base e não do código
+// porque o prazo é do negócio, não do programa: quando o fornecedor de
+// flores mudar de antecedência, a Nádia muda o número e mais nada.
+//
+// Um passo do modelo aponta para um destes pela `chave`. Passo sem grupo
+// NUNCA fecha — a ausência é a opção segura, e é a predefinida.
+export const getQuestionarioGrupos = async () => {
+  const { data, error } = await supabase
+    .from("questionario_grupos")
+    .select("chave, rotulo, dias_antes, porque")
+    .order("ordem");
+  if (error) throw error;
+  return data || [];
+};

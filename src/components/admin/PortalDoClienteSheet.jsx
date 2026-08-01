@@ -12,6 +12,8 @@ import {
   publicarDocumento,
   emitirCodigo,
   getPapelPorConfirmar,
+  getPedidosDoQuestionario,
+  marcarPedidoTratado,
   urlDoContratoPapel,
   confirmarContratoPapel,
   ROTULO_DOCUMENTO,
@@ -135,15 +137,16 @@ function Conteudo({ evento, onFechar }) {
       getPublicacoes(eventoId),
       getPedidosCodigo(eventoId),
       getPapelPorConfirmar(eventoId),
+      getPedidosDoQuestionario(eventoId),
     ])
-      .then(([a, docs, pubs, pedidos, papeis]) => {
+      .then(([a, docs, pubs, pedidos, papeis, pedidosQ]) => {
         if (!cancelado)
-          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis });
+          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ });
       })
       .catch((e) => {
         console.error(e);
         if (!cancelado)
-          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [] });
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [] });
       });
     return () => {
       cancelado = true;
@@ -156,6 +159,7 @@ function Conteudo({ evento, onFechar }) {
   const pubs = resultado?.pubs ?? [];
   const pedidos = resultado?.pedidos ?? [];
   const papeis = resultado?.papeis ?? [];
+  const pedidosQ = resultado?.pedidosQ ?? [];
   // Quem manda a secção do papel embora é a ASSINATURA existir — não o
   // aviso ter sido lido. Lê-se nos actos da publicação do contrato.
   const contratoAssinado = pubs.some(
@@ -279,6 +283,21 @@ function Conteudo({ evento, onFechar }) {
       );
     } finally {
       setAConfirmarPapel(false);
+    }
+  };
+
+  const tratarPedido = async (id) => {
+    if (aTrabalhar) return;
+    setATrabalhar(true);
+    setErro(null);
+    try {
+      await marcarPedidoTratado(id);
+      setRecarga((x) => x + 1);
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível marcar como tratado. Tente novamente.");
+    } finally {
+      setATrabalhar(false);
     }
   };
 
@@ -698,6 +717,68 @@ function Conteudo({ evento, onFechar }) {
                 Envie o código pela conversa de WhatsApp que já tem com a
                 cliente — é esse passo que confirma que é mesmo ela. Vale 24
                 horas.
+              </p>
+            </div>
+          )}
+
+          {/* ── OS PEDIDOS DE ALTERAÇÃO AO QUESTIONÁRIO ─────────────────
+              Uma resposta que já tinha fechado, e que ela quer mudar. Nada
+              mudou sozinho — o valor está como estava.
+
+              «Tratado» não muda a resposta: mudar a resposta é o briefing,
+              e é outro gesto. Isto fecha o pedido e reabre a porta a um
+              pedido novo ao mesmo campo — sem isto, a cliente ficava sem
+              caminho depois do primeiro. */}
+          {pedidosQ.length > 0 && (
+            <div
+              style={{
+                marginTop: "18px",
+                backgroundColor: "#FEF3E2",
+                border: "1px solid #F0D9B5",
+                borderRadius: "10px",
+                padding: "13px 14px",
+              }}
+            >
+              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+                {pedidosQ.length === 1
+                  ? "Pedido de alteração ao questionário"
+                  : `${pedidosQ.length} pedidos de alteração ao questionário`}
+              </p>
+              {pedidosQ.map((p) => (
+                <div key={p.id} style={{ padding: "7px 0" }}>
+                  <p style={{ fontSize: "11px", fontWeight: "600", letterSpacing: "0.04em", textTransform: "uppercase", color: "#92400E", margin: 0 }}>
+                    {p.campo_label}
+                  </p>
+                  <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "var(--charcoal)", margin: "5px 0 0", whiteSpace: "pre-wrap" }}>
+                    {p.pedido}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "7px" }}>
+                    <span style={{ fontSize: "11px", color: "#92400E" }}>
+                      {dataHora(p.pedido_em)}
+                    </span>
+                    <button
+                      onClick={() => tratarPedido(p.id)}
+                      disabled={aTrabalhar}
+                      style={{
+                        ...botao,
+                        padding: "6px 12px",
+                        fontSize: "11.5px",
+                        border: "1px solid #D9A441",
+                        backgroundColor: "white",
+                        color: "#92400E",
+                        opacity: aTrabalhar ? 0.6 : 1,
+                        cursor: aTrabalhar ? "wait" : "pointer",
+                      }}
+                    >
+                      Marcar como tratado
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#92400E", margin: "9px 0 0" }}>
+                Marcar como tratado não muda a resposta — muda-se no briefing,
+                se ficar acordado. Só fecha o pedido e deixa a cliente voltar a
+                pedir se precisar.
               </p>
             </div>
           )}

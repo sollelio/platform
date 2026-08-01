@@ -98,6 +98,19 @@ export const horaCurta = (iso) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+// ---------- A pauta do questionário ----------
+// O único sinal que distingue uma resposta que se pode mudar de uma que já
+// fechou. Em repouso é um traço de 1px; em edição o MESMO traço engrossa e
+// escurece — é ele a acordar, não outro elemento a aparecer.
+//
+// Vive aqui e não nas peças porque `questionario-pecas.jsx` só pode exportar
+// componentes (react-refresh/only-export-components).
+export const estiloPautaEdicao = {
+  display: "block",
+  borderBottom: "1.5px solid var(--gold)",
+  paddingBottom: "10px",
+};
+
 // ---------- A sessão verificada ----------
 // Depois de o código ser aceite, a sessão (60 minutos) sobrevive a um
 // recarregar: fica no sessionStorage, presa ao token. Nunca guarda o

@@ -52,8 +52,10 @@ export function FileteComRotulo({ children, margem = "0 0 15px" }) {
 
 // ---------- Marcas ----------
 // Desenhadas à mão, stroke 1.9, pontas e uniões redondas. Nada de glifos.
-export const VistoDourado = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+// O `tamanho` é opcional e a predefinição é a de sempre (14): as três
+// chamadas da fase 1 e das fases 3/4 não mudam de aspecto por causa disto.
+export const VistoDourado = ({ tamanho = 14 }) => (
+  <svg width={tamanho} height={tamanho} viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <path d="M3 7.4 L5.9 10.2 L11.2 3.9" stroke="var(--gold)" strokeWidth="1.9"
       strokeLinecap="round" strokeLinejoin="round" />
   </svg>

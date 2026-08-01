@@ -18,7 +18,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { createEventType, updateEventType } from "../../lib/eventTypes";
+import {
+  createEventType,
+  updateEventType,
+  getQuestionarioGrupos,
+} from "../../lib/eventTypes";
 
 const TYPE_OPTIONS = [
   { value: "text", label: "Texto curto" },
@@ -48,6 +52,8 @@ export function toEditingSteps(steps) {
     uid: makeUid(),
     title: step.title || "",
     subtitle: step.subtitle || "",
+    // O grupo de prazo (062). Vazio = este passo nunca fecha.
+    grupo: step.grupo || "",
     fields: (step.fields || []).map((field) => ({
       uid: makeUid(),
       // O id GRAVADO viaja com o campo e nunca se regenera: é a chave
@@ -68,7 +74,7 @@ export function toEditingSteps(steps) {
 }
 
 export function blankEditingSteps() {
-  return [{ uid: makeUid(), title: "Passo 1", subtitle: "", fields: [] }];
+  return [{ uid: makeUid(), title: "Passo 1", subtitle: "", grupo: "", fields: [] }];
 }
 
 // As mensagens que o organizador lê quando erra um campo. TERCEIRA PESSOA,
@@ -130,12 +136,18 @@ function buildStepsForSave(steps) {
   const idsJaUsados = steps
     .flatMap((s) => s.fields.map((f) => f.id))
     .filter(Boolean);
-  return steps.map((step, stepIndex) => ({
-    id: stepIndex + 1,
-    title: step.title.trim(),
-    subtitle: step.subtitle.trim(),
-    icon: "user",
-    fields: step.fields.map((field) => {
+  return steps.map((step, stepIndex) => {
+    const passoFinal = {
+      id: stepIndex + 1,
+      title: step.title.trim(),
+      subtitle: step.subtitle.trim(),
+      icon: "user",
+    };
+    // O grupo só se grava quando existe. Escrever `grupo: ""` punha uma
+    // chave vazia em todos os passos de todos os modelos, e a leitura no
+    // servidor teria de distinguir «vazio» de «ausente» sem ganho nenhum.
+    if (step.grupo) passoFinal.grupo = step.grupo;
+    passoFinal.fields = step.fields.map((field) => {
       let id = field.id;
       if (!id) {
         id = generateUniqueFieldId(field.label, idsJaUsados);
@@ -166,8 +178,9 @@ function buildStepsForSave(steps) {
       if (field.papel) campoFinal.papel = field.papel;
 
       return campoFinal;
-    }),
-  }));
+    });
+    return passoFinal;
+  });
 }
 
 function validar(nome, steps) {
@@ -629,6 +642,7 @@ function SortableFieldRow({ field, stepUid, draggingType, ...rest }) {
 
 // ===== Um passo =====
 function StepCard({
+  gruposPrazo,
   step,
   stepIndex,
   draggingType,
@@ -796,6 +810,51 @@ function StepCard({
               placeholder="Subtítulo, opcional"
               style={inputBaseStyle}
             />
+
+            {/* ── O PRAZO DESTE PASSO ─────────────────────────────────
+                A decisão que fecha respostas à cliente, e por isso a
+                única no editor que se explica por baixo em vez de
+                confiar no rótulo. O predefinido é «Nunca fecha»: nada
+                se tranca por omissão. */}
+            <div style={{ marginTop: "10px" }}>
+              <label
+                style={{
+                  fontSize: "10px",
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--gray-mid)",
+                  display: "block",
+                  marginBottom: "4px",
+                }}
+              >
+                Quando é que estas respostas deixam de se poder mudar
+              </label>
+              <select
+                value={step.grupo || ""}
+                onChange={(e) => onUpdateStep({ grupo: e.target.value })}
+                style={{ ...inputBaseStyle, fontSize: "12px" }}
+              >
+                <option value="">Nunca fecha</option>
+                {(gruposPrazo || []).map((g) => (
+                  <option key={g.chave} value={g.chave}>
+                    {g.rotulo} — {g.dias_antes} dias antes do evento
+                  </option>
+                ))}
+              </select>
+              <p
+                style={{
+                  fontSize: "11px",
+                  lineHeight: 1.55,
+                  color: "var(--gray-mid)",
+                  margin: "5px 0 0",
+                }}
+              >
+                {step.grupo
+                  ? "Passado o prazo, a cliente vê estas respostas em leitura e o motivo — e pode na mesma pedir a alteração, que lhe chega à Caixa de Entrada."
+                  : "Estas respostas ficam abertas até ao dia. Escolha um prazo só para o que já foi comprado, impresso ou encomendado."}
+              </p>
+            </div>
           </div>
           <button
             onClick={onRemoveStep}
@@ -912,13 +971,32 @@ export default function EventTypeEditor({
   const addStep = () =>
     setSteps((prev) => [
       ...prev,
-      { uid: makeUid(), title: "", subtitle: "", fields: [] },
+      { uid: makeUid(), title: "", subtitle: "", grupo: "", fields: [] },
     ]);
 
   // Remoções em duas fases: o primeiro clique arma o botão
   // ("Confirmar?"), o segundo remove. null | {tipo:'passo',uid} |
   // {tipo:'campo',stepUid,fieldUid}
   const [confirmandoRemocao, setConfirmandoRemocao] = useState(null);
+
+  // Os grupos de prazo (062) vêm da base: o prazo é do negócio, não do
+  // programa. Se a leitura falhar, a lista fica vazia e o único valor
+  // possível passa a ser «Nunca fecha» — que é a opção segura. Um erro
+  // aqui nunca pode acabar em passos fechados por engano.
+  const [gruposPrazo, setGruposPrazo] = useState([]);
+  useEffect(() => {
+    let cancelado = false;
+    getQuestionarioGrupos()
+      .then((g) => {
+        if (!cancelado) setGruposPrazo(g);
+      })
+      .catch((e) => {
+        console.error(e);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   // O botão armado desarma sozinho ao fim de uns segundos: um clique
   // distraído minutos depois não pode remover sem novo aviso.
@@ -1435,6 +1513,7 @@ export default function EventTypeEditor({
                       ? confirmandoRemocao.fieldUid
                       : null
                   }
+                  gruposPrazo={gruposPrazo}
                   onUpdateStep={(changes) => updateStep(step.uid, changes)}
                   onRemoveStep={() => removeStep(step.uid)}
                   onAddField={() => addField(step.uid)}

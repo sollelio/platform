@@ -330,6 +330,38 @@ quando é o passo seguinte. **Este ficheiro manda; o `portal.js` segue.**
 
 ---
 
+### A pauta (o questionário no acompanhamento)
+
+O traço dourado por baixo de uma resposta. **Com pauta, muda-se ali; sem pauta,
+passa por nós.** É o único sinal que distingue os dois estados nas quarenta
+respostas de um casamento — não há cadeados, não há cinzento-desactivado, não há
+riscos.
+
+Escolheu-se um sinal só, e discreto, por duas razões: quem usa a página uma vez
+aprende-o sem explicação, e um cadeado ao lado de uma resposta lê-se como castigo.
+Não é castigo — é que aquilo já foi comprado.
+
+### Grupo de prazo
+
+O momento em que um conjunto de respostas deixa de se poder mudar sozinho. **O
+prazo não é do questionário: é de cada grupo**, porque o que trava a mudança é o
+mundo — o que já foi encomendado, impresso ou entregue à equipa.
+
+| Chave | O que a Nádia lê | Fecha | Porquê |
+|---|---|---|---|
+| `compras` | **Compras e stock** | 14 dias antes | as flores e o material encomendam-se com duas semanas de antecedência |
+| `producao` | **Produção** | 7 dias antes | os textos vão para impressão uma semana antes |
+| `palavras` | **Palavras** | 2 dias antes | a equipa recebe o briefing final dois dias antes |
+
+Os rótulos, os dias e o **porquê** vivem na tabela `questionario_grupos` — não no
+código. O porquê é coluna porque é o que a cliente lê quando encontra uma resposta
+fechada, e a razão material tem de poder mudar com o prazo.
+
+**Um passo sem grupo marcado nunca fecha**, e um evento sem data também não. Nada
+se tranca por omissão.
+
+---
+
 ### Vitrina (o registo público)
 As superfícies da casa são de duas classes que não se julgam pelo mesmo padrão: as **internas**
 (a bancada de trabalho da Nádia, onde o critério é o ofício) e as **públicas** — abertas poucas
