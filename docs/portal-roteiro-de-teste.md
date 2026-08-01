@@ -638,7 +638,127 @@ não tem selector de cor, e fingir que tem era pior.
 
 ---
 
-## 9 · Arrumar
+## 9 · As fotografias do dia (fase 6)
+
+O estado que mais vezes se vê é **nenhum**: enquanto não houver fotografias,
+não há secção nenhuma no acompanhamento. Testa-o primeiro, porque é o único
+que se prova pela ausência.
+
+### 9.1 · 🔴 Sem fotografias — não há secção
+
+**Como o produzir:** já está. Qualquer evento sem fotografias carregadas.
+
+**O que confirmar:** 📱 a âncora do dia encosta **directamente** ao cartão
+«Onde estamos agora». Não pode haver título, nem espaço reservado, nem
+«ainda sem fotografias», nem um traço a mais.
+
+> Um lugar reservado transforma uma surpresa numa promessa por cumprir. É a
+> regra que mais facilmente se perde numa refactorização — se um dia
+> aparecer ali um rótulo vazio, é aqui que se apanha.
+
+### 9.2 · A aba do backoffice
+
+**Como o produzir:** 🔧 evento → **Fotografias**.
+
+**O que confirmar:**
+- Sem nenhuma, a aba explica que a divisão **não aparece** no
+  acompanhamento — e porquê.
+- **Carregar fotografias** aceita várias de uma vez. Enquanto sobem, o
+  botão conta as que faltam.
+- A primeira tem a pastilha **Capa**; as setas ↑↓ mudam a ordem e a capa
+  acompanha.
+- Cada uma tem campo de assunto, o par **Montagem / Do evento**, e apagar
+  com confirmação no lugar.
+- A etiqueta da aba passa a mostrar a contagem.
+
+**A compressão:** 🗄 escolhe uma fotografia de telemóvel de 3–5 MB e, depois
+de subir, vê o tamanho do que ficou:
+```sql
+select url_pequena, url_grande from evento_fotografias order by criado_em desc limit 1;
+```
+Abre os dois URLs e confirma que a pequena anda pelas centenas de KB, não
+pelos megabytes. **Se as duas tiverem o tamanho do original, a compressão
+não correu** — e a cliente vai descarregar isso na rua.
+
+### 9.3 · O antes — a montagem
+
+**Como o produzir:** 🗄 `update submissions set data_evento = current_date + 3
+where id = '<EVENTO>'::uuid;` e carrega duas ou três fotografias com o
+momento **Montagem**.
+
+**O que confirmar:** 📱
+- Overline **dourado** «Hoje · a montagem», título «Estamos no espaço a
+  montar a sua mesa.»
+- A capa **sangra de margem a margem** — sem borda, sem raio, sem sombra.
+- Por baixo da capa, o assunto à esquerda e «há N minutos» à direita.
+- No mosaico de duas colunas, as pequenas têm **só o tempo** — o assunto cai.
+- «Toque numa fotografia para a ver em grande.»
+
+### 9.4 · As frases com horas — e quando NÃO aparecem
+
+**Como o produzir:** 🔧 no questionário do evento, preenche uma hora com
+rótulo que contenha «início» e outra com «fim» ou «término».
+
+**O que confirmar:** aparecem «Faltam N horas» e «Ficamos no espaço até às
+18h30». **Apaga essas horas** e confirma que as frases **desaparecem** — não
+podem aparecer com uma hora adivinhada.
+
+> Zero dos 192 campos tem `papel` marcado, por isso as horas resolvem-se
+> pelo rótulo que a Nádia escreveu. Quando não dá, cala-se: uma hora errada
+> num ecrã que diz «estamos no espaço» manda alguém sair de casa cedo de
+> mais.
+
+### 9.5 · O depois — a memória
+
+**Como o produzir:** 🗄 `update submissions set data_evento = current_date - 2
+where id = '<EVENTO>'::uuid;` e carrega mais algumas com momento **Do evento**.
+
+**O que confirmar:** 📱 a **mesma** secção, no mesmo sítio, com outro tempo:
+- overline **cinzento** com a data; título «Foi assim.», maior;
+- «Catorze fotografias do dia, da montagem ao fim da noite» — e o número
+  tem de bater certo com o que carregaste;
+- **as legendas caem todas** (nem assunto na capa, nem tempos no mosaico);
+- acima de sete, aparece «e mais N» por extenso;
+- filete com losango e «Daqui a uns dias pedimos-lhe a sua preferida.»
+
+**E o que muda no conteúdo:** antes do evento só se vêem as de **Montagem**;
+depois, vêem-se **todas**. Confirma com a mesma colecção nos dois estados.
+
+### 9.6 · O evento sem data
+
+**Como o produzir:** 🗄 `update submissions set data_evento = null …`
+
+**O que confirmar:** fica no enquadramento do **presente** — «Hoje · a
+montagem» — e mostra só as de Montagem. Não se afirma que um dia passou
+quando não se sabe qual é.
+
+### 9.7 · A fotografia em grande
+
+**O que confirmar:** 📱
+- Cobre tudo, fundo escuro, **sem sair da página**: fechar devolve ao mesmo
+  sítio e ao mesmo *scroll*.
+- «1 de 3» em cima à esquerda, cruz à direita.
+- Losangos a marcar a posição — **tocáveis**, que num telemóvel são o único
+  caminho para a seguinte.
+- **Guardar a fotografia** descarrega a versão grande.
+- No computador: **Escape** fecha, **setas** navegam. E a página por trás
+  **não rola** enquanto isto está aberto.
+
+### 9.8 · 🔴 A listagem continua fechada
+
+Repete a verificação **4.4 da migração 065** — de dentro e de fora. É o
+mesmo teste que apanhou o balde aberto na fase 3, e o balde novo é o
+primeiro que nasceu fechado.
+
+### 9.9 · A 390 e a 412
+
+Vê a secção nas duas larguras. A capa sangra até às margens nas duas, o
+mosaico mantém as duas colunas, e a legenda em duas partes **não pode
+partir** ao meio — o tempo à direita não quebra linha.
+
+---
+
+## 10 · Arrumar
 
 **Três coisas seguram um evento de propósito**, e é preciso soltá-las por
 ordem antes de o apagar:

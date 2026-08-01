@@ -29,6 +29,7 @@ import {
 } from "../components/portal/conteudo";
 import DocumentosVista from "../components/portal/DocumentosVista";
 import QuestionarioVista from "../components/portal/QuestionarioVista";
+import AsFotografias from "../components/portal/AsFotografias";
 import {
   WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, semanaEAno,
 } from "../components/portal/base";
@@ -512,6 +513,24 @@ export default function PortalPage() {
           <p style={{ marginTop: "26px", textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", textWrap: "pretty", padding: "0 6px", marginBottom: 0 }}>
             {ev?.data ? FRASE_DE_CERIMONIA : FRASE_DE_CERIMONIA_SEM_DATA}
           </p>
+        )}
+
+        {/* ── AS FOTOGRAFIAS (fase 6) ─────────────────────────────────
+            Entra LOGO A SEGUIR À ÂNCORA DO DIA, que é quem manda no dia da
+            montagem — e empurra o «Onde estamos agora» para baixo.
+
+            Sem fotografias devolve null e a âncora encosta directamente ao
+            cartão, sem buraco, sem rótulo e sem frase a explicar a falta. A
+            maior parte do tempo é assim.
+
+            Caducado não mostra nada: um pedido que não vingou não tem dia
+            para fotografar. */}
+        {!caducou && (
+          <AsFotografias
+            fotografias={dados?.fotografias}
+            dataEvento={ev?.data}
+            horas={dados?.questionario?.horas || []}
+          />
         )}
 
         {/* Onde estamos agora */}

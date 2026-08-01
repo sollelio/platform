@@ -362,6 +362,32 @@ se tranca por omissão.
 
 ---
 
+### A capa e o momento (as fotografias do dia)
+
+**Capa** é a primeira fotografia da secção, a que sangra até às margens. A
+casa escolhe-a **ordenando** — não há botão de «tornar capa», há uma ordem.
+A regra da casa é que seja a **mais adiantada**: o trabalho a acontecer
+aparece por baixo, nunca primeiro. O código não adivinha o que é «mais
+adiantada»; só uma pessoa sabe qual é a fotografia em que a mesa já está
+posta.
+
+**Momento** é a que tempo a fotografia pertence — `montagem` ou `evento`. É
+o que decide os dois enquadramentos da mesma secção: antes do dia mostram-se
+só as da montagem; depois, todas. O valor por omissão sai da data em que se
+carrega, mas é campo e corrige-se: carregar as fotografias da montagem no
+dia seguinte não é o caso raro.
+
+| | antes do dia | depois |
+|---|---|---|
+| tempo | presente, expectativa | passado, memória |
+| cor do rótulo | dourado | cinzento |
+| legendas | assunto e tempo | **caem todas** |
+
+E a regra que governa a secção inteira: **sem fotografias, não há secção**.
+Nem rótulo, nem espaço reservado.
+
+---
+
 ### Vitrina (o registo público)
 As superfícies da casa são de duas classes que não se julgam pelo mesmo padrão: as **internas**
 (a bancada de trabalho da Nádia, onde o critério é o ofício) e as **públicas** — abertas poucas

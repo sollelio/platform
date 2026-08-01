@@ -282,6 +282,45 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   sem caminho para sempre — a mesma armadilha do contrato em papel, evitada
   antes de doer.
 
+## As fotografias do dia — fase 6 (01/08/2026)
+
+- **01/08/2026 — Sem fotografias não há secção.** Nem rótulo, nem espaço
+  reservado, nem «ainda sem fotografias». Porquê: um lugar reservado
+  transforma uma surpresa numa promessa por cumprir — e a maior parte do
+  tempo é assim que está.
+- **01/08/2026 — Tudo o que a equipa carrega, a cliente vê.** Não há
+  visibilidade por fotografia. Porquê: uma opção que se decide a cada
+  carregamento é uma opção que vai ser ignorada ou enganada. Se um dia
+  fizerem falta fotografias internas, é outra funcionalidade.
+- **01/08/2026 — Aba própria, não secção na Visão geral.** A Visão geral é
+  o briefing e imprime-se; fotografias da montagem não são briefing. E o
+  gesto acontece no espaço, ao telemóvel: quer-se chegar a um sítio e largar
+  as fotografias, não descer uma folha de 900 linhas. De caminho, a aba dá
+  contagem na etiqueta.
+- **01/08/2026 — O momento (montagem ou evento) é CAMPO, com omissão
+  derivada da data.** Porquê: derivar sozinho parte-se assim que ela carregar
+  as fotografias da montagem no dia seguinte — que não é o caso raro, é
+  terça-feira. Ela quase nunca lhe toca, e quando for preciso corrige.
+- **01/08/2026 — A capa é a primeira, e a casa escolhe-a ordenando.** A
+  regra da casa é que seja a mais adiantada: o trabalho a acontecer aparece
+  por baixo. O código **não adivinha** o que é «mais adiantada» — ninguém
+  precisa de ver o espaço a meio às onze da manhã, mas só uma pessoa sabe
+  qual é a fotografia que já mostra a mesa posta.
+- **01/08/2026 — Duas versões por fotografia, comprimidas no browser.**
+  Pequena a 1000px para a capa e o mosaico, grande a 1800px para a ampliada.
+  Porquê: 3 a 5 MB de origem, vistos a 390px, muitas vezes na rua e com
+  dados móveis. A poupança é de mais de dez para um.
+- **01/08/2026 — O balde é público para ler e fechado para enumerar, à
+  nascença.** Um GET directo não passa pelas políticas; a listagem é que
+  exige SELECT. É mais apertado que o `referencias` — aquele precisa de
+  INSERT anónimo por causa do formulário público, este não. É o primeiro
+  balde da casa que nasce fechado, em vez de o ser depois de aberto.
+- **01/08/2026 — As frases com horas desaparecem quando não se resolvem.**
+  «Faltam cinco horas» e «Ficamos no espaço até às 18h30» saem dos rótulos
+  que a Nádia escreveu, porque zero dos 192 campos tem `papel`. Quando o
+  rótulo não bate, a frase não aparece. Porquê: uma hora adivinhada num
+  ecrã que diz «estamos no espaço» manda alguém sair de casa à hora errada.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

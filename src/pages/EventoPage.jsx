@@ -32,6 +32,7 @@ import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
 import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
+import FotografiasEvento from "../components/admin/FotografiasEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
 import DocumentosEvento from "../components/admin/DocumentosEvento";
@@ -56,6 +57,10 @@ const ABAS = [
   { id: "visao-geral", label: "Visão geral" },
   { id: "documentos", label: "Documentos" },
   { id: "materiais", label: "Materiais" },
+  // As fotografias do dia. Aba própria e não secção na Visão geral: aquela
+  // é o briefing e imprime-se, e o gesto de carregar acontece no espaço, ao
+  // telemóvel — quer-se chegar a um sítio e largar as fotografias.
+  { id: "fotografias", label: "Fotografias" },
   { id: "pagamentos", label: "Pagamentos" },
   { id: "notas", label: "Notas" },
 ];
@@ -672,6 +677,15 @@ export default function EventoPage() {
                   }))
                 }
                 onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
+              />
+            </Painel>
+          )}
+
+          {visitadas.current.has("fotografias") && (
+            <Painel visivel={activeAba === "fotografias"}>
+              <FotografiasEvento
+                submissao={submissao}
+                reportarContagem={reportarContagem}
               />
             </Painel>
           )}
