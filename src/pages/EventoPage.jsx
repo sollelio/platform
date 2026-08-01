@@ -178,13 +178,34 @@ export default function EventoPage() {
   // piscar — e o que preserva o estado interno de cada um (selecções da
   // ficha, filtros das notas, formulários a meio). Mudar de EVENTO
   // limpa tudo: outra entidade, outra vida.
-  const visitadas = useRef(new Set());
-  const eventoDasVisitas = useRef(id);
-  if (eventoDasVisitas.current !== id) {
-    eventoDasVisitas.current = id;
-    visitadas.current = new Set();
+  //
+  // ESTADO, e não `ref`. Era um `ref` mutado e LIDO durante o render, seis
+  // vezes — um por separador. O React avisa disso com razão: um valor lido
+  // no render tem de fazer o componente voltar a desenhar quando muda, e um
+  // `ref` não faz. Aqui nunca deu problema por acaso — `activeAba` mudava
+  // sempre no mesmo render em que o conjunto crescia —, mas era acaso.
+  //
+  // O ajuste faz-se DURANTE o render (o padrão que o React documenta para
+  // estado derivado de props): quando se detecta a mudança, marca-se o
+  // estado novo e usa-se JÁ o valor novo nesta passagem. O React redesenha
+  // antes de tocar no ecrã — sem efeito, sem render em cascata, e sem o
+  // separador aparecer vazio por um instante.
+  //
+  // O evento viaja DENTRO do estado: assim uma mudança de `:id` não pode
+  // deixar para trás as visitas do evento anterior.
+  const [visitas, setVisitas] = useState(() => ({
+    evento: id,
+    abas: new Set([activeAba]),
+  }));
+
+  let visitadas = visitas.abas;
+  if (visitas.evento !== id) {
+    visitadas = new Set([activeAba]);
+    setVisitas({ evento: id, abas: visitadas });
+  } else if (!visitas.abas.has(activeAba)) {
+    visitadas = new Set(visitas.abas).add(activeAba);
+    setVisitas({ evento: id, abas: visitadas });
   }
-  visitadas.current.add(activeAba);
 
   // MEMÓRIA DE SCROLL por separador: cada um lembra onde estava — a
   // promessa do comentário lá em cima passa a ser verdade. O listener
@@ -657,7 +678,7 @@ export default function EventoPage() {
         />
 
         <div key={id} style={{ padding: "24px 40px 60px" }}>
-          {visitadas.current.has("visao-geral") && (
+          {visitadas.has("visao-geral") && (
             <Painel visivel={activeAba === "visao-geral"}>
               <VisaoGeralEvento
                 submissao={submissao}
@@ -681,7 +702,7 @@ export default function EventoPage() {
             </Painel>
           )}
 
-          {visitadas.current.has("fotografias") && (
+          {visitadas.has("fotografias") && (
             <Painel visivel={activeAba === "fotografias"}>
               <FotografiasEvento
                 submissao={submissao}
@@ -690,7 +711,7 @@ export default function EventoPage() {
             </Painel>
           )}
 
-          {visitadas.current.has("documentos") && (
+          {visitadas.has("documentos") && (
             <Painel visivel={activeAba === "documentos"}>
               <DocumentosEvento
                 submissao={submissao}
@@ -738,7 +759,7 @@ export default function EventoPage() {
             </Painel>
           )}
 
-          {visitadas.current.has("materiais") && (
+          {visitadas.has("materiais") && (
             <Painel visivel={activeAba === "materiais"}>
               <FichaMateriais
                 submissionId={id}
@@ -750,7 +771,7 @@ export default function EventoPage() {
             </Painel>
           )}
 
-          {visitadas.current.has("pagamentos") && (
+          {visitadas.has("pagamentos") && (
             <Painel visivel={activeAba === "pagamentos"}>
               {/* O plano desce por props — o separador deixou de repetir
                   a query que a página já fez (era o refetch que fazia a
@@ -778,7 +799,7 @@ export default function EventoPage() {
             </Painel>
           )}
 
-          {visitadas.current.has("notas") && (
+          {visitadas.has("notas") && (
             <Painel visivel={activeAba === "notas"}>
               <NotasEvento
                 submissao={submissao}
