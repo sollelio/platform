@@ -19,7 +19,11 @@ obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 > pela ordem nova — no funil, «Aceite» leva à fase Contrato,
 > «Contrato assinado» à fase Aguarda sinal, «Sinal recebido» à fase
 > Cliente, e o funil termina em Projecto. Registar um sinal sem contrato
-> assinado mostra um aviso (não bloqueia).
+> assinado mostra um aviso (não bloqueia). **Com a 072**, aceitar o
+> orçamento, aprovar o projecto e assinar o contrato digital passam a
+> tocar na Caixa de Entrada (tipos `orcamento_aceite`,
+> `projecto_aprovado`, `contrato_assinado`) — e o toast + a Caixa vivem
+> também na ficha do evento.
 
 > **Adenda 01/08/2026 — a revisão UX de ponta a ponta.** Depois desta
 > revisão, alguns passos do roteiro têm comportamento NOVO, deliberado:

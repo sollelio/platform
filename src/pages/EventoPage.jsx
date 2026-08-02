@@ -27,7 +27,7 @@ import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
-import { ToastNotificacao } from "../components/admin/CentroNotificacoes";
+import PainelNotificacoes, { ToastNotificacao } from "../components/admin/CentroNotificacoes";
 import { useNotificacoes } from "../lib/notificacoes";
 import { FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
@@ -450,8 +450,11 @@ export default function EventoPage() {
   // Os avisos tocam também aqui — a subscrição realtime + o toast eram
   // do AdminPage, e a ficha do evento ficava surda. O hook vive ANTES
   // dos retornos do esqueleto (regra dos hooks); o toast pinta-se no
-  // fim da página.
+  // fim da página, e a Caixa de Entrada da sidebar abre o mesmo painel
+  // que no resto do backoffice.
   const notificacoes = useNotificacoes();
+  const [caixaAberta, setCaixaAberta] = useState(false);
+  const [caixaDestaque, setCaixaDestaque] = useState(null);
 
   const resumoEvento = useMemo(
     () => getResumoSubmissao(submissao, eventTypes),
@@ -642,6 +645,41 @@ export default function EventoPage() {
     }
   };
 
+  // «Abrir ficha completa» de um aviso da Caixa, visto DAQUI — o mesmo
+  // contrato do AdminPage, com um atalho: os avisos do acompanhamento
+  // DESTE evento abrem a folha aqui mesmo, sem viagem.
+  const abrirAvisoDaCaixa = (submissionId, tipo) => {
+    if (!submissionId) return;
+    const doAcompanhamento = [
+      "codigo_pedido",
+      "pedido_alteracao",
+      "contrato_papel",
+      "questionario_pedido",
+      "orcamento_aceite",
+      "projecto_aprovado",
+      "contrato_assinado",
+    ].includes(tipo);
+    setCaixaAberta(false);
+    if (doAcompanhamento) {
+      if (submissionId === id) setPedidoAcompanhamento(true);
+      else
+        navigate(`/evento/${submissionId}`, {
+          state: { abrirAcompanhamento: true },
+        });
+      return;
+    }
+    if (tipo === "questionario_entregue") {
+      if (submissionId !== id) navigate(`/evento/${submissionId}`);
+      return;
+    }
+    if (tipo === "avaliacao_recebida") {
+      navigate(caminhoDoSeparador("avaliacoes"));
+      return;
+    }
+    // Captação e restantes: a ficha deles vive no drawer dos Contactos.
+    navigate(caminhoDoSeparador("clientes"));
+  };
+
   // Abrir do toast leva ao sítio que o próprio aviso promete.
   const abrirDeToast = (n) => {
     notificacoes.limparNova();
@@ -650,6 +688,9 @@ export default function EventoPage() {
       "pedido_alteracao",
       "contrato_papel",
       "questionario_pedido",
+      "orcamento_aceite",
+      "projecto_aprovado",
+      "contrato_assinado",
     ].includes(n.tipo);
     const mesmoEvento = n.submission_id === id;
     if (doAcompanhamento) {
@@ -699,6 +740,11 @@ export default function EventoPage() {
     <div style={{ display: "flex", backgroundColor: "var(--cream)" }}>
       <SidebarNav
         activeTab="clientes"
+        naoLidas={notificacoes.naoLidas}
+        onAbrirNotificacoes={() => {
+          setCaixaDestaque(null);
+          setCaixaAberta(true);
+        }}
         // Os itens do menu são LIGAÇÕES a sério, e uma ligação navega
         // sozinha: se houver briefing por guardar, tem de se travar o
         // clique com preventDefault ANTES de o browser ir — senão o
@@ -1000,6 +1046,20 @@ export default function EventoPage() {
         evento={submissao}
         aberto={portalAberto}
         onFechar={() => setPortalAberto(false)}
+      />
+
+      {/* A Caixa de Entrada — o mesmo painel do resto do backoffice. */}
+      <PainelNotificacoes
+        aberto={caixaAberta}
+        destaqueId={caixaDestaque}
+        lista={notificacoes.lista}
+        naoLidas={notificacoes.naoLidas}
+        eventTypes={[]}
+        onFechar={() => setCaixaAberta(false)}
+        onMarcarLida={notificacoes.marcarLida}
+        onMarcarTodas={notificacoes.marcarTodas}
+        onApagarVarias={notificacoes.apagarVarias}
+        onAbrirEvento={abrirAvisoDaCaixa}
       />
 
       {/* O toast dos avisos toca ONDE ELA ESTÁ — antes, o sistema de

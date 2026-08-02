@@ -189,6 +189,26 @@ const TIPOS_DO_PORTAL = {
       "Abra a folha do evento para ver a fotografia e confirmar a " +
       "assinatura. Confirmar tranca o contrato.",
   },
+  // 072 · As respostas que faltavam. Antes, aceitar/aprovar/assinar era
+  // silêncio na Caixa — e eram os momentos de agir na hora.
+  orcamento_aceite: {
+    resumo: "Aceitou o orçamento",
+    corpo:
+      "O próximo passo é o contrato: prepare-o e publique-o no " +
+      "acompanhamento — com ele assinado, o sinal guarda a data.",
+  },
+  projecto_aprovado: {
+    resumo: "Aprovou o projecto",
+    corpo:
+      "A mesa que ela viu é a que se monta. As compras e a preparação " +
+      "seguem por esta versão.",
+  },
+  contrato_assinado: {
+    resumo: "Assinou o contrato",
+    corpo:
+      "O contrato ficou trancado, com o nome dela no registo. É a deixa " +
+      "para o sinal — metade do valor guarda a data.",
+  },
 };
 
 // Nome do tipo de evento: modelo conhecido OU o texto livre do cliente.

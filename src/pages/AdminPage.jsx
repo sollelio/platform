@@ -216,7 +216,17 @@ export default function AdminPage() {
     // Estes quatro tratam-se na folha do Acompanhamento — a página do
     // evento abre-a por state, consumido uma vez (padrão do realce).
     if (
-      ["codigo_pedido", "pedido_alteracao", "contrato_papel", "questionario_pedido"].includes(tipo)
+      [
+        "codigo_pedido",
+        "pedido_alteracao",
+        "contrato_papel",
+        "questionario_pedido",
+        // 072 · as respostas dela lêem-se na folha do Acompanhamento —
+        // é lá que vive o «Aceite por … a …» e o publicar da versão nova.
+        "orcamento_aceite",
+        "projecto_aprovado",
+        "contrato_assinado",
+      ].includes(tipo)
     ) {
       setNotifAberto(false);
       navigate(`/evento/${submissionId}`, {

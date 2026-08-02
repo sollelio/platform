@@ -510,6 +510,17 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   passam pelos mesmos processos — diferenciar por tamanho fica para
   quando doer.
 
+- **02/08/2026 — Migração 072: TODOS os actos da cliente tocam na Caixa
+  de Entrada.** O dlm_portal_acto só avisava «pediu_alteracao»; aceitar o
+  orçamento, aprovar o projecto e assinar o contrato digital eram
+  silêncio — precisamente os momentos de agir na hora (o contrato
+  assinado é a deixa do sinal). Entram `orcamento_aceite`,
+  `projecto_aprovado` e `contrato_assinado`, todos a abrir na folha do
+  Acompanhamento. O Hélio apanhou-o à espera de um toast que nunca podia
+  chegar: não havia nada a caminho.
+- **02/08/2026 — A ficha do evento ganha a Caixa de Entrada na sidebar**
+  (badge + painel completos, como no resto do backoffice) — o item só se
+  pintava onde a página lhe dava o gesto, e a ficha não dava.
 - **02/08/2026 — Os avisos tocam onde a Nádia está: o toast (e o canal
   realtime) passam a viver também na ficha do evento.** Antes eram só do
   AdminPage e um pedido de código chegado com a ficha aberta ficava mudo
