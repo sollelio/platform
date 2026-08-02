@@ -561,14 +561,23 @@ function Conteudo({ evento, onFechar }) {
                 Depois de a enviar, aparece aqui quando ela lá for.
               </>
             ) : (
+              // «Visita», não «vez»: o servidor conta VISITAS — aberturas
+              // seguidas na mesma meia hora são uma só (a janela da 054,
+              // que protege as novidades e o sinal de vida). Dizer
+              // «aberta X vezes» prometia um contador de cliques e fazia
+              // a contagem parecer avariada a quem recarrega a testar.
               <>
                 <strong style={{ color: "var(--charcoal)", fontWeight: 600 }}>
-                  Aberta {acesso.n_acessos}{" "}
-                  {acesso.n_acessos === 1 ? "vez" : "vezes"}.
+                  {acesso.n_acessos === 1
+                    ? "Uma visita."
+                    : `${acesso.n_acessos} visitas.`}
                 </strong>
                 {acesso.ultimo_acesso_em && (
                   <> A última foi a {dataHora(acesso.ultimo_acesso_em)}.</>
-                )}
+                )}{" "}
+                <span style={{ color: "#9B9B9B" }}>
+                  Aberturas seguidas na mesma meia hora contam como uma.
+                </span>
               </>
             )}
           </p>
