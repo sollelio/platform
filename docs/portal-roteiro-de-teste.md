@@ -170,8 +170,12 @@ seus documentos».
   casa.»* — com o **nome da cliente** (o titular da jornada) e a linha «o
   código segue para o número que temos na sua ficha», e a cápsula **Pedir
   o código**. *(Desde 01/08/2026 o portal diz sempre «a Do Luxo à Mesa»,
-  nunca «a Nádia»; e desde 02/08/2026 o cartão do véu nomeia o
-  DESTINATÁRIO do código, não o remetente.)*
+  nunca «a Nádia»; desde 02/08/2026 o cartão nomeia o DESTINATÁRIO do
+  código e diz o ESTADO na prosa: com pedido por atender o título passa a
+  «O código já está pedido.» com a cápsula «Já tenho o código» — que abre
+  DIREITO nas células, sem passar pela espera; com código emitido, «O seu
+  código já seguiu.» e «Escrever o código». A espera só se vê uma vez, logo
+  a seguir a pedir.)*
 - 🔴 **A prova que interessa:** DevTools → Rede → o pedido
   `dlm_portal_ver_documento` → Resposta. **Não pode existir lá dentro
   nenhum valor, nem NIF, nem morada, nem contacto.** O véu corta no
@@ -189,7 +193,7 @@ seus documentos».
 **O que confirmar:**
 - Ecrã da **espera**: a tira de contexto em cima («Orçamento · versão 1 ·
   valores velados»), o medalhão vazio com o **sopro** (halo a respirar
-  devagar), e *«A Do Luxo à Mesa já sabe que precisa dele.»*
+  devagar), e *«O pedido ficou com a Do Luxo à Mesa.»*
 - «Pediu-o às HH:MM» com a hora certa.
 - 🔧 **No backoffice:** abre a folha do Acompanhamento — tem de aparecer a
   caixa âmbar **Pedido de código** com o botão «Emitir código».

@@ -622,7 +622,7 @@ function Lista({ token, meta }) {
 
 // ---------- o fluxo do código ----------
 
-function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar, onRecarregarMeta }) {
+function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar, onRecarregarMeta, modoInicial }) {
   // O «agora» fixa-se quando o ecrã abre: o render tem de ser puro, e a
   // pergunta «já passaram duas horas?» não precisa de relógio vivo.
   const [agora] = useState(() => new Date().getTime());
@@ -632,8 +632,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
   // documento) pede-se — nunca se pedem seis dígitos que nunca foram
   // enviados.
   const v = meta?.verificacao;
+  // `modoInicial` manda quando vem: o cartão do véu já disse o estado por
+  // palavras, e «Já tenho o código» tem de aterrar nas células — não na
+  // espera a repetir o que o cartão acabou de dizer.
   const [modo, setModo] = useState(
-    v?.estado === "pedido" ? "espera" : v?.estado === "emitido" ? "celulas" : "pedir",
+    modoInicial ||
+      (v?.estado === "pedido" ? "espera" : v?.estado === "emitido" ? "celulas" : "pedir"),
   );
   const [codigo, setCodigo] = useState("");
   const [aTrabalhar, setATrabalhar] = useState(false);
@@ -775,12 +779,13 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
 
           <p style={{ ...overline(), marginTop: "22px" }}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            A Do Luxo à Mesa já sabe que precisa dele.
+            O pedido ficou com a Do Luxo à Mesa.
           </p>
           <FileteComLosango margem="20px 0" />
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: 0, textWrap: "pretty" }}>
-            {pedidoEm ? `Pediu-o às ${horaCurta(pedidoEm)}. ` : ""}Enviamos-lho
-            pela conversa que já temos consigo, no número que temos na sua ficha.
+            {pedidoEm ? `Pediu-o às ${horaCurta(pedidoEm)}. ` : ""}Não é
+            automático — é a casa que envia o código, pela conversa de
+            WhatsApp que já tem consigo.
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "12px 0 0", textWrap: "pretty" }}>
             Pode fechar esta página. Quando voltar, está tudo como deixou — e o
@@ -1124,6 +1129,10 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
   // De onde se veio para o ecrã do código — 'alterar' regressa ao pedido
   // com o texto intacto em vez de cair no documento.
   const [voltarPara, setVoltarPara] = useState(null);
+  // «Já tenho o código» no cartão do véu abre DIREITO nas células, mesmo
+  // com o pedido por atender — o cartão já disse o estado; a espera só
+  // repetia. Limpa-se ao voltar/verificar.
+  const [modoForcado, setModoForcado] = useState(null);
   // O interstício dispensado nesta montagem (chave tipo_versão), para o
   // caso de o sessionStorage recusar a escrita.
   const [interVisto, setInterVisto] = useState(null);
@@ -1219,6 +1228,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
     setAltMarcados([]);
     setAltRecado("");
     setAltNome("");
+    setModoForcado(null);
   }
 
   // Busca e assenta o meta DE VERDADE antes de devolver a mão: o refetch
@@ -1386,9 +1396,11 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
         motivo={motivoCodigo}
         versao={doc.versao}
         meta={meta}
+        modoInicial={modoForcado}
         onRecarregarMeta={recarregarMeta}
         onVoltar={() => {
           setVoltarPara(null);
+          setModoForcado(null);
           setPasso("doc");
         }}
         onVerificado={() => {
@@ -1397,6 +1409,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           // documento já sem véu.
           setPasso(voltarPara === "alterar" ? "alterar" : "doc");
           setVoltarPara(null);
+          setModoForcado(null);
           setRecarga((r) => r + 1);
         }}
       />
@@ -1682,85 +1695,105 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
         {/* Também na versão antiga: hachuras sem cartão dos valores nem
             caminho para o código eram um beco. O pé do acto, esse sim,
             continua excluído em versaoAntiga. */}
-        {veiado && (
-          <div className="acomp-nao-imprime" style={{ margin: "0 22px 24px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "20px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-            <p style={overline()}>Os valores</p>
-            <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
-              Os valores mostram-se a quem é da casa.
-            </p>
-            <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
-              Esta ligação pode passar por outras mãos. Para os abrir, a Do
-              Luxo à Mesa envia-lhe um código de seis dígitos pela conversa
-              que já tem consigo.
-            </p>
-            {/* O cartão nomeia o DESTINATÁRIO do código — é isso que
-                explica o véu a quem tem a ligação na mão: os valores
-                abrem-se a quem tem o telefone da ficha, e essa pessoa tem
-                nome. (Era o cartão do remetente, «uma pessoa no meio»;
-                com a casa no lugar do nome próprio ficou a casa a
-                apresentar-se a si própria, e o desenho mudou de lado.)
-                Nunca se mostra o número — a projecção não o traz, de
-                propósito. */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
-              <div aria-hidden="true" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "repeating-linear-gradient(45deg, #F2ECDF 0 5px, #FAF7EF 5px 11px)", border: "1px solid #E8DCC0", flex: "none" }} />
-              <div>
-                <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>
-                  {titular || "A pessoa da ficha"}
+        {/* O CARTÃO DIZ O ESTADO NA PROSA — não escondido num rótulo de
+            botão. Três tempos, cada um com a sua frase e a sua acção:
+            · nunca pedido → porquê do véu, a quem chega o código, e
+              «Pedir o código» (que leva à espera: acto → confirmação);
+            · pedido por atender → «já está pedido», e a única acção
+              útil é «Já tenho o código» (células) — a espera não se
+              repete a quem volta cá;
+            · emitido → «já seguiu», «Escrever o código».
+            Nunca se mostra o número — a projecção não o traz, de
+            propósito. O nome do titular já se mostra na jornada. */}
+        {veiado &&
+          (() => {
+            const vEstado = meta?.verificacao?.estado;
+            const vPedidoEm = meta?.verificacao?.pedido_em;
+            const conversaAlvo = titular
+              ? `conversa de WhatsApp de ${titular}`
+              : "conversa de WhatsApp da pessoa da ficha";
+            const irAsCelulas = () => {
+              setErroPedido(null);
+              setVoltarPara(null);
+              setMotivoCodigo(null);
+              setModoForcado("celulas");
+              setPasso("codigo");
+            };
+            return (
+              <div className="acomp-nao-imprime" style={{ margin: "0 22px 24px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "20px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+                <p style={overline()}>Os valores</p>
+                <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
+                  {vEstado === "emitido"
+                    ? "O seu código já seguiu."
+                    : vEstado === "pedido"
+                      ? "O código já está pedido."
+                      : "Os valores mostram-se a quem é da casa."}
                 </p>
-                <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "3px 0 0" }}>
-                  o código segue para o número que temos na sua ficha
+                <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
+                  {vEstado === "emitido"
+                    ? `Está na ${conversaAlvo} — vale um dia inteiro, a contar do envio. Escreva-o, e os valores abrem-se.`
+                    : vEstado === "pedido"
+                      ? `O pedido ficou feito${vPedidoEm ? ` às ${horaCurta(vPedidoEm)}` : ""}. Não é automático — assim que a Do Luxo à Mesa o enviar, chega à ${conversaAlvo}.`
+                      : "Esta ligação pode passar por outras mãos. Para os abrir, a Do Luxo à Mesa envia um código de seis dígitos — e só a quem é do evento."}
                 </p>
+                {!vEstado || vEstado === "nenhum" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
+                    <div aria-hidden="true" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "repeating-linear-gradient(45deg, #F2ECDF 0 5px, #FAF7EF 5px 11px)", border: "1px solid #E8DCC0", flex: "none" }} />
+                    <div>
+                      <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>
+                        {titular || "A pessoa da ficha"}
+                      </p>
+                      <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "3px 0 0" }}>
+                        o código segue para o número que temos na sua ficha
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                {vEstado === "emitido" || vEstado === "pedido" ? (
+                  <>
+                    <CapsulaVazada onClick={irAsCelulas} style={{ marginTop: "18px" }}>
+                      {vEstado === "emitido" ? "Escrever o código" : "Já tenho o código"}
+                    </CapsulaVazada>
+                    {vEstado === "pedido" && (
+                      <p style={{ textAlign: "center", margin: "14px 0 0" }}>
+                        <LigacaoDiscreta href={WHATSAPP_URL} apagada>
+                          Se tiver pressa, fale pelo WhatsApp
+                        </LigacaoDiscreta>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <CapsulaVazada
+                    aTrabalhar={aTrabalhar}
+                    onClick={async () => {
+                      setErroPedido(null);
+                      setVoltarPara(null);
+                      setModoForcado(null);
+                      setATrabalhar(true);
+                      try {
+                        await pedirCodigo(token, tipo);
+                        esquecerSessao(token);
+                        setMotivoCodigo(null);
+                        await recarregarMeta();
+                        setPasso("codigo");
+                      } catch (e) {
+                        console.error(e);
+                        setErroPedido("Não foi possível pedir o código. Verifique a ligação e tente novamente.");
+                      } finally {
+                        setATrabalhar(false);
+                      }
+                    }}
+                    style={{ marginTop: "18px" }}
+                  >
+                    Pedir o código
+                  </CapsulaVazada>
+                )}
+                {erroPedido && (
+                  <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
+                )}
               </div>
-            </div>
-            <CapsulaVazada
-              aTrabalhar={aTrabalhar}
-              onClick={async () => {
-                setErroPedido(null);
-                setVoltarPara(null);
-                // Com código EMITIDO, «continuar» não pode pedir outro —
-                // matava no servidor o código que a Nádia já enviou (061).
-                // Vai-se direito às células escrevê-lo.
-                if (meta?.verificacao?.estado === "emitido") {
-                  setMotivoCodigo(null);
-                  setPasso("codigo");
-                  return;
-                }
-                setATrabalhar(true);
-                try {
-                  // Com estado 'pedido' isto é um eco (a 061 §a actualiza o
-                  // contexto — útil para o âmbito do assinar); nos restantes
-                  // estados é o pedido a sério. Do lado do servidor matou o
-                  // código anterior e a sessão dele; deitar fora a local
-                  // mantém o ecrã a dizer a verdade.
-                  await pedirCodigo(token, tipo);
-                  esquecerSessao(token);
-                  setMotivoCodigo(null);
-                  await recarregarMeta();
-                  setPasso("codigo");
-                } catch (e) {
-                  console.error(e);
-                  setErroPedido("Não foi possível pedir o código. Verifique a ligação e tente novamente.");
-                } finally {
-                  setATrabalhar(false);
-                }
-              }}
-              style={{ marginTop: "18px" }}
-            >
-              {/* O rótulo diz o DESTINO: com o código emitido vai-se
-                  escrevê-lo (o mesmo gesto do ecrã de espera); com o
-                  pedido por atender vai-se ver onde ele está. Um só
-                  «continuar» escondia a diferença. */}
-              {meta?.verificacao?.estado === "emitido"
-                ? "Já tenho o código"
-                : meta?.verificacao?.estado === "pedido"
-                  ? "Já o pedi — ver onde está"
-                  : "Pedir o código"}
-            </CapsulaVazada>
-            {erroPedido && (
-              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
-            )}
-          </div>
-        )}
+            );
+          })()}
 
         {/* ── O PÉ DO ACTO ── */}
         {!veiado && !jaRespondeu && !versaoAntiga && tipo !== "contrato" && (

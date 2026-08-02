@@ -433,11 +433,22 @@ correcções aplicadas. As decisões que ficam:
   mão é o outro lado: os valores abrem-se a quem tem o telefone da ficha,
   e essa pessoa tem nome — o titular da jornada, que a projecção já
   mostrava. A frase de cima continua a dizer quem envia (a casa); o número
-  nunca aparece (a projecção não o traz, de propósito). De caminho, o
-  «Já pedi · continuar» partiu-se em dois rótulos que dizem o destino:
-  código emitido → «Já tenho o código» (as células); pedido por atender →
-  «Já o pedi — ver onde está» (a espera). Um só «continuar» escondia a
-  diferença, e o fragmento «·» era contra a escrita da casa.
+  nunca aparece (a projecção não o traz, de propósito).
+- **02/08/2026 — O cartão do véu diz o ESTADO na prosa; a espera vê-se uma
+  vez só.** O Hélio sentiu a confusão no telefone e tinha razão: a prosa
+  do cartão descrevia sempre o estado «nunca pedi», o estado real vivia
+  escondido no rótulo do botão, e o botão levava a um ecrã que repetia o
+  que o cartão acabara de dizer — uma viagem para não saber nada de novo.
+  Agora o cartão tem três tempos: sem pedido → o porquê do véu + «Pedir o
+  código»; pedido por atender → «O código já está pedido.» + «Já tenho o
+  código» (direito às células, com «Se tiver pressa, fale pelo WhatsApp»);
+  emitido → «O seu código já seguiu.» + «Escrever o código». O ecrã de
+  espera ficou só para o momento a seguir ao acto de pedir (acto →
+  confirmação, com o sopro), com a frase nova «O pedido ficou com a Do
+  Luxo à Mesa.» — «Enviamos-lho» era ambíguo entre passado e futuro e
+  mandava gente ao WhatsApp à procura de um código que ainda não seguiu.
+  Regra que fica: cada superfície responde a UMA pergunta, e um botão
+  nunca é o único sítio onde o estado se lê.
 - **01/08/2026 — `formatarEuroPT` fica «1 291,50 €»** (espaço nos
   milhares, espaço antes do €), contra a letra da identidade §2
   («1500,50€»). Porquê: é o formato dos documentos que a cliente recebe, e
