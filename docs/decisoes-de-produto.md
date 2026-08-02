@@ -486,17 +486,29 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
 - **02/08/2026 — Registar um sinal sem contrato assinado AVISA, nunca
   bloqueia** («sugere-se, nunca se executa»). A realidade às vezes foge à
   regra; cada fuga passa a ser uma escolha consciente, não um esquecimento.
-- **02/08/2026 — Os cartões pós-sinal do funil ganham o TRILHO DE
-  PREPARAÇÃO.** Com o sinal pago o negócio está fechado — a pergunta da
-  Nádia nas colunas Clientes/Em Preparação passa a ser «onde está o
-  trabalho?». Quatro marcas de relance (vazio · meia-lua · visto):
-  formulário (convite/respostas), projecto (gerado/aprovado), contrato
-  (em mãos/assinado — os legados pré-071 podem tê-lo por fazer), e
-  materiais (a ficha tem linhas). Uma só ida à base para o board inteiro;
-  se falhar, os cartões pintam-se sem as marcas — o funil nunca escurece
-  por causa do trilho. O que o sistema NÃO regista não aparece
-  (fornecedores, quem-faz-o-quê): uma marca sem dados por trás seria
-  decoração a fingir de informação.
+- **02/08/2026 — A coluna «Em Preparação» DERIVA da realidade do
+  trabalho.** Um cartão pós-sinal atravessa de Clientes para Em
+  Preparação quando a preparação começa DE FACTO: formulário enviado ou
+  respondido, projecto em mãos, ou ficha de materiais com linhas — o
+  contrato não conta como gatilho (no fluxo da 071 já vem assinado de
+  trás e acenderia tudo à nascença). O status manual do drawer continua
+  a valer e a mandar; a coluna não escreve nada na base («sugere-se,
+  nunca se executa» fica intacta — isto é leitura, não escrita).
+  «Clientes» fica para o que está ganho e ainda intocado. Pedido do
+  Hélio, palavras da Nádia: os processos SÃO a preparação, e o cartão
+  passa quando ela lhes pega.
+- **02/08/2026 — O TRILHO DE PREPARAÇÃO vive só nos cartões de Em
+  Preparação.** Quatro marcas de relance (vazio · meia-lua · visto):
+  formulário, projecto, contrato (visto na assinatura; nos legados
+  pré-071 pode aparecer por fazer — é verdade, não é bug) e materiais.
+  Em Clientes não há trilho: por definição estaria todo vazio, e quatro
+  círculos vazios são ruído. Uma só ida à base para o board inteiro; se
+  falhar, os cartões pintam-se sem as marcas e a coluna cai no critério
+  do status — o funil nunca escurece por causa do trilho. O que o
+  sistema não regista não aparece (fornecedores, quem-faz-o-quê); e
+  assume-se, por decisão de simplicidade da Nádia, que TODOS os eventos
+  passam pelos mesmos processos — diferenciar por tamanho fica para
+  quando doer.
 
 ## Validação — regra da casa
 

@@ -29,13 +29,17 @@ import CaptacaoForm from "../captacao/CaptacaoForm";
 // no telemóvel. Perdido NÃO é coluna (é saída): só aparece quando a
 // Nádia liga "Ver perdidos".
 //
-// A coluna é decidida por DOIS eixos ortogonais:
+// A coluna é decidida por DOIS eixos:
 //   • fase (funil comercial)  → Interessados vs pós-sinal
-//   • status (operacional)    → Clientes ("Recebido") vs Em Preparação
-//     ("Em Preparação" OU "Confirmado" — confirmar nunca faz recuar).
-// O evento atravessa para a Em Preparação quando a Nádia clica
-// "Em Preparação" na ficha do evento (drawer) — é só o status a mudar.
-// "Concluído" sai do board, como sempre.
+//   • trabalho (operacional)  → Clientes (ganho, ainda intocado) vs
+//     Em Preparação — que se atravessa pelo status do drawer OU, desde
+//     02/08/2026, sozinha: quando a preparação COMEÇA de facto
+//     (formulário enviado/respondido, projecto em mãos, ficha de
+//     materiais com linhas). A coluna lê a realidade — nada se escreve
+//     na base por causa dela, e o gesto manual continua a mandar.
+// "Concluído" sai do board, como sempre. Os cartões de Em Preparação
+// levam o TRILHO (as quatro marcas do trabalho); os de Clientes não —
+// por definição estariam vazias.
 //
 // refrescarEm — bump vindo do AdminPage: quando o drawer altera um
 // evento (estado, valor, dados), o board recarrega (tem fetch próprio
@@ -241,6 +245,26 @@ export default function FunilBoard({
   // Fase segura: eventos antigos sem fase (não devia haver, mas há BD
   // de teste) caem em "interessado" para nunca desaparecerem do funil.
   const faseDe = (ev) => (FASE_LABEL[ev.fase] ? ev.fase : "interessado");
+
+  // A preparação COMEÇOU? É este o sinal que atravessa um cartão de
+  // Clientes para a Em Preparação — a coluna deriva da realidade do
+  // trabalho, não de um clique administrativo. Conta o primeiro gesto
+  // dela: formulário enviado (ou respondido), projecto em mãos, ou a
+  // ficha de materiais com linhas. O contrato NÃO conta: no fluxo da
+  // 071 já vem assinado de trás — acenderia todos os cartões à nascença.
+  const preparacaoComecou = (ev) => {
+    if (!preparacao) return false;
+    if (ev.questionario_entregue_em) return true;
+    const f = estadoFormularioDoEvento(preparacao.invites, ev.id);
+    if (f.estado === "pendente" || f.estado === "preenchido") return true;
+    if (
+      preparacao.documentos.some(
+        (d) => d.submission_id === ev.id && d.tipo === "proposta",
+      )
+    )
+      return true;
+    return preparacao.comMateriais.has(ev.id);
+  };
 
   // As quatro marcas do trilho de um evento pós-sinal — null enquanto
   // os dados não chegam, e nos cartões pré-sinal (lá o que conta é o
@@ -581,24 +605,24 @@ export default function FunilBoard({
         const interessados = ordenar(
           eventos.filter((e) => FASES_ESQ.includes(faseDe(e))),
         );
-        // Pós-sinal ativos, repartidos pelo STATUS operacional. A
-        // coluna Clientes é o apanha-tudo (status "Recebido", nulo ou
-        // desconhecido) — nenhum evento desaparece do board.
+        // Pós-sinal ativos, repartidos pela REALIDADE do trabalho: um
+        // cartão atravessa para a Em Preparação quando o status o diz
+        // (o gesto manual do drawer continua a mandar) OU quando a
+        // preparação começou de facto — primeiro formulário, projecto
+        // ou material. A coluna Clientes fica para o que está ganho e
+        // ainda intocado; é o apanha-tudo (status nulo ou desconhecido
+        // incluído) — nenhum evento desaparece do board.
         const posSinalAtivos = eventos.filter(
           (e) => FASES_DIR.includes(faseDe(e)) && e.status !== "Concluído",
         );
-        const emPreparacao = ordenar(
-          posSinalAtivos.filter((e) =>
-            STATUS_EM_PREPARACAO.includes(e.status),
-          ),
-        );
+        const estaEmPreparacao = (e) =>
+          STATUS_EM_PREPARACAO.includes(e.status) || preparacaoComecou(e);
+        const emPreparacao = ordenar(posSinalAtivos.filter(estaEmPreparacao));
         const clientes = ordenar(
-          posSinalAtivos.filter(
-            (e) => !STATUS_EM_PREPARACAO.includes(e.status),
-          ),
+          posSinalAtivos.filter((e) => !estaEmPreparacao(e)),
         );
 
-        const Coluna = ({ titulo, cor, fundo, borda, lista, legendaEuros }) => (
+        const Coluna = ({ titulo, cor, fundo, borda, lista, legendaEuros, comTrilho }) => (
           <div
             style={{
               backgroundColor: fundo,
@@ -671,7 +695,7 @@ export default function FunilBoard({
                   fase={faseDe(ev)}
                   nome={nomeCard(ev)}
                   tipo={nomeTipo(ev)}
-                  trilho={trilhoDe(ev)}
+                  trilho={comTrilho ? trilhoDe(ev) : null}
                   aAtualizar={atualizando === ev.id}
                   aConfirmarPerda={confirmandoPerda === ev.id}
                   aConfirmarSinal={confirmandoSinal?.id === ev.id}
@@ -747,6 +771,7 @@ export default function FunilBoard({
               borda="#BFDBFE"
               lista={emPreparacao}
               legendaEuros="em preparação"
+              comTrilho
             />
             {mostrarPerdidos && (
               <Coluna
