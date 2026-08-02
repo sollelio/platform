@@ -414,6 +414,40 @@ export const getEventosFunil = async () => {
   return data || [];
 };
 
+// O trilho de preparação do funil (071): numa só ida, o estado do
+// formulário, dos documentos e da ficha de materiais dos eventos
+// pós-sinal — para os cartões de Clientes/Em Preparação dizerem ONDE
+// ESTÁ O TRABALHO, não só em que fase está o negócio.
+// Dos documentos nunca se traz o `dados` (o instantâneo jsonb pesa);
+// só os carimbos que decidem a marca.
+export const getPreparacaoFunil = async (ids) => {
+  if (!ids || ids.length === 0) {
+    return { documentos: [], invites: [], comMateriais: new Set() };
+  }
+  const lista = ids.join(",");
+  const [docs, invs, mats] = await Promise.all([
+    supabase
+      .from("documentos")
+      .select("submission_id, tipo, enviado_em, assinado_em")
+      .in("submission_id", ids),
+    supabase
+      .from("invites")
+      .select("id, created_at, status, submission_id, submission_alvo_id")
+      .or(`submission_id.in.(${lista}),submission_alvo_id.in.(${lista})`),
+    supabase
+      .from("evento_materiais")
+      .select("submission_id")
+      .in("submission_id", ids),
+  ]);
+  const falha = docs.error || invs.error || mats.error;
+  if (falha) throw falha;
+  return {
+    documentos: docs.data || [],
+    invites: invs.data || [],
+    comMateriais: new Set((mats.data || []).map((m) => m.submission_id)),
+  };
+};
+
 // Muda a fase de um evento — com whitelist (lição 3): só as fases da
 // CHECK constraint passam; qualquer outra rebenta aqui e não na BD.
 // (Pela ordem nova do funil — 071 — só por legibilidade: a whitelist

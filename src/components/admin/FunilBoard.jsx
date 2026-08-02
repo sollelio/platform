@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { getEventosFunil, updateFase } from "../../lib/clientes";
+import {
+  getEventosFunil,
+  getPreparacaoFunil,
+  updateFase,
+} from "../../lib/clientes";
+import { estadoFormularioDoEvento } from "../../lib/invites";
 import {
   registarSinalDoFunil,
   METODOS_SUGERIDOS,
@@ -12,7 +17,6 @@ import {
   FASE_LABEL,
   FASE_COR,
   FASES_BOARD,
-  FASES_POS_SINAL,
   PROXIMA_FASE,
   AVANCO_LABEL,
 } from "./faseConfig";
@@ -75,6 +79,72 @@ const somaValores = (lista) =>
 // Em Preparação ("a partir do preencher formulário em diante").
 const STATUS_EM_PREPARACAO = ["Em Preparação", "Confirmado"];
 
+// ------------------------------------------------------------
+// O trilho de preparação — as marcas de relance dos cartões
+// pós-sinal. Com o sinal pago o negócio está fechado; a pergunta da
+// Nádia passa a ser «onde está o trabalho?» — formulário, projecto,
+// contrato, materiais. Três marcas da casa (traço à mão, nunca
+// glifos): vazio (por começar) · meia-lua (a meio) · visto (feito).
+// ------------------------------------------------------------
+function MarcaTrilho({ estado }) {
+  if (estado === "feito") {
+    return (
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <circle cx="7" cy="7" r="6" stroke="#C9A84C" strokeWidth="1.5" />
+        <path d="M4.2 7.3 L6.2 9.2 L9.8 4.9" stroke="#C9A84C" strokeWidth="1.7"
+          strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (estado === "meio") {
+    return (
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <circle cx="7" cy="7" r="6" stroke="#C9A84C" strokeWidth="1.5" />
+        <path d="M7 1 A6 6 0 0 0 7 13 Z" fill="#E8D5A3" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="6" stroke="#E8DCC0" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function TrilhoPreparacao({ itens }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "6px 12px",
+        margin: "0 0 10px",
+        paddingTop: "8px",
+        borderTop: "1px solid #F5EFE2",
+      }}
+    >
+      {itens.map((it) => (
+        <span
+          key={it.rotulo}
+          title={it.dica}
+          style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+        >
+          <MarcaTrilho estado={it.estado} />
+          <span
+            style={{
+              fontSize: "9.5px",
+              letterSpacing: "0.02em",
+              color: it.estado === "vazio" ? "#9B9B9B" : "var(--gray-mid)",
+            }}
+          >
+            {it.rotulo}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function FunilBoard({
   eventTypes = [],
   onAbrirEvento,
@@ -87,6 +157,8 @@ export default function FunilBoard({
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
+  // { documentos, invites, comMateriais } dos pós-sinal — o trilho.
+  const [preparacao, setPreparacao] = useState(null);
 
   // A pílula «Recuperar no funil» da Jornada aterra aqui: liga o "Ver
   // perdidos" (a coluna aparece) e consome o pedido — a recuperação em
@@ -128,6 +200,21 @@ export default function FunilBoard({
     try {
       const data = await getEventosFunil();
       setEventos(data);
+      // O trilho de preparação, só para os pós-sinal vivos. Falhar aqui
+      // não escurece o funil: os cartões pintam-se sem as marcas.
+      const idsPosSinal = data
+        .filter(
+          (e) =>
+            ["cliente", "projecto"].includes(e.fase) &&
+            e.status !== "Concluído",
+        )
+        .map((e) => e.id);
+      try {
+        setPreparacao(await getPreparacaoFunil(idsPosSinal));
+      } catch (e2) {
+        console.warn("Funil sem trilho de preparação:", e2);
+        setPreparacao(null);
+      }
     } catch (e) {
       console.error(e);
       setErro("Não foi possível carregar o funil.");
@@ -154,6 +241,69 @@ export default function FunilBoard({
   // Fase segura: eventos antigos sem fase (não devia haver, mas há BD
   // de teste) caem em "interessado" para nunca desaparecerem do funil.
   const faseDe = (ev) => (FASE_LABEL[ev.fase] ? ev.fase : "interessado");
+
+  // As quatro marcas do trilho de um evento pós-sinal — null enquanto
+  // os dados não chegam, e nos cartões pré-sinal (lá o que conta é o
+  // negócio, não a preparação).
+  const trilhoDe = (ev) => {
+    if (!preparacao) return null;
+    if (!["cliente", "projecto"].includes(faseDe(ev))) return null;
+    const docs = preparacao.documentos.filter(
+      (d) => d.submission_id === ev.id,
+    );
+    const doc = (tipo) => {
+      const d = docs.filter((x) => x.tipo === tipo);
+      if (d.length === 0) return "vazio";
+      if (d.some((x) => x.assinado_em)) return "feito";
+      return "meio";
+    };
+    const f = estadoFormularioDoEvento(preparacao.invites, ev.id);
+    const formulario =
+      ev.questionario_entregue_em || f.estado === "preenchido"
+        ? "feito"
+        : f.estado === "pendente"
+          ? "meio"
+          : "vazio";
+    return [
+      {
+        rotulo: "formulário",
+        estado: formulario,
+        dica:
+          formulario === "feito"
+            ? "Formulário respondido"
+            : formulario === "meio"
+              ? "Formulário enviado, por responder"
+              : "Formulário por enviar",
+      },
+      {
+        rotulo: "projecto",
+        estado: doc("proposta"),
+        dica:
+          doc("proposta") === "feito"
+            ? "Projecto aprovado"
+            : doc("proposta") === "meio"
+              ? "Projecto em mãos"
+              : "Projecto por desenhar",
+      },
+      {
+        rotulo: "contrato",
+        estado: doc("contrato"),
+        dica:
+          doc("contrato") === "feito"
+            ? "Contrato assinado"
+            : doc("contrato") === "meio"
+              ? "Contrato em mãos"
+              : "Contrato por preparar",
+      },
+      {
+        rotulo: "materiais",
+        estado: preparacao.comMateriais.has(ev.id) ? "feito" : "vazio",
+        dica: preparacao.comMateriais.has(ev.id)
+          ? "Ficha de materiais com linhas"
+          : "Ficha de materiais vazia",
+      },
+    ];
+  };
 
   // Abrir a confirmação do sinal lê o PREVISTO real primeiro: o valor
   // que a Nádia confirma é o que fica registado (com o remanescente
@@ -521,6 +671,7 @@ export default function FunilBoard({
                   fase={faseDe(ev)}
                   nome={nomeCard(ev)}
                   tipo={nomeTipo(ev)}
+                  trilho={trilhoDe(ev)}
                   aAtualizar={atualizando === ev.id}
                   aConfirmarPerda={confirmandoPerda === ev.id}
                   aConfirmarSinal={confirmandoSinal?.id === ev.id}
@@ -788,6 +939,7 @@ function CardEvento({
   fase,
   nome,
   tipo,
+  trilho,
   aAtualizar,
   aConfirmarPerda,
   aConfirmarSinal,
@@ -909,6 +1061,10 @@ function CardEvento({
           sem valor acordado — define-o no evento (✏️ Editar)
         </p>
       )}
+
+      {/* O trilho de preparação — só nos cartões pós-sinal: com o
+          negócio fechado, o que se quer ver de relance é o trabalho. */}
+      {trilho && <TrilhoPreparacao itens={trilho} />}
 
       {/* Ações — dependem do estado */}
       {aConfirmarPerda ? (

@@ -486,6 +486,17 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
 - **02/08/2026 — Registar um sinal sem contrato assinado AVISA, nunca
   bloqueia** («sugere-se, nunca se executa»). A realidade às vezes foge à
   regra; cada fuga passa a ser uma escolha consciente, não um esquecimento.
+- **02/08/2026 — Os cartões pós-sinal do funil ganham o TRILHO DE
+  PREPARAÇÃO.** Com o sinal pago o negócio está fechado — a pergunta da
+  Nádia nas colunas Clientes/Em Preparação passa a ser «onde está o
+  trabalho?». Quatro marcas de relance (vazio · meia-lua · visto):
+  formulário (convite/respostas), projecto (gerado/aprovado), contrato
+  (em mãos/assinado — os legados pré-071 podem tê-lo por fazer), e
+  materiais (a ficha tem linhas). Uma só ida à base para o board inteiro;
+  se falhar, os cartões pintam-se sem as marcas — o funil nunca escurece
+  por causa do trilho. O que o sistema NÃO regista não aparece
+  (fornecedores, quem-faz-o-quê): uma marca sem dados por trás seria
+  decoração a fingir de informação.
 
 ## Validação — regra da casa
 
