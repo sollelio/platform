@@ -1328,6 +1328,9 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
   // ---------- um documento ----------
   const rotulo = ROTULO_DOCUMENTO[tipo] || "Documento";
   const voltarLista = () => navigate(`/acompanhar/${token}/documentos`);
+  // A raiz do acompanhamento — a jornada refresca sozinha à chegada e já
+  // conta o acto («A seguir: o contrato»).
+  const irAoAcompanhamento = () => navigate(`/acompanhar/${token}`);
 
   if (!metaDoc || doc?.estado === "nada") {
     return (
@@ -1604,6 +1607,18 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           </p>
         </div>
 
+        {/* O acto está feito — o caminho natural é a jornada, que já
+            conta a novidade. Cápsula, não ligação apagada: é o passo
+            seguinte, não uma saída de emergência. */}
+        <div style={{ marginTop: "26px", textAlign: "center" }}>
+          <CapsulaVazada
+            onClick={irAoAcompanhamento}
+            style={{ width: "auto", display: "inline-block", padding: "13px 26px" }}
+          >
+            Voltar ao acompanhamento
+          </CapsulaVazada>
+        </div>
+
         <Assinatura style={{ marginTop: "30px" }} />
       </div>
     );
@@ -1668,6 +1683,11 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             <LigacaoDiscreta onClick={() => window.print()}>Imprimir em A4</LigacaoDiscreta>
             <LigacaoDiscreta onClick={voltarLista} apagada>Os seus documentos</LigacaoDiscreta>
           </div>
+          <p style={{ textAlign: "center", margin: "12px 0 0" }}>
+            <LigacaoDiscreta onClick={irAoAcompanhamento} apagada>
+              Voltar ao acompanhamento
+            </LigacaoDiscreta>
+          </p>
         </div>
         <EstiloImpressao />
       </div>
@@ -1972,6 +1992,13 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           </LigacaoDiscreta>
         )}
       </div>
+      {!versaoAntiga && (
+        <p className="acomp-nao-imprime" style={{ textAlign: "center", margin: "12px 0 0" }}>
+          <LigacaoDiscreta onClick={irAoAcompanhamento} apagada>
+            Voltar ao acompanhamento
+          </LigacaoDiscreta>
+        </p>
+      )}
 
       {/* A impressão A4: só a folha fica visível — a peça partilhada com o
           ramo «papel» e o repouso, para o browser imprimir papel e não a
