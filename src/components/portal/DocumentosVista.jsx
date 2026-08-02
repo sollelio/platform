@@ -1092,7 +1092,7 @@ function PedirAlteracao({
 
 // ---------- a vista ----------
 
-export default function DocumentosVista({ token, tipo, reduzir }) {
+export default function DocumentosVista({ token, tipo, reduzir, titular }) {
   const navigate = useNavigate();
   const [meta, setMeta] = useState(null);
   // O documento guarda a CHAVE a que pertence; mudou a chave, o derivado
@@ -1693,12 +1693,22 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
               Luxo à Mesa envia-lhe um código de seis dígitos pela conversa
               que já tem consigo.
             </p>
+            {/* O cartão nomeia o DESTINATÁRIO do código — é isso que
+                explica o véu a quem tem a ligação na mão: os valores
+                abrem-se a quem tem o telefone da ficha, e essa pessoa tem
+                nome. (Era o cartão do remetente, «uma pessoa no meio»;
+                com a casa no lugar do nome próprio ficou a casa a
+                apresentar-se a si própria, e o desenho mudou de lado.)
+                Nunca se mostra o número — a projecção não o traz, de
+                propósito. */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
               <div aria-hidden="true" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "repeating-linear-gradient(45deg, #F2ECDF 0 5px, #FAF7EF 5px 11px)", border: "1px solid #E8DCC0", flex: "none" }} />
               <div>
-                <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>Do Luxo à Mesa</p>
+                <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>
+                  {titular || "A pessoa da ficha"}
+                </p>
                 <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "3px 0 0" }}>
-                  não é automático — somos nós que o enviamos
+                  o código segue para o número que temos na sua ficha
                 </p>
               </div>
             </div>

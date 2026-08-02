@@ -497,6 +497,10 @@ export default function PortalPage() {
             token={token}
             tipo={sub}
             reduzir={reduzir}
+            /* O cartão do véu nomeia o DESTINATÁRIO do código. O título já
+               se mostra na jornada a quem tem a ligação — não sai daqui
+               nada que a projecção não desse já. */
+            titular={dados?.evento?.titulo}
           />
         </div>
       </div>

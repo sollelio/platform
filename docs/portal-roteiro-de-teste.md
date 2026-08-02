@@ -167,8 +167,11 @@ seus documentos».
 - Onde deviam estar a conta e o valor, **rectângulos de hachura**. O Total
   também.
 - Por baixo, o cartão **OS VALORES** — *«Os valores mostram-se a quem é da
-  casa.»* — com **Do Luxo à Mesa** e a cápsula **Pedir o código**. *(Desde
-  01/08/2026 o portal diz sempre «a Do Luxo à Mesa», nunca «a Nádia».)*
+  casa.»* — com o **nome da cliente** (o titular da jornada) e a linha «o
+  código segue para o número que temos na sua ficha», e a cápsula **Pedir
+  o código**. *(Desde 01/08/2026 o portal diz sempre «a Do Luxo à Mesa»,
+  nunca «a Nádia»; e desde 02/08/2026 o cartão do véu nomeia o
+  DESTINATÁRIO do código, não o remetente.)*
 - 🔴 **A prova que interessa:** DevTools → Rede → o pedido
   `dlm_portal_ver_documento` → Resposta. **Não pode existir lá dentro
   nenhum valor, nem NIF, nem morada, nem contacto.** O véu corta no

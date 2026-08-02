@@ -424,9 +424,16 @@ correcções aplicadas. As decisões que ficam:
   janela de visita (sessionStorage com o carimbo da visita anterior).
 - **02/08/2026 — No portal, quem fala é «a Do Luxo à Mesa», nunca «a
   Nádia».** Pedido do Hélio: o nome próprio saiu de todo o texto virado à
-  cliente (18 frases + o cartão «Os valores», que deixou de ser cartão de
-  pessoa). No backoffice e nos comentários do código, a Nádia continua a
-  ser a Nádia — é ela quem lá trabalha.
+  cliente (18 frases). No backoffice e nos comentários do código, a Nádia
+  continua a ser a Nádia — é ela quem lá trabalha.
+- **02/08/2026 — O cartão do véu nomeia o DESTINATÁRIO do código, não o
+  remetente.** Era «uma pessoa no meio» (a Nádia com fotografia); com a
+  casa no lugar do nome próprio ficava a casa a apresentar-se a si própria
+  dentro da própria página. O que explica o véu a quem tem a ligação na
+  mão é o outro lado: os valores abrem-se a quem tem o telefone da ficha,
+  e essa pessoa tem nome — o titular da jornada, que a projecção já
+  mostrava. A frase de cima continua a dizer quem envia (a casa); o número
+  nunca aparece (a projecção não o traz, de propósito).
 - **01/08/2026 — `formatarEuroPT` fica «1 291,50 €»** (espaço nos
   milhares, espaço antes do €), contra a letra da identidade §2
   («1500,50€»). Porquê: é o formato dos documentos que a cliente recebe, e
