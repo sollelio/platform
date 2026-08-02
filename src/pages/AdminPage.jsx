@@ -193,6 +193,20 @@ export default function AdminPage() {
   // Notificação a abrir já expandida (quando se vem do toast)
   const [notifDestaque, setNotifDestaque] = useState(null);
 
+  // O toast da FICHA DO EVENTO também promete «ver o pedido»: chega cá
+  // por state e a Caixa abre já expandida. Consumo DURANTE o render
+  // (estado preso ao location.state, o padrão do realce); só a limpeza
+  // do histórico fica no efeito.
+  const destaqueDoState = location.state?.notifDestaque;
+  if (destaqueDoState && notifDestaque !== destaqueDoState) {
+    setNotifDestaque(destaqueDoState);
+    setNotifAberto(true);
+  }
+  useEffect(() => {
+    if (!location.state?.notifDestaque) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
+
   // "Abrir ficha completa" de uma notificação → o sítio onde o PRÓPRIO
   // aviso manda ir. Um pedido de código diz «emita o código na folha do
   // evento» — abrir o drawer da captação era prometer uma coisa e

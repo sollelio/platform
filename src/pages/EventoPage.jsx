@@ -27,6 +27,8 @@ import { contarAlteracoes } from "../lib/briefingEdicao";
 import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
+import { ToastNotificacao } from "../components/admin/CentroNotificacoes";
+import { useNotificacoes } from "../lib/notificacoes";
 import { FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
@@ -445,6 +447,12 @@ export default function EventoPage() {
     reportarContagem("pagamentos", plano.pagamentos.length);
   }, [plano.pagamentos.length, reportarContagem]);
 
+  // Os avisos tocam também aqui — a subscrição realtime + o toast eram
+  // do AdminPage, e a ficha do evento ficava surda. O hook vive ANTES
+  // dos retornos do esqueleto (regra dos hooks); o toast pinta-se no
+  // fim da página.
+  const notificacoes = useNotificacoes();
+
   const resumoEvento = useMemo(
     () => getResumoSubmissao(submissao, eventTypes),
     [submissao, eventTypes],
@@ -632,6 +640,42 @@ export default function EventoPage() {
       setSubmissao(anterior);
       setErroAccao(erro.message || "Não foi possível mudar o estado.");
     }
+  };
+
+  // Abrir do toast leva ao sítio que o próprio aviso promete.
+  const abrirDeToast = (n) => {
+    notificacoes.limparNova();
+    const doAcompanhamento = [
+      "codigo_pedido",
+      "pedido_alteracao",
+      "contrato_papel",
+      "questionario_pedido",
+    ].includes(n.tipo);
+    const mesmoEvento = n.submission_id === id;
+    if (doAcompanhamento) {
+      // Deste evento: abre a folha aqui mesmo, pela porta guardada de
+      // sempre (o consumo respeita o portalIndisponivel). De outro:
+      // viaja com a mesma promessa que a Caixa de Entrada faz.
+      if (mesmoEvento) setPedidoAcompanhamento(true);
+      else
+        navigate(`/evento/${n.submission_id}`, {
+          state: { abrirAcompanhamento: true },
+        });
+      return;
+    }
+    if (n.tipo === "questionario_entregue") {
+      if (!mesmoEvento && n.submission_id)
+        navigate(`/evento/${n.submission_id}`);
+      return;
+    }
+    if (n.tipo === "avaliacao_recebida") {
+      navigate(caminhoDoSeparador("avaliacoes"));
+      return;
+    }
+    // Captação e restantes: a casa deles é a Caixa de Entrada.
+    navigate(caminhoDoSeparador("inicio"), {
+      state: { notifDestaque: n.id },
+    });
   };
 
   // O clique numa etapa da Jornada ou na pílula do próximo gesto leva
@@ -956,6 +1000,18 @@ export default function EventoPage() {
         evento={submissao}
         aberto={portalAberto}
         onFechar={() => setPortalAberto(false)}
+      />
+
+      {/* O toast dos avisos toca ONDE ELA ESTÁ — antes, o sistema de
+          notificações vivia só no AdminPage e um pedido de código chegado
+          com a ficha do evento aberta ficava mudo até se mudar de página.
+          Abrir leva ao sítio que o próprio aviso promete: os do portal
+          deste evento abrem a folha do Acompanhamento aqui mesmo. */}
+      <ToastNotificacao
+        nova={notificacoes.nova}
+        eventTypes={[]}
+        onAbrir={abrirDeToast}
+        onFechar={notificacoes.limparNova}
       />
     </div>
   );

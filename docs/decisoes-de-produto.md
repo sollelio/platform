@@ -510,6 +510,15 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   passam pelos mesmos processos — diferenciar por tamanho fica para
   quando doer.
 
+- **02/08/2026 — Os avisos tocam onde a Nádia está: o toast (e o canal
+  realtime) passam a viver também na ficha do evento.** Antes eram só do
+  AdminPage e um pedido de código chegado com a ficha aberta ficava mudo
+  até se mudar de página — meio aviso. Abrir do toast cumpre a promessa
+  do próprio aviso: os do portal DESTE evento abrem a folha do
+  Acompanhamento ali mesmo (pela porta guardada que respeita o
+  portalIndisponivel); os de outro evento viajam para lá; a captação vai
+  à Caixa de Entrada, que abre já com o aviso expandido.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
