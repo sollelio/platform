@@ -1305,13 +1305,10 @@ export default function AdminPage() {
               onDadosMudaram={fetchSubmissions}
               onVoltarAoEvento={
                 documentoContexto?.submissionId
-                  ? () => {
-                      const ev = submissions.find(
-                        (x) => x.id === documentoContexto.submissionId,
-                      );
-                      navegarPara("clientes");
-                      if (ev) setSelected(ev);
-                    }
+                  ? // A casa própria do evento — não o drawer: o botão é
+                    // anterior à EventoPage e ficou a apontar ao painel
+                    // lateral quando o evento ganhou página a sério.
+                    () => navigate(`/evento/${documentoContexto.submissionId}`)
                   : null
               }
             />
