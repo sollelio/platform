@@ -739,7 +739,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            Para responder, é preciso o código que a Nádia lhe envia.
+            Para responder, é preciso o código que a Do Luxo à Mesa lhe envia.
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "14px 0 0", textWrap: "pretty" }}>
             Ela envia-lho pela conversa que já tem consigo, no número que
@@ -775,12 +775,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
 
           <p style={{ ...overline(), marginTop: "22px" }}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            A Nádia já sabe que precisa dele.
+            A Do Luxo à Mesa já sabe que precisa dele.
           </p>
           <FileteComLosango margem="20px 0" />
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: 0, textWrap: "pretty" }}>
-            {pedidoEm ? `Pediu-o às ${horaCurta(pedidoEm)}. ` : ""}Ela envia-lho
-            pela conversa que já tem consigo, no número que temos na sua ficha.
+            {pedidoEm ? `Pediu-o às ${horaCurta(pedidoEm)}. ` : ""}Enviamos-lho
+            pela conversa que já temos consigo, no número que temos na sua ficha.
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "12px 0 0", textWrap: "pretty" }}>
             Pode fechar esta página. Quando voltar, está tudo como deixou — e o
@@ -809,7 +809,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            Escreva os seis dígitos que a Nádia lhe enviou.
+            Escreva os seis dígitos que a Do Luxo à Mesa lhe enviou.
           </p>
 
           <div style={{ marginTop: "24px" }}>
@@ -1490,7 +1490,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             <p style={overline("#9B9B9B", "0.22em", "9px")}>Quando estiver assinado</p>
             {papelEnviado ? (
               <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
-                Chegou. A Nádia confirma e o contrato fecha-se aqui — receberá
+                Chegou. A Do Luxo à Mesa confirma e o contrato fecha-se aqui — receberá
                 um aviso.
               </p>
             ) : (
@@ -1561,7 +1561,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 ...(feito.nome ? [["Assinado por", feito.nome]] : []),
                 ["Versão", `Versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}`],
                 ["Data e hora", `${diaMesAno(diaLocalISO(feito.quando))}, às ${horaCurta(feito.quando)}`],
-                ["Verificação", "Com o código que a Nádia lhe enviou"],
+                ["Verificação", "Com o código que a Do Luxo à Mesa lhe enviou"],
               ]}
             />
             <div style={{ textAlign: "center", marginTop: "20px" }}>
@@ -1578,7 +1578,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
             {ehAssinatura
               ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
               : ehAlteracao
-                ? "A Nádia lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui."
+                ? "A Do Luxo à Mesa lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui."
                 : tipo === "proposta"
                   ? "O contrato. Passamos a escrito o que ficou combinado e avisamos quando estiver aqui para ler."
                   : "O projecto da mesa. Desenhamo-lo com o que nos contou e avisamos quando estiver aqui para ver."}
@@ -1689,16 +1689,16 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
               Os valores mostram-se a quem é da casa.
             </p>
             <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
-              Esta ligação pode passar por outras mãos. Para os abrir, a Nádia
-              envia-lhe um código de seis dígitos pela conversa que já tem
-              consigo.
+              Esta ligação pode passar por outras mãos. Para os abrir, a Do
+              Luxo à Mesa envia-lhe um código de seis dígitos pela conversa
+              que já tem consigo.
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
               <div aria-hidden="true" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "repeating-linear-gradient(45deg, #F2ECDF 0 5px, #FAF7EF 5px 11px)", border: "1px solid #E8DCC0", flex: "none" }} />
               <div>
-                <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>A Nádia</p>
+                <p style={{ fontSize: "12.5px", fontWeight: 500, lineHeight: 1.35, margin: 0, color: "var(--charcoal)" }}>Do Luxo à Mesa</p>
                 <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "3px 0 0" }}>
-                  Do Luxo à Mesa · não é automático, é ela que o envia
+                  não é automático — somos nós que o enviamos
                 </p>
               </div>
             </div>
@@ -1840,7 +1840,7 @@ export default function DocumentosVista({ token, tipo, reduzir }) {
                 <VistoDourado />
               </div>
               <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: 0, fontVariantNumeric: "tabular-nums", textWrap: "pretty" }}>
-                {sessao ? "Sessão verificada com o código que a Nádia lhe enviou." : "A assinatura pede o código que a Nádia lhe envia."}
+                {sessao ? "Sessão verificada com o código que a Do Luxo à Mesa lhe enviou." : "A assinatura pede o código que a Do Luxo à Mesa lhe envia."}
               </p>
             </div>
 

@@ -422,6 +422,11 @@ correcções aplicadas. As decisões que ficam:
   `MotionConfig reducedMotion="user"` no App — deixa de depender de cada
   componente se lembrar da regra. E a mola das novidades corre UMA vez por
   janela de visita (sessionStorage com o carimbo da visita anterior).
+- **02/08/2026 — No portal, quem fala é «a Do Luxo à Mesa», nunca «a
+  Nádia».** Pedido do Hélio: o nome próprio saiu de todo o texto virado à
+  cliente (18 frases + o cartão «Os valores», que deixou de ser cartão de
+  pessoa). No backoffice e nos comentários do código, a Nádia continua a
+  ser a Nádia — é ela quem lá trabalha.
 - **01/08/2026 — `formatarEuroPT` fica «1 291,50 €»** (espaço nos
   milhares, espaço antes do €), contra a letra da identidade §2
   («1500,50€»). Porquê: é o formato dos documentos que a cliente recebe, e

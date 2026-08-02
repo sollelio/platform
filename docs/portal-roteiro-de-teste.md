@@ -167,7 +167,8 @@ seus documentos».
 - Onde deviam estar a conta e o valor, **rectângulos de hachura**. O Total
   também.
 - Por baixo, o cartão **OS VALORES** — *«Os valores mostram-se a quem é da
-  casa.»* — com **A Nádia** e a cápsula **Pedir o código**.
+  casa.»* — com **Do Luxo à Mesa** e a cápsula **Pedir o código**. *(Desde
+  01/08/2026 o portal diz sempre «a Do Luxo à Mesa», nunca «a Nádia».)*
 - 🔴 **A prova que interessa:** DevTools → Rede → o pedido
   `dlm_portal_ver_documento` → Resposta. **Não pode existir lá dentro
   nenhum valor, nem NIF, nem morada, nem contacto.** O véu corta no
@@ -185,7 +186,7 @@ seus documentos».
 **O que confirmar:**
 - Ecrã da **espera**: a tira de contexto em cima («Orçamento · versão 1 ·
   valores velados»), o medalhão vazio com o **sopro** (halo a respirar
-  devagar), e *«A Nádia já sabe que precisa dele.»*
+  devagar), e *«A Do Luxo à Mesa já sabe que precisa dele.»*
 - «Pediu-o às HH:MM» com a hora certa.
 - 🔧 **No backoffice:** abre a folha do Acompanhamento — tem de aparecer a
   caixa âmbar **Pedido de código** com o botão «Emitir código».
@@ -624,7 +625,7 @@ marcado. Não se diz «faltam catorze dias» a quem não tem dia.
 **O que confirmar:**
 - Tira de contexto em cima, o **valor actual primeiro**, e só depois as
   palavras dela. Sem rodapé — é ecrã de acto.
-- Depois de enviar: medalhão, «O pedido está com a Nádia.» e as três linhas
+- Depois de enviar: medalhão, «O pedido está com a Do Luxo à Mesa.» e as três linhas
   do registo.
 - 🔧 **Caixa de Entrada:** o aviso aparece com resumo próprio **e com a
   frase dela**.

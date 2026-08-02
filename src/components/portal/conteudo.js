@@ -96,7 +96,7 @@ export function comporNovidades(dados) {
     novidades.push({
       chave: "avaliacao",
       titulo: "Ficámos com as suas palavras",
-      corpo: "A Nádia lê tudo o que nos escrevem.",
+      corpo: "A Do Luxo à Mesa lê tudo o que nos escrevem.",
     });
   }
 
