@@ -433,7 +433,11 @@ correcções aplicadas. As decisões que ficam:
   mão é o outro lado: os valores abrem-se a quem tem o telefone da ficha,
   e essa pessoa tem nome — o titular da jornada, que a projecção já
   mostrava. A frase de cima continua a dizer quem envia (a casa); o número
-  nunca aparece (a projecção não o traz, de propósito).
+  nunca aparece (a projecção não o traz, de propósito). De caminho, o
+  «Já pedi · continuar» partiu-se em dois rótulos que dizem o destino:
+  código emitido → «Já tenho o código» (as células); pedido por atender →
+  «Já o pedi — ver onde está» (a espera). Um só «continuar» escondia a
+  diferença, e o fragmento «·» era contra a escrita da casa.
 - **01/08/2026 — `formatarEuroPT` fica «1 291,50 €»** (espaço nos
   milhares, espaço antes do €), contra a letra da identidade §2
   («1500,50€»). Porquê: é o formato dos documentos que a cliente recebe, e

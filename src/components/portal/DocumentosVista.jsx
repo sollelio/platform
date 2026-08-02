@@ -1746,9 +1746,15 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
               }}
               style={{ marginTop: "18px" }}
             >
-              {meta?.verificacao?.estado === "emitido" || meta?.verificacao?.estado === "pedido"
-                ? "Já pedi · continuar"
-                : "Pedir o código"}
+              {/* O rótulo diz o DESTINO: com o código emitido vai-se
+                  escrevê-lo (o mesmo gesto do ecrã de espera); com o
+                  pedido por atender vai-se ver onde ele está. Um só
+                  «continuar» escondia a diferença. */}
+              {meta?.verificacao?.estado === "emitido"
+                ? "Já tenho o código"
+                : meta?.verificacao?.estado === "pedido"
+                  ? "Já o pedi — ver onde está"
+                  : "Pedir o código"}
             </CapsulaVazada>
             {erroPedido && (
               <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#9C5A3C", margin: "12px 0 0", textWrap: "pretty" }}>{erroPedido}</p>
