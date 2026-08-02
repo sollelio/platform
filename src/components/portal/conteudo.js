@@ -19,12 +19,21 @@ export function comporNovidades(dados) {
   const m = dados?.marcos_datados || {};
   const novo = (iso) => desde !== null && iso && new Date(iso).getTime() > desde;
 
+  // A ordem espelha a jornada nova (071): orçamento · contrato · sinal ·
+  // projecto — o contrato assina-se antes de o sinal reservar a data.
   const novidades = [];
   if (novo(m.orcamento)) {
     novidades.push({
       chave: "orcamento",
       titulo: "O orçamento chegou",
       corpo: "Já pode vê-lo, com os valores da sua mesa. Responda quando quiser.",
+    });
+  }
+  if (novo(m.contrato)) {
+    novidades.push({
+      chave: "contrato",
+      titulo: "O contrato ficou assinado",
+      corpo: "Está tudo escrito, do seu lado e do nosso.",
     });
   }
   if (novo(m.sinal)) {
@@ -39,13 +48,6 @@ export function comporNovidades(dados) {
       chave: "projecto",
       titulo: "O projecto da mesa está pronto",
       corpo: "Desenhámos a mesa com o que nos contou.",
-    });
-  }
-  if (novo(m.contrato)) {
-    novidades.push({
-      chave: "contrato",
-      titulo: "O contrato ficou assinado",
-      corpo: "Está tudo escrito, do seu lado e do nosso.",
     });
   }
 
@@ -160,22 +162,23 @@ export function comporPendencias(dados, caducou = false) {
   if (caducou) return { pendencias: [], doNossoLado: [] };
 
   // O que não pede acção nenhuma da parte dela.
-  // A ordem espelha a jornada: orçamento · sinal · projecto · contrato.
+  // A ordem espelha a jornada nova: orçamento · contrato · sinal · projecto.
   if (!m.orcamento && !etapaFeita("orcamento")) {
     doNossoLado.push("O orçamento — estamos a prepará-lo com o que nos contou.");
   }
+  // Com o orçamento aceite, o que vem primeiro é o CONTRATO (071): só
+  // depois de assinado é que o sinal guarda a data.
   if (resposta && !etapaFeita("sinal")) {
     doNossoLado.push(
       resposta.acto === "pediu_alteracao"
         ? "O orçamento — pediu uma alteração; estamos a revê-lo."
-        : "O sinal — a sua resposta ao orçamento chegou; falta só o passo que guarda a data.",
+        : !etapaFeita("contrato")
+          ? "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar."
+          : "O sinal — com o contrato assinado, falta só o passo que guarda a data.",
     );
   }
   if (!etapaFeita("projecto") && etapaFeita("sinal")) {
     doNossoLado.push("O projecto da mesa — está a ser desenhado com o que nos contou.");
-  }
-  if (!etapaFeita("contrato") && etapaFeita("sinal")) {
-    doNossoLado.push("O contrato — passamos a escrito o que ficou combinado.");
   }
 
   return { pendencias, doNossoLado };

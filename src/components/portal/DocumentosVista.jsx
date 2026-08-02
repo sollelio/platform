@@ -502,10 +502,12 @@ function Lista({ token, meta }) {
           ? "Um deles espera por si."
           : `${aEspera === 2 ? "Dois" : "Três"} esperam por si.`;
 
+  // A história pela ordem nova (071): orçamento aceite → contrato para
+  // assinar → o sinal reserva a data → o projecto desenha-se com ela sua.
   const AINDA_NAO = {
     orcamento: "Ainda não existe. Estamos a prepará-lo com o que nos contou.",
-    proposta: "Ainda não existe. Desenhamo-lo depois de o orçamento estar aceite.",
-    contrato: "Ainda não existe. Escrevemo-lo depois de o projecto estar aprovado.",
+    contrato: "Ainda não existe. Segue para si depois de o orçamento estar aceite.",
+    proposta: "Ainda não existe. Desenhamo-lo com a data já reservada.",
   };
     // O orçamento ACEITA-SE, o projecto APROVA-SE, o contrato ASSINA-SE —
   // os verbos nunca se trocam (folha de decisões, secção Língua).
@@ -522,8 +524,9 @@ function Lista({ token, meta }) {
     <div style={{ padding: "34px 26px 32px" }}>
       <CabecalhoDivisao rotulo="Os seus documentos" frase={frase} />
 
+      {/* Orçamento · Contrato · Projecto — a ordem em que chegam (071). */}
       <div style={{ marginTop: "26px", display: "flex", flexDirection: "column", gap: "14px" }}>
-        {["orcamento", "proposta", "contrato"].map((tipo) => {
+        {["orcamento", "contrato", "proposta"].map((tipo) => {
           const d = porTipo(tipo);
           if (!d) {
             return (
@@ -1585,16 +1588,19 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           </div>
         )}
 
+        {/* A ordem nova (071): aceite → contrato para assinar → o sinal
+            guarda a data → projecto → preparação. Cada ramo aponta o
+            passo verdadeiro que se segue ao acto acabado de registar. */}
         <div style={{ marginTop: "30px", paddingTop: "19px", borderTop: "1px solid #F0E6D0" }}>
           <p style={overline("#9B9B9B", "0.22em", "9px")}>O que vem a seguir</p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
             {ehAssinatura
-              ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
+              ? "O sinal — metade do valor. Com o contrato assinado, é ele que guarda a sua data; a partir daí, o caminho conta-se aqui."
               : ehAlteracao
                 ? "A Do Luxo à Mesa lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui."
                 : tipo === "proposta"
-                  ? "O contrato. Passamos a escrito o que ficou combinado e avisamos quando estiver aqui para ler."
-                  : "O projecto da mesa. Desenhamo-lo com o que nos contou e avisamos quando estiver aqui para ver."}
+                  ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
+                  : "O contrato. Passamos a escrito o que ficou combinado — chega-lhe aqui para assinar, e com o sinal a data fica sua."}
           </p>
         </div>
 
@@ -1805,7 +1811,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
               {tipo === "proposta"
                 ? `Aprova a versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}. É por ela que compramos as flores e montamos no dia.`
-                : `Responde à versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que tem aqui em cima. Se aceitar, desenhamos o projecto a seguir.`}
+                : `Responde à versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que tem aqui em cima. Se aceitar, o contrato chega-lhe aqui a seguir — e com o sinal, a data fica sua.`}
             </p>
 
             {/* O aceite também é um acto com nome escrito. */}

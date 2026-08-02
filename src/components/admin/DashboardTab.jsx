@@ -123,9 +123,10 @@ export default function DashboardTab({
   const garantidosPorRealizar = ativos.filter(
     (s) => FASES_POS_SINAL.includes(s.fase) && s.status !== "Concluído",
   );
-  // Em negociação: o dinheiro possível (pré-sinal)
+  // Em negociação: o dinheiro possível (pré-sinal — desde a 071 inclui
+  // a fase contrato, o limbo pós-aceite)
   const emNegociacaoLista = ativos.filter((s) =>
-    ["interessado", "orcamento", "sinal"].includes(s.fase),
+    ["interessado", "orcamento", "contrato", "sinal"].includes(s.fase),
   );
   // Concluído este ano: a receita já feita — que hoje não aparecia
   // em lado nenhum (os Concluídos saem do funil e do radar)

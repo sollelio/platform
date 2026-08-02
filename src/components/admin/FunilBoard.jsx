@@ -413,8 +413,12 @@ export default function FunilBoard({
           atravessa-o para a terceira (é só o status a mudar). O € vive
           nos cabeçalhos — garantido total = Clientes + Em Preparação. */}
       {(() => {
-        const FASES_ESQ = ["interessado", "orcamento", "sinal"];
-        const FASES_DIR = ["cliente", "projecto", "contrato"];
+        // Ordem nova (071): o contrato é PRÉ-sinal — o limbo pós-aceite,
+        // com o contrato por assinar — e por isso vive na coluna
+        // Interessados (em negociação). Pós-sinal ficam só cliente e
+        // projecto: é o sinal pago que garante a data e o dinheiro.
+        const FASES_ESQ = ["interessado", "orcamento", "contrato", "sinal"];
+        const FASES_DIR = ["cliente", "projecto"];
         const ordemFase = (f) => FASES_BOARD.indexOf(f);
         const ordenar = (lista) =>
           [...lista].sort((a, b) => {

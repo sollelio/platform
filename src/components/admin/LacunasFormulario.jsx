@@ -9,7 +9,7 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 // pergunta útil de quem supervisiona é a inversa: «que eventos ainda não
 // têm?» — a lacuna é o que custa, não o que já está feito.
 //
-// O CRITÉRIO reutiliza FASES_POS_SINAL (cliente · projecto · contrato), a
+// O CRITÉRIO reutiliza FASES_POS_SINAL (cliente · projecto), a
 // mesma lista canónica que a conferência da Logística usa. O registo de
 // decisões é explícito para este caso: «não uma lista nova». E faz
 // sentido de negócio — o questionário existe para preparar a montagem de

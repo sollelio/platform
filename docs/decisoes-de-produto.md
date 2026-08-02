@@ -456,6 +456,37 @@ correcções aplicadas. As decisões que ficam:
   Hélio decidir se o guia se corrige ou o formato muda nos dois sítios ao
   mesmo tempo.
 
+## O contrato antes do sinal — a ordem real do negócio (02/08/2026)
+
+Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
+**interessado → orçamento → [Aceite] → contrato → [assinado] → sinal
+(sempre 50%) → cliente → projecto (terminal do funil)**.
+
+- **02/08/2026 — O contrato assina-se ANTES do sinal, e a data só se
+  reserva com o sinal pago.** O contrato deixa de ser o fim da linha: é o
+  fecho do negócio. É o próprio contrato que diz «paga 50% para avançar» —
+  o sinal é a primeira obrigação dele, não um passo solto. A fase
+  «contrato» passa a ser o limbo pós-aceite (onde os negócios morrem — a
+  coluna que a Nádia mais precisa de ver); «sinal» passa a «assinado, 50%
+  por pagar»; «projecto» é o terminal (o trabalho operacional corre no
+  eixo STATUS, como sempre).
+- **02/08/2026 — O sinal é sempre 50% do orçamento.** Os textos podem
+  dizê-lo por extenso («metade do valor»).
+- **02/08/2026 — Migração 071: os dados antigos leem-se à luz nova.**
+  Fase `contrato` antiga (terminal, projecto+contrato feitos) → `projecto`;
+  fase `sinal` antiga SEM contrato assinado → `contrato` (o limbo novo);
+  quem já tinha assinatura fica em `sinal`, que agora diz a verdade. O
+  invariante da 040 aperta: pós-sinal = (cliente, projecto).
+- **02/08/2026 — Na jornada do portal, a etapa do contrato NÃO se infere
+  das fases pós-sinal.** Só o carimbo da assinatura ou a fase `sinal` a
+  acendem. Porquê: os eventos antigos chegaram a cliente/projecto pelo
+  fluxo velho, com o contrato no fim — inferir «assinado» ser-lhes-ia
+  mentir. Sem carimbo, a etapa fica apagada a meio da linha, que a página
+  nem mostra.
+- **02/08/2026 — Registar um sinal sem contrato assinado AVISA, nunca
+  bloqueia** («sugere-se, nunca se executa»). A realidade às vezes foge à
+  regra; cada fuga passa a ser uma escolha consciente, não um esquecimento.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

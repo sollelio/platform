@@ -6,9 +6,20 @@ ecrã aparece**, **como o produzir** e **o que confirmar**.
 Lê-se por ordem: o evento vai avançando, e cada passo desbloqueia o seguinte.
 Não é uma lista de ficheiros — é um caminho.
 
-**Antes de começares:** as migrações **049 a 070** têm de estar corridas no
+**Antes de começares:** as migrações **049 a 071** têm de estar corridas no
 ambiente que vais testar. O portal abre em `/acompanhar/:token`; o token
 obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
+
+> **Adenda 02/08/2026 — o contrato antes do sinal (migração 071).** A
+> ordem do negócio mudou por decisão da Nádia: **orçamento aceite →
+> contrato para assinar → sinal (50%) → data reservada → projecto**. No
+> portal, a jornada mostra o contrato em 3.º e a data reservada em 4.º; o
+> pé do orçamento promete o contrato (não o projecto); os passos §2.3
+> (data reservada) e §5.4/§5.5 (projecto/contrato) continuam válidos mas
+> pela ordem nova — no funil, «Aceite» leva à fase Contrato,
+> «Contrato assinado» à fase Aguarda sinal, «Sinal recebido» à fase
+> Cliente, e o funil termina em Projecto. Registar um sinal sem contrato
+> assinado mostra um aviso (não bloqueia).
 
 > **Adenda 01/08/2026 — a revisão UX de ponta a ponta.** Depois desta
 > revisão, alguns passos do roteiro têm comportamento NOVO, deliberado:
@@ -82,7 +93,8 @@ reconhece-se de longe. No fim do roteiro há SQL para o apagar.
 - **Onde estamos agora: O seu pedido** — cartão branco com o medalhão e o
   visto assente na borda de cima.
 - **A seguir: O orçamento**, com engaste **vazio** (sem visto).
-- A linha «e depois — A data reservada · O projecto · …».
+- A linha «e depois — O contrato · A data reservada · O projecto · …»
+  (ordem da 071: o contrato antes do sinal).
 - **O local · ainda por definir** (pastilha).
 - **NÃO** deve aparecer: a divisão das novidades (é a primeira visita), nem
   nenhuma das divisões do questionário, nem a ligação «Os seus documentos».

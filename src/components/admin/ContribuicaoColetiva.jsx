@@ -378,7 +378,8 @@ export default function ContribuicaoColetiva({
     return pago >= Number(sinal.valor) - 0.005;
   }, [previstos, pagamentos]);
   const sugerirAvanco =
-    sinalCoberto && ["interessado", "orcamento", "sinal"].includes(submissao.fase);
+    sinalCoberto &&
+    ["interessado", "orcamento", "contrato", "sinal"].includes(submissao.fase);
 
   const registar = async () => {
     setErro(null);

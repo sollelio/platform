@@ -5,15 +5,18 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 // entre a lista de clientes (pastilhas), o funil (colunas + avanço),
 // a Agenda e o Início.
 //
-// As fases espelham a CHECK constraint da coluna `fase` (migração 016):
-//   interessado → orcamento → sinal → cliente → projecto → contrato
+// A ordem do negócio (decisão da dona do negócio, migração 071):
+//   interessado → orcamento → contrato → sinal → cliente → projecto
 //   (+ perdido = saída)
 //
-// A fase "sinal" = orçamento ACEITE, pagamento do sinal pendente —
-// o limbo onde os negócios morrem, por isso tem coluna própria. Os
-// botões contam a história: "Aceite →" entra nela, "Sinal recebido →"
-// sai dela (ver AVANCO_LABEL). O pagamento final (até 48h
-// antes do evento) vive na coluna pagamento_final e alerta no Início.
+// A fase "contrato" = orçamento ACEITE, contrato por assinar — o novo
+// limbo pós-aceite: "Aceite →" entra nela, "Contrato assinado →" sai
+// dela. Só DEPOIS da assinatura vem "Aguarda sinal" (fase "sinal"):
+// contrato assinado, os 50% por pagar — e "Sinal recebido →" fecha o
+// negócio (a data só se reserva com o sinal pago). "projecto" é o fim
+// do funil; o trabalho operacional corre no eixo STATUS. O pagamento
+// final (até 48h antes do evento) vive na coluna pagamento_final e
+// alerta no Início.
 // ============================================================
 
 // Os rótulos e a lista pós-sinal mudaram-se para lib/fases.js — a fonte
@@ -40,30 +43,30 @@ export const FASE_COR = {
 export const FASES_BOARD = [
   "interessado",
   "orcamento",
+  "contrato",
   "sinal",
   "cliente",
   "projecto",
-  "contrato",
 ];
 
-// Para onde avança cada fase (contrato é o fim; perdido recupera-se
+// Para onde avança cada fase (projecto é o fim; perdido recupera-se
 // para interessado via ação própria).
 export const PROXIMA_FASE = {
   interessado: "orcamento",
-  orcamento: "sinal",
+  orcamento: "contrato",
+  contrato: "sinal",
   sinal: "cliente",
   cliente: "projecto",
-  projecto: "contrato",
 };
 
-// O rótulo do botão de avanço — o ATO, não só o destino. A transição
-// orcamento → cliente chama-se pelo nome verdadeiro: o sinal.
+// O rótulo do botão de avanço — o ATO, não só o destino. Cada transição
+// chama-se pelo nome verdadeiro: o aceite, a assinatura, o sinal.
 export const AVANCO_LABEL = {
   interessado: "Orçamento",
   orcamento: "Aceite",
+  contrato: "Contrato assinado",
   sinal: "Sinal recebido",
   cliente: "Projecto",
-  projecto: "Contrato",
 };
 
 // ============================================================

@@ -109,11 +109,13 @@ const formatarCriado = (ts) => {
 const faseDaPessoa = (c) => {
   const fases = (c.submissions || []).map((e) => e.fase).filter(Boolean);
   if (fases.length === 0) return null;
+  // Da mais adiantada para a mais recuada — a ordem da 071 (o contrato
+  // fecha o negócio antes do sinal; o projecto é o terminal).
   for (const f of [
-    "contrato",
     "projecto",
     "cliente",
     "sinal",
+    "contrato",
     "orcamento",
     "interessado",
   ]) {

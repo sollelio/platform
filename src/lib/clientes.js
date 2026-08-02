@@ -416,13 +416,15 @@ export const getEventosFunil = async () => {
 
 // Muda a fase de um evento — com whitelist (lição 3): só as fases da
 // CHECK constraint passam; qualquer outra rebenta aqui e não na BD.
+// (Pela ordem nova do funil — 071 — só por legibilidade: a whitelist
+// é vocabulário, não ordem.)
 const FASES_VALIDAS = [
   "interessado",
   "orcamento",
+  "contrato",
   "sinal",
   "cliente",
   "projecto",
-  "contrato",
   "perdido",
 ];
 
