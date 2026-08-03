@@ -35,9 +35,9 @@ const OPCOES_SERVICOS = [
 // O detalhe (lotação) faz parte da resposta guardada, para a Nádia
 // saber logo o pacote sem consultar tabela nenhuma.
 const OPCOES_BUFFET = [
-  { nome: "Premium", detalhe: "até 20 pessoas" },
+  { nome: "Premium", detalhe: "50 ou mais pessoas" },
   { nome: "Supreme", detalhe: "até 35 pessoas" },
-  { nome: "Essence", detalhe: "50 ou mais pessoas" },
+  { nome: "Essence", detalhe: "até 20 pessoas" },
 ];
 const OPCOES_BALCAO = [
   "Welcome Drink",
