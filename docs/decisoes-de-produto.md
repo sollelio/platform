@@ -594,6 +594,16 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   acontecem fora do sistema (aceites por telefone, importações). Os
   banners «por avançar» ficam como rede, não como caminho.
 
+- **03/08/2026 — Migração 076: a Preparação acende pelo TRABALHO, nunca
+  pela fase.** A inferência da 069 (fase cliente/projecto ⇒ preparação
+  em marcha) era preguiçosa e invisível — a fase avançava tarde, à mão.
+  Com a 075 a avançar sozinha, o portal dizia «compras feitas, listas
+  fechadas» no instante seguinte ao sinal, ao lado de um questionário
+  por responder. Passa a acender só pelo questionário entregue ou pelo
+  estado operacional que a Nádia marca — o mesmo critério da régua do
+  backoffice. Depois do sinal, o portal volta ao roteiro §2.3: «Onde
+  estamos agora: A data reservada» · «A seguir: O projecto».
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
