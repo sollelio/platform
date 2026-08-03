@@ -558,11 +558,19 @@ export default function PortalPage() {
   // No caducado o cartão fecha-se no título e na data: qualquer frase de
   // etapa («Sem pressa para decidir») contradiz o «Esta data já passou» da
   // âncora. O que havia para dizer, a âncora já disse com dignidade.
+  //
+  // E o cartão SABE o que já aconteceu (070/073): com o orçamento
+  // respondido, «sem pressa para decidir» mentia — ela já decidiu.
+  const respostaOrc = dados?.resposta_orcamento;
   const textoActual = caducou
     ? null
     : etapaActual === "grande_dia" && passou
       ? TEXTO_GRANDE_DIA_PASSADO
-      : TEXTO_AGORA[etapaActual];
+      : etapaActual === "orcamento" && respostaOrc
+        ? respostaOrc.acto === "pediu_alteracao"
+          ? "Pediu uma alteração — estamos a rever o orçamento consigo."
+          : "Aceitou-o. O contrato é o passo que se segue."
+        : TEXTO_AGORA[etapaActual];
 
   // ── B5 · «O local — ainda por definir» ────────────────────────────────
   // Depois do dia não se pede o local: o evento aconteceu, e onde foi já
@@ -626,6 +634,16 @@ export default function PortalPage() {
   const temDocumentos = !!(
     m.orcamento || m.projecto || m.contrato || pub.proposta || pub.contrato
   );
+
+  // «A seguir» também sabe o que já chegou (073): um contrato publicado
+  // já não «chega-lhe aqui» — já está com ela.
+  const textoSeguir = !proxima
+    ? null
+    : proxima.etapa === "contrato" && pub.contrato
+      ? "Já está consigo, à espera da sua assinatura — e com o sinal, a data fica sua."
+      : proxima.etapa === "projecto" && pub.proposta
+        ? "Já está consigo — a mesa desenhada espera pela sua aprovação."
+        : TEXTO_SEGUIR[proxima.etapa];
 
   return (
     <div
@@ -888,9 +906,9 @@ export default function PortalPage() {
               <p style={{ ...playfair, fontSize: "18px", lineHeight: 1.3, marginTop: "8px" }}>
                 {ROTULO_ETAPA[proxima.etapa]}
               </p>
-              {TEXTO_SEGUIR[proxima.etapa] && (
+              {textoSeguir && (
                 <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "var(--gray-mid)", marginTop: "9px", textWrap: "pretty", padding: "0 10px", marginBottom: 0 }}>
-                  {TEXTO_SEGUIR[proxima.etapa]}
+                  {textoSeguir}
                 </p>
               )}
             </div>

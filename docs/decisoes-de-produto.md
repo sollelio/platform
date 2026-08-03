@@ -560,6 +560,14 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   orçamento aceite tinha a deslocação calculada com a morada antiga.
   Ela escreve, a Nádia valida, ninguém copia à mão.
 
+- **03/08/2026 — Os textos das etapas SABEM o que já aconteceu.** Com o
+  orçamento respondido, o cartão «agora» deixa de dizer «Sem pressa para
+  decidir» (diz «Aceitou-o. O contrato é o passo que se segue.» ou «Pediu
+  uma alteração…»); com o contrato/projecto publicados, o «A seguir»
+  deixa de prometer «chega-lhe aqui» — «Já está consigo, à espera da sua
+  assinatura». Estático por etapa era mentira assim que a realidade
+  andava (apanhado pelo Hélio no telemóvel).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

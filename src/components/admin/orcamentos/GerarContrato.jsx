@@ -872,9 +872,12 @@ function ContratoDocumento({
           {/* A faixa do nome reserva-se SEMPRE, assinada ou não: sem isto,
               a coluna assinada crescia e empurrava a sua linha para baixo
               da outra — duas linhas de assinatura a alturas diferentes. */}
-          <div style={{ minHeight: "24px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          {/* Altura FIXA, não mínima: o itálico do nome media mais do que
+              a faixa e a coluna assinada continuava a crescer uns pixéis.
+              Com altura igual dos dois lados, as linhas nivelam sempre. */}
+          <div style={{ height: "28px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "5px", boxSizing: "border-box" }}>
             {assinaturaCliente && (
-              <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontStyle: "italic", lineHeight: 1 }}>
                 {assinaturaCliente.nome}
               </p>
             )}
@@ -892,9 +895,9 @@ function ContratoDocumento({
           )}
         </div>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ minHeight: "24px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div style={{ height: "28px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "5px", boxSizing: "border-box" }}>
             {assinaturaCasa && (
-              <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontStyle: "italic", lineHeight: 1 }}>
                 {assinaturaCasa.nome}
               </p>
             )}
