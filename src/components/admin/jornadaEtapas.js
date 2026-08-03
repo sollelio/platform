@@ -145,6 +145,9 @@ export function construirEtapas({
       id: "sinal",
       rotulo: "Sinal",
       feito: posSinal,
+      // Clicável como as vizinhas: o gesto do sinal vive na aba
+      // Pagamentos, e a etapa leva lá (03/08/2026 — pedido do Hélio).
+      clicavel: true,
       saldado: sinalSaldadoSemAvanco,
       sub: dinheiroACaminho
         ? null

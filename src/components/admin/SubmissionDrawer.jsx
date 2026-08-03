@@ -424,6 +424,12 @@ export default function SubmissionDrawer({
                   navigate(`/evento/${selected.id}/materiais`, {
                     state: { realce: { alvo: "ficha", n: Date.now() } },
                   });
+                // O sinal regista-se na aba Pagamentos — o mesmo destino
+                // do irComGesto da ficha, para as duas réguas concordarem.
+                else if (id === "sinal")
+                  navigate(`/evento/${selected.id}/pagamentos`, {
+                    state: { realce: { alvo: "sinal", n: Date.now() } },
+                  });
               }}
             />
             {planoDoEvento?.erro && (
