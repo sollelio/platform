@@ -14,6 +14,7 @@ import {
   verQuestionario, responder, pedirAlteracaoCampo, passoRespondido, passoOndeFicou,
   contagemPorExtenso, ondeFicouPorExtenso, emDe, diasAte,
 } from "../../lib/questionarioPortal";
+import { PARTES_MORADA, moradaValida } from "../../lib/morada";
 
 // ============================================================
 // QuestionarioVista — o questionário no acompanhamento (fase 5).
@@ -454,8 +455,14 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
     }
   };
 
-  const enviarPedido = async (texto) => {
+  // `dados` (074): o pedido estruturado — a morada nas cinco partes. Nos
+  // campos de texto livre vai null e nada muda.
+  const enviarPedido = async (texto, dados = null) => {
     if (aGuardar) return;
+    if (dados && !moradaValida(dados)) {
+      setErro("Diga-nos pelo menos a rua e a localidade — sem elas a morada não se encontra.");
+      return;
+    }
     if (!texto || texto.trim().length < 3) {
       setErro("Escreva o que gostaria de mudar — é o que a Do Luxo à Mesa vai ler.");
       return;
@@ -463,7 +470,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
     setAGuardar(true);
     setErro(null);
     try {
-      const r = await pedirAlteracaoCampo(token, pedido.campo.id, texto.trim());
+      const r = await pedirAlteracaoCampo(token, pedido.campo.id, texto.trim(), dados);
       if (r?.estado === "terminado") {
         navigate(`/acompanhar/${token}`);
         return;
@@ -777,11 +784,43 @@ function agoraPorExtenso() {
 //
 // Ecrã de acto, não página completa: leva tira de contexto em cima e não
 // leva rodapé.
+// A morada nova, composta para a frase do pedido: «Rua Nova, n.º 4,
+// 2.º Esq, 2745-000 Queluz». É o texto humano que a Caixa cita; as cinco
+// partes seguem à parte, em `dados`, para a folha aplicar num toque.
+const comporPedidoMorada = (m) => {
+  const linha2 = [m.codigoPostal, m.localidade].filter(Boolean).join(" ");
+  return [m.rua, m.numero ? `n.º ${m.numero}` : "", m.andar, linha2]
+    .filter(Boolean)
+    .join(", ");
+};
+
 function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro, inicial }) {
   // Monta de fresco a cada pedido, por isso o useState inicial chega. Quando
   // o campo fechou com texto já escrito, o pedido não começa vazio — é o que
   // torna verdadeira a frase «o que escreveu não se perdeu».
   const [texto, setTexto] = useState(inicial ? `Gostaria de mudar para: ${inicial}` : "");
+
+  // A morada pede-se ESTRUTURADA (074): as cinco partes de morada.js,
+  // pré-preenchidas com o valor actual — mudar o andar não pode obrigar a
+  // reescrever a rua. O texto humano compõe-se ao enviar.
+  const ehMorada = campo.tipo === "morada";
+  const [morada, setMorada] = useState(() => {
+    const v = campo.valor && typeof campo.valor === "object" ? campo.valor : {};
+    const m = {};
+    PARTES_MORADA.forEach((p) => {
+      m[p] = String(v[p] || "");
+    });
+    return m;
+  });
+  const mudarParte = (parte, v) => setMorada((m) => ({ ...m, [parte]: v }));
+  const moradaAparada = () => {
+    const m = {};
+    PARTES_MORADA.forEach((p) => {
+      m[p] = morada[p].trim();
+    });
+    return m;
+  };
+  const composta = comporPedidoMorada(moradaAparada());
 
   return (
     <div style={{ padding: "0 0 30px" }}>
@@ -817,26 +856,46 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro,
           </div>
         </div>
 
-        <div style={{ marginTop: "14px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-          <p style={overline("#9B9B9B", "0.22em", "9px")}>Por palavras suas</p>
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={3}
-            autoFocus
-            placeholder="O que gostaria de mudar, e porquê"
-            style={{
-              ...playfair, fontStyle: "italic", fontSize: "16px", lineHeight: 1.75,
-              color: "var(--charcoal)", width: "100%", boxSizing: "border-box",
-              minHeight: "76px", marginTop: "12px", padding: "0 0 10px",
-              background: "transparent", border: "none",
-              borderBottom: "1px solid #F0E6D0", outline: "none", resize: "vertical",
-            }}
-          />
-          <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: "10px 0 0" }}>
-            Fica escrito aqui, e é assim que o guardamos.
-          </p>
-        </div>
+        {ehMorada ? (
+          <div style={{ marginTop: "14px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+            <p style={overline("#9B9B9B", "0.22em", "9px")}>A morada nova</p>
+            <ParteDeMorada rotulo="Rua" valor={morada.rua} aoMudar={(v) => mudarParte("rua", v)} autoFocus />
+            <div style={{ display: "flex", gap: "16px" }}>
+              <ParteDeMorada rotulo="Número" valor={morada.numero} aoMudar={(v) => mudarParte("numero", v)} flex={1} />
+              <ParteDeMorada rotulo="Andar / fracção" valor={morada.andar} aoMudar={(v) => mudarParte("andar", v)} flex={1.5} />
+            </div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <ParteDeMorada rotulo="Código postal" valor={morada.codigoPostal} aoMudar={(v) => mudarParte("codigoPostal", v)} flex={1} />
+              <ParteDeMorada rotulo="Localidade" valor={morada.localidade} aoMudar={(v) => mudarParte("localidade", v)} flex={1.5} />
+            </div>
+            <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: "14px 0 0", textWrap: "pretty" }}>
+              {composta
+                ? <>Segue escrita assim: «{composta}».</>
+                : "A rua e a localidade chegam — o resto ajuda a dar com a porta certa."}
+            </p>
+          </div>
+        ) : (
+          <div style={{ marginTop: "14px", backgroundColor: "white", border: "1.5px solid #F0E6D0", borderRadius: "14px", padding: "18px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+            <p style={overline("#9B9B9B", "0.22em", "9px")}>Por palavras suas</p>
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="O que gostaria de mudar, e porquê"
+              style={{
+                ...playfair, fontStyle: "italic", fontSize: "16px", lineHeight: 1.75,
+                color: "var(--charcoal)", width: "100%", boxSizing: "border-box",
+                minHeight: "76px", marginTop: "12px", padding: "0 0 10px",
+                background: "transparent", border: "none",
+                borderBottom: "1px solid #F0E6D0", outline: "none", resize: "vertical",
+              }}
+            />
+            <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: "10px 0 0" }}>
+              Fica escrito aqui, e é assim que o guardamos.
+            </p>
+          </div>
+        )}
 
         {erro && (
           <p style={{ fontSize: "12px", lineHeight: 1.7, color: "#9C5A3C", margin: "14px 0 0", textWrap: "pretty" }}>
@@ -845,7 +904,14 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro,
         )}
 
         <CapsulaVazada
-          onClick={() => aoEnviar(texto)}
+          onClick={() => {
+            if (ehMorada) {
+              const m = moradaAparada();
+              aoEnviar(comporPedidoMorada(m), m);
+            } else {
+              aoEnviar(texto);
+            }
+          }}
           aTrabalhar={aTrabalhar}
           style={{ marginTop: "20px" }}
         >
@@ -912,6 +978,31 @@ function PedidoEnviado({ campo, passo, texto, quando, aoVoltar }) {
       </div>
 
       <Assinatura style={{ marginTop: "30px" }} />
+    </div>
+  );
+}
+
+// Uma parte da morada no formulário do pedido: rótulo pequeno em cima,
+// escrita na linha. 16px na escrita — abaixo disso o iOS Safari faz zoom
+// ao focar (a mesma regra do EditorDeCampo).
+function ParteDeMorada({ rotulo, valor, aoMudar, flex, autoFocus }) {
+  return (
+    <div style={{ flex: flex || "none", width: flex ? undefined : "100%", minWidth: 0, marginTop: "14px" }}>
+      <p style={{ font: "700 9px Inter, sans-serif", letterSpacing: "0.16em", textTransform: "uppercase", color: "#9B9B9B", margin: 0 }}>
+        {rotulo}
+      </p>
+      <input
+        value={valor}
+        onChange={(e) => aoMudar(e.target.value)}
+        autoFocus={autoFocus}
+        aria-label={rotulo}
+        style={{
+          width: "100%", boxSizing: "border-box", padding: "6px 0 8px",
+          fontSize: "16px", fontFamily: "Inter, sans-serif",
+          color: "var(--charcoal)", background: "transparent",
+          border: "none", borderBottom: "1.5px solid #E8DCC0", outline: "none",
+        }}
+      />
     </div>
   );
 }

@@ -83,18 +83,37 @@ export async function listarDocumentos() {
   return data || [];
 }
 
-// Os documentos de UM evento, com o percurso (migração 030). O
-// separador Documentos da página do evento lê daqui.
+// Os documentos de UM evento, com o percurso (migração 030) e a
+// assinatura da casa (074). O separador Documentos da página do evento
+// lê daqui.
 export async function documentosDoEvento(submissionId) {
   if (!submissionId) return [];
   const { data, error } = await supabase
     .from("documentos")
     .select(
-      "id, tipo, created_at, updated_at, enviado_em, assinado_em, trancado_em",
+      "id, tipo, created_at, updated_at, enviado_em, assinado_em, trancado_em, assinado_casa_em, assinado_casa_por",
     )
     .eq("submission_id", submissionId);
   if (error) throw error;
   return data || [];
+}
+
+// A assinatura da casa na folha do contrato (074). Escreve SÓ as duas
+// colunas da assinatura — nunca `dados` —, e é por isso que pousa num
+// contrato já trancado: o gatilho do tranco (057) guarda o conteúdo,
+// não isto. A prova é a própria sessão autenticada de quem carrega.
+export async function assinarPelaCasa(documentoId, nome) {
+  const { data, error } = await supabase
+    .from("documentos")
+    .update({
+      assinado_casa_em: new Date().toISOString(),
+      assinado_casa_por: nome,
+    })
+    .eq("id", documentoId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 // Marca (ou desmarca) um passo do percurso. `quando` a null desfaz —

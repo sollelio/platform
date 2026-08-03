@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
+import { obterDocumento, assinarPelaCasa } from "../../../lib/documentos";
+import { getPublicacoes } from "../../../lib/portal";
 import logoUrl from "../../../assets/logo.png";
 import {
   EMPRESA,
@@ -44,9 +46,103 @@ const novaSeccaoExtra = (base = {}) => ({
   ...base,
 });
 
+// O dia de calendário LOCAL de um timestamptz — o slice UTC da string ISO
+// datava a assinatura da véspera a oeste de Greenwich (a mesma lição do
+// diaLocalISO do portal).
+const diaLocal = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export default function GerarContrato({ prefill = null, ativo = true }) {
   // Rascunho persistente: cada documento (evento ou manual) tem o seu
   const rid = `contrato:${prefill?.submissionId || "manual"}`;
+  const submissionId = prefill?.submissionId || null;
+
+  // ── As assinaturas na folha (074) ──────────────────────────────────
+  // A linha do documento (assinado_em, assinado_casa_em/por) e o acto da
+  // cliente (portal_actos, acto 'assinou' — o digital com código, ou o
+  // papel confirmado, distinguidos pelo `ficheiro`). Leitura própria,
+  // fora do provider: o provider carrega os DADOS do documento; isto é
+  // o percurso, e falhar aqui não pode travar o formulário.
+  const [docMeta, setDocMeta] = useState(null);
+  const [actoCliente, setActoCliente] = useState(null);
+  // Mudou o evento sem remontar: o que era de um não fala pelo outro.
+  // Reset DURANTE o render (o padrão da casa para estado preso a uma
+  // prop) — num efeito, o percurso antigo pintava um quadro no novo.
+  const [idVisto, setIdVisto] = useState(submissionId);
+  if (idVisto !== submissionId) {
+    setIdVisto(submissionId);
+    setDocMeta(null);
+    setActoCliente(null);
+  }
+
+  useEffect(() => {
+    let cancelado = false;
+    obterDocumento("contrato", submissionId)
+      .then((d) => {
+        if (!cancelado) setDocMeta(d);
+      })
+      .catch((e) => {
+        console.error("contrato: falha a ler o percurso do documento", e);
+      });
+    if (submissionId) {
+      getPublicacoes(submissionId)
+        .then((pubs) => {
+          if (cancelado) return;
+          const assinaturas = (pubs || [])
+            .filter((p) => p.tipo === "contrato")
+            .flatMap((p) => p.portal_actos || [])
+            .filter((a) => a.acto === "assinou")
+            .sort((a, b) => (a.criado_em < b.criado_em ? 1 : -1));
+          const acto = assinaturas[0] || null;
+          if (acto)
+            setActoCliente({
+              nome: acto.nome_escrito,
+              quando: acto.criado_em,
+              papel: !!acto.ficheiro,
+            });
+        })
+        .catch((e) => {
+          console.error("contrato: falha a ler os actos da publicação", e);
+        });
+    }
+    return () => {
+      cancelado = true;
+    };
+  }, [submissionId]);
+
+  // 1.º contraente: só com o carimbo NO documento e o nome NO acto — sem
+  // acto não há nome, e inventá-lo não é registo.
+  const assinaturaCliente =
+    docMeta?.assinado_em && actoCliente
+      ? {
+          nome: actoCliente.nome,
+          dia: diaLocal(docMeta.assinado_em),
+          papel: actoCliente.papel,
+        }
+      : null;
+  const assinaturaCasa = docMeta?.assinado_casa_em
+    ? {
+        nome: docMeta.assinado_casa_por,
+        dia: diaLocal(docMeta.assinado_casa_em),
+      }
+    : null;
+
+  // Assinar pela casa. Se o documento ainda não tinha linha na BD quando
+  // a folha abriu (provider criou-a entretanto), tenta relê-la antes de
+  // desistir — e sem linha nenhuma não há onde pousar a assinatura.
+  const assinarCasa = async (nome) => {
+    let d = docMeta;
+    if (!d) {
+      d = await obterDocumento("contrato", submissionId);
+      if (!d) throw new Error("SEM_DOCUMENTO");
+    }
+    const actualizado = await assinarPelaCasa(d.id, nome);
+    setDocMeta(actualizado);
+  };
   // 1.ª Contraente — cliente(s). Com prefill, os contraentes vêm já
   // resolvidos (casal = 2, restantes eventos = 1).
   // O 3.º elemento é o tranco do documento (ver DocumentoProvider): um
@@ -565,6 +661,9 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
         valorExtenso={valorExtenso}
         localAssinatura={localAssinatura}
         dataAssinatura={dataAssinatura}
+        assinaturaCliente={assinaturaCliente}
+        assinaturaCasa={assinaturaCasa}
+        onAssinarCasa={assinarCasa}
       />
     </div>
   );
@@ -589,6 +688,9 @@ function ContratoDocumento({
   valorExtenso,
   localAssinatura,
   dataAssinatura,
+  assinaturaCliente = null,
+  assinaturaCasa = null,
+  onAssinarCasa = null,
 }) {
   // Monta o corpo dos serviços (cláusula 2.ª) a partir dos campos
   const servicosTexto = useMemo(() => {
@@ -761,16 +863,179 @@ function ContratoDocumento({
           marginTop: "20px",
         }}
       >
+        {/* As assinaturas na folha (074): quando existem, o nome pousa em
+            cima da linha — como uma assinatura pousa — e a prova diz-se
+            numa linha pequena por baixo. Quando não existem, a linha fica
+            em branco, como sempre esteve. A IMPRESSÃO sai igual: é o
+            mesmo render (só o gesto de assinar pela casa é no-print). */}
         <div style={{ flex: 1, textAlign: "center" }}>
+          {assinaturaCliente && (
+            <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+              {assinaturaCliente.nome}
+            </p>
+          )}
           <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: "6px" }}>
             1.º Contraente
           </div>
+          {assinaturaCliente && (
+            <p style={{ margin: "5px 0 0", fontSize: "10.5px", color: "#444" }}>
+              {dataPorExtenso(assinaturaCliente.dia)} ·{" "}
+              {assinaturaCliente.papel
+                ? "assinatura em papel confirmada pela casa"
+                : "assinado digitalmente no acompanhamento · código verificado"}
+            </p>
+          )}
         </div>
         <div style={{ flex: 1, textAlign: "center" }}>
+          {assinaturaCasa && (
+            <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+              {assinaturaCasa.nome}
+            </p>
+          )}
           <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: "6px" }}>
             2.ª Contraente
           </div>
+          {assinaturaCasa ? (
+            <p style={{ margin: "5px 0 0", fontSize: "10.5px", color: "#444" }}>
+              {dataPorExtenso(assinaturaCasa.dia)} · assinado pela casa, com
+              sessão autenticada
+            </p>
+          ) : (
+            onAssinarCasa && <AssinarPelaCasa onAssinar={onAssinarCasa} />
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// AssinarPelaCasa — o gesto discreto por baixo da linha da 2.ª
+// contraente. Confirmação inline (nunca window.confirm), com o nome do
+// 2.º contraente do próprio documento pré-preenchido e editável. Todo o
+// bloco é no-print: no papel só saem as assinaturas, nunca botões.
+// ------------------------------------------------------------
+function AssinarPelaCasa({ onAssinar }) {
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState(EMPRESA.nome);
+  const [aAssinar, setAAssinar] = useState(false);
+  const [erro, setErro] = useState(null);
+
+  const confirmar = async () => {
+    if (aAssinar) return;
+    if (nome.trim().length < 3) {
+      setErro("Escreva o nome de quem assina pela casa.");
+      return;
+    }
+    setAAssinar(true);
+    setErro(null);
+    try {
+      await onAssinar(nome.trim());
+      // Assinado: o pai re-renderiza com a assinatura e este bloco sai.
+    } catch (e) {
+      console.error(e);
+      setErro(
+        /SEM_DOCUMENTO/.test(e?.message || "")
+          ? "O contrato ainda não está guardado na base — escreva primeiro os dados."
+          : "Não foi possível assinar. Verifique a ligação e tente novamente.",
+      );
+      setAAssinar(false);
+    }
+  };
+
+  if (!aberto) {
+    return (
+      <div className="no-print" style={{ marginTop: "10px" }}>
+        <button onClick={() => setAberto(true)} style={btnAssinarCasa}>
+          Assinar pela casa
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="no-print"
+      style={{
+        marginTop: "10px",
+        textAlign: "left",
+        backgroundColor: "#FBF7EF",
+        border: "1px solid #F0E6D0",
+        borderRadius: "10px",
+        padding: "12px 14px",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 8px",
+          fontSize: "11.5px",
+          lineHeight: 1.6,
+          color: "var(--gray-mid)",
+        }}
+      >
+        Fica no registo com a sessão autenticada e a data de hoje. Não mexe no
+        conteúdo do contrato.
+      </p>
+      <input
+        value={nome}
+        onChange={(e) => {
+          setNome(e.target.value);
+          setErro(null);
+        }}
+        aria-label="Nome de quem assina pela casa"
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "8px 10px",
+          borderRadius: "8px",
+          border: "1.5px solid var(--gold-light)",
+          fontSize: "12.5px",
+          fontFamily: "Inter, sans-serif",
+          outline: "none",
+          backgroundColor: "white",
+        }}
+      />
+      {erro && (
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: "11.5px",
+            lineHeight: 1.55,
+            color: "#B91C1C",
+          }}
+        >
+          {erro}
+        </p>
+      )}
+      <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+        <button
+          onClick={confirmar}
+          disabled={aAssinar}
+          style={{
+            ...btnAssinarCasa,
+            backgroundColor: "var(--gold)",
+            color: "white",
+            border: "1.5px solid var(--gold)",
+            opacity: aAssinar ? 0.6 : 1,
+            cursor: aAssinar ? "wait" : "pointer",
+          }}
+        >
+          {aAssinar ? "A assinar…" : "Confirmar a assinatura"}
+        </button>
+        <button
+          onClick={() => {
+            setAberto(false);
+            setErro(null);
+          }}
+          style={{
+            ...btnAssinarCasa,
+            color: "var(--gray-mid)",
+            border: "1.5px solid var(--hairline, #F0E6D0)",
+          }}
+        >
+          Deixar por assinar
+        </button>
       </div>
     </div>
   );
@@ -825,6 +1090,17 @@ const linkRemover = {
   color: "#DC2626",
   cursor: "pointer",
   fontSize: "12px",
+};
+const btnAssinarCasa = {
+  padding: "7px 14px",
+  borderRadius: "999px",
+  fontSize: "11.5px",
+  fontWeight: "600",
+  fontFamily: "Inter, sans-serif",
+  border: "1.5px solid var(--gold-light)",
+  color: "var(--gold-dark)",
+  backgroundColor: "white",
+  cursor: "pointer",
 };
 const btnAdd = {
   padding: "9px 16px",

@@ -23,7 +23,12 @@ obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 > orçamento, aprovar o projecto e assinar o contrato digital passam a
 > tocar na Caixa de Entrada (tipos `orcamento_aceite`,
 > `projecto_aprovado`, `contrato_assinado`) — e o toast + a Caixa vivem
-> também na ficha do evento.
+> também na ficha do evento. **Com a 073**, o contrato e o projecto
+> PUBLICADOS geram pendência com ligação na jornada («Ler e assinar» /
+> «Ver o projecto») e a novidade «chegou». **Com a 074**, as assinaturas
+> pintam-se na folha do contrato (a da cliente e a da casa — botão
+> «Assinar pela casa» no backoffice), e o pedido de alteração da morada
+> é estruturado, com «Aplicar esta morada» na folha do Acompanhamento.
 
 > **Adenda 01/08/2026 — a revisão UX de ponta a ponta.** Depois desta
 > revisão, alguns passos do roteiro têm comportamento NOVO, deliberado:

@@ -577,14 +577,22 @@ export default function PortalPage() {
   const pendenciasBase = comporPendencias(dados, caducou || caducaHoje);
   // A ligação constrói-se aqui porque só a página conhece o token: o
   // orçamento pendente passa a levar à área dos documentos.
+  const HREF_PENDENCIA = {
+    orcamento: ["documentos/orcamento", "Ver o orçamento"],
+    contrato: ["documentos/contrato", "Ler e assinar"],
+    projecto: ["documentos/proposta", "Ver o projecto"],
+    questionario: ["questionario", "Responder às perguntas"],
+  };
   const pendencias = {
     ...pendenciasBase,
     pendencias: pendenciasBase.pendencias.map((p) =>
-      p.chave === "orcamento"
-        ? { ...p, href: `/acompanhar/${token}/documentos/orcamento`, hrefRotulo: "Ver o orçamento" }
-        : p.chave === "questionario"
-          ? { ...p, href: `/acompanhar/${token}/questionario`, hrefRotulo: "Responder às perguntas" }
-          : p,
+      HREF_PENDENCIA[p.chave]
+        ? {
+            ...p,
+            href: `/acompanhar/${token}/${HREF_PENDENCIA[p.chave][0]}`,
+            hrefRotulo: HREF_PENDENCIA[p.chave][1],
+          }
+        : p,
     ),
   };
   // As novidades que apontam para um documento levam a ligação com elas —
@@ -593,7 +601,9 @@ export default function PortalPage() {
   const HREF_NOVIDADE = {
     orcamento: ["documentos/orcamento", "Ver o orçamento"],
     projecto: ["documentos/proposta", "Ver o projecto"],
+    projecto_publicado: ["documentos/proposta", "Ver o projecto"],
     contrato: ["documentos/contrato", "Ver o contrato"],
+    contrato_publicado: ["documentos/contrato", "Ler e assinar"],
     questionario: ["questionario", "Ver as suas respostas"],
   };
   const novidades = {
@@ -612,7 +622,10 @@ export default function PortalPage() {
   // orçamento é o comum, mas um projecto ou contrato publicados sem ele
   // não podem ficar sem porta.
   const m = dados?.marcos_datados || {};
-  const temDocumentos = !!(m.orcamento || m.projecto || m.contrato);
+  const pub = dados?.publicado_em || {};
+  const temDocumentos = !!(
+    m.orcamento || m.projecto || m.contrato || pub.proposta || pub.contrato
+  );
 
   return (
     <div

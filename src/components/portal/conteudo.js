@@ -29,6 +29,16 @@ export function comporNovidades(dados) {
       corpo: "Já pode vê-lo, com os valores da sua mesa. Responda quando quiser.",
     });
   }
+  // As PUBLICAÇÕES (073): o documento chegou às mãos dela — que é a
+  // novidade que mais pede a mola. A assinatura continua a ter a sua.
+  const pub = dados?.publicado_em || {};
+  if (novo(pub.contrato) && !novo(m.contrato)) {
+    novidades.push({
+      chave: "contrato_publicado",
+      titulo: "O contrato chegou",
+      corpo: "O que combinámos, passado a escrito. Leia com calma antes de assinar.",
+    });
+  }
   if (novo(m.contrato)) {
     novidades.push({
       chave: "contrato",
@@ -41,6 +51,13 @@ export function comporNovidades(dados) {
       chave: "sinal",
       titulo: "A data ficou reservada",
       corpo: "Recebemos o sinal. Ninguém mais leva este dia.",
+    });
+  }
+  if (novo(pub.proposta) && !novo(m.projecto)) {
+    novidades.push({
+      chave: "projecto_publicado",
+      titulo: "O projecto chegou",
+      corpo: "A mesa desenhada espera pela sua aprovação.",
     });
   }
   if (novo(m.projecto)) {
@@ -156,6 +173,25 @@ export function comporPendencias(dados, caducou = false) {
     });
   }
 
+  // O contrato e o projecto PUBLICADOS (073) são pendências dela — como
+  // o orçamento sempre foi. Sem isto, a lista de documentos dizia «à sua
+  // espera» e a jornada jurava que ainda os estávamos a escrever.
+  const pub = dados?.publicado_em || {};
+  if (pub.contrato && !etapaFeita("contrato")) {
+    pendencias.push({
+      chave: "contrato",
+      titulo: "O contrato",
+      corpo: `Está consigo desde ${diaEMes(pub.contrato)}, à espera da sua assinatura. Leia com calma — é o que combinámos, passado a escrito.`,
+    });
+  }
+  if (pub.proposta && !etapaFeita("projecto")) {
+    pendencias.push({
+      chave: "projecto",
+      titulo: "O projecto",
+      corpo: `Está consigo desde ${diaEMes(pub.proposta)}. É esta a mesa que imaginou? A sua aprovação é o que põe as compras em marcha.`,
+    });
+  }
+
   // CADUCADO: cala-se tudo o que aponta para a frente. Prometer preparar um
   // orçamento cinco meses depois da data pedida é pior do que não dizer
   // nada — e a âncora já explicou, com dignidade, o que aconteceu.
@@ -167,17 +203,20 @@ export function comporPendencias(dados, caducou = false) {
     doNossoLado.push("O orçamento — estamos a prepará-lo com o que nos contou.");
   }
   // Com o orçamento aceite, o que vem primeiro é o CONTRATO (071): só
-  // depois de assinado é que o sinal guarda a data.
+  // depois de assinado é que o sinal guarda a data. Publicado, deixa de
+  // ser «connosco» — passou a pendência dela, lá em cima.
   if (resposta && !etapaFeita("sinal")) {
-    doNossoLado.push(
+    const linha =
       resposta.acto === "pediu_alteracao"
         ? "O orçamento — pediu uma alteração; estamos a revê-lo."
-        : !etapaFeita("contrato")
-          ? "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar."
-          : "O sinal — com o contrato assinado, falta só o passo que guarda a data.",
-    );
+        : etapaFeita("contrato")
+          ? "O sinal — com o contrato assinado, falta só o passo que guarda a data."
+          : pub.contrato
+            ? null // publicado: é pendência dela, lá em cima — não «connosco»
+            : "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar.";
+    if (linha) doNossoLado.push(linha);
   }
-  if (!etapaFeita("projecto") && etapaFeita("sinal")) {
+  if (!etapaFeita("projecto") && etapaFeita("sinal") && !pub.proposta) {
     doNossoLado.push("O projecto da mesa — está a ser desenhado com o que nos contou.");
   }
 

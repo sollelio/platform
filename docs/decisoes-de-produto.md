@@ -530,6 +530,36 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   portalIndisponivel); os de outro evento viajam para lá; a captação vai
   à Caixa de Entrada, que abre já com o aviso expandido.
 
+- **02/08/2026 — Migração 073: o contrato e o projecto PUBLICADOS são
+  pendências dela, como o orçamento sempre foi.** A lista de documentos
+  dizia «à sua espera» e a jornada jurava «passamos a escrito… chega-lhe
+  aqui» — o marco na projecção era a assinatura, e a publicação não saía
+  de lá. Entra `publicado_em` {proposta, contrato} (só carimbos), a
+  pendência com ligação («Ler e assinar» / «Ver o projecto»), a novidade
+  («O contrato chegou»), e a linha do «connosco» cala-se ao publicar.
+  Apanhado pelo Hélio no telemóvel: duas áreas da mesma página a contar
+  histórias diferentes.
+
+- **02/08/2026 — Migração 074 A: AS ASSINATURAS NA FOLHA.** A assinatura
+  digital da cliente vivia no registo mas a folha saía com as linhas
+  vazias; e a casa não tinha como assinar do lado dela. Sem serviço
+  externo (pago e desalinhado): a prova da cliente é o código; a prova
+  da casa é a sessão autenticada da Nádia. Colunas
+  `assinado_casa_em/por` — que o tranco da 057 NÃO guarda, de propósito:
+  assinar pela casa nunca muda conteúdo e pode pousar num contrato já
+  trancado pela cliente. As duas assinaturas pintam-se na folha (backoffice,
+  impressão e portal).
+- **02/08/2026 — Migração 074 B: a morada valida-se NUM TOQUE — mas
+  continua a não se editar directamente no portal** (a decisão de
+  01/08 mantém-se na sua razão: a morada alimenta a deslocação do
+  orçamento, e mudá-la em silêncio mexia num preço acordado). O que
+  muda: o pedido de alteração do campo morada passa a ESTRUTURADO
+  (as cinco partes escritas pela cliente, `dados` jsonb no pedido) e a
+  folha do Acompanhamento ganha «Aplicar esta morada» — escreve nas
+  respostas com autoria da equipa, marca o pedido tratado, e avisa se o
+  orçamento aceite tinha a deslocação calculada com a morada antiga.
+  Ela escreve, a Nádia valida, ninguém copia à mão.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

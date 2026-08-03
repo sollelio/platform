@@ -19,6 +19,8 @@ import {
   ROTULO_DOCUMENTO,
 } from "../../lib/portal";
 import { documentosDoEvento } from "../../lib/documentos";
+import { guardarAlteracoes } from "../../lib/briefingEdicao";
+import { formatarMorada, moradaVazia } from "../../lib/morada";
 import { CONTRATO_INTRO, CLAUSULAS } from "./orcamentos/contratoConfig";
 import {
   CONDICOES_ORCAMENTO,
@@ -147,6 +149,12 @@ function Conteudo({ evento, onFechar }) {
   // Bandeira PRÓPRIA: com a partilhada, confirmar o papel punha o botão de
   // emitir código a dizer «A emitir…» sem nada estar a ser emitido.
   const [aConfirmarPapel, setAConfirmarPapel] = useState(false);
+  // A morada num toque (074): o pedido cuja confirmação inline está
+  // aberta, a bandeira própria do gesto, e o rasto do que ficou aplicado
+  // — que tem de sobreviver ao refetch que leva o pedido da lista.
+  const [confirmaMorada, setConfirmaMorada] = useState(null);
+  const [aAplicarMorada, setAAplicarMorada] = useState(false);
+  const [moradaAplicada, setMoradaAplicada] = useState(null);
 
   const eventoId = evento.id;
 
@@ -357,6 +365,60 @@ function Conteudo({ evento, onFechar }) {
     } finally {
       setATrabalhar(false);
     }
+  };
+
+  // Um pedido com `dados` de morada (074): o objecto das cinco partes,
+  // quando tem mesmo alguma coisa lá dentro.
+  const moradaDoPedido = (p) =>
+    p.dados &&
+    typeof p.dados === "object" &&
+    !Array.isArray(p.dados) &&
+    !moradaVazia(p.dados)
+      ? p.dados
+      : null;
+
+  // Com orçamento no acompanhamento, aplicar a morada muda o que o
+  // cálculo de deslocação usou — informa-se, não se bloqueia.
+  const orcamentoNoAr = pubs.some((p) => p.tipo === "orcamento");
+
+  // Aplica a morada nova num toque: (1) escreve a resposta pelo caminho
+  // CANÓNICO do briefing — guardarAlteracoes → submissao_fundir_respostas
+  // (038/064), que faz o merge no servidor e deixa o registo em
+  // respostas_autoria como equipa; nunca por fora dele — e (2) fecha o
+  // pedido. Dois passos separados nos erros: falhar o primeiro não muda
+  // nada; falhar só o segundo diz exactamente o que ficou.
+  const aplicarMorada = async (p) => {
+    if (aAplicarMorada) return;
+    setAAplicarMorada(true);
+    setErro(null);
+    try {
+      const { error: erroEscrita } = await guardarAlteracoes({ id: eventoId }, [
+        { campo: { id: p.campo_id }, valor: p.dados },
+      ]);
+      if (erroEscrita) throw erroEscrita;
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "questionario",
+        mensagem: "Não foi possível aplicar a morada — nada mudou. Tente novamente.",
+      });
+      setAAplicarMorada(false);
+      return;
+    }
+    try {
+      await marcarPedidoTratado(p.id);
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "questionario",
+        mensagem:
+          "A morada ficou aplicada, mas o pedido não fechou — use «Marcar como tratado».",
+      });
+    }
+    setMoradaAplicada({ comOrcamento: orcamentoNoAr });
+    setConfirmaMorada(null);
+    setAAplicarMorada(false);
+    setRecarga((x) => x + 1);
   };
 
   const copiarCodigo = async (id, codigo) => {
@@ -859,7 +921,9 @@ function Conteudo({ evento, onFechar }) {
                   ? "Pedido de alteração ao questionário"
                   : `${pedidosQ.length} pedidos de alteração ao questionário`}
               </p>
-              {pedidosQ.map((p) => (
+              {pedidosQ.map((p) => {
+                const dadosMorada = moradaDoPedido(p);
+                return (
                 <div key={p.id} style={{ padding: "7px 0" }}>
                   <p style={{ fontSize: "11px", fontWeight: "600", letterSpacing: "0.04em", textTransform: "uppercase", color: "#92400E", margin: 0 }}>
                     {p.campo_label}
@@ -867,6 +931,78 @@ function Conteudo({ evento, onFechar }) {
                   <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "var(--charcoal)", margin: "5px 0 0", whiteSpace: "pre-wrap" }}>
                     {p.pedido}
                   </p>
+
+                  {/* ── A MORADA NUM TOQUE (074) ─────────────────────────
+                      O pedido trouxe as cinco partes: mostra-se a morada
+                      composta e aplica-se com um toque — escrita canónica
+                      no briefing, com registo da equipa, e o pedido fecha
+                      no mesmo gesto. Confirmação inline, como sempre. */}
+                  {dadosMorada && (
+                    <div style={{ marginTop: "8px", backgroundColor: "white", border: "1px solid #F0D9B5", borderRadius: "8px", padding: "10px 12px" }}>
+                      <p style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.06em", textTransform: "uppercase", color: "#92400E", margin: 0 }}>
+                        A morada nova
+                      </p>
+                      <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "var(--charcoal)", margin: "5px 0 0" }}>
+                        {formatarMorada(dadosMorada)}
+                      </p>
+                      {confirmaMorada === p.id ? (
+                        <div style={{ marginTop: "9px" }}>
+                          <p style={{ fontSize: "11.5px", lineHeight: 1.6, color: "var(--gray-mid)", margin: 0 }}>
+                            Escreve esta morada no briefing, com o registo da
+                            equipa, e fecha o pedido. A resposta antiga fica no
+                            trilho.
+                          </p>
+                          <div style={{ display: "flex", gap: "8px", marginTop: "9px" }}>
+                            <button
+                              onClick={() => aplicarMorada(p)}
+                              disabled={aAplicarMorada}
+                              style={{
+                                ...botao,
+                                padding: "6px 12px",
+                                fontSize: "11.5px",
+                                border: "none",
+                                backgroundColor: "var(--gold)",
+                                color: "white",
+                                opacity: aAplicarMorada ? 0.6 : 1,
+                                cursor: aAplicarMorada ? "wait" : "pointer",
+                              }}
+                            >
+                              {aAplicarMorada ? "A aplicar…" : "Aplicar mesmo"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmaMorada(null)}
+                              style={{
+                                ...botao,
+                                padding: "6px 12px",
+                                fontSize: "11.5px",
+                                border: "1px solid var(--hairline, #F0E6D0)",
+                                backgroundColor: "white",
+                                color: "var(--gray-mid)",
+                              }}
+                            >
+                              Deixar estar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmaMorada(p.id)}
+                          style={{
+                            ...botao,
+                            marginTop: "9px",
+                            padding: "6px 12px",
+                            fontSize: "11.5px",
+                            border: "1px solid #D9A441",
+                            backgroundColor: "white",
+                            color: "#92400E",
+                          }}
+                        >
+                          Aplicar esta morada
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "7px" }}>
                     <span style={{ fontSize: "11px", color: "#92400E" }}>
                       {dataHora(p.pedido_em)}
@@ -889,13 +1025,44 @@ function Conteudo({ evento, onFechar }) {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               <ErroDaZona erro={erro} zona="questionario" />
               <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#92400E", margin: "9px 0 0" }}>
                 Marcar como tratado não muda a resposta — muda-se no briefing,
                 se ficar acordado. Só fecha o pedido e deixa a cliente voltar a
                 pedir se precisar.
               </p>
+            </div>
+          )}
+
+          {/* O rasto da morada aplicada — FORA da secção dos pedidos, porque
+              o refetch leva o pedido da lista (e às vezes a secção inteira)
+              e o que aconteceu tem de continuar dito. O aviso do orçamento
+              informa, não bloqueia. */}
+          {moradaAplicada && (
+            <div style={{ marginTop: "14px" }}>
+              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#166534", margin: 0 }}>
+                Morada aplicada ao briefing — a resposta ficou com o registo da
+                equipa.
+              </p>
+              {moradaAplicada.comOrcamento && (
+                <p
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1.65,
+                    color: "#92400E",
+                    backgroundColor: "#FEF3E2",
+                    border: "1px solid #F0D9B5",
+                    borderRadius: "8px",
+                    padding: "10px 12px",
+                    margin: "8px 0 0",
+                  }}
+                >
+                  A deslocação do orçamento foi calculada com a morada antiga —
+                  reveja o valor.
+                </p>
+              )}
             </div>
           )}
 

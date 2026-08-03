@@ -169,10 +169,12 @@ export const publicarDocumento = async (eventoId, tipo, extra = null) => {
 
 // As publicações do evento, com os actos de cada uma embutidos — chega
 // para a folha dizer «publicado v2 · aceite a 31/07» sem segunda ida.
+// `ficheiro` distingue a assinatura em papel da digital (059/060): o
+// acto do papel leva o caminho da fotografia, o digital leva null.
 export const getPublicacoes = async (eventoId) => {
   const { data, error } = await supabase
     .from("portal_publicacoes")
-    .select("id, tipo, versao, publicado_em, portal_actos(acto, nome_escrito, mensagem, criado_em)")
+    .select("id, tipo, versao, publicado_em, portal_actos(acto, nome_escrito, mensagem, criado_em, ficheiro)")
     .eq("submission_id", eventoId)
     .order("versao", { ascending: false });
   if (error) throw error;
@@ -338,7 +340,9 @@ export const confirmarContratoPapel = async (notificacaoId, nome) => {
 export const getPedidosDoQuestionario = async (eventoId) => {
   const { data, error } = await supabase
     .from("questionario_pedidos")
-    .select("id, campo_id, campo_label, pedido, pedido_em")
+    // `dados` (074): o pedido estruturado — hoje, a morada nova nas cinco
+    // partes — que a folha do Acompanhamento aplica num toque.
+    .select("id, campo_id, campo_label, pedido, pedido_em, dados")
     .eq("submission_id", eventoId)
     .is("respondido_em", null)
     .order("pedido_em", { ascending: false });

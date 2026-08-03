@@ -395,6 +395,36 @@ function CorpoProjecto({ doc }) {
   );
 }
 
+// As assinaturas na folha (074): os dois lados, quando a casa já assinou.
+// Enquanto a casa não assina, não se pinta nada — a linha dela fica como
+// está hoje (a FaixaSelo no repouso, o pé do acto no resto), sem estados
+// inventados. Registo, não cerimónia: duas linhas, e mais nada.
+function AssinaturasDaFolha({ doc }) {
+  const casa = doc.assinatura_casa;
+  if (!casa) return null;
+  const dela = doc.acto?.acto === "assinou" ? doc.acto : null;
+  return (
+    <div style={{ margin: "24px 22px 0", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
+      <p style={overline("#9B9B9B", "0.22em", "9px")}>As assinaturas</p>
+      {dela && (
+        <p style={{ fontSize: "12px", lineHeight: 1.7, color: "var(--charcoal)", margin: "10px 0 0", textWrap: "pretty" }}>
+          {dela.nome}, a {dataPorExtenso(diaLocalISO(dela.quando))}
+          <span style={{ color: "#9B9B9B" }}>
+            {/* A prova diz-se pela natureza dela (074): o papel não teve
+                código, teve a casa a confirmar a folha. */}
+            {dela.prova === "papel"
+              ? " · assinatura em papel, confirmada pela casa"
+              : " · código verificado"}
+          </span>
+        </p>
+      )}
+      <p style={{ fontSize: "12px", lineHeight: 1.7, color: "var(--charcoal)", margin: dela ? "6px 0 0" : "10px 0 0", textWrap: "pretty" }}>
+        Pela Do Luxo à Mesa: {casa.nome}, a {dataPorExtenso(diaLocalISO(casa.quando))}
+      </p>
+    </div>
+  );
+}
+
 function CorpoContrato({ doc, resumoSo = false }) {
   const inst = doc.instantaneo || {};
   const contrato = inst.__contrato || {};
@@ -482,6 +512,10 @@ function CorpoContrato({ doc, resumoSo = false }) {
           </div>
         </>
       )}
+
+      {/* No repouso (resumoSo) e na leitura por inteiro/impressão: as
+          assinaturas fecham a folha. */}
+      <AssinaturasDaFolha doc={doc} />
     </>
   );
 }

@@ -57,11 +57,17 @@ export const responder = async (token, campoId, valor) => {
 
 // Passado o prazo do grupo, alterar deixa de mudar o valor e passa a pedir.
 // Não é recusa: é o mesmo caminho com outra porta.
-export const pedirAlteracaoCampo = async (token, campoId, pedido) => {
+//
+// `dados` (074): o pedido estruturado — hoje, a morada nova nas cinco
+// partes (rua, numero, andar, codigoPostal, localidade). O texto humano
+// continua no `pedido` (é o que a Caixa cita); os dados são o que a folha
+// do Acompanhamento aplica num toque. Nos campos de texto livre vai null.
+export const pedirAlteracaoCampo = async (token, campoId, pedido, dados = null) => {
   const { data, error } = await supabase.rpc("dlm_portal_pedir_alteracao_campo", {
     p_token: token,
     p_campo: campoId,
     p_pedido: pedido,
+    p_dados: dados ?? null,
   });
   if (error) throw error;
   return data;
