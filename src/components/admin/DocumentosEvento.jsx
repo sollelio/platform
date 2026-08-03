@@ -461,7 +461,12 @@ export default function DocumentosEvento({
     invites,
     submissionId,
   );
-  const formularioFeito = estadoFormulario === "preenchido";
+  // Respondido pelo ACOMPANHAMENTO (03/08): mesmas respostas, outra
+  // porta. Sem isto, a linha convidava a criar um convite para
+  // perguntas que a cliente já respondeu no portal.
+  const respondidoPortal =
+    estadoFormulario !== "preenchido" && !!submissao?.questionario_entregue_em;
+  const formularioFeito = estadoFormulario === "preenchido" || respondidoPortal;
 
   const alternarPasso = async (doc, passo) => {
     const coluna = passo === "enviado" ? "enviado_em" : "assinado_em";
@@ -561,7 +566,9 @@ export default function DocumentosEvento({
         descricao={
           aCompor
             ? "A compor…"
-            : estadoFormulario === "nenhum"
+            : respondidoPortal
+              ? `Respondido no acompanhamento ${dataCurta(submissao.questionario_entregue_em)} — não precisa de convite`
+              : estadoFormulario === "nenhum"
             ? "Ainda não foi criado"
             : estadoFormulario === "preenchido"
               ? `Criado ${dataCurta(convite.created_at)} · respondido pela cliente`
@@ -572,23 +579,41 @@ export default function DocumentosEvento({
         tom={
           aCompor
             ? "destaque"
-            : estadoFormulario === "nenhum"
+            : estadoFormulario === "nenhum" && !respondidoPortal
               ? "adormecido"
               : undefined
         }
         passos={
-          <>
+          respondidoPortal && !convite ? (
+            // Sem convite não há passo «criado» a cobrar: o caminho foi
+            // outro, e a régua não pode pedir o que já não faz falta.
             <Passo
-              rotulo="criado"
-              data={convite ? dataCurta(convite.created_at) : null}
-              feito={!!convite}
-              aSeguir={estadoFormulario === "nenhum"}
+              rotulo="respondido"
+              data={dataCurta(submissao.questionario_entregue_em)}
+              feito
             />
-            <Passo rotulo="preenchido" feito={formularioFeito} />
-          </>
+          ) : (
+            <>
+              <Passo
+                rotulo="criado"
+                data={convite ? dataCurta(convite.created_at) : null}
+                feito={!!convite}
+                aSeguir={estadoFormulario === "nenhum" && !respondidoPortal}
+              />
+              <Passo rotulo="preenchido" feito={formularioFeito} />
+            </>
+          )
         }
         accoes={
-          estadoFormulario === "pendente" || estadoFormulario === "preenchido" ? (
+          respondidoPortal ? (
+            <button
+              onClick={() => onVerFormulario && onVerFormulario(submissao)}
+              className={classeBotao("ouro")}
+              style={medidaBotao("ouro")}
+            >
+              Ver respostas
+            </button>
+          ) : estadoFormulario === "pendente" || estadoFormulario === "preenchido" ? (
             <button
               onClick={() =>
                 formularioFeito

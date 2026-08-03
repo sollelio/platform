@@ -93,10 +93,13 @@ export function construirEtapas({
   // O selo do formulário. A resposta vem da fonte única (lib/invites),
   // que só dá "preenchido" quando as respostas estão NESTE evento — um
   // convite que duplicou (respostas noutro evento) não sela o original.
-  const { estado: estadoFormulario } = estadoFormularioDoEvento(
-    invites,
-    s.id,
-  );
+  let { estado: estadoFormulario } = estadoFormularioDoEvento(invites, s.id);
+  // O questionário respondido pelo ACOMPANHAMENTO também sela (03/08):
+  // as respostas são as mesmas e a 069 carimba a entrega — sem isto, o
+  // selo convidava a criar um convite para perguntas já respondidas.
+  if (estadoFormulario !== "preenchido" && s.questionario_entregue_em) {
+    estadoFormulario = "respondido-portal";
+  }
 
   const { valorSinal, porReceber, temPrevisto } = numerosDoSinal(
     s,

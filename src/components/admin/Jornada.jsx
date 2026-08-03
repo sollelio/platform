@@ -129,6 +129,25 @@ const SELO_ESTADOS = {
       </svg>
     ),
   },
+  // O questionário respondido pelo portal — mesmas respostas, outra
+  // porta. O visto é o mesmo do preenchido; as palavras dizem o caminho.
+  "respondido-portal": {
+    texto: "Respondido no acompanhamento",
+    cor: "var(--gold-dark)",
+    glifo: (
+      <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
+        <circle cx="6.5" cy="6.5" r="6" fill="var(--gold)" />
+        <path
+          d="M3.8 6.8 L5.7 8.7 L9.4 4.6"
+          stroke="#fff"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    ),
+  },
   "preenchido-noutro": {
     texto: "Respostas noutro evento",
     cor: "#B45309",
@@ -155,9 +174,9 @@ function SeloFormulario({
   reduzirMovimento = false,
 }) {
   const conf = SELO_ESTADOS[estado] || SELO_ESTADOS.nenhum;
-  // Respondido é morto (não há gesto); os outros três abrem o caminho
-  // de sempre — o contrato onEtapa("formulario") não mudou.
-  const morto = estado === "preenchido";
+  // Respondido é morto (não há gesto); os outros abrem o caminho de
+  // sempre — o contrato onEtapa("formulario") não mudou.
+  const morto = estado === "preenchido" || estado === "respondido-portal";
   return (
     <button
       type="button"
@@ -212,6 +231,7 @@ const SELO_COR_COMPACTA = {
   nenhum: "#F1EBDD",
   pendente: "#EAD9AC",
   preenchido: "var(--gold)",
+  "respondido-portal": "var(--gold)",
   "preenchido-noutro": "#B45309",
 };
 

@@ -604,6 +604,16 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   backoffice. Depois do sinal, o portal volta ao roteiro §2.3: «Onde
   estamos agora: A data reservada» · «A seguir: O projecto».
 
+- **03/08/2026 — O questionário do portal NÃO precisa de convite — e o
+  backoffice fica a sabê-lo.** A pendência do portal aparece pós-sinal
+  sem formulário criado, por desenho: são duas portas para as mesmas
+  respostas (o convite clássico serve quem não usa o acompanhamento).
+  O que faltava era o espelho: respondido pelo portal, o selo da régua
+  passa a «Respondido no acompanhamento» e a linha do Formulário na aba
+  Documentos deixa de convidar a criar um convite inútil — mostra a
+  entrega e «Ver respostas». Levantado pelo Hélio ao estranhar a
+  pendência sem formulário criado.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
