@@ -248,6 +248,20 @@ export const verDocumentoPortal = async (token, tipo, verificacaoId = null, vers
   return data;
 };
 
+// O pórtico das condições: confirma que as condições do orçamento foram
+// lidas — ANTES do código, antes dos valores. Uma vez por EVENTO, nunca
+// por versão: as condições são da casa, não da folha. A prova (token, ip,
+// user_agent, carimbo) fica toda no servidor; daqui só se leva o gesto.
+// Devolve { estado: 'ok'|'ja_feito', quando } — ou 'nada'/'terminado',
+// que a página trata como os vizinhos: sem drama, sem beco.
+export const confirmarCondicoes = async (token) => {
+  const { data, error } = await supabase.rpc("dlm_portal_condicoes_lidas", {
+    p_token: token,
+  });
+  if (error) throw error;
+  return data;
+};
+
 // O caminho do papel: sobe a fotografia do contrato assinado para o balde
 // PRIVADO e regista o carregamento (que avisa a Caixa de Entrada). O nome
 // do ficheiro é aleatório, como o das referências — nunca um id.

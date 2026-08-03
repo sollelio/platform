@@ -38,29 +38,40 @@ export function comporNovidades(dados) {
   }
   // As PUBLICAÇÕES (073): o documento chegou às mãos dela — que é a
   // novidade que mais pede a mola. A assinatura continua a ter a sua.
+  //
+  // Mas só COM o sinal feito na jornada (regra de 03/08/2026): antes dele,
+  // contrato e projecto não existem para ela — nem publicados, nem
+  // assinados. Dados legados e fixtures podem trazer estes carimbos com o
+  // sinal por pagar; a jornada é quem manda, e se o servidor (078) já
+  // cortou a etapa, o sinal não está feito. A novidade do próprio sinal
+  // («A data ficou reservada») fica de fora da guarda — é ela o marco.
+  const jornada = Array.isArray(dados?.jornada) ? dados.jornada : [];
+  const sinalFeito = jornada.some(
+    (e) => e.etapa === "sinal" && e.estado !== "por_acontecer",
+  );
   const pub = dados?.publicado_em || {};
-  if (novo(pub.contrato) && !novo(m.contrato)) {
+  if (sinalFeito && novo(pub.contrato) && !novo(m.contrato)) {
     novidades.push({
       chave: "contrato_publicado",
       titulo: "O contrato chegou",
       corpo: "O que combinámos, passado a escrito. Leia com calma antes de assinar.",
     });
   }
-  if (novo(m.contrato)) {
+  if (sinalFeito && novo(m.contrato)) {
     novidades.push({
       chave: "contrato",
       titulo: "O contrato ficou assinado",
       corpo: "Está tudo escrito, do seu lado e do nosso.",
     });
   }
-  if (novo(pub.proposta) && !novo(m.projecto)) {
+  if (sinalFeito && novo(pub.proposta) && !novo(m.projecto)) {
     novidades.push({
       chave: "projecto_publicado",
       titulo: "O projecto chegou",
       corpo: "A mesa desenhada espera pela sua aprovação.",
     });
   }
-  if (novo(m.projecto)) {
+  if (sinalFeito && novo(m.projecto)) {
     novidades.push({
       chave: "projecto",
       titulo: "O projecto da mesa está pronto",
@@ -173,18 +184,37 @@ export function comporPendencias(dados, caducou = false) {
     });
   }
 
+  // O SINAL pós-aceite é pendência DELA — paga-se fora do portal, mas a
+  // jogada é dela e a página não pode dizer «nada falta de si» com o
+  // sinal por pagar. Nasceu em «o que está connosco» (077) e mudou de
+  // lado no dia do pórtico: com «O QUE O SINAL ABRE» logo acima, as duas
+  // divisões contavam histórias opostas no mesmo ecrã.
+  if (resposta && resposta.acto === "aceitou" && !etapaFeita("sinal")) {
+    pendencias.push({
+      chave: "sinal",
+      titulo: "O sinal",
+      corpo:
+        "Metade do valor guarda a sua data — ninguém mais leva o dia. O pagamento combina-se connosco, pela conversa.",
+    });
+  }
+
   // O contrato e o projecto PUBLICADOS (073) são pendências dela — como
   // o orçamento sempre foi. Sem isto, a lista de documentos dizia «à sua
   // espera» e a jornada jurava que ainda os estávamos a escrever.
+  //
+  // E só COM o sinal feito (regra de 03/08/2026): antes dele, um contrato
+  // ou proposta que dados legados tragam publicados não são pendência —
+  // do sinal para lá nada existe para ela, e cobrar um documento que a
+  // página esconde seria pior do que os dois erros que esta guarda evita.
   const pub = dados?.publicado_em || {};
-  if (pub.contrato && !etapaFeita("contrato")) {
+  if (pub.contrato && etapaFeita("sinal") && !etapaFeita("contrato")) {
     pendencias.push({
       chave: "contrato",
       titulo: "O contrato",
       corpo: `Está consigo desde ${diaEMes(pub.contrato)}, à espera da sua assinatura. Leia com calma — é o que combinámos, passado a escrito.`,
     });
   }
-  if (pub.proposta && !etapaFeita("projecto")) {
+  if (pub.proposta && etapaFeita("sinal") && !etapaFeita("projecto")) {
     pendencias.push({
       chave: "projecto",
       titulo: "O projecto",
@@ -202,17 +232,11 @@ export function comporPendencias(dados, caducou = false) {
   if (!m.orcamento && !etapaFeita("orcamento")) {
     doNossoLado.push("O orçamento — estamos a prepará-lo com o que nos contou.");
   }
-  // Com o orçamento aceite, o que vem primeiro é o SINAL (077): é ele
-  // que guarda a data — e paga-se fora do portal, pela conversa; sem
-  // acção aqui, a linha vive honestamente deste lado. Depois do sinal
-  // vem o contrato; publicado, deixa de ser «connosco» — passou a
-  // pendência dela, lá em cima.
+  // Com o orçamento aceite, o sinal é pendência DELA (lá em cima). Deste
+  // lado fica só o que é trabalho nosso: a revisão pedida, o contrato por
+  // publicar depois do sinal — publicado, também ele sobe a pendência.
   if (resposta && resposta.acto === "pediu_alteracao" && !etapaFeita("sinal")) {
     doNossoLado.push("O orçamento — pediu uma alteração; estamos a revê-lo.");
-  } else if (resposta && !etapaFeita("sinal")) {
-    doNossoLado.push(
-      "O sinal — metade do valor guarda a sua data; combinamos o pagamento consigo pela conversa.",
-    );
   } else if (etapaFeita("sinal") && !etapaFeita("contrato") && !pub.contrato) {
     doNossoLado.push(
       "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar.",

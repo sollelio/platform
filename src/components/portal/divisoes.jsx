@@ -37,24 +37,77 @@ import {
 // negativa; o sublinhado vive num <span> interior para ficar colado ao
 // texto (no elemento exterior, o traço descia com o padding).
 // ------------------------------------------------------------
-function LigacaoDeCartao({ to, rotulo }) {
+function LigacaoDeCartao({ to, rotulo, externa = false }) {
+  const estilo = {
+    display: "inline-block",
+    padding: "12px 10px",
+    margin: "0 -10px -12px",
+    fontSize: "12px",
+    letterSpacing: "0.03em",
+    color: "var(--charcoal)",
+    textDecoration: "none",
+  };
+  const interior = (
+    <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+      {rotulo}
+    </span>
+  );
+  // `externa`: a pendência do sinal leva à conversa (WhatsApp) — um Link
+  // do router num URL de fora rebentava na navegação interna.
+  if (externa) {
+    return (
+      <a href={to} style={estilo}>
+        {interior}
+      </a>
+    );
+  }
   return (
-    <Link
-      to={to}
-      style={{
-        display: "inline-block",
-        padding: "12px 10px",
-        margin: "0 -10px -12px",
-        fontSize: "12px",
-        letterSpacing: "0.03em",
-        color: "var(--charcoal)",
-        textDecoration: "none",
-      }}
-    >
-      <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
-        {rotulo}
-      </span>
+    <Link to={to} style={estilo}>
+      {interior}
     </Link>
+  );
+}
+
+// ------------------------------------------------------------
+// O QUE O SINAL ABRE — fora da numeração da folha
+//
+// Entrou mais tarde, quando se percebeu onde os eventos empancam: entre o
+// aceite do orçamento e o sinal. Ela disse sim, e depois o tempo passa.
+// Esta divisão mostra o que o aceite já comprou e ainda dorme — promessa,
+// nunca ameaça: sem prazo, sem cobrança, sem botão. Quem manda montá-la é
+// a página, que conhece a jornada; quando o sinal entra, sai de cena
+// sozinha e as coisas que aqui dormiam acordam nas divisões próprias.
+//
+// Engastes apagados, de propósito: são coisas que ainda não aconteceram,
+// e antes do sinal nem ao meio-tom do engaste normal têm direito.
+// ------------------------------------------------------------
+export function OQueOSinalAbre() {
+  const linhas = [
+    "O questionário da sua mesa",
+    "O projecto, desenhado para si",
+    "A preparação, passo a passo",
+    "As fotografias do dia",
+  ];
+  return (
+    <Divisao>
+      <h2 style={{ ...overline(), textAlign: "center" }}>O que o sinal abre</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "22px" }}>
+        {linhas.map((t) => (
+          <div key={t} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div aria-hidden="true" style={{ opacity: 0.55, display: "flex" }}>
+              <EngasteVazio tamanho={20} />
+            </div>
+            <p style={{ ...playfair, fontSize: "17px", lineHeight: 1.3 }}>{t}</p>
+          </div>
+        ))}
+      </div>
+      {/* A frase de fecho fala como a de cerimónia — Playfair em dourado
+          escuro, voz da casa. É ela que diz o que o sinal é, sem o pedir. */}
+      <p style={{ ...playfair, fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", margin: "24px 0 0", textAlign: "center", textWrap: "pretty", padding: "0 6px" }}>
+        Com a data reservada, tudo isto acorda. Metade do valor guarda o dia
+        — combinamos o pagamento consigo pela conversa.
+      </p>
+    </Divisao>
   );
 }
 
@@ -105,7 +158,13 @@ export function OQueFaltaDeSi({ pendencias = [], doNossoLado = [] }) {
                 <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
                   {p.corpo}
                 </p>
-                {p.href && <LigacaoDeCartao to={p.href} rotulo={p.hrefRotulo || "Abrir"} />}
+                {p.href && (
+                  <LigacaoDeCartao
+                    to={p.href}
+                    rotulo={p.hrefRotulo || "Abrir"}
+                    externa={p.externa}
+                  />
+                )}
               </CartaoBranco>
             ))}
           </div>

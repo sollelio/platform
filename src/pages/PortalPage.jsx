@@ -15,6 +15,7 @@ import {
   ETAPA_FEITA_DATADA,
 } from "../lib/portal";
 import {
+  OQueOSinalAbre,
   OQueFaltaDeSi,
   AsNovidades,
   ComoComecou,
@@ -512,6 +513,22 @@ export default function PortalPage() {
   const ev = dados?.evento;
   const jornada = Array.isArray(dados?.jornada) ? dados.jornada : [];
 
+  // SINAL FEITO — a inferência canónica do front, a MESMA da etapa 3 da
+  // jornada no servidor (077): a etapa «sinal» com estado que não seja
+  // «por acontecer». Se a etapa nem vier na resposta — o servidor (078) já
+  // cortou a jornada — conta como não feito, que é a leitura certa: o corte
+  // só existe porque o sinal não entrou.
+  //
+  // É a regra que governa a página desde 03/08/2026: sem o sinal pago, o
+  // cliente vê até ao orçamento (e ao apelo do sinal, que é o passo
+  // seguinte); do sinal para lá, nada aparece — nem por nome. Com o sinal,
+  // tudo abre. O servidor vai cortar na mesma (078), mas o front espelha o
+  // corte: defesa em profundidade, e verdade imediata onde a migração
+  // ainda não correu.
+  const sinalFeito = jornada.some(
+    (e) => e.etapa === "sinal" && e.estado !== ETAPA_POR_ACONTECER,
+  );
+
   // A etapa ACTUAL é a última que já aconteceu. A seguinte é a que se
   // avizinha, e o resto encolhe para uma linha só.
   let iActual = 0;
@@ -520,7 +537,19 @@ export default function PortalPage() {
   });
   const actual = jornada[iActual] || null;
   const proxima = jornada[iActual + 1] || null;
-  const resto = jornada.slice(iActual + 2).filter((e) => ROTULO_ETAPA[e.etapa]);
+  // O «e depois» obedece à regra do sinal: sem ele, a enumeração pára na
+  // etapa sinal — corte POSICIONAL (tudo o que na jornada vem depois dela
+  // fica fora), para contrato, projecto, preparação e grande dia nem por
+  // nome se lerem. Com a jornada já curta do servidor, iSinal aponta ao fim
+  // (ou a -1) e o corte não tira nada. O AGORA e o A SEGUIR não precisam
+  // dele: enquanto o sinal está por acontecer, o A SEGUIR nunca passa do
+  // sinal — a etapa actual está sempre aquém dele.
+  const iSinal = jornada.findIndex((e) => e.etapa === "sinal");
+  const fimDoResto =
+    sinalFeito || iSinal === -1 ? jornada.length : iSinal + 1;
+  const resto = jornada
+    .slice(iActual + 2, fimDoResto)
+    .filter((e) => ROTULO_ETAPA[e.etapa]);
 
   const dias = ev?.dias_para;
   const passou = typeof dias === "number" && dias < 0;
@@ -534,16 +563,14 @@ export default function PortalPage() {
   // orçamento cinco meses depois. Prometer o que não se vai cumprir é pior
   // do que calar.
   //
-  // Sai tudo da Jornada que a RPC já devolve: nenhum campo novo.
-  const fechou = jornada.some(
-    (e) => e.etapa === "sinal" && e.estado !== ETAPA_POR_ACONTECER,
-  );
-  const caducou = passou && !fechou;
+  // Sai tudo da Jornada que a RPC já devolve: nenhum campo novo — «fechou»
+  // é o sinalFeito lá de cima, a mesma inferência com outra pergunta.
+  const caducou = passou && !sinalFeito;
   // O dia zero de um pedido que nunca fechou: ainda não «passou», mas
   // anunciar «O grande dia — é hoje» a quem não fechou negócio é a mesma
   // mentira do caducado, um dia mais cedo. Cala-se o mesmo; só a frase
   // «Esta data já passou» fica presa ao caducou verdadeiro.
-  const caducaHoje = dias === 0 && !fechou;
+  const caducaHoje = dias === 0 && !sinalFeito;
 
   // NO PRÓPRIO DIA a jornada fica presa em «A preparação»: a etapa 7 só
   // acende com a data JÁ passada (055), e bem — de manhã a festa ainda não
@@ -552,7 +579,7 @@ export default function PortalPage() {
   //
   // Aqui só muda a PALAVRA, não a jornada: a etapa continua por acontecer,
   // e é o cartão do «agora» que reconhece o dia.
-  const ehHoje = dias === 0 && fechou;
+  const ehHoje = dias === 0 && sinalFeito;
   const etapaActual = ehHoje ? "grande_dia" : actual?.etapa;
 
   // No caducado o cartão fecha-se no título e na data: qualquer frase de
@@ -593,15 +620,25 @@ export default function PortalPage() {
   };
   const pendencias = {
     ...pendenciasBase,
-    pendencias: pendenciasBase.pendencias.map((p) =>
-      HREF_PENDENCIA[p.chave]
+    pendencias: pendenciasBase.pendencias.map((p) => {
+      // O sinal paga-se pela conversa — a ligação certa é o WhatsApp,
+      // não uma página do portal.
+      if (p.chave === "sinal" && WHATSAPP_URL) {
+        return {
+          ...p,
+          href: WHATSAPP_URL,
+          hrefRotulo: "Combinar pela conversa",
+          externa: true,
+        };
+      }
+      return HREF_PENDENCIA[p.chave]
         ? {
             ...p,
             href: `/acompanhar/${token}/${HREF_PENDENCIA[p.chave][0]}`,
             hrefRotulo: HREF_PENDENCIA[p.chave][1],
           }
-        : p,
-    ),
+        : p;
+    }),
   };
   // As novidades que apontam para um documento levam a ligação com elas —
   // «Já pode vê-lo» sem caminho era um convite de mãos vazias. ATENÇÃO: a
@@ -628,11 +665,17 @@ export default function PortalPage() {
   };
   // Há área de documentos para mostrar quando algum já foi publicado — o
   // orçamento é o comum, mas um projecto ou contrato publicados sem ele
-  // não podem ficar sem porta.
+  // não podem ficar sem porta. A porta também obedece à regra do sinal:
+  // antes dele, o único documento que existe para ela é o orçamento — um
+  // contrato ou proposta que dados legados tragam publicados não abrem
+  // porta nenhuma (a 078 corta-os no servidor; aqui espelha-se o corte).
+  // Os marcos do contrato e do projecto implicam sinal pela inferência
+  // canónica, mas a guarda cobre-os na mesma: imune a dados tortos.
   const m = dados?.marcos_datados || {};
   const pub = dados?.publicado_em || {};
   const temDocumentos = !!(
-    m.orcamento || m.projecto || m.contrato || pub.proposta || pub.contrato
+    m.orcamento ||
+    (sinalFeito && (m.projecto || m.contrato || pub.proposta || pub.contrato))
   );
 
   // «A seguir» também sabe o que já chegou (073): um contrato publicado
@@ -646,6 +689,19 @@ export default function PortalPage() {
       : proxima.etapa === "projecto" && pub.proposta
         ? "Já está consigo — a mesa desenhada espera pela sua aprovação."
         : TEXTO_SEGUIR[proxima.etapa];
+
+  // ── «O QUE O SINAL ABRE» ─────────────────────────────────────────────
+  // Nasceu para a janela entre o aceite e o sinal; com a regra do sinal
+  // passou a ser a EXPLICAÇÃO DO CORTE — a jornada encurta antes do sinal,
+  // e sem esta divisão a página curta lia-se como um percurso sem
+  // continuação. Por isso já não espera pela resposta dela: mostra-se logo
+  // que o orçamento chega (etapa feita na jornada) e só sai de cena quando
+  // o sinal entra. Caducado cala-se, como todas as promessas desta página.
+  const orcamentoFeito = jornada.some(
+    (e) => e.etapa === "orcamento" && e.estado !== ETAPA_POR_ACONTECER,
+  );
+  const mostrarOQueOSinalAbre =
+    !caducou && !caducaHoje && orcamentoFeito && !sinalFeito;
 
   return (
     <div
@@ -932,6 +988,12 @@ export default function PortalPage() {
             </span>
           </p>
         )}
+
+        {/* ── O QUE O SINAL ABRE ─────────────────────────────────────
+            Logo a seguir à jornada, antes das pendências: primeiro onde
+            estamos, depois o que o sinal acorda, e só então o que falta
+            de si. Só existe na janela entre o aceite e o sinal. */}
+        {mostrarOQueOSinalAbre && <OQueOSinalAbre />}
 
         {/* ── AS DIVISÕES DA FASE 2 ──────────────────────────────────
             A ordem é fixa (folha de decisões): o que falta de si · as

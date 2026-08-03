@@ -18,7 +18,7 @@ import {
 } from "./documentos-pecas";
 import {
   getDocumentosPortal, verDocumentoPortal, pedirCodigo, verificarCodigo,
-  registarActo, enviarContratoAssinado, ROTULO_DOCUMENTO,
+  registarActo, enviarContratoAssinado, confirmarCondicoes, ROTULO_DOCUMENTO,
 } from "../../lib/portal";
 import { dataPorExtenso } from "../admin/orcamentos/contratoConfig";
 
@@ -517,6 +517,210 @@ function CorpoContrato({ doc, resumoSo = false }) {
           assinaturas fecham a folha. */}
       <AssinaturasDaFolha doc={doc} />
     </>
+  );
+}
+
+// ---------- o pórtico das condições ----------
+// A página do orçamento abre-se SEMPRE — mas antes dela há um pórtico:
+// as condições da casa, à luz, com o resto da folha às escuras. Não é
+// castigo, é ordem de leitura — o primeiro ponto (o sinal, a regra que
+// muda planos) tem de ser lido ANTES de os valores ganharem palco. A
+// confirmação grava-se no servidor, uma vez por evento; a partir daí o
+// pórtico nunca mais se levanta, nem nas versões seguintes.
+//
+// O escuro não prende ninguém: a saída «Voltar aos documentos» vive no
+// rodapé do próprio pórtico, porque os caminhos de regresso da página
+// ficam todos DEBAIXO do véu — sem esta porta, era um beco.
+function PorticoCondicoes({ condicoes, token, reduzir, onConfirmado, onSair }) {
+  const [marcado, setMarcado] = useState(false);
+  const [aGuardar, setAGuardar] = useState(false);
+  const [erro, setErro] = useState(null);
+  // A dissolução é o único movimento: o pórtico esvai-se e a folha fica.
+  // Com movimento reduzido não há espera — sai de um golpe.
+  const [aDissolver, setADissolver] = useState(false);
+  const tituloRef = useRef(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    // O foco entra pelo título — o leitor de ecrã ouve primeiro o porquê
+    // do escuro. E o corpo da página prende-se: o scroll é do pórtico,
+    // não da folha que ficou por baixo.
+    tituloRef.current?.focus({ preventScroll: true });
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = anterior;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const confirmar = async () => {
+    if (!marcado || aGuardar || aDissolver) return;
+    setAGuardar(true);
+    setErro(null);
+    try {
+      const r = await confirmarCondicoes(token);
+      if (r?.estado === "ok" || r?.estado === "ja_feito") {
+        // «ja_feito» dissolve na mesma: o carimbo que fica é o primeiro,
+        // e para quem está a ler a diferença não existe.
+        if (reduzir) {
+          onConfirmado();
+        } else {
+          setADissolver(true);
+          timerRef.current = setTimeout(onConfirmado, 480);
+        }
+      } else {
+        // 'nada' ou 'terminado' — o mundo mudou debaixo dos pés. O
+        // pórtico não discute: sai, e a moldura da página (que fala com
+        // o servidor a cada passo) diz o que há a dizer.
+        onConfirmado();
+      }
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível guardar a confirmação. Verifique a ligação e tente novamente.");
+    } finally {
+      setAGuardar(false);
+    }
+  };
+
+  const [primeira, ...resto] = condicoes;
+  const pronto = marcado && !aGuardar;
+
+  return (
+    <div
+      className="acomp-nao-imprime"
+      role="dialog"
+      aria-modal="true"
+      aria-label="As condições da casa"
+      style={{
+        position: "fixed", inset: 0, zIndex: 60,
+        // Quase opaco de propósito: vê-se que a folha existe, mas não se
+        // lê nada dela — a única leitura possível é esta.
+        backgroundColor: "rgba(26,24,20,0.94)",
+        overflowY: "auto",
+        display: "flex", justifyContent: "center",
+        opacity: aDissolver ? 0 : 1,
+        transition: reduzir ? "none" : "opacity 450ms ease",
+        pointerEvents: aDissolver ? "none" : "auto",
+      }}
+    >
+      {/* margin auto no filho de um flex com scroll: centrado quando
+          cabe, a rolar de cima quando não cabe — sem cortar o topo. */}
+      <div style={{ width: "100%", maxWidth: "340px", margin: "auto", padding: "44px 22px", textAlign: "center" }}>
+        <p style={overline("var(--gold-light)")}>Antes de abrir o orçamento</p>
+        <p
+          ref={tituloRef}
+          tabIndex={-1}
+          style={{ ...playfair, color: "#FAF7EF", fontSize: "22px", lineHeight: 1.3, marginTop: "12px", textWrap: "balance", outline: "none" }}
+        >
+          As condições da casa
+        </p>
+        <FileteComLosango margem="18px 0 22px" largura={40} />
+
+        {/* O 1.º ponto é o que muda planos — vai a dourado carregado, e
+            é ELE a caixa de confirmação: a linha inteira alterna, nunca
+            um alvo de 26px. O engaste enche a dourado com o visto da
+            casa (o gesto do Passo do backoffice, em CSS). */}
+        <button
+          type="button"
+          onClick={() => { setMarcado((m) => !m); setErro(null); }}
+          aria-pressed={marcado}
+          className="foco"
+          style={{
+            display: "flex", alignItems: "flex-start", gap: "13px",
+            width: "100%", boxSizing: "border-box", textAlign: "left",
+            backgroundColor: marcado ? "rgba(201,168,76,0.13)" : "rgba(255,255,255,0.05)",
+            border: `1.5px solid ${marcado ? "var(--gold)" : "rgba(232,213,163,0.45)"}`,
+            borderRadius: "14px", padding: "16px 15px", cursor: "pointer",
+            transition: reduzir ? "none" : "border-color 300ms ease, background-color 300ms ease",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: "26px", height: "26px", borderRadius: "50%", boxSizing: "border-box",
+              flex: "none", display: "flex", alignItems: "center", justifyContent: "center",
+              marginTop: "1px",
+              backgroundColor: marcado ? "var(--gold)" : "transparent",
+              border: `1.5px solid ${marcado ? "var(--gold)" : "var(--gold-light)"}`,
+              transition: reduzir ? "none" : "background-color 300ms ease, border-color 300ms ease",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                transform: marcado ? "scale(1)" : "scale(0)",
+                // O ressalto do visto sem biblioteca: um back-out curto
+                // faz de mola. Com movimento reduzido, aparece e pronto.
+                transition: reduzir ? "none" : "transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24">
+                <path d="M4.5 12.5l5 5 10-10" fill="none" stroke="#FFFFFF" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </span>
+          <span style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.6, color: "var(--gold)", textWrap: "pretty" }}>
+            {primeira}
+          </span>
+        </button>
+
+        {resto.length > 0 && (
+          <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "10px", textAlign: "left" }}>
+            {resto.map((c, i) => (
+              <p key={i} style={{ fontSize: "12px", lineHeight: 1.7, color: "rgba(250,250,248,0.62)", margin: 0, textWrap: "pretty" }}>
+                {c}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* A cápsula da casa, pintada para o escuro: apagada até a caixa
+            estar marcada — responde ao toque, mas não finge estar viva. */}
+        <button
+          type="button"
+          onClick={confirmar}
+          disabled={!marcado || aGuardar || aDissolver}
+          className="foco"
+          style={{
+            display: "block", width: "100%", boxSizing: "border-box", textAlign: "center",
+            font: "600 11px Inter, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase",
+            borderRadius: "999px", padding: "15px 20px", marginTop: "26px",
+            color: pronto ? "var(--gold-dark)" : "rgba(250,250,248,0.4)",
+            backgroundColor: pronto ? "white" : "transparent",
+            border: `1px solid ${pronto ? "var(--gold)" : "rgba(250,250,248,0.25)"}`,
+            cursor: aGuardar ? "wait" : marcado ? "pointer" : "default",
+            transition: reduzir ? "none" : "background-color 300ms ease, color 300ms ease, border-color 300ms ease",
+          }}
+        >
+          {aGuardar || aDissolver ? "A guardar…" : erro ? "Tentar novamente" : "Li e entendi as condições"}
+        </button>
+        {erro && (
+          <p style={{ fontSize: "12px", lineHeight: 1.7, color: "#E0B49F", margin: "12px 0 0", textWrap: "pretty" }}>
+            {erro}
+          </p>
+        )}
+
+        {/* A saída — o desenho das portas discretas da página, em claro. */}
+        <p style={{ margin: "24px 0 0" }}>
+          <button
+            type="button"
+            onClick={onSair}
+            className="foco"
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              display: "inline-block", fontSize: "12px", letterSpacing: "0.03em",
+              fontFamily: "inherit", color: "rgba(250,250,248,0.55)",
+              padding: "12px 10px", margin: "-12px -10px",
+            }}
+          >
+            <span style={{ borderBottom: "1px solid rgba(232,213,163,0.45)", paddingBottom: "3px" }}>
+              Voltar aos documentos
+            </span>
+          </button>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -1174,6 +1378,10 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
   // O interstício dispensado nesta montagem (chave tipo_versão), para o
   // caso de o sessionStorage recusar a escrita.
   const [interVisto, setInterVisto] = useState(null);
+  // As condições confirmadas NESTA visita: o servidor já tem o carimbo,
+  // mas o doc em mãos ainda diz condicoes_lidas_em null — refazer o fetch
+  // só para reler o que acabámos de escrever era uma ida a mais.
+  const [condicoesConfirmadas, setCondicoesConfirmadas] = useState(false);
   // O formulário do pedido de alteração vive AQUI (controlado): sobrevive
   // à ida ao ecrã do código e volta intacto.
   const [altMarcados, setAltMarcados] = useState([]);
@@ -1267,6 +1475,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
     setAltRecado("");
     setAltNome("");
     setModoForcado(null);
+    setCondicoesConfirmadas(false);
   }
 
   // Busca e assenta o meta DE VERDADE antes de devolver a mão: o refetch
@@ -1642,6 +1851,16 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                   ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
                   : "O sinal — metade do valor reserva a sua data; combinamos o pagamento consigo pela conversa. Depois, o contrato chega-lhe aqui para assinar."}
           </p>
+          {/* A promessa por trás do sinal: não é só um pagamento, é a
+              chave desta página inteira. Diz-se como promessa, nunca
+              como condição — a ameaça não é da casa. */}
+          {!ehAssinatura && !ehAlteracao && tipo !== "proposta" && (
+            <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
+              E é com o sinal que se abre o acompanhamento completo do seu
+              evento — o questionário, o projecto da mesa, as fotografias
+              do dia. Tudo aqui, nesta mesma página.
+            </p>
+          )}
         </div>
 
         {/* O acto está feito — o caminho natural é a jornada, que já
@@ -1735,8 +1954,36 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
   const veiado = !!doc.velado;
   const jaRespondeu = !!doc.acto;
 
+  // O pórtico é SÓ do orçamento, e a regra é seca: sem carimbo de leitura
+  // no servidor, sem resposta dada, sem confirmação nesta visita. Quem já
+  // respondeu não leva pórtico — leu as condições quando respondeu, com
+  // carimbo ou sem ele (o pórtico chegou depois). E sem condições no
+  // instantâneo não há portão: um portão sem texto era teatro.
+  const condicoesDoc =
+    tipo === "orcamento" && Array.isArray(doc.instantaneo?.__condicoes)
+      ? doc.instantaneo.__condicoes.filter(naoVazia)
+      : [];
+  const porticoAberto =
+    tipo === "orcamento" &&
+    !doc.condicoes_lidas_em &&
+    !jaRespondeu &&
+    !condicoesConfirmadas &&
+    condicoesDoc.length > 0;
+
   return (
     <div className="acomp-imprimivel" style={{ padding: "22px 16px 26px" }}>
+      {/* Primeiro no DOM de propósito: com o véu em cima, a primeira
+          coisa que se lê é o porquê dele. O resto do fluxo (velado →
+          código → valores) fica intacto por baixo, à espera. */}
+      {porticoAberto && (
+        <PorticoCondicoes
+          condicoes={condicoesDoc}
+          token={token}
+          reduzir={reduzir}
+          onConfirmado={() => setCondicoesConfirmadas(true)}
+          onSair={voltarLista}
+        />
+      )}
       <Folha>
         {tipo === "orcamento" && <CorpoOrcamento doc={doc} />}
         {tipo === "proposta" && <CorpoProjecto doc={doc} />}

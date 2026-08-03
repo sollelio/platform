@@ -18,6 +18,7 @@ import {
   confirmarContratoPapel,
   ROTULO_DOCUMENTO,
 } from "../../lib/portal";
+import { supabase } from "../../lib/supabase";
 import { documentosDoEvento } from "../../lib/documentos";
 import { guardarAlteracoes } from "../../lib/briefingEdicao";
 import { formatarMorada, moradaVazia } from "../../lib/morada";
@@ -96,6 +97,23 @@ const dataHora = (iso) => {
   })} às ${d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
+// A confirmação de leitura das condições do orçamento: UMA por evento,
+// nunca por versão — por isso devolve-se só o carimbo da primeira. O
+// !inner é o filtro, como nos pedidos de código. Vive aqui e não em
+// lib/portal.js porque esse ficheiro está a ser mexido noutra frente;
+// o padrão da query é o mesmo dos factos vizinhos.
+const getCondicoesLidas = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("portal_condicoes_lidas")
+    .select("criado_em, portal_publicacoes!inner(submission_id)")
+    .eq("portal_publicacoes.submission_id", eventoId)
+    .order("criado_em", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.criado_em || null;
+};
+
 // O que a cliente vai encontrar, dito pela FASE do evento — a única fonte
 // disponível sem gastar uma visita. Usa a lista canónica FASES_POS_SINAL,
 // a mesma da conferência da Logística e das lacunas de formulário, em vez
@@ -167,15 +185,21 @@ function Conteudo({ evento, onFechar }) {
       getPedidosCodigo(eventoId),
       getPapelPorConfirmar(eventoId),
       getPedidosDoQuestionario(eventoId),
+      // Um facto acessório não derruba a folha: se esta query falhar,
+      // lê-se «por confirmar» — que é a verdade possível nesse momento.
+      getCondicoesLidas(eventoId).catch((e) => {
+        console.error(e);
+        return null;
+      }),
     ])
-      .then(([a, docs, pubs, pedidos, papeis, pedidosQ]) => {
+      .then(([a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm]) => {
         if (!cancelado)
-          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ });
+          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm });
       })
       .catch((e) => {
         console.error(e);
         if (!cancelado)
-          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [] });
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [], condicoesLidasEm: null });
       });
     return () => {
       cancelado = true;
@@ -189,6 +213,7 @@ function Conteudo({ evento, onFechar }) {
   const pedidos = resultado?.pedidos ?? [];
   const papeis = resultado?.papeis ?? [];
   const pedidosQ = resultado?.pedidosQ ?? [];
+  const condicoesLidasEm = resultado?.condicoesLidasEm ?? null;
   // Quem manda a secção do papel embora é a ASSINATURA existir — não o
   // aviso ter sido lido. Lê-se nos actos da publicação do contrato.
   const contratoAssinado = pubs.some(
@@ -723,6 +748,27 @@ function Conteudo({ evento, onFechar }) {
                                   ? `Pediu uma alteração a ${dataHora(acto.criado_em)} — versão ${pub.versao} à espera de resposta.`
                                   : `Publicado a ${dataHora(pub.publicado_em)} · versão ${pub.versao}.`}
                       </p>
+                      {/* A leitura das condições — o facto que a fase do
+                          sinal acrescentou: antes de responder, a cliente
+                          confirma que leu as condições, e a confirmação
+                          fica aqui, junto dos outros factos do orçamento.
+                          Uma vez por evento, nunca por versão. Sem leitura
+                          e com orçamento no ar, diz-se em tom apagado —
+                          informação, nunca cobrança. */}
+                      {tipo === "orcamento" && pub && (
+                        <p
+                          style={{
+                            fontSize: "11.5px",
+                            lineHeight: 1.55,
+                            color: condicoesLidasEm ? "var(--gray-mid)" : "#9B9B9B",
+                            margin: "2px 0 0",
+                          }}
+                        >
+                          {condicoesLidasEm
+                            ? `Condições confirmadas a ${dataHora(condicoesLidasEm)}.`
+                            : "Condições por confirmar"}
+                        </p>
+                      )}
                       {/* As palavras DELA têm de chegar aqui inteiras —
                           um pedido de alteração que ninguém lê é um acto
                           surdo. Itálico porque é citação dela. */}

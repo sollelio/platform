@@ -10,6 +10,27 @@ Não é uma lista de ficheiros — é um caminho.
 ambiente que vais testar. O portal abre em `/acompanhar/:token`; o token
 obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 
+> **Adenda 03/08/2026 (b) — O pórtico das condições (migração 078).** O
+> orçamento no portal só abre depois de o cliente confirmar que leu e
+> entendeu as condições: tela escura sobre o documento, condições à luz,
+> o 1.º ponto («Reserva mediante pagamento de sinal de 50% do valor
+> total») em dourado com caixa de confirmação — o botão «Li e entendi as
+> condições» só acorda com o visto. A confirmação grava-se com carimbo
+> (mesa `portal_condicoes_lidas`; prova = token + IP + user-agent);
+> pede-se uma vez por evento, nunca por versão; quem já respondeu ao
+> orçamento não leva pórtico. O véu dos valores + código mantém-se
+> intacto, depois do pórtico. A folha do portal no backoffice mostra
+> «Condições confirmadas a DD/MM» (ou «por confirmar»). E o PORTÃO DO
+> SINAL: sem sinal pago, o portal acaba no orçamento — a jornada mostra
+> só interessada · orçamento · sinal (as etapas seguintes nem por nome),
+> a lista de documentos só traz o orçamento, e contrato/projecto
+> devolvem «nada» mesmo que publicados (corte no servidor, espelhado no
+> front). A divisão «O QUE O SINAL ABRE» explica o corte (aparece com o
+> orçamento chegado e o sinal por pagar, antes e depois da resposta); no
+> aceite entra a linha do acompanhamento; o sinal é pendência DELA
+> («Combinar pela conversa») — nunca mais «Nada. Está tudo entregue.»
+> com o sinal por pagar. Com o sinal, tudo abre.
+
 > **Adenda 03/08/2026 — A ORDEM FINAL: o sinal antes do contrato
 > (migração 077, a rever a 071).** A Nádia fechou a ordem: **orçamento
 > aceite → sinal (50%, reserva a data) → contrato para assinar →

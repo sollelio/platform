@@ -15,8 +15,11 @@ export const EMPRESA = {
 };
 
 // Condições fixas que aparecem no rodapé do orçamento.
+// A primeira nomeia o sinal e a percentagem: «mediante confirmação» era
+// vago e os sinais demoravam — a condição agora diz o que reserva o dia.
+// (Os orçamentos já publicados guardam o texto antigo no instantâneo.)
 export const CONDICOES_ORCAMENTO = [
-  "Reserva mediante confirmação",
+  "Reserva mediante pagamento de sinal de 50% do valor total",
   "Valor sujeito a ajuste conforme número final de convidados",
   "Alterações poderão implicar revisão",
 ];

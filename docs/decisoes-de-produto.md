@@ -638,6 +638,53 @@ projecto (terminal)**.
   do portal o contrato infere-se só do carimbo ou da fase `cliente` —
   nunca de `projecto` (legados).
 
+## O pórtico das condições e o que o sinal abre (03/08/2026)
+
+O problema da Nádia: os clientes demoram eternidades a pagar o sinal e ela
+vive a mandar mensagens a lembrar. Migração **078**.
+
+- **03/08/2026 — O 1.º ponto das condições ganha o valor:** «Reserva
+  mediante pagamento de sinal de 50% do valor total» (redacção afinada da
+  ideia da Nádia, «confirmação de 50%», que ficava ambígua). Só os
+  orçamentos novos — os publicados guardam o texto congelado no
+  instantâneo, como deve ser.
+- **03/08/2026 — O pórtico das condições:** o cliente não abre o orçamento
+  no portal sem confirmar que leu e entendeu as condições. Tela escura
+  quase opaca, condições à luz, o 1.º ponto em destaque com caixa de
+  confirmação. O destaque é DOURADO forte da casa, nunca vermelho — o
+  escuro já faz o drama; vermelho num orçamento de luxo lê como alarme.
+- **03/08/2026 — A confirmação grava-se com carimbo** (prova real): mesa
+  própria `portal_condicoes_lidas` — NÃO em `portal_actos`, para não
+  diluir o invariante de prova da 059 (sessão verificada ou confirmação
+  humana); aqui a prova é o token privado + IP + user-agent + data.
+  Pede-se uma vez por evento, nunca por versão. O backoffice mostra
+  «Condições confirmadas a DD/MM» na folha do portal.
+- **03/08/2026 — «O acompanhamento abre com o sinal» é um PORTÃO, não uma
+  promessa** (o Hélio corrigiu o sentido antes de a 078 correr): sem o
+  sinal pago, o portal acaba no orçamento — inclusive. O cliente não vê o
+  contrato, não vê as etapas seguintes (nem os nomes na jornada), não vê
+  documento nenhum além do orçamento. O corte é no SERVIDOR (dlm_portal_
+  ver com jornada de 3 etapas, dlm_portal_documentos só orçamento,
+  dlm_portal_ver_documento devolve 'nada' para contrato/projecto — tudo
+  na 078) e o front espelha-o. A inferência de «sinal pago» é a canónica
+  da etapa 3 (carimbo, fase pós-sinal, ou pagamento origem sinal).
+- **03/08/2026 — A divisão «O QUE O SINAL ABRE» é a explicação do corte:**
+  aparece sempre que a jornada está cortada e o orçamento já chegou
+  (antes e depois da resposta), com o questionário, o projecto, a
+  preparação e as fotografias como o que espera do outro lado. Promessa,
+  nunca ameaça — a pressão elegante que a casa sabe fazer.
+- **03/08/2026 — Efeito nos eventos da era 071:** quem tinha contrato
+  publicado sem sinal pago (migrados para fase `sinal` pela 077) deixa de
+  ver o contrato no portal até o sinal entrar — correcto à luz da regra
+  nova (a Nádia quer o sinal primeiro, sempre), mas convém ela saber que
+  a esses clientes o portal recolheu o contrato.
+- **03/08/2026 — O sinal pós-aceite é pendência DELA** (revê o lado
+  escolhido na ronda 077): com «O QUE O SINAL ABRE» no mesmo ecrã, deixar
+  o sinal em «o que está connosco» fazia a página dizer «nada falta de
+  si» a quem deve o sinal — as duas divisões contavam histórias opostas.
+  A pendência «O sinal» leva à conversa («Combinar pela conversa», o
+  WhatsApp da casa) porque o pagamento não se faz no portal.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
