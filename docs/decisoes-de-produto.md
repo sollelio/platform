@@ -685,6 +685,32 @@ vive a mandar mensagens a lembrar. Migração **078**.
   A pendência «O sinal» leva à conversa («Combinar pela conversa», o
   WhatsApp da casa) porque o pagamento não se faz no portal.
 
+## A logística entre moradas, diluída (03/08/2026)
+
+A morada-base do calculador de deslocação não é o armazém: a Nádia gasta
+**25€ fixos por evento** no trajecto entre os dois, que ninguém pagava.
+
+- **03/08/2026 — Os 25€ diluem-se pelos serviços do orçamento,
+  automaticamente:** reparto proporcional ao valor de cada linha,
+  arredondado a euros inteiros (resto à linha maior); o total final é
+  exactamente a soma crua + 25. O cliente nunca vê os 25€ — nem linha,
+  nem nota; vê os serviços ligeiramente mais cheios. A Nádia vê tudo no
+  gerador («inclui +N€ de logística» por linha, nota junto ao total).
+- **03/08/2026 — Nunca absorvem:** o «Pacote Buffet» (regra da Nádia) e a
+  «Deslocação» (é o número que choca os clientes — engordá-lo iria
+  contra a razão de ser da regra). Sem linha elegível, aviso no gerador
+  e os 25€ ficam de fora — o buffet nunca leva, custe o que custar.
+- **03/08/2026 — A parcela viaja congelada:** chave `__logistica`
+  ({total, parcelas por índice}) nos dados do documento — entra no
+  instantâneo publicado, o véu da 058 descarta-a no estado velado (lista
+  de permissão), e os documentos legados sem a chave mostram-se como
+  sempre. Zero migrações.
+- **03/08/2026 — «Pacote Buffet» entra no catálogo do gerador** — só o
+  nome, «Inclui:» vazio (a Nádia escreve o que compõe cada pacote).
+- **03/08/2026 — Buffet no pedido público:** lotações corrigidas —
+  Premium 50+, Supreme até 35, Essence até 20 (estavam trocadas entre
+  Premium e Essence; pedidos antigos guardam o texto da altura).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

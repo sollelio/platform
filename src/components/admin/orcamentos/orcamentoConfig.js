@@ -29,6 +29,14 @@ export const NOTA_RODAPE_ORCAMENTO =
 
 export const VALIDADE_ORCAMENTO_DIAS = 30;
 
+// Custo fixo do trajecto entre as duas moradas da casa, por evento — a
+// morada-base do calculador de deslocação NÃO é o armazém, e este troço
+// não era pago por ninguém (decisão de 03/08/2026). O gerador DILUI este
+// valor pelas linhas de serviço elegíveis (nunca no Pacote Buffet nem na
+// Deslocação): o cliente vê os serviços ligeiramente mais cheios, nunca
+// uma linha de logística.
+export const LOGISTICA_ENTRE_MORADAS = 25;
+
 // ------------------------------------------------------------
 // Catálogo de serviços recorrentes. A Nádia escolhe um, ajusta o
 // valor/quantidade, e o texto do "Inclui:" vem predefinido (pode editar).
@@ -58,6 +66,15 @@ export const CATALOGO_SERVICOS = [
       "Elementos decorativos complementares",
       "Montagem e desmontagem",
     ],
+    valorSugerido: null,
+  },
+  {
+    id: "pacote_buffet",
+    descricaoTemplate: "Pacote Buffet",
+    temLugares: false,
+    // «Inclui:» nasce vazio de propósito — é a Nádia que o escreve por
+    // evento. E este serviço NUNCA absorve a logística entre moradas.
+    inclui: [],
     valorSugerido: null,
   },
   {

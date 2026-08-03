@@ -171,8 +171,28 @@ export const diferencasDeOrcamento = (antes, depois) => {
   const lin = (d) => (Array.isArray(d?.instantaneo?.linhas) ? d.instantaneo.linhas : []);
   const chave = (l, i) => l.uid || `d:${(l.descricao || "").trim().toLowerCase()}|${i}`;
 
+  // O valor que se compara é o que o cliente VIU na folha: unitário mais a
+  // parcela de logística diluída (__logistica, 03/08/2026), quando existe.
+  // Comparar os crus faria o cartão discordar da folha — e uma v2 que só
+  // ganhou diluição DEVE dizer que o preço mudou, porque aos olhos dela
+  // mudou. Sob véu a chave nem chega (lista de permissão da 058) e os
+  // valores também não: tudo fica a zero dos dois lados, como antes.
+  const verDe = (d) => {
+    const ps = Array.isArray(d?.instantaneo?.__logistica?.parcelas)
+      ? d.instantaneo.__logistica.parcelas
+      : null;
+    return (l, i) => {
+      const v = Number(l.valor) || 0;
+      if (!ps || !ps[i]) return v;
+      const q = Number(l.qtd) || 1;
+      return Math.round((v + ps[i] / q) * 100) / 100;
+    };
+  };
+  const verAntes = verDe(antes);
+  const verDepois = verDe(depois);
+
   const mapaAntes = new Map();
-  lin(antes).forEach((l, i) => mapaAntes.set(chave(l, i), l));
+  lin(antes).forEach((l, i) => mapaAntes.set(chave(l, i), { ...l, __visto: verAntes(l, i) }));
 
   const vistas = new Set();
   const entraram = [];
@@ -181,18 +201,19 @@ export const diferencasDeOrcamento = (antes, depois) => {
   lin(depois).forEach((l, i) => {
     const k = chave(l, i);
     vistas.add(k);
+    const visto = verDepois(l, i);
     const a = mapaAntes.get(k);
     if (!a) {
-      entraram.push({ nome: l.descricao || "Serviço", qtd: l.qtd, valor: l.valor });
+      entraram.push({ nome: l.descricao || "Serviço", qtd: l.qtd, valor: visto });
       return;
     }
     const qtdMudou = (Number(a.qtd) || 0) !== (Number(l.qtd) || 0);
-    const valorMudou = (Number(a.valor) || 0) !== (Number(l.valor) || 0);
+    const valorMudou = (a.__visto || 0) !== visto;
     if (qtdMudou || valorMudou) {
       mudaram.push({
         nome: l.descricao || "Serviço",
         qtdAntes: a.qtd, qtdDepois: l.qtd,
-        valorAntes: a.valor, valorDepois: l.valor,
+        valorAntes: a.__visto, valorDepois: visto,
         qtdMudou, valorMudou,
       });
     }
@@ -203,8 +224,13 @@ export const diferencasDeOrcamento = (antes, depois) => {
     if (!vistas.has(k)) sairam.push({ nome: l.descricao || "Serviço" });
   });
 
-  const soma = (d) =>
-    lin(d).reduce((acc, l) => acc + (Number(l.qtd) || 0) * (Number(l.valor) || 0), 0);
+  const soma = (d) => {
+    const ver = verDe(d);
+    return lin(d).reduce(
+      (acc, l, i) => acc + (Number(l.qtd) || 0) * ver(l, i),
+      0,
+    );
+  };
   const totalAntes = soma(antes);
   const totalDepois = soma(depois);
 

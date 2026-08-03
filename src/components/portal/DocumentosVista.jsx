@@ -291,8 +291,20 @@ function LinhasComposicao({ inst }) {
 function CorpoOrcamento({ doc }) {
   const inst = doc.instantaneo || {};
   const linhas = Array.isArray(inst.linhas) ? inst.linhas : [];
-  const total = linhas.reduce(
-    (acc, l) => acc + (Number(l.qtd) || 0) * (Number(l.valor) || 0), 0);
+  // A logística entre moradas viaja diluída no instantâneo (__logistica:
+  // parcelas alinhadas por índice com as linhas, valores das linhas
+  // CRUS): quem mostra soma a parcela à linha e o total dela ao Total —
+  // o cliente nunca vê uma linha de logística. Instantâneos sem
+  // __logistica (legados) ficam exactamente como sempre; no estado
+  // velado o véu do servidor (058) descarta-a junto com os valores.
+  const log =
+    inst.__logistica && Array.isArray(inst.__logistica.parcelas)
+      ? inst.__logistica
+      : null;
+  const total =
+    linhas.reduce(
+      (acc, l) => acc + (Number(l.qtd) || 0) * (Number(l.valor) || 0), 0) +
+    (log ? Number(log.total) || 0 : 0);
   const valeAte = useMemo(() => {
     const dias = Number(inst.__validadeDias) || 30;
     const d = new Date(doc.publicado_em);
@@ -325,16 +337,26 @@ function CorpoOrcamento({ doc }) {
       </TituloDocumento>
 
       <div style={{ padding: "16px 22px 0" }}>
-        {linhas.map((l, i) => (
-          <LinhaServico
-            key={l.uid || i}
-            nome={l.descricao || "Serviço"}
-            nota={Array.isArray(l.inclui) && l.inclui.length > 0 ? l.inclui.join(" · ") : null}
-            qtd={l.qtd}
-            valor={l.valor}
-            velado={doc.velado}
-          />
-        ))}
+        {linhas.map((l, i) => {
+          // A LinhaServico multiplica o valor pela qtd — a parcela entra
+          // no unitário (÷ qtd) para o total da linha somar exactamente
+          // valor×qtd + parcela (o caso real da casa é qtd = 1).
+          const parcela = log ? Number(log.parcelas[i]) || 0 : 0;
+          return (
+            <LinhaServico
+              key={l.uid || i}
+              nome={l.descricao || "Serviço"}
+              nota={Array.isArray(l.inclui) && l.inclui.length > 0 ? l.inclui.join(" · ") : null}
+              qtd={l.qtd}
+              valor={
+                parcela > 0
+                  ? (Number(l.valor) || 0) + parcela / (Number(l.qtd) || 1)
+                  : l.valor
+              }
+              velado={doc.velado}
+            />
+          );
+        })}
       </div>
 
       <TotalOrcamento total={total} velado={doc.velado} />
@@ -1158,6 +1180,19 @@ function PedirAlteracao({
   const seccoes = tipo === "proposta" && Array.isArray(inst.seccoes)
     ? inst.seccoes.filter((s) => naoVazia(s.titulo)) : [];
 
+  // O unitário mostrado é o DA FOLHA: com logística diluída (__logistica,
+  // 03/08/2026), soma-se a parcela por quantidade — mostrar aqui o cru
+  // seria a única página do portal a discordar do preço que ela leu.
+  const parcelasLog = Array.isArray(inst.__logistica?.parcelas)
+    ? inst.__logistica.parcelas
+    : null;
+  const valorDaFolha = (l, i) => {
+    const v = Number(l.valor) || 0;
+    if (!parcelasLog || !parcelasLog[i]) return v;
+    const q = Number(l.qtd) || 1;
+    return Math.round((v + parcelasLog[i] / q) * 100) / 100;
+  };
+
   // A chave é a IDENTIDADE da linha (uid, com a posição como rede) — duas
   // linhas com a mesma descrição já não alternam juntas.
   const chaveLinha = (l, i) => l.uid || `linha-${i}`;
@@ -1243,7 +1278,7 @@ function PedirAlteracao({
                         {l.descricao || `serviço ${i + 1}`}
                       </p>
                       <p style={{ fontSize: "11px", lineHeight: 1.5, color: "#9B9B9B", margin: "4px 0 0", fontVariantNumeric: "tabular-nums" }}>
-                        {doc.velado ? `${l.qtd} × —` : `${l.qtd} × ${formatarEuroPT(l.valor)}`}
+                        {doc.velado ? `${l.qtd} × —` : `${l.qtd} × ${formatarEuroPT(valorDaFolha(l, i))}`}
                       </p>
                     </div>
                     <EngasteTirar marcado={marcado} onToggle={() => alternar(chave)} />
