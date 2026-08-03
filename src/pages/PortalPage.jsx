@@ -880,7 +880,13 @@ export default function PortalPage() {
                 REAL — pintá-la sob o título trocado era mentir. */}
             {!ehHoje && actual.estado === ETAPA_FEITA_DATADA && diaEMes(actual.quando) && (
               <p style={{ fontSize: "11.5px", color: "#9B9B9B", marginTop: "7px", letterSpacing: "0.02em", fontVariantNumeric: "tabular-nums", marginBottom: 0 }}>
-                {diaEMes(actual.quando)}
+                {/* Debaixo de «A data reservada», um dia solto lia-se como
+                    A data — e não é: é o carimbo de quando a reserva
+                    aconteceu. Uma palavra desfaz a ambiguidade; o dia
+                    dela é a âncora, lá em cima. */}
+                {etapaActual === "sinal"
+                  ? `reservada a ${diaEMes(actual.quando)}`
+                  : diaEMes(actual.quando)}
               </p>
             )}
             {textoActual && (
