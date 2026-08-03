@@ -435,6 +435,7 @@ export default function Jornada({
   invites = [],
   previstos = null,
   pagamentos = null,
+  documentos = [],
   onEtapa,
   onStatusChange,
   onProximoGesto,
@@ -702,6 +703,7 @@ export default function Jornada({
       previstos,
       pagamentos,
       dinheiroACaminho,
+      documentos,
     });
 
   if (compacta)

@@ -29,6 +29,11 @@ obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 > pintam-se na folha do contrato (a da cliente e a da casa — botão
 > «Assinar pela casa» no backoffice), e o pedido de alteração da morada
 > é estruturado, com «Aplicar esta morada» na folha do Acompanhamento.
+> **Com a 075**, o funil acompanha os factos sozinho: publicar o
+> orçamento → fase Orçamento; aceite no portal → fase Contrato;
+> assinatura (código ou papel) → fase Aguarda sinal; sinal saldado →
+> fase Cliente. Nunca recua; perdidos não se mexem; os botões manuais
+> do funil continuam a existir para factos fora do sistema.
 
 > **Adenda 01/08/2026 — a revisão UX de ponta a ponta.** Depois desta
 > revisão, alguns passos do roteiro têm comportamento NOVO, deliberado:

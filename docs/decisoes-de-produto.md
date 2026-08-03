@@ -568,6 +568,32 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   assinatura». Estático por etapa era mentira assim que a realidade
   andava (apanhado pelo Hélio no telemóvel).
 
+- **03/08/2026 — Na régua da Jornada do backoffice, a EVIDÊNCIA acende o
+  Contrato; a fase confirma-se no funil.** Com o contrato assinado e
+  trancado no documento mas a fase ainda atrás, a régua mandava «preparar
+  o contrato para assinar». Agora a etapa acende pelo `assinado_em` do
+  documento, com o sub «assinado · por avançar no funil» (o gémeo do
+  «sinal saldado» que a régua já tratava), e o gesto salta para «registar
+  o sinal — o contrato está assinado». Os documentos chegam à régua pelos
+  donos dela (EventoPage e drawer buscam; a régua recebe, nunca faz
+  queries).
+
+- **03/08/2026 — Migração 075: o funil ACOMPANHA OS FACTOS — a regra
+  «sugere-se, nunca se executa» (27/07) fica afinada, não traída.** A
+  distinção que faltava: quando a transição de fase é o espelho de um
+  FACTO já registado com trilho (orçamento publicado; aceite registado;
+  assinatura com código ou papel confirmado; sinal saldado no registo do
+  pagamento), a decisão humana já aconteceu — obrigar a Nádia a repeti-la
+  no funil era contabilidade em dobro. Essas sincronizam sozinhas:
+  publicar → ≥ orcamento; aceite → ≥ contrato; assinatura → ≥ sinal
+  (no servidor, junto do facto); sinal saldado → cliente (no backoffice,
+  no fim do registo). Guardas invioláveis: NUNCA recua, NUNCA toca num
+  perdido, e falhar o avanço nunca falha o acto. Os JUÍZOS comerciais
+  (dar por perdido, arrancar com o projecto) continuam sugeridos, nunca
+  executados — e os botões manuais do funil ficam, para os factos que
+  acontecem fora do sistema (aceites por telefone, importações). Os
+  banners «por avançar» ficam como rede, não como caminho.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

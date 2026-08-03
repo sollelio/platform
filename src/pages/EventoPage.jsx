@@ -28,6 +28,7 @@ import { getNomeTipoEvento } from "../lib/tipoEvento";
 import { linkWhatsApp } from "../lib/mensagens";
 import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
 import PainelNotificacoes, { ToastNotificacao } from "../components/admin/CentroNotificacoes";
+import { documentosDoEvento } from "../lib/documentos";
 import { useNotificacoes } from "../lib/notificacoes";
 import { FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
@@ -447,6 +448,23 @@ export default function EventoPage() {
     reportarContagem("pagamentos", plano.pagamentos.length);
   }, [plano.pagamentos.length, reportarContagem]);
 
+  // Os documentos do evento — a régua da Jornada precisa da evidência
+  // da assinatura (o contrato acende pelo documento, não só pela fase).
+  // Falhar deixa a régua decidir pela fase, como sempre decidiu.
+  const [documentosEvidencia, setDocumentosEvidencia] = useState([]);
+  useEffect(() => {
+    let cancelado = false;
+    documentosDoEvento(id)
+      .then((docs) => !cancelado && setDocumentosEvidencia(docs || []))
+      .catch((e) => {
+        console.warn("Documentos indisponíveis para a régua:", e?.message || e);
+        if (!cancelado) setDocumentosEvidencia([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [id]);
+
   // Os avisos tocam também aqui — a subscrição realtime + o toast eram
   // do AdminPage, e a ficha do evento ficava surda. O hook vive ANTES
   // dos retornos do esqueleto (regra dos hooks); o toast pinta-se no
@@ -770,6 +788,7 @@ export default function EventoPage() {
           invites={invites}
           previstos={plano.previstos}
           pagamentos={plano.pagamentos}
+          documentos={documentosEvidencia}
           resumoDinheiro={resumoDinheiro}
           abas={abasComAviso}
           activeAba={activeAba}

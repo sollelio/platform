@@ -295,6 +295,7 @@ export default function CabecalhoEvento({
   invites = [],
   previstos,
   pagamentos,
+  documentos = [],
   resumoDinheiro,
   abas,
   activeAba,
@@ -554,6 +555,7 @@ export default function CabecalhoEvento({
             invites={invites}
             previstos={previstos}
             pagamentos={pagamentos}
+            documentos={documentos}
             onEtapa={onEtapa}
             onProximoGesto={onProximoGesto}
             onStatusChange={onStatusChange}
@@ -638,6 +640,7 @@ export default function CabecalhoEvento({
               invites={invites}
               previstos={previstos}
               pagamentos={pagamentos}
+              documentos={documentos}
               compacta
             />
           </div>

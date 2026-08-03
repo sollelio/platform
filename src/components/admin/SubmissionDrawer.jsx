@@ -24,6 +24,7 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 import { fundirCampos } from "../../lib/briefingEdicao";
 import { codigoErroRpc } from "../../lib/rpc";
 import { getPagamentosEvento } from "../../lib/pagamentos";
+import { documentosDoEvento } from "../../lib/documentos";
 
 // ============================================================
 // SubmissionDrawer — painel lateral de detalhes de um evento.
@@ -83,6 +84,7 @@ export default function SubmissionDrawer({
 }) {
   const [folhaMensagens, setFolhaMensagens] = useState(false);
   const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
+  const [docsDoEvento, setDocsDoEvento] = useState(null);
   const navigate = useNavigate();
 
   // Guia interativo — a dica visual (sublinhado + hover) sozinha não
@@ -128,6 +130,15 @@ export default function SubmissionDrawer({
           (console.warn("Plano indisponível no drawer:", e?.message || e),
           setPagamentosDoEvento({ id, erro: true })),
       );
+    // Os documentos: a evidência que acende o Contrato na régua antes
+    // de a fase o reconhecer. Falhar deixa a régua decidir pela fase,
+    // como sempre — nunca se estraga o drawer por causa disto.
+    documentosDoEvento(id)
+      .then((docs) => !cancelado && setDocsDoEvento({ id, docs }))
+      .catch((e) => {
+        console.warn("Documentos indisponíveis no drawer:", e?.message || e);
+        if (!cancelado) setDocsDoEvento({ id, docs: [] });
+      });
     return () => {
       cancelado = true;
     };
@@ -155,6 +166,8 @@ export default function SubmissionDrawer({
   // caminho — os números do anterior não valem para este.
   const planoDoEvento =
     pagamentosDoEvento?.id === selected.id ? pagamentosDoEvento : null;
+  const documentosDoSelecionado =
+    docsDoEvento?.id === selected.id ? docsDoEvento.docs : [];
 
   const tipo = eventTypes?.find((et) => et.id === selected.event_type_id);
   const seccoes = seccoesDoModelo(tipo);
@@ -233,6 +246,7 @@ export default function SubmissionDrawer({
       previstos: planoDoEvento?.previstos,
       pagamentos: planoDoEvento?.pagamentos,
       dinheiroACaminho: !planoDoEvento,
+      documentos: documentosDoSelecionado,
     });
     // "Por arrumar" (Concluído com fase atrasada): a Jornada diz para
     // arrumar no funil — um botão a mandar produzir documentos para um
@@ -385,6 +399,7 @@ export default function SubmissionDrawer({
               previstos={planoDoEvento?.previstos}
               pagamentos={planoDoEvento?.pagamentos}
               dinheiroACaminho={!planoDoEvento}
+              documentos={documentosDoSelecionado}
               onStatusChange={onStatusChange}
               onRecuperar={
                 onRecuperarPerdido

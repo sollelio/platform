@@ -659,20 +659,20 @@ export default function PagamentosEvento({
     }
   };
 
-  // O facto "sinal saldado" reconciliado com a fase (Lote 2B): pagar o
-  // sinal AQUI nunca avançava a fase — o evento ficava "A aguardar
-  // sinal" no funil com o dinheiro no banco. Sugere-se, nunca se
-  // executa (decisão de 26/07/2026): a sugestão aparece, o avanço só
-  // acontece ao clique dela — o mesmo registo da recuperação
-  // informada do funil. Só nas fases orcamento/sinal: em "interessado"
-  // a Jornada ainda aponta o orçamento como passo seguinte, e duas
-  // pílulas a apontar caminhos diferentes no mesmo ecrã confundem.
+  // O facto "sinal saldado" e a fase (afinado a 03/08/2026): registar o
+  // sinal AQUI é a decisão dela — a fase passa a acompanhar SOZINHA no
+  // fim do registo (ver guardarPagamento). A regra «sugere-se, nunca se
+  // executa» ficou para os JUÍZOS comerciais; um facto registado com
+  // trilho reflecte-se sem segunda cerimónia. Este banner continua como
+  // REDE: pagamentos que saldaram por outra via (importação, avulsos
+  // antigos) ainda encontram aqui a saída de sempre.
   const previstoSinal = previstos.find((p) => p.ordem === 1);
   const sinalSaldado =
     !!previstoSinal &&
     saldoSinalPendente(submissao.id, previstos, pagamentos) <= 0;
   const sugerirAvancoFase =
-    sinalSaldado && ["orcamento", "sinal"].includes(submissao.fase);
+    sinalSaldado &&
+    ["orcamento", "contrato", "sinal"].includes(submissao.fase);
 
   const avancarParaCliente = async () => {
     setAAvancarFase(true);
@@ -738,6 +738,22 @@ export default function PagamentosEvento({
     setNovoId(registo.id);
     setTimeout(() => setNovoId(null), 1300);
     await sincronizarPagamentoFinal(novaLista);
+    // 075 · o funil acompanha o facto: com o sinal SALDADO por este
+    // registo, a fase avança sozinha para Cliente. Falhar aqui nunca
+    // falha o registo — o banner de sugestão fica como rede.
+    if (
+      previstoSinal &&
+      saldoSinalPendente(submissao.id, previstos, novaLista) <= 0 &&
+      ["interessado", "orcamento", "contrato", "sinal"].includes(submissao.fase)
+    ) {
+      try {
+        const atualizada = await updateFase(submissao.id, "cliente");
+        if (onSaved)
+          onSaved({ fase: atualizada.fase, status: atualizada.status });
+      } catch (e) {
+        console.warn("Sinal saldado; a fase fica para o banner:", e?.message || e);
+      }
+    }
   };
 
   // «Registar na mesma» — a confirmação do aviso: o mesmo caminho, agora

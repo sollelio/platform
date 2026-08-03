@@ -78,6 +78,10 @@ export function construirEtapas({
   previstos,
   pagamentos,
   dinheiroACaminho = false,
+  // As linhas de `documentos` do evento (tipo, assinado_em) — a evidência
+  // que acende o Contrato antes de a fase o reconhecer. Opcional: sem
+  // elas, a régua decide só pela fase, como sempre decidiu.
+  documentos = [],
 }) {
   const idxFase = FASE_ORDEM_JORNADA.indexOf(s.fase);
   const posSinal = FASES_POS_SINAL.includes(s.fase);
@@ -105,6 +109,15 @@ export function construirEtapas({
   // (a sugestão vive na aba Pagamentos — Lote 2B).
   const sinalSaldadoSemAvanco = !posSinal && temPrevisto && porReceber <= 0;
 
+  // O gémeo do contrato (03/08/2026, apanhado pelo Hélio): assinado e
+  // trancado no documento, mas a fase ainda atrás — a régua mandava
+  // «preparar o contrato para assinar» a um contrato já assinado. A
+  // evidência acende a etapa; a fase confirma-se no funil.
+  const contratoAssinadoDoc = (documentos || []).some(
+    (d) => d.tipo === "contrato" && d.assinado_em,
+  );
+  const contratoAssinadoSemAvanco = contratoAssinadoDoc && idxFase < 3;
+
   const etapas = [
     {
       id: "interessado",
@@ -120,11 +133,12 @@ export function construirEtapas({
       clicavel: true,
     },
     {
-      // Assinado quando a fase já passou o limbo pós-aceite: em `sinal`
-      // (contrato assinado, 50% por pagar) ou depois.
+      // Assinado quando a fase já passou o limbo pós-aceite — OU quando
+      // o documento diz que sim (a evidência manda; a fase confirma-se).
       id: "contrato",
       rotulo: "Contrato",
-      feito: idxFase >= 3,
+      feito: idxFase >= 3 || contratoAssinadoDoc,
+      sub: contratoAssinadoSemAvanco ? "assinado · por avançar no funil" : null,
       clicavel: true,
     },
     {
