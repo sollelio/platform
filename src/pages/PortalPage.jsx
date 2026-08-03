@@ -569,7 +569,7 @@ export default function PortalPage() {
       : etapaActual === "orcamento" && respostaOrc
         ? respostaOrc.acto === "pediu_alteracao"
           ? "Pediu uma alteração — estamos a rever o orçamento consigo."
-          : "Aceitou-o. O contrato é o passo que se segue."
+          : "Aceitou-o. O sinal é o passo que se segue."
         : TEXTO_AGORA[etapaActual];
 
   // ── B5 · «O local — ainda por definir» ────────────────────────────────
@@ -636,11 +636,13 @@ export default function PortalPage() {
   );
 
   // «A seguir» também sabe o que já chegou (073): um contrato publicado
-  // já não «chega-lhe aqui» — já está com ela.
+  // já não «chega-lhe aqui» — já está com ela. (Sem cauda sobre o
+  // sinal: na ordem final ele já ficou para trás quando o contrato é
+  // o passo seguinte.)
   const textoSeguir = !proxima
     ? null
     : proxima.etapa === "contrato" && pub.contrato
-      ? "Já está consigo, à espera da sua assinatura — e com o sinal, a data fica sua."
+      ? "Já está consigo, à espera da sua assinatura."
       : proxima.etapa === "projecto" && pub.proposta
         ? "Já está consigo — a mesa desenhada espera pela sua aprovação."
         : TEXTO_SEGUIR[proxima.etapa];

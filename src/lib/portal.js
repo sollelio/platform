@@ -29,13 +29,14 @@ import { supabase } from "./supabase";
 // glossário dá a esse gesto — e resolve de caminho a exclusão que o
 // glossário assinala na pendência #2, sem esperar pela decisão de
 // renomear a chave.
-// (Pela ordem nova da jornada — 071: o contrato assina-se antes do
-// sinal. A ordem visual vem sempre da RPC; aqui é só verdade cosmética.)
+// (Pela ordem final da jornada — 077: o sinal reserva a data antes de
+// o contrato se assinar. A ordem visual vem sempre da RPC; aqui é só
+// verdade cosmética.)
 export const ROTULO_ETAPA = {
   interessada: "O seu pedido",
   orcamento: "O orçamento",
-  contrato: "O contrato",
   sinal: "A data reservada",
+  contrato: "O contrato",
   projecto: "O projecto",
   preparacao: "A preparação",
   grande_dia: "O grande dia",
@@ -52,8 +53,8 @@ export const ROTULO_ETAPA = {
 export const TEXTO_AGORA = {
   interessada: "O seu pedido chegou até nós e já tem um evento com o seu nome.",
   orcamento: "Já tem em mãos os valores da sua mesa. Sem pressa para decidir.",
-  contrato: "Está tudo escrito e assinado, do seu lado e do nosso.",
   sinal: "A data ficou sua. Ninguém mais a leva.",
+  contrato: "Está tudo escrito e assinado, do seu lado e do nosso.",
   projecto: "A sua mesa já está desenhada — cores, louça, flores, o cenário todo.",
   preparacao: "A casa já está em marcha: compras feitas, listas fechadas, tudo a caminho.",
   grande_dia: "É hoje.",
@@ -61,8 +62,8 @@ export const TEXTO_AGORA = {
 
 export const TEXTO_SEGUIR = {
   orcamento: "Estamos a prepará-lo. Assim que estiver pronto, aparece aqui e receberá um aviso.",
-  contrato: "Passamos a escrito o que ficou combinado — chega-lhe aqui para assinar.",
-  sinal: "Com o contrato assinado, o sinal — metade do valor — guarda a data.",
+  sinal: "Está tudo pronto do nosso lado. É o passo que guarda a data.",
+  contrato: "Com a data reservada, passamos a escrito o que ficou combinado — chega-lhe aqui para assinar.",
   projecto: "Vamos desenhar a sua mesa consigo: cores, louça, flores, o cenário todo.",
   preparacao: "A casa põe-se em marcha: compras, listas e a montagem ao detalhe.",
   grande_dia: "Chegamos cedo, pomos a mesa e só saímos quando estiver tudo no lugar.",

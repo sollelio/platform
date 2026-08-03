@@ -205,28 +205,29 @@ export default function InicioTab({
       }
     });
 
-  // b0) Orçamento ACEITE, contrato por assinar — o primeiro degrau do
-  // limbo (071): o negócio fecha-se com a assinatura, e parado aqui não
-  // fecha. Aparece sempre (sem mínimo de dias).
-  vivos
-    .filter((s) => s.fase === "contrato")
-    .forEach((s) => {
-      alertas.push({
-        chave: `contrato-${s.id}`,
-        texto: `${titulo(s)} · aceitou o orçamento, contrato por assinar`,
-        evento: s,
-        peso: 3,
-      });
-    });
-
-  // b) Contrato ASSINADO, sinal por receber — o segundo degrau do limbo:
-  // dinheiro prometido parado. Aparece sempre (sem mínimo de dias).
+  // b0) Orçamento ACEITE, sinal por receber — o primeiro degrau do
+  // limbo (ordem final, 077): é o sinal que reserva a data, e parado
+  // aqui nada está garantido. Aparece sempre (sem mínimo de dias).
   vivos
     .filter((s) => s.fase === "sinal")
     .forEach((s) => {
       alertas.push({
         chave: `sinal-${s.id}`,
-        texto: `${titulo(s)} · contrato assinado, sinal por receber`,
+        texto: `${titulo(s)} · aceitou o orçamento, sinal por receber`,
+        evento: s,
+        peso: 3,
+      });
+    });
+
+  // b) Sinal RECEBIDO, contrato por assinar — o segundo degrau: a data
+  // já é dela, falta passar a escrito. Aparece sempre (sem mínimo de
+  // dias).
+  vivos
+    .filter((s) => s.fase === "contrato")
+    .forEach((s) => {
+      alertas.push({
+        chave: `contrato-${s.id}`,
+        texto: `${titulo(s)} · sinal recebido, contrato por assinar`,
         evento: s,
         peso: 3,
       });

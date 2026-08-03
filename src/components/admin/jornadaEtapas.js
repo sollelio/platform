@@ -23,14 +23,14 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 // vocabulário partilhado, não um componente.
 // ============================================================
 
-// A ordem nova do funil (migração 071): o contrato assina-se ANTES do
-// sinal — a fase `contrato` é o limbo pós-aceite (contrato por assinar)
-// e `sinal` já quer dizer «contrato assinado, 50% por pagar».
+// A ordem final do funil (migração 077): o sinal paga-se ANTES do
+// contrato — a fase `sinal` é o limbo pós-aceite (50% por pagar) e
+// `contrato` já quer dizer «sinal pago, data reservada, por assinar».
 const FASE_ORDEM_JORNADA = [
   "interessado",
   "orcamento",
-  "contrato",
   "sinal",
+  "contrato",
   "cliente",
   "projecto",
 ];
@@ -115,11 +115,13 @@ export function construirEtapas({
   // O gémeo do contrato (03/08/2026, apanhado pelo Hélio): assinado e
   // trancado no documento, mas a fase ainda atrás — a régua mandava
   // «preparar o contrato para assinar» a um contrato já assinado. A
-  // evidência acende a etapa; a fase confirma-se no funil.
+  // evidência acende a etapa; a fase confirma-se no funil (a posição
+  // de 'cliente' na ordem é o limiar: só a partir dela a fase
+  // reconhece a assinatura).
   const contratoAssinadoDoc = (documentos || []).some(
     (d) => d.tipo === "contrato" && d.assinado_em,
   );
-  const contratoAssinadoSemAvanco = contratoAssinadoDoc && idxFase < 3;
+  const contratoAssinadoSemAvanco = contratoAssinadoDoc && idxFase < 4;
 
   const etapas = [
     {
@@ -136,15 +138,9 @@ export function construirEtapas({
       clicavel: true,
     },
     {
-      // Assinado quando a fase já passou o limbo pós-aceite — OU quando
-      // o documento diz que sim (a evidência manda; a fase confirma-se).
-      id: "contrato",
-      rotulo: "Contrato",
-      feito: idxFase >= 3 || contratoAssinadoDoc,
-      sub: contratoAssinadoSemAvanco ? "assinado · por avançar no funil" : null,
-      clicavel: true,
-    },
-    {
+      // Pago quando a fase já é pós-sinal (é o sinal que reserva a
+      // data); saldado sem avanço quando o dinheiro entrou e a fase
+      // ainda não o reconhece.
       id: "sinal",
       rotulo: "Sinal",
       feito: posSinal,
@@ -161,6 +157,15 @@ export function construirEtapas({
             : posSinal && valorSinal > 0
               ? formatarEuros(valorSinal)
               : null,
+    },
+    {
+      // Assinado quando a fase já passou o «por assinar» — OU quando
+      // o documento diz que sim (a evidência manda; a fase confirma-se).
+      id: "contrato",
+      rotulo: "Contrato",
+      feito: idxFase >= 4 || contratoAssinadoDoc,
+      sub: contratoAssinadoSemAvanco ? "assinado · por avançar no funil" : null,
+      clicavel: true,
     },
     {
       id: "projecto",
@@ -201,17 +206,18 @@ export function construirEtapas({
     if (porArrumar)
       return "a fase no funil — o evento já está concluído";
     if (atual.id === "orcamento") return "enviar o orçamento";
-    // O gesto a seguir ao aceite é o CONTRATO (ordem nova): passa-se a
-    // escrito e assina-se antes de o sinal reservar a data.
-    if (atual.id === "contrato") return "preparar o contrato para assinar";
+    // O gesto a seguir ao aceite é o SINAL (ordem final, 077): metade
+    // do valor reserva a data; o contrato passa-se a escrito depois.
     if (atual.id === "sinal")
       return dinheiroACaminho
         ? "registar o sinal"
         : sinalSaldadoSemAvanco
-          ? "confirmar o avanço para Cliente — o sinal está saldado"
+          ? "confirmar o avanço para Contrato — o sinal está saldado"
           : porReceber > 0
-            ? `registar o sinal (${formatarEuros(porReceber)}) — o contrato está assinado`
+            ? `registar o sinal (${formatarEuros(porReceber)}) — é ele que reserva a data`
             : "registar o sinal";
+    if (atual.id === "contrato")
+      return "preparar o contrato para assinar — a data já está reservada";
     if (atual.id === "projecto") return "criar o projecto";
     if (atual.id === "preparacao") return "preparar o evento (Materiais)";
     if (atual.id === "grandeDia")
@@ -275,17 +281,18 @@ export function construirEvidencia({ s, invites, previstos, pagamentos }) {
       evidencia: valor > 0 || statusPos,
       sub: valor > 0 ? formatarEuros(valor) : null,
     },
-    // Sem coluna de fase histórica, Contrato e Projecto não têm prova
-    // possível — ficam honestamente apagados. O sinal pago NÃO prova a
-    // assinatura: a regra «sinal só depois do contrato» sugere-se, nunca
-    // se impõe (e os perdidos antigos vêm do fluxo velho).
-    { id: "contrato", rotulo: "Contrato", evidencia: false },
     {
       id: "sinal",
       rotulo: "Sinal",
       evidencia: recebido > 0 || statusPos,
       sub: recebido > 0 ? `${formatarEuros(recebido)} recebidos` : null,
     },
+    // Sem coluna de fase histórica, Contrato e Projecto não têm prova
+    // possível — ficam honestamente apagados. O sinal pago não prova a
+    // assinatura (na ordem final o sinal vem primeiro, e os perdidos
+    // antigos vêm de fluxos com outra ordem); os documentos não chegam
+    // a esta leitura.
+    { id: "contrato", rotulo: "Contrato", evidencia: false },
     { id: "projecto", rotulo: "Projecto", evidencia: false },
     { id: "preparacao", rotulo: "Preparação", evidencia: statusPos },
     {

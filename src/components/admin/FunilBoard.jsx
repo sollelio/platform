@@ -204,12 +204,13 @@ export default function FunilBoard({
     try {
       const data = await getEventosFunil();
       setEventos(data);
-      // O trilho de preparação, só para os pós-sinal vivos. Falhar aqui
-      // não escurece o funil: os cartões pintam-se sem as marcas.
+      // O trilho de preparação, só para os pós-sinal vivos (contrato
+      // incluído: com o sinal pago a data é dela). Falhar aqui não
+      // escurece o funil: os cartões pintam-se sem as marcas.
       const idsPosSinal = data
         .filter(
           (e) =>
-            ["cliente", "projecto"].includes(e.fase) &&
+            ["contrato", "cliente", "projecto"].includes(e.fase) &&
             e.status !== "Concluído",
         )
         .map((e) => e.id);
@@ -250,8 +251,9 @@ export default function FunilBoard({
   // Clientes para a Em Preparação — a coluna deriva da realidade do
   // trabalho, não de um clique administrativo. Conta o primeiro gesto
   // dela: formulário enviado (ou respondido), projecto em mãos, ou a
-  // ficha de materiais com linhas. O contrato NÃO conta: no fluxo da
-  // 071 já vem assinado de trás — acenderia todos os cartões à nascença.
+  // ficha de materiais com linhas. O contrato NÃO conta: na ordem final
+  // (077) assinar é fechar o negócio, não prepará-lo — e um contrato em
+  // mãos acenderia os cartões da fase contrato à nascença.
   const preparacaoComecou = (ev) => {
     if (!preparacao) return false;
     if (ev.questionario_entregue_em) return true;
@@ -271,7 +273,7 @@ export default function FunilBoard({
   // negócio, não a preparação).
   const trilhoDe = (ev) => {
     if (!preparacao) return null;
-    if (!["cliente", "projecto"].includes(faseDe(ev))) return null;
+    if (!["contrato", "cliente", "projecto"].includes(faseDe(ev))) return null;
     const docs = preparacao.documentos.filter(
       (d) => d.submission_id === ev.id,
     );
@@ -434,9 +436,11 @@ export default function FunilBoard({
   const confirmarSinalRecebido = async (ev, { metodo, data }) => {
     setAtualizando(ev.id);
     try {
-      await updateFase(ev.id, "cliente");
+      // Ordem final (077): o sinal pago reserva a data — a fase
+      // seguinte é 'contrato' (por assinar), não 'cliente'.
+      await updateFase(ev.id, "contrato");
       setEventos((prev) =>
-        prev.map((e) => (e.id === ev.id ? { ...e, fase: "cliente" } : e)),
+        prev.map((e) => (e.id === ev.id ? { ...e, fase: "contrato" } : e)),
       );
       try {
         const registo = await registarSinalDoFunil(
@@ -587,12 +591,13 @@ export default function FunilBoard({
           atravessa-o para a terceira (é só o status a mudar). O € vive
           nos cabeçalhos — garantido total = Clientes + Em Preparação. */}
       {(() => {
-        // Ordem nova (071): o contrato é PRÉ-sinal — o limbo pós-aceite,
-        // com o contrato por assinar — e por isso vive na coluna
-        // Interessados (em negociação). Pós-sinal ficam só cliente e
-        // projecto: é o sinal pago que garante a data e o dinheiro.
-        const FASES_ESQ = ["interessado", "orcamento", "contrato", "sinal"];
-        const FASES_DIR = ["cliente", "projecto"];
+        // Ordem final (077): a fase 'sinal' é o limbo pós-aceite (50%
+        // por pagar) e vive na coluna Interessados (em negociação).
+        // Pós-sinal ficam contrato, cliente e projecto: é o sinal pago
+        // que garante a data e o dinheiro — o contrato por assinar já
+        // é um negócio garantido.
+        const FASES_ESQ = ["interessado", "orcamento", "sinal"];
+        const FASES_DIR = ["contrato", "cliente", "projecto"];
         const ordemFase = (f) => FASES_BOARD.indexOf(f);
         const ordenar = (lista) =>
           [...lista].sort((a, b) => {
@@ -723,7 +728,7 @@ export default function FunilBoard({
                   onPedirAvancoSemValor={() =>
                     setConfirmandoAvancoSemValor(ev.id)
                   }
-                  onConfirmarAvancoSemValor={() => mudarFase(ev, "cliente")}
+                  onConfirmarAvancoSemValor={() => mudarFase(ev, "contrato")}
                   onCancelarAvancoSemValor={() =>
                     setConfirmandoAvancoSemValor(null)
                   }
@@ -1237,7 +1242,10 @@ function CardEvento({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onRecuperarPara("cliente", {});
+                // A coluna Clientes, pela porta honesta da ordem final:
+                // o dinheiro prova o sinal pago (fase 'contrato'); a
+                // assinatura, se existir, confirma-se depois no funil.
+                onRecuperarPara("contrato", {});
               }}
               disabled={aAtualizar}
               style={{

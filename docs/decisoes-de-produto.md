@@ -614,6 +614,30 @@ Decisão da Nádia, trazida pelo Hélio. O fluxo passa a ser:
   entrega e «Ver respostas». Levantado pelo Hélio ao estranhar a
   pendência sem formulário criado.
 
+## O sinal antes do contrato — a ordem FINAL (03/08/2026)
+
+A Nádia reviu a decisão de 02/08 (que pusera o contrato antes do sinal).
+A ordem que fica, migração **077**:
+**interessado → orçamento → [Aceite] → sinal (50%, reserva a data) →
+[Sinal recebido] → contrato (por assinar) → [assinado] → cliente →
+projecto (terminal)**.
+
+- **03/08/2026 — Semântica final das fases:** `sinal` = aceite, 50% por
+  pagar (o limbo pós-aceite); `contrato` = sinal pago (data reservada),
+  contrato por assinar; `cliente` = contrato assinado, fechado por
+  inteiro. **Pós-sinal (data garantida) = contrato · cliente ·
+  projecto.** O aviso «sinal sem contrato assinado» dos Pagamentos
+  morre — no desenho novo o sinal vem primeiro por definição.
+- **03/08/2026 — A sincronização (075) re-aponta-se:** aceite → ≥ sinal;
+  sinal saldado → ≥ contrato; assinatura (código ou papel) → ≥ cliente;
+  publicar orçamento → ≥ orcamento. As três guardas mantêm-se (nunca
+  recua, perdidos intocados, falhar o avanço nunca falha o acto).
+- **03/08/2026 — Migração de dados da 077:** fase `contrato` da 071
+  (aceite, por assinar, sem sinal) → `sinal`; fase `cliente` sem
+  assinatura e com evento por vir → `contrato`; o resto fica. Na jornada
+  do portal o contrato infere-se só do carimbo ou da fase `cliente` —
+  nunca de `projecto` (legados).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

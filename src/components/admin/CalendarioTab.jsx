@@ -39,10 +39,11 @@ const RESERVA_COR = { bg: "#FEF2F2", border: "#DC2626", texto: "#B91C1C" };
 
 // Fases comerciais ainda EM NEGOCIAÇÃO — na Agenda aparecem provisórias
 // (tracejadas, como as reservas): o dia está prometido, não vendido.
-// Desde a 071 o fecho tem dois degraus (contrato por assinar → sinal por
-// pagar); só do sinal PAGO em diante (cliente/projecto) pinta sólido.
-// "perdido" não ocupa dias.
-const FASES_EM_NEGOCIACAO = ["interessado", "orcamento", "contrato", "sinal"];
+// Na ordem final (077) o sinal reserva a data logo a seguir ao aceite;
+// do sinal PAGO em diante (contrato/cliente/projecto) pinta sólido —
+// o contrato por assinar já é uma data garantida. "perdido" não ocupa
+// dias.
+const FASES_EM_NEGOCIACAO = ["interessado", "orcamento", "sinal"];
 const emNegociacao = (s) => FASES_EM_NEGOCIACAO.includes(s.fase);
 
 // Cores de um evento na Agenda — a regra COMBINADA (comercial +

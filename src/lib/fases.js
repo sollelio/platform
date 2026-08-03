@@ -30,7 +30,8 @@ export const FASE_LABEL = {
 // Fases PÓS-SINAL (a data está garantida — o negócio é dela). A mesma
 // lista canónica da Agenda, dos alertas do Início, da conferência da
 // Logística, das lacunas de formulário e da etapa 7 da Jornada do portal.
-// O contrato SAIU desta lista (decisão da dona do negócio, migração 071):
-// no fluxo novo assina-se ANTES do sinal — a fase `contrato` é o limbo
-// pós-aceite, com o contrato por assinar, e portanto PRÉ-sinal.
-export const FASES_POS_SINAL = ["cliente", "projecto"];
+// O contrato VOLTOU a esta lista (decisão final da dona do negócio,
+// migração 077): o sinal paga-se logo a seguir ao aceite e é ELE que
+// reserva a data — a fase `contrato` quer dizer «sinal pago, contrato
+// por assinar», e portanto já é PÓS-sinal.
+export const FASES_POS_SINAL = ["contrato", "cliente", "projecto"];

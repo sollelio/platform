@@ -19,14 +19,21 @@ export function comporNovidades(dados) {
   const m = dados?.marcos_datados || {};
   const novo = (iso) => desde !== null && iso && new Date(iso).getTime() > desde;
 
-  // A ordem espelha a jornada nova (071): orçamento · contrato · sinal ·
-  // projecto — o contrato assina-se antes de o sinal reservar a data.
+  // A ordem espelha a jornada final (077): orçamento · sinal · contrato ·
+  // projecto — o sinal reserva a data antes de o contrato se assinar.
   const novidades = [];
   if (novo(m.orcamento)) {
     novidades.push({
       chave: "orcamento",
       titulo: "O orçamento chegou",
       corpo: "Já pode vê-lo, com os valores da sua mesa. Responda quando quiser.",
+    });
+  }
+  if (novo(m.sinal)) {
+    novidades.push({
+      chave: "sinal",
+      titulo: "A data ficou reservada",
+      corpo: "Recebemos o sinal. Ninguém mais leva este dia.",
     });
   }
   // As PUBLICAÇÕES (073): o documento chegou às mãos dela — que é a
@@ -44,13 +51,6 @@ export function comporNovidades(dados) {
       chave: "contrato",
       titulo: "O contrato ficou assinado",
       corpo: "Está tudo escrito, do seu lado e do nosso.",
-    });
-  }
-  if (novo(m.sinal)) {
-    novidades.push({
-      chave: "sinal",
-      titulo: "A data ficou reservada",
-      corpo: "Recebemos o sinal. Ninguém mais leva este dia.",
     });
   }
   if (novo(pub.proposta) && !novo(m.projecto)) {
@@ -198,23 +198,25 @@ export function comporPendencias(dados, caducou = false) {
   if (caducou) return { pendencias: [], doNossoLado: [] };
 
   // O que não pede acção nenhuma da parte dela.
-  // A ordem espelha a jornada nova: orçamento · contrato · sinal · projecto.
+  // A ordem espelha a jornada final: orçamento · sinal · contrato · projecto.
   if (!m.orcamento && !etapaFeita("orcamento")) {
     doNossoLado.push("O orçamento — estamos a prepará-lo com o que nos contou.");
   }
-  // Com o orçamento aceite, o que vem primeiro é o CONTRATO (071): só
-  // depois de assinado é que o sinal guarda a data. Publicado, deixa de
-  // ser «connosco» — passou a pendência dela, lá em cima.
-  if (resposta && !etapaFeita("sinal")) {
-    const linha =
-      resposta.acto === "pediu_alteracao"
-        ? "O orçamento — pediu uma alteração; estamos a revê-lo."
-        : etapaFeita("contrato")
-          ? "O sinal — com o contrato assinado, falta só o passo que guarda a data."
-          : pub.contrato
-            ? null // publicado: é pendência dela, lá em cima — não «connosco»
-            : "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar.";
-    if (linha) doNossoLado.push(linha);
+  // Com o orçamento aceite, o que vem primeiro é o SINAL (077): é ele
+  // que guarda a data — e paga-se fora do portal, pela conversa; sem
+  // acção aqui, a linha vive honestamente deste lado. Depois do sinal
+  // vem o contrato; publicado, deixa de ser «connosco» — passou a
+  // pendência dela, lá em cima.
+  if (resposta && resposta.acto === "pediu_alteracao" && !etapaFeita("sinal")) {
+    doNossoLado.push("O orçamento — pediu uma alteração; estamos a revê-lo.");
+  } else if (resposta && !etapaFeita("sinal")) {
+    doNossoLado.push(
+      "O sinal — metade do valor guarda a sua data; combinamos o pagamento consigo pela conversa.",
+    );
+  } else if (etapaFeita("sinal") && !etapaFeita("contrato") && !pub.contrato) {
+    doNossoLado.push(
+      "O contrato — passamos a escrito o que ficou combinado; chega-lhe aqui para assinar.",
+    );
   }
   if (!etapaFeita("projecto") && etapaFeita("sinal") && !pub.proposta) {
     doNossoLado.push("O projecto da mesa — está a ser desenhado com o que nos contou.");

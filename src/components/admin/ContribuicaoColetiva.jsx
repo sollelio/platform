@@ -377,9 +377,12 @@ export default function ContribuicaoColetiva({
       .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
     return pago >= Number(sinal.valor) - 0.005;
   }, [previstos, pagamentos]);
+  // Fases pré-sinal (ordem final, 077): com o sinal coberto, o avanço
+  // sugerido — o banner lá em cima na página — leva à fase 'contrato'
+  // (sinal pago ⇒ data reservada, contrato por assinar).
   const sugerirAvanco =
     sinalCoberto &&
-    ["interessado", "orcamento", "contrato", "sinal"].includes(submissao.fase);
+    ["interessado", "orcamento", "sinal"].includes(submissao.fase);
 
   const registar = async () => {
     setErro(null);

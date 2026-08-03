@@ -109,16 +109,16 @@ export async function validarPlano(plano, eventTypes) {
       // da migração 040): estado operacional exige fase pós-sinal ou
       // perdido. Validar aqui põe o erro no plano, legível, em vez de
       // deixar o INSERT rebentar no Postgres a meio da importação.
-      // O contrato SAIU da lista (071): no fluxo novo é PRÉ-sinal — o
-      // limbo pós-aceite, com o contrato por assinar — e um estado
-      // operacional nessa fase seria um par inválido.
+      // O contrato VOLTOU à lista (077): na ordem final o sinal paga-se
+      // antes da assinatura — a fase contrato é «sinal pago, contrato
+      // por assinar», e portanto pós-sinal.
       if (
         ["Em Preparação", "Confirmado", "Concluído"].includes(ev.estado) &&
         FASES_VALIDAS.includes(ev.fase) &&
-        !["cliente", "projecto", "perdido"].includes(ev.fase)
+        !["contrato", "cliente", "projecto", "perdido"].includes(ev.fase)
       ) {
         item.erros.push(
-          `${ref}: o estado "${ev.estado}" exige fase pós-sinal (cliente/projecto) ou perdido — com a fase "${ev.fase}", usa o estado "Recebido" ou omite-o.`,
+          `${ref}: o estado "${ev.estado}" exige fase pós-sinal (contrato/cliente/projecto) ou perdido — com a fase "${ev.fase}", usa o estado "Recebido" ou omite-o.`,
         );
       }
       if (Number.isNaN(ev.valorAcordado)) {

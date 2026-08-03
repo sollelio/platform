@@ -10,16 +10,16 @@ Não é uma lista de ficheiros — é um caminho.
 ambiente que vais testar. O portal abre em `/acompanhar/:token`; o token
 obtém-se no evento, no botão **Acompanhamento**, ao lado do WhatsApp.
 
-> **Adenda 02/08/2026 — o contrato antes do sinal (migração 071).** A
-> ordem do negócio mudou por decisão da Nádia: **orçamento aceite →
-> contrato para assinar → sinal (50%) → data reservada → projecto**. No
-> portal, a jornada mostra o contrato em 3.º e a data reservada em 4.º; o
-> pé do orçamento promete o contrato (não o projecto); os passos §2.3
-> (data reservada) e §5.4/§5.5 (projecto/contrato) continuam válidos mas
-> pela ordem nova — no funil, «Aceite» leva à fase Contrato,
-> «Contrato assinado» à fase Aguarda sinal, «Sinal recebido» à fase
-> Cliente, e o funil termina em Projecto. Registar um sinal sem contrato
-> assinado mostra um aviso (não bloqueia). **Com a 072**, aceitar o
+> **Adenda 03/08/2026 — A ORDEM FINAL: o sinal antes do contrato
+> (migração 077, a rever a 071).** A Nádia fechou a ordem: **orçamento
+> aceite → sinal (50%, reserva a data) → contrato para assinar →
+> assinado → cliente → projecto**. No portal, a jornada mostra a data
+> reservada em 3.º e o contrato em 4.º; o pé do orçamento promete o
+> sinal e depois o contrato; no funil, «Aceite» leva à fase Aguarda
+> sinal, «Sinal recebido» à fase Contrato, «Contrato assinado» à fase
+> Cliente, e o funil termina em Projecto. O aviso «sinal sem contrato
+> assinado» deixou de existir — o sinal primeiro é o desenho. A
+> sincronização automática das fases (075) re-aponta-se em conformidade. **Com a 072**, aceitar o
 > orçamento, aprovar o projecto e assinar o contrato digital passam a
 > tocar na Caixa de Entrada (tipos `orcamento_aceite`,
 > `projecto_aprovado`, `contrato_assinado`) — e o toast + a Caixa vivem

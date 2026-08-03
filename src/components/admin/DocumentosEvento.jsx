@@ -46,14 +46,14 @@ const POR_FAZER = { assinado: "assinar", aceite: "aceitar" };
 
 // Que documento é o próximo gesto, a partir da fase do funil — o mesmo
 // eixo que a Jornada mostra, para as duas peças nunca discordarem.
-// Desde a 071 o contrato vem ANTES do sinal: aceite o orçamento (fase
-// contrato), o gesto é o contrato; assinado (fase sinal), o contrato é o
-// documento em jogo até o sinal entrar; com a data reservada, o projecto.
+// Ordem final (077): o orçamento é o documento em jogo até o sinal
+// entrar (fase sinal = aceite, 50% por pagar); com o sinal pago (fase
+// contrato) o gesto é o contrato; assinado (cliente), o projecto.
 const DOC_DA_FASE = {
   interessado: "orcamento",
   orcamento: "orcamento",
+  sinal: "orcamento",
   contrato: "contrato",
-  sinal: "contrato",
   cliente: "proposta",
   projecto: "proposta",
 };

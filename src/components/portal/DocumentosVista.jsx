@@ -536,11 +536,11 @@ function Lista({ token, meta }) {
           ? "Um deles espera por si."
           : `${aEspera === 2 ? "Dois" : "Três"} esperam por si.`;
 
-  // A história pela ordem nova (071): orçamento aceite → contrato para
-  // assinar → o sinal reserva a data → o projecto desenha-se com ela sua.
+  // A história pela ordem final (077): orçamento aceite → o sinal
+  // reserva a data → contrato para assinar → o projecto desenha-se.
   const AINDA_NAO = {
     orcamento: "Ainda não existe. Estamos a prepará-lo com o que nos contou.",
-    contrato: "Ainda não existe. Segue para si depois de o orçamento estar aceite.",
+    contrato: "Ainda não existe. Segue para si depois de o sinal reservar a data.",
     proposta: "Ainda não existe. Desenhamo-lo com a data já reservada.",
   };
     // O orçamento ACEITA-SE, o projecto APROVA-SE, o contrato ASSINA-SE —
@@ -558,7 +558,8 @@ function Lista({ token, meta }) {
     <div style={{ padding: "34px 26px 32px" }}>
       <CabecalhoDivisao rotulo="Os seus documentos" frase={frase} />
 
-      {/* Orçamento · Contrato · Projecto — a ordem em que chegam (071). */}
+      {/* Orçamento · Contrato · Projecto — a ordem em que chegam (o
+          sinal, que vive entre os dois primeiros, não é documento). */}
       <div style={{ marginTop: "26px", display: "flex", flexDirection: "column", gap: "14px" }}>
         {["orcamento", "contrato", "proposta"].map((tipo) => {
           const d = porTipo(tipo);
@@ -1625,19 +1626,21 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           </div>
         )}
 
-        {/* A ordem nova (071): aceite → contrato para assinar → o sinal
-            guarda a data → projecto → preparação. Cada ramo aponta o
-            passo verdadeiro que se segue ao acto acabado de registar. */}
+        {/* A ordem final (077): aceite → o sinal guarda a data →
+            contrato para assinar → projecto → preparação. Cada ramo
+            aponta o passo verdadeiro que se segue ao acto acabado de
+            registar — à assinatura já não se promete o sinal: a data
+            ficou reservada por ele antes de o contrato se assinar. */}
         <div style={{ marginTop: "30px", paddingTop: "19px", borderTop: "1px solid #F0E6D0" }}>
           <p style={overline("#9B9B9B", "0.22em", "9px")}>O que vem a seguir</p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
             {ehAssinatura
-              ? "O sinal — metade do valor. Com o contrato assinado, é ele que guarda a sua data; a partir daí, o caminho conta-se aqui."
+              ? "O projecto da sua mesa. A data já estava reservada pelo sinal; com o contrato fechado, desenhamos o cenário com o que nos contou — e chega-lhe aqui para aprovar."
               : ehAlteracao
                 ? "A Do Luxo à Mesa lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui."
                 : tipo === "proposta"
                   ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
-                  : "O contrato. Passamos a escrito o que ficou combinado — chega-lhe aqui para assinar, e com o sinal a data fica sua."}
+                  : "O sinal — metade do valor reserva a sua data; combinamos o pagamento consigo pela conversa. Depois, o contrato chega-lhe aqui para assinar."}
           </p>
         </div>
 
@@ -1865,7 +1868,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
               {tipo === "proposta"
                 ? `Aprova a versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}. É por ela que compramos as flores e montamos no dia.`
-                : `Responde à versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que tem aqui em cima. Se aceitar, o contrato chega-lhe aqui a seguir — e com o sinal, a data fica sua.`}
+                : `Responde à versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))} — a que tem aqui em cima. Se aceitar, o sinal — metade do valor — reserva a sua data; e o contrato chega-lhe aqui para assinar.`}
             </p>
 
             {/* O aceite também é um acto com nome escrito. */}

@@ -10,7 +10,6 @@ import {
 } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
 import { marcarPagamentoFinal, updateFase } from "../../lib/clientes";
-import { documentosDoEvento } from "../../lib/documentos";
 import { Icone } from "./Navegacao";
 import { Convite, useContagemAnimada } from "./acabamento";
 import ContribuicaoColetiva from "./ContribuicaoColetiva";
@@ -534,13 +533,6 @@ export default function PagamentosEvento({
   // muda a contagem de hooks entre renders e rebenta o componente.
   const [aAvancarFase, setAAvancarFase] = useState(false);
   const [erroAvanco, setErroAvanco] = useState(null);
-  // A regra da casa (071): sinal só depois do contrato assinado. Quando
-  // um registo de SINAL apanha o contrato por assinar, o pedido fica
-  // aqui parado ({ previstoId, dados }) enquanto a Nádia decide inline —
-  // sugere-se, NUNCA se bloqueia.
-  const [avisoSinalSemContrato, setAvisoSinalSemContrato] = useState(null);
-  const [aRegistarMesmo, setARegistarMesmo] = useState(false);
-  const [erroAvisoSinal, setErroAvisoSinal] = useState(null);
   const blocoRefs = useRef({});
 
   useEffect(() => {
@@ -665,20 +657,21 @@ export default function PagamentosEvento({
   // executa» ficou para os JUÍZOS comerciais; um facto registado com
   // trilho reflecte-se sem segunda cerimónia. Este banner continua como
   // REDE: pagamentos que saldaram por outra via (importação, avulsos
-  // antigos) ainda encontram aqui a saída de sempre.
+  // antigos) ainda encontram aqui a saída de sempre. O destino é a
+  // fase 'contrato' (ordem final, 077): sinal pago = data reservada,
+  // contrato por assinar.
   const previstoSinal = previstos.find((p) => p.ordem === 1);
   const sinalSaldado =
     !!previstoSinal &&
     saldoSinalPendente(submissao.id, previstos, pagamentos) <= 0;
   const sugerirAvancoFase =
-    sinalSaldado &&
-    ["orcamento", "contrato", "sinal"].includes(submissao.fase);
+    sinalSaldado && ["orcamento", "sinal"].includes(submissao.fase);
 
-  const avancarParaCliente = async () => {
+  const avancarParaContrato = async () => {
     setAAvancarFase(true);
     setErroAvanco(null);
     try {
-      const atualizada = await updateFase(submissao.id, "cliente");
+      const atualizada = await updateFase(submissao.id, "contrato");
       // Só o par que mudou: a linha crua inteira esmagaria as colunas
       // que o normalizeSubmission preencheu na leitura (família
       // merge-linha-crua, anotada no relatório).
@@ -695,32 +688,10 @@ export default function PagamentosEvento({
     setAAvancarFase(false);
   };
 
-  // Ao registar um SINAL, espreita-se o contrato primeiro (busca pontual
-  // a `documentos` — assinado_em é o carimbo do backoffice, trancado_em o
-  // do portal): a regra da casa (071) é sinal só depois da assinatura.
-  // Por assinar, o pedido pára num aviso inline com confirmação — a
-  // decisão é dela, nunca do código. Se a verificação falhar (rede), o
-  // registo segue sem aviso: acusar com dados que não se leram é pior
-  // do que não avisar.
-  const guardarPagamento = async (previstoId, origem, dados, opcoes = {}) => {
-    if (origem === "sinal" && !opcoes.aceitaSemContrato) {
-      let assinado = true;
-      try {
-        const docs = await documentosDoEvento(submissao.id);
-        const contrato = docs.find((d) => d.tipo === "contrato");
-        assinado = !!(contrato && (contrato.assinado_em || contrato.trancado_em));
-      } catch (e) {
-        console.warn(
-          "Não foi possível verificar o contrato — o registo segue sem aviso:",
-          e,
-        );
-      }
-      if (!assinado) {
-        setErroAvisoSinal(null);
-        setAvisoSinalSemContrato({ previstoId, dados });
-        return;
-      }
-    }
+  // No fluxo final (077) o sinal ANTES do contrato é o desenho, não a
+  // excepção — o aviso «sinal sem contrato assinado» morreu com a
+  // ordem antiga. Regista-se, e pronto.
+  const guardarPagamento = async (previstoId, origem, dados) => {
     const registo = await registarPagamento(submissao.id, {
       previstoId: previstoId === "avulso" ? null : previstoId,
       valor: dados.valor,
@@ -733,54 +704,26 @@ export default function PagamentosEvento({
     const novaLista = [...pagamentos, registo];
     if (onPagamentos) onPagamentos(novaLista);
     setFormularioAberto(null);
-    setAvisoSinalSemContrato(null);
-    setErroAvisoSinal(null);
     setNovoId(registo.id);
     setTimeout(() => setNovoId(null), 1300);
     await sincronizarPagamentoFinal(novaLista);
     // 075 · o funil acompanha o facto: com o sinal SALDADO por este
-    // registo, a fase avança sozinha para Cliente. Falhar aqui nunca
-    // falha o registo — o banner de sugestão fica como rede.
+    // registo, a fase avança sozinha para Contrato (077: sinal pago =
+    // data reservada, contrato por assinar). Falhar aqui nunca falha o
+    // registo — o banner de sugestão fica como rede.
     if (
       previstoSinal &&
       saldoSinalPendente(submissao.id, previstos, novaLista) <= 0 &&
-      ["interessado", "orcamento", "contrato", "sinal"].includes(submissao.fase)
+      ["interessado", "orcamento", "sinal"].includes(submissao.fase)
     ) {
       try {
-        const atualizada = await updateFase(submissao.id, "cliente");
+        const atualizada = await updateFase(submissao.id, "contrato");
         if (onSaved)
           onSaved({ fase: atualizada.fase, status: atualizada.status });
       } catch (e) {
         console.warn("Sinal saldado; a fase fica para o banner:", e?.message || e);
       }
     }
-  };
-
-  // «Registar na mesma» — a confirmação do aviso: o mesmo caminho, agora
-  // com o consentimento explícito dela.
-  const registarSinalNaMesma = async () => {
-    if (!avisoSinalSemContrato) return;
-    setARegistarMesmo(true);
-    setErroAvisoSinal(null);
-    try {
-      await guardarPagamento(
-        avisoSinalSemContrato.previstoId,
-        "sinal",
-        avisoSinalSemContrato.dados,
-        { aceitaSemContrato: true },
-      );
-    } catch (e) {
-      console.error(e);
-      setErroAvisoSinal(
-        e.message || "Não foi possível registar. Tenta novamente.",
-      );
-    }
-    setARegistarMesmo(false);
-  };
-
-  const deixarSinalSemContrato = () => {
-    setAvisoSinalSemContrato(null);
-    setErroAvisoSinal(null);
   };
 
   const fecharConfirmacaoApagar = () => {
@@ -869,10 +812,10 @@ export default function PagamentosEvento({
             }}
           >
             🥂 O sinal está saldado — este evento ainda conta como «em
-            negociação» no funil. Avançar para <strong>Cliente</strong>?
+            negociação» no funil. Avançar para <strong>Contrato</strong>?
           </p>
           <button
-            onClick={avancarParaCliente}
+            onClick={avancarParaContrato}
             disabled={aAvancarFase}
             className="acao acao--ouro"
             style={{
@@ -882,7 +825,7 @@ export default function PagamentosEvento({
               fontWeight: "600",
             }}
           >
-            {aAvancarFase ? "A avançar..." : "Avançar para Cliente"}
+            {aAvancarFase ? "A avançar..." : "Avançar para Contrato"}
           </button>
           {erroAvanco && (
             <p
@@ -912,83 +855,14 @@ export default function PagamentosEvento({
             pagamentosDoPrevisto={pagamentos.filter((p) => p.previsto_id === previsto.id)}
             formularioAberto={formularioAberto}
             novoId={novoId}
-            onAbrirFormulario={(id) => {
-              deixarSinalSemContrato();
-              setFormularioAberto(id);
-            }}
-            onFecharFormulario={() => {
-              deixarSinalSemContrato();
-              setFormularioAberto(null);
-            }}
+            onAbrirFormulario={(id) => setFormularioAberto(id)}
+            onFecharFormulario={() => setFormularioAberto(null)}
             onGuardarPagamento={(previstoId, dados) => {
               const origem = previsto.ordem === 1 ? "sinal" : "remanescente";
               return guardarPagamento(previstoId, origem, dados);
             }}
             onPedirApagar={setPagamentoParaApagar}
           />
-          {/* O aviso da regra da casa, no lugar da parcela do sinal:
-              âmbar, com confirmação inline — sugere, nunca bloqueia. */}
-          {avisoSinalSemContrato?.previstoId === previsto.id && (
-            <div
-              style={{
-                backgroundColor: "#FFFBEB",
-                border: "1px solid #FDE68A",
-                borderRadius: "10px",
-                padding: "12px 14px",
-                margin: "8px 0 10px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "12.5px",
-                  color: "#92400E",
-                  margin: "0 0 10px",
-                  lineHeight: 1.55,
-                }}
-              >
-                O contrato ainda não está assinado — a regra da casa é
-                sinal só depois da assinatura.
-              </p>
-              {erroAvisoSinal && (
-                <p
-                  style={{
-                    fontSize: "11.5px",
-                    color: "#B91C1C",
-                    margin: "0 0 10px",
-                  }}
-                >
-                  {erroAvisoSinal}
-                </p>
-              )}
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  onClick={registarSinalNaMesma}
-                  disabled={aRegistarMesmo}
-                  className="acao acao--ouro"
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: "999px",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                  }}
-                >
-                  {aRegistarMesmo ? "A registar..." : "Registar na mesma"}
-                </button>
-                <button
-                  onClick={deixarSinalSemContrato}
-                  disabled={aRegistarMesmo}
-                  className="acao acao--neutra"
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: "999px",
-                    fontSize: "12px",
-                  }}
-                >
-                  Deixar
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       ))}
 
