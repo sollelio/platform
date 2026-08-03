@@ -869,11 +869,16 @@ function ContratoDocumento({
             em branco, como sempre esteve. A IMPRESSÃO sai igual: é o
             mesmo render (só o gesto de assinar pela casa é no-print). */}
         <div style={{ flex: 1, textAlign: "center" }}>
-          {assinaturaCliente && (
-            <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
-              {assinaturaCliente.nome}
-            </p>
-          )}
+          {/* A faixa do nome reserva-se SEMPRE, assinada ou não: sem isto,
+              a coluna assinada crescia e empurrava a sua linha para baixo
+              da outra — duas linhas de assinatura a alturas diferentes. */}
+          <div style={{ minHeight: "24px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            {assinaturaCliente && (
+              <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+                {assinaturaCliente.nome}
+              </p>
+            )}
+          </div>
           <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: "6px" }}>
             1.º Contraente
           </div>
@@ -887,11 +892,13 @@ function ContratoDocumento({
           )}
         </div>
         <div style={{ flex: 1, textAlign: "center" }}>
-          {assinaturaCasa && (
-            <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
-              {assinaturaCasa.nome}
-            </p>
-          )}
+          <div style={{ minHeight: "24px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            {assinaturaCasa && (
+              <p style={{ margin: "0 0 6px 0", fontStyle: "italic" }}>
+                {assinaturaCasa.nome}
+              </p>
+            )}
+          </div>
           <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: "6px" }}>
             2.ª Contraente
           </div>
