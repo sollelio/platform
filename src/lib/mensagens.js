@@ -85,7 +85,7 @@ const euros = (v) => {
 };
 
 // Placeholders suportados (documentados na UI):
-//   {NOME} {TIPO_EVENTO} {DATA} {VALOR} {SINAL} {LINK_INTERESSE}
+//   {NOME} {TIPO_EVENTO} {DATA} {VALOR} {SINAL} {LINK_INTERESSE} {LINK_FOLHA}
 // Sem dados (ou sem evento), ficam "___" — a Nádia vê logo o que
 // falta preencher à mão antes de enviar.
 export const resolverMensagem = (corpo, dados = null) => {
@@ -102,6 +102,9 @@ export const resolverMensagem = (corpo, dados = null) => {
     "{VALOR}": temValor ? euros(valorNum) : "___",
     "{SINAL}": temValor ? euros(valorNum / 2) : "___",
     "{LINK_INTERESSE}": `${window.location.origin}/interesse`,
+    // O endereço da folha de um comunicado (fase 2) — vem nos dados,
+    // porque cada folha tem o seu; sem ele fica «___» como os restantes.
+    "{LINK_FOLHA}": dados?.linkFolha || "___",
   };
   return Object.entries(mapa).reduce(
     (texto, [chave, valor]) => texto.split(chave).join(valor),

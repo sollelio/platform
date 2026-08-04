@@ -7,6 +7,8 @@
 // e a composição de conteúdo em `conteudo.js`.
 // ============================================================
 
+import { linkWhatsAppCasa } from "../../lib/casa";
+
 // ---------- Datas ----------
 //
 // Meses e dias escritos à mão, em vez de toLocaleDateString: a casa usa
@@ -75,10 +77,12 @@ export const ehCodigoDeCor = (v) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(
 export const naoVazio = (v) => typeof v === "string" && v.trim() !== "";
 
 // ---------- Contacto da casa ----------
-// O número do negócio — o mesmo por onde a casa já fala com as clientes.
-// A mensagem pré-escrita dá contexto a quem chega de uma ligação terminada.
-export const WHATSAPP_URL =
-  "https://wa.me/351927177190?text=Ol%C3%A1%21%20Escrevo%20a%20partir%20da%20p%C3%A1gina%20de%20acompanhamento%20do%20meu%20evento.";
+// O número do negócio vive em lib/casa.js — um sítio só, partilhado com
+// a expedição dos comunicados; aqui só se compõe o link. A mensagem
+// pré-escrita dá contexto a quem chega de uma ligação terminada.
+export const WHATSAPP_URL = linkWhatsAppCasa(
+  "Olá! Escrevo a partir da página de acompanhamento do meu evento.",
+);
 export const SITE_URL = "https://doluxoamesa.pt";
 
 // ---------- Dinheiro à portuguesa ----------
