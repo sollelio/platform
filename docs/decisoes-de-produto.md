@@ -742,6 +742,41 @@ destinatários e os modelos são fase 2/3 e não se anteciparam.
   como invoker e falhava sem ele) e search_path do pgcrypto (precedente
   da 049).
 
+## Comunicados — fase 2, o público e a expedição (04/08/2026)
+
+Migração **080** (número confirmado livre). As decisões que moldam a fase:
+
+- **04/08/2026 — A vista do recorte nasce fechada à chave** (a correcção
+  que o aviso do Hélio previa, noutro sítio): no Supabase o anon ganha
+  SELECT por omissão em vistas novas, e uma vista corre com os direitos
+  do dono — por cima do RLS. `v_destinatarios_possiveis` levaria nomes e
+  telefones ao anon. Ficou `security_invoker` + revoke, defesa dupla.
+- **04/08/2026 — O email sai das folhas** (correcção do dono ao desenho):
+  nenhuma das treze clientes usa email; o contacto é o WhatsApp da casa.
+  O número passou a viver num módulo só (`src/lib/casa.js`) e o portal
+  lê-o de lá — acabou o número cravado em dois sítios.
+- **04/08/2026 — Tokens na gramática da casa:** `{NOME}` e `{LINK_FOLHA}`
+  (nunca `{nome}`/`{endereço}` do desenho); o resolvedor é o MESMO do
+  `mensagens_tipo` — uma gramática, um resolvedor. Os botões falam
+  português humano («+ nome», «+ endereço»); o que inserem é o token.
+- **04/08/2026 — Blocos tipados só onde o conteúdo não chega:** um bloco
+  pode trazer `tipo` (imagem, chamada) e o tipo manda; sem tipo, deriva
+  como na fase 1. A armadilha da saudação (vírgula em falta cala a
+  cerimónia) fica REGISTADA em comentário no comporFolha, por decisão —
+  não se resolve agora.
+- **04/08/2026 — Cliente/interessado é a definição do funil:** cliente =
+  fases pós-sinal; interessado = antes disso. O código já respondia
+  assim e coincide com a proposta do dono — confirmado, não inventado.
+- **04/08/2026 — A recusa de promoções só filtra recortes por CONTACTOS**
+  — um aviso operacional a quem tem evento marcado nunca é promoção.
+- **04/08/2026 — Nada se marca sozinho na expedição:** dois carimbos
+  (abriu-se a conversa / a mensagem saiu), regresso por visibilitychange,
+  estado na tabela (sobrevive a fechar a app). «Enviado» = «a conversa
+  abriu-se e a mensagem saiu» — a frase da honestidade é parte do ecrã.
+- **04/08/2026 — «Começar outro envio» (do desenho do Fim) não entrou:**
+  é reutilização de recortes, fase 3. O fecho guarda a linha de ouro:
+  «Mais leituras do que envios é bom sinal: alguém partilhou.»
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

@@ -240,6 +240,9 @@ regra desfaz-se.
 | O que a casa diz a muitos de uma vez | **comunicado** | **comunicado** | `comunicados` |
 | A página do comunicado, com endereço próprio | **a folha** | **folha** | `/comunicado/:token` |
 | Tirar uma folha pública do ar | — | **retirar** | `retirado_em` |
+| O temperamento da folha (aviso ou oferta) | — | **registo** | `comunicados.registo` |
+| Fixar os nomes de quem recebe | — | **congelar** | `congelado_em` |
+| Fazer o comunicado chegar à lista | — | **expedição** | `comunicado_destinatarios` |
 
 Repara na última coluna: quase tudo **fica como está**. O trabalho de renomear é sobretudo
 nos rótulos que se leem — menu, slug, e algumas frases nas páginas. Baixo risco no código.
@@ -423,6 +426,25 @@ escrevível). As leituras contam-se **no total**, nunca por pessoa — a interfa
 acesso pessoal (o portal do cliente). Actos diferentes sobre objectos diferentes ficam com
 palavras diferentes. Retirar é reversível: voltar a publicar devolve o **mesmo** endereço,
 porque o endereço é a identidade da folha.
+
+### Registo / congelar / expedição (04/08/2026 — fase 2)
+**Registo** é o temperamento da folha: **aviso** (sóbrio, operacional) ou **oferta**
+(desejável, de campanha). Não são duas folhas nem dois componentes — é a mesma folha com duas
+caras, e a palavra evita «tipo», que já faz outros trabalhos (tipo de evento, tipo de bloco).
+
+**Congelar** é fixar os nomes de quem recebe. A lista deixa de seguir a regra que a produziu:
+se entrar um evento novo no recorte, a lista **não muda** — não se mexe debaixo dos pés de quem
+está a meio de enviar. Congelar guarda instantâneos (nome, âncora, número), não referências.
+
+**Expedição** é o acto de fazer o comunicado chegar à lista congelada, conversa a conversa.
+O vocabulário é honesto por desenho: «enviado» quer dizer que a conversa se abriu e ela
+confirmou que a mensagem saiu — não que foi recebida ou lida; as leituras da folha contam-se
+no total, nunca por pessoa. Nada se marca sozinho.
+
+**Cliente / interessado** (a definição do funil, confirmada na fase 2): **cliente** é quem já
+passou o sinal — as fases pós-sinal (`FASES_POS_SINAL`: contrato · cliente · projecto);
+**interessado** é quem tem evento vivo antes disso. É a definição que o código já dava e que
+coincide com a proposta do dono.
 
 ---
 
