@@ -51,6 +51,7 @@ import InvitesList from "../components/admin/InvitesList";
 import InicioTab from "../components/admin/InicioTab";
 import AvaliacoesTab from "../components/admin/AvaliacoesTab";
 import MensagensTab from "../components/admin/MensagensTab";
+import ComunicadosTab from "../components/admin/ComunicadosTab";
 import ImportarTab from "../components/admin/ImportarTab";
 import {
   SidebarNav,
@@ -984,6 +985,9 @@ export default function AdminPage() {
 
         {/* ---- TAB MENSAGENS (biblioteca de mensagens-tipo) ---- */}
         {activeTab === "mensagens" && <MensagensTab />}
+
+        {/* ---- TAB COMUNICADOS (folhas públicas com endereço próprio) ---- */}
+        {activeTab === "comunicados" && <ComunicadosTab />}
 
         {activeTab === "avaliacoes" && <AvaliacoesTab />}
 

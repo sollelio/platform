@@ -24,6 +24,7 @@ export const NAV_GESTAO = [
   { id: "operacional", label: "Logística", icone: "logistica" },
   { id: "convites", label: "Formulários", icone: "formularios" },
   { id: "mensagens", label: "Mensagens", icone: "mensagens" },
+  { id: "comunicados", label: "Comunicados", icone: "comunicados" },
   { id: "dashboard", label: "Dashboard", icone: "dashboard" },
   { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
 ];
@@ -120,6 +121,13 @@ export function Icone({ nome, tamanho = 18 }) {
           {...t}
           d="M12 5c-4.1 0-7.5 2.6-7.5 5.9 0 1.5.7 2.9 1.9 3.9L5.5 18.5l3.7-1.6c.9.3 1.8.4 2.8.4 4.1 0 7.5-2.6 7.5-5.9S16.1 5 12 5z"
         />
+      </>
+    ),
+    // Um megafone — uma folha que se diz a muitos de uma vez.
+    comunicados: (
+      <>
+        <path {...t} d="M4.5 10.2v3.6h3.1l6.6 3.9V6.3l-6.6 3.9z" />
+        <path {...t} d="M17.6 9.6a3.7 3.7 0 010 4.8" />
       </>
     ),
     // Aspas — o que chega desta área são PALAVRAS de quem lá esteve.
@@ -502,7 +510,6 @@ export function SidebarNav({
             ativo={activeTab === item.id}
             onClick={(ev) => onNavegar(item.id, ev)}
             contagem={contagens[item.id]}
-          contagem={contagens[item.id]}
           />
         ))}
         <ItemNav
