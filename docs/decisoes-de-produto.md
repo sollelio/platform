@@ -815,6 +815,37 @@ evento → formulário* :: *molde de comunicado → comunicado*.
   Comunicados, em dois separadores internos (Feitos · Moldes). Doze é o
   que há e doze é o que fica.
 
+## Comunicados — fase 4, a costura e os enxertos (04/08/2026)
+
+A adenda (semear o primeiro comunicado) ficou fora da cadeia de
+migrações, de propósito: conteúdo de um negócio nunca vive no esquema que
+todos os negócios correm (Celebra). E semeia só a folha, por publicar —
+os gestos são o produto.
+
+- **04/08/2026 — A migração 082 foi escrita com o corpo à frente** (a
+  lição das quatro correcções): cópia fiel da dlm_portal_ver da 078 + a
+  chave 'comunicados' {titulo, token, enviado_em} — só folhas enviadas
+  àquele evento e ainda no ar; retirada ou expirada sai da projecção em
+  vez de virar ligação morta. Corre depois da 080 e da 081.
+- **04/08/2026 — Os comunicados ficam FORA do portão do sinal:** a folha
+  é pública e reencaminhável, e já foi entregue à mão na conversa —
+  escondê-la no portal não protege nada e faz o portal mentir sobre o
+  que ela já tem.
+- **04/08/2026 — O portal nunca chama a dlm_comunicado_ver:** contaria
+  uma leitura por visita ao portal. O portal mostra a ligação; a leitura
+  conta-se quando ela abre a folha, que é o que a leitura significa.
+- **04/08/2026 — A secção do portal transfere a permissão por palavras,
+  nunca por botão:** a folha é para partilhar (o espaço, a wedding
+  planner) e o endereço do portal é só dela — as duas linhas ditas, e
+  nenhum «partilhe» ao lado do endereço do portal.
+- **04/08/2026 — «Enviado», nunca «recebido»** — também na ficha do
+  evento e no portal: o carimbo diz que a conversa se abriu e a mensagem
+  saiu, não que chegou nem que foi lida.
+- **04/08/2026 — A costura da marca é costura, não camada:** um objecto
+  em src/lib/casa.js, lido de um sítio só; paleta e tipografias ficam
+  fora (são o sistema de desenho, não a identidade do negócio). O dia do
+  segundo negócio, a camada entra ali sem reescrever nada.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
