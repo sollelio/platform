@@ -861,6 +861,31 @@ um «Sem título, por enquanto» na lista, sem remédio.
   não só no ecrã. Uma folha lida ou expedida é registo do que
   aconteceu: o gesto público para essas é RETIRAR, nunca apagar.
 
+## A ponte pedido→formulário na ficha do evento (04/08/2026)
+
+O Hélio apanhou no teste real o que o glossário já condenava: o painel
+de novo formulário nascia debaixo do cartão, com um bloco «DADOS DA
+CAPTAÇÃO» e botões Copiar — «captação» é palavra abandonada, e o
+transporte manual é a app a pedir à Nádia o trabalho do código.
+
+- **04/08/2026 — Mockups antes de UI, como manda a convenção:** duas
+  direcções desenhadas (A «a bancada da ponte» / B «a ponte à vista»);
+  o Hélio escolheu **A + o momento da B** — a bancada como estrutura
+  (sobreposição de ecrã inteiro, o compositor da casa), o teatro só na
+  ENTRADA (a cascata dos campos a assentar + a banda «A ponte assentou
+  N dados do pedido.» que se dissolve), uma vez por abertura.
+- **04/08/2026 — A ponte é código, não cópia:** os dados do pedido
+  fluem sozinhos para os campos correspondentes (mapa explícito, nunca
+  adivinha de string; escolhas só se o valor existir nas opções); o que
+  não aterra fica no cartão «O PEDIDO», à vista, sem um único botão
+  Copiar. A palavra «captação» não aparece no ecrã novo.
+- **04/08/2026 — A proveniência é do valor, não do campo:** o
+  distintivo «do pedido» sai se ela alterar o valor à mão.
+- **04/08/2026 — Âmbito:** a ficha do evento. O painel antigo continua
+  no separador Formulários (cliente novo, sem evento — não há ponte
+  possível); a sua vez chega com a aba «O pedido» (projecto próprio do
+  glossário).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
