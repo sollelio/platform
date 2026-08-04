@@ -130,6 +130,31 @@ export function comporNovidades(dados) {
     });
   }
 
+  // ── As folhas da casa (082) ──────────────────────────────────────────
+  // Um comunicado enviado depois da última visita é novidade como qualquer
+  // marco — o mesmo novo(iso), nenhuma maquinaria nova. Uma entrada só,
+  // mesmo com várias folhas: a chave é a key dos cartões e tem de ser
+  // única. E sem ligação, de propósito: ao contrário dos documentos, a
+  // folha não vive atrás de uma porta — a divisão «As folhas da casa»,
+  // com o «Ler a folha», está mais abaixo NESTA página, e o corpo diz
+  // onde. Antes de a 082 correr, `comunicados` nem vem na projecção e o
+  // filtro sobre a lista vazia cala-se sozinho.
+  const folhasNovas = (Array.isArray(dados?.comunicados) ? dados.comunicados : [])
+    .filter((c) => novo(c.enviado_em));
+  if (folhasNovas.length > 0) {
+    novidades.push({
+      chave: "comunicado",
+      titulo:
+        folhasNovas.length === 1
+          ? "Chegou-lhe uma folha da casa"
+          : "Chegaram-lhe folhas da casa",
+      corpo:
+        folhasNovas.length === 1
+          ? `«${folhasNovas[0].titulo}» — pode lê-la mais abaixo, em «As folhas da casa».`
+          : `${folhasNovas.map((c) => `«${c.titulo}»`).join(" · ")} — pode lê-las mais abaixo, em «As folhas da casa».`,
+    });
+  }
+
   // «O que já cá estava» — o que existe mas não é novo. Apagado, sem mola.
   const jaCaEstava = [];
   const nImagens = dados?.pedido?.imagens?.length || 0;

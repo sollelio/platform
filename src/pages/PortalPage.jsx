@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
+import { EMPRESA, DOMINIO_CASA } from "../lib/casa";
 import { Esqueleto } from "../components/admin/acabamento";
 import {
   getPortal,
@@ -18,6 +19,7 @@ import {
   OQueOSinalAbre,
   OQueFaltaDeSi,
   AsNovidades,
+  AsFolhasDaCasa,
   ComoComecou,
   AsSuasCores,
   HoraAHora,
@@ -222,7 +224,7 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
               }}
             >
               <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
-                doluxoamesa.pt
+                {DOMINIO_CASA}
               </span>
             </a>
           </div>
@@ -296,7 +298,7 @@ export default function PortalPage() {
       questionario: "O questionário",
       avaliar: "A avaliação",
     };
-    document.title = `${porVista[vista] || "O seu acompanhamento"} — Do Luxo à Mesa`;
+    document.title = `${porVista[vista] || "O seu acompanhamento"} — ${EMPRESA.designacao}`;
   }, [vista]);
 
   // Cada troca de vista entra pelo topo (seco, sem smooth); o regresso à
@@ -1037,6 +1039,19 @@ export default function PortalPage() {
           jaCaEstava={novidades.jaCaEstava}
           reduzir={reduzir}
         />
+
+        {/* ── AS FOLHAS DA CASA (comunicados, 082) ────────────────────
+            Registo, não acção nem promessa: entra depois do que pede
+            alguma coisa dela (pendências) e do que mudou (novidades), e
+            antes do bloco de memória que começa em «Como começou» — a
+            folha é voz da casa, não material dela, e não disputa a
+            jornada lá em cima. Sem o gate do caducado, de propósito: o
+            que se ENVIOU aconteceu, e um registo não se apaga.
+            Enquanto a 082 não correr, `comunicados` nem vem na projecção
+            e a secção NÃO EXISTE — ausência, não vazio. */}
+        {dados?.comunicados?.length > 0 && (
+          <AsFolhasDaCasa folhas={dados.comunicados} />
+        )}
 
         <ComoComecou
           imagens={dados?.pedido?.imagens || []}

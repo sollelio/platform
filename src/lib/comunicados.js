@@ -648,6 +648,47 @@ export const marcarTodosEnviados = async (comunicadoId) => {
 // ver as dispensadas (é assim que sabe não voltar a perguntar).
 export const linhasActivas = (linhas) => (linhas || []).filter((l) => !l.dispensado_em);
 
+// As folhas que já SAÍRAM para UM evento — a linha da ficha do evento
+// (a outra metade das «folhas da casa» que o portal mostra desde a 082,
+// aqui lida da tabela e nunca da dlm_comunicado_ver, que conta leituras).
+// Junta as linhas de destinatário deste evento com carimbo de envio — e
+// sem dispensa: uma dispensada nunca teve envio nenhum para contar — à
+// folha-mãe, do envio mais recente para trás.
+//
+// A palavra é «enviado», nunca «recebido»: o carimbo diz que a conversa
+// se abriu e a mensagem saiu, não que chegou nem que foi lida. E o
+// `no_ar` segue o contrato da 082 (publicada, não retirada, não
+// expirada): a ficha mostra o envio SEMPRE — história não se apaga —
+// mas só oferece a ligação quando ela ainda abre alguma coisa.
+export const comunicadosDoEvento = async (submissionId) => {
+  if (!submissionId) return [];
+  const { data, error } = await supabase
+    .from("comunicado_destinatarios")
+    .select("enviado_em, comunicados(titulo, token, publicado_em, retirado_em, expira_em)")
+    .eq("submission_id", submissionId)
+    .not("enviado_em", "is", null)
+    .is("dispensado_em", null)
+    .order("enviado_em", { ascending: false });
+  if (error) throw error;
+  const agora = Date.now();
+  return (data || [])
+    // Sem folha-mãe não há o que dizer (uma folha apagada leva as linhas
+    // por cascade, mas o filtro custa nada e poupa um rebentar mudo).
+    .filter((l) => l.comunicados)
+    .map((l) => ({
+      titulo: l.comunicados.titulo,
+      token: l.comunicados.token,
+      enviado_em: l.enviado_em,
+      no_ar: Boolean(
+        l.comunicados.token &&
+          l.comunicados.publicado_em &&
+          !l.comunicados.retirado_em &&
+          (!l.comunicados.expira_em ||
+            new Date(l.comunicados.expira_em).getTime() > agora),
+      ),
+    }));
+};
+
 // ---- A imagem da folha ----
 
 const BUCKET_COMUNICADOS = "comunicados";

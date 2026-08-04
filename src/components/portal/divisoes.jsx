@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  overline, playfair, diaMesAno, semanaEDia,
+  overline, playfair, diaEMes, diaMesAno, semanaEDia,
   HACHURA, ehCodigoDeCor, naoVazio,
 } from "./base";
 import {
@@ -37,7 +37,7 @@ import {
 // negativa; o sublinhado vive num <span> interior para ficar colado ao
 // texto (no elemento exterior, o traço descia com o padding).
 // ------------------------------------------------------------
-function LigacaoDeCartao({ to, rotulo, externa = false }) {
+function LigacaoDeCartao({ to, rotulo, externa = false, novaAba = false }) {
   const estilo = {
     display: "inline-block",
     padding: "12px 10px",
@@ -54,9 +54,16 @@ function LigacaoDeCartao({ to, rotulo, externa = false }) {
   );
   // `externa`: a pendência do sinal leva à conversa (WhatsApp) — um Link
   // do router num URL de fora rebentava na navegação interna.
+  // `novaAba`: a folha de um comunicado é OUTRA página, com vida própria —
+  // abre ao lado e o acompanhamento fica aberto atrás. O rel corta o
+  // acesso da janela nova ao opener, como manda a segurança de sempre.
   if (externa) {
     return (
-      <a href={to} style={estilo}>
+      <a
+        href={to}
+        style={estilo}
+        {...(novaAba ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
         {interior}
       </a>
     );
@@ -267,6 +274,74 @@ export function AsNovidades({ visitaAnterior, novidades = [], jaCaEstava = [], r
       )}
 
       <ListaDaCasa rotulo="O que já cá estava" itens={jaCaEstava} apagada />
+    </Divisao>
+  );
+}
+
+// ------------------------------------------------------------
+// AS FOLHAS DA CASA — fora da numeração da folha (comunicados, 082)
+//
+// O registo dos comunicados enviados a este evento. Só folhas ENVIADAS e
+// ainda no ar chegam à projecção — e a palavra do carimbo é «enviada»:
+// diz que a mensagem saiu, não que chegou nem que foi lida.
+//
+// A fronteira que esta divisão guarda: a FOLHA é pública e reencaminhável
+// — é para pôr nas mãos de quem prepara o dia com ela; o PORTAL é pessoal
+// e o endereço dele não se partilha. As duas linhas de texto existem para
+// essa diferença nunca se confundir — e por isso a nota final é uma linha
+// contida, nunca um botão de partilha.
+//
+// «Ler a folha» abre em aba nova pela ligação directa (/comunicado/:token)
+// e NUNCA pela RPC que conta leituras — o portal não vigia a leitura dela.
+// ------------------------------------------------------------
+export function AsFolhasDaCasa({ folhas }) {
+  // `undefined` comporta-se exactamente como lista vazia: enquanto a 082
+  // não correr, `comunicados` nem vem na projecção — e a divisão não
+  // existe. Ausência, não vazio elegante.
+  const lista = Array.isArray(folhas) ? folhas : [];
+  if (lista.length === 0) return null;
+
+  return (
+    <Divisao>
+      <CabecalhoDivisao
+        rotulo="As folhas da casa"
+        frase="O que lhe enviámos, por escrito."
+      />
+      {/* A transferência de permissão, explícita: a folha existe para
+          circular — é assim que a informação chega a quem prepara o dia
+          e não tem portal nenhum. */}
+      <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textAlign: "center", textWrap: "pretty", padding: "0 6px" }}>
+        Cada folha é para partilhar: envie-a ao espaço, à wedding planner, a
+        quem estiver a preparar o dia consigo — é informação que não lhes
+        chega de outra maneira.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "24px" }}>
+        {/* A ordem vem feita da projecção: o envio mais recente primeiro. */}
+        {lista.map((f) => (
+          <CartaoBranco key={f.token} padding="22px 20px">
+            <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.3, textWrap: "balance" }}>
+              {f.titulo}
+            </p>
+            {diaEMes(f.enviado_em) && (
+              <p style={{ fontSize: "11.5px", color: "#9B9B9B", margin: "7px 0 0", letterSpacing: "0.02em", fontVariantNumeric: "tabular-nums" }}>
+                enviada a {diaEMes(f.enviado_em)}
+              </p>
+            )}
+            <LigacaoDeCartao
+              to={`/comunicado/${f.token}`}
+              rotulo="Ler a folha"
+              externa
+              novaAba
+            />
+          </CartaoBranco>
+        ))}
+      </div>
+      {/* O inverso, impossível de confundir: só as folhas viajam. Linha
+          contida — se isto fosse um botão, já estava a convidar ao erro. */}
+      <p style={{ fontSize: "11px", fontStyle: "italic", lineHeight: 1.7, color: "#9B9B9B", margin: "18px 0 0", textAlign: "center", textWrap: "pretty" }}>
+        As folhas viajam; esta página não — o endereço do seu acompanhamento
+        é só seu e não se partilha.
+      </p>
     </Divisao>
   );
 }

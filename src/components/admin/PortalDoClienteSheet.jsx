@@ -20,6 +20,8 @@ import {
 } from "../../lib/portal";
 import { supabase } from "../../lib/supabase";
 import { documentosDoEvento } from "../../lib/documentos";
+import { comunicadosDoEvento } from "../../lib/comunicados";
+import { diaDito } from "./comunicadoTempo";
 import { guardarAlteracoes } from "../../lib/briefingEdicao";
 import { formatarMorada, moradaVazia } from "../../lib/morada";
 import { CONTRATO_INTRO, CLAUSULAS } from "./orcamentos/contratoConfig";
@@ -191,15 +193,21 @@ function Conteudo({ evento, onFechar }) {
         console.error(e);
         return null;
       }),
+      // Outro facto acessório, o mesmo trato: falhar cala a secção (a
+      // secção sem linhas nem se monta), nunca derruba a folha.
+      comunicadosDoEvento(eventoId).catch((e) => {
+        console.error(e);
+        return [];
+      }),
     ])
-      .then(([a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm]) => {
+      .then(([a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados]) => {
         if (!cancelado)
-          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm });
+          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados });
       })
       .catch((e) => {
         console.error(e);
         if (!cancelado)
-          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [], condicoesLidasEm: null });
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [], condicoesLidasEm: null, comunicados: [] });
       });
     return () => {
       cancelado = true;
@@ -214,6 +222,7 @@ function Conteudo({ evento, onFechar }) {
   const papeis = resultado?.papeis ?? [];
   const pedidosQ = resultado?.pedidosQ ?? [];
   const condicoesLidasEm = resultado?.condicoesLidasEm ?? null;
+  const comunicados = resultado?.comunicados ?? [];
   // Quem manda a secção do papel embora é a ASSINATURA existir — não o
   // aviso ter sido lido. Lê-se nos actos da publicação do contrato.
   const contratoAssinado = pubs.some(
@@ -1287,6 +1296,65 @@ function Conteudo({ evento, onFechar }) {
             )}
           </div>
         </>
+      )}
+
+      {/* ── OS COMUNICADOS QUE JÁ SAÍRAM PARA ESTE EVENTO ────────────
+          O registo da equipa das «folhas da casa» que a cliente vê no
+          portal (082) — que folha saiu, quando, e a porta para a ler.
+          FORA do ramo do acesso de propósito: a folha viajou pela
+          conversa de WhatsApp, e o envio aconteceu houvesse portal ou
+          não. «Enviado», nunca «recebido»: o carimbo diz que a mensagem
+          saiu, não que chegou nem que foi lida. Uma folha entretanto
+          retirada fica na história SEM ligação — não se aponta ao vazio.
+          Zero envios = zero secção. */}
+      {estado === "pronto" && comunicados.length > 0 && (
+        <div
+          style={{
+            marginTop: "20px",
+            paddingTop: "16px",
+            borderTop: "1px solid var(--hairline, #F0E6D0)",
+          }}
+        >
+          <p style={{ ...overline, marginBottom: "4px" }}>
+            Comunicados enviados
+          </p>
+          {comunicados.map((c) => (
+            <p
+              key={`${c.token || c.titulo}·${c.enviado_em}`}
+              style={{
+                fontSize: "12px",
+                lineHeight: 1.7,
+                color: "var(--gray-mid)",
+                margin: "5px 0 0",
+              }}
+            >
+              <span style={{ color: "var(--charcoal)", fontWeight: 600 }}>
+                {c.titulo || "(sem título)"}
+              </span>{" "}
+              — enviado {diaDito(c.enviado_em)}
+              {c.no_ar && (
+                <>
+                  {" · "}
+                  {/* A folha é pública — abrir daqui conta como qualquer
+                      leitor, e é essa a natureza dela (nada do cuidado
+                      do dlm_portal_ver, que é sinal pessoal). */}
+                  <a
+                    href={`/comunicado/${c.token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ligacao"
+                    style={{
+                      color: "var(--gold-dark)",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Ver a folha
+                  </a>
+                </>
+              )}
+            </p>
+          ))}
+        </div>
       )}
 
       {/* Último recurso: um erro cuja secção já não está montada (ou sem
