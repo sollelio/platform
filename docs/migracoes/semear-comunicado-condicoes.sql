@@ -23,7 +23,13 @@
 -- dela — três toques.
 --
 -- O conteúdo é o da seed do desenho (fase 1), byte a byte — gerado das
--- fixtures para não haver transcrição nova. Requer a migração 079.
+-- fixtures para não haver transcrição nova, e CONFERIDO contra o PDF
+-- real que circula («Guia de Preparação», 04/08/2026): os nove blocos
+-- de texto são idênticos palavra a palavra; os dois separadores de
+-- grupo («A montagem» / «A recolha») são a arrumação que o Design
+-- acrescentou e o dono aprovou na fase 1.
+--
+-- Requer as migrações 079 E 080 (a coluna `registo` nasce na 080).
 --
 -- Idempotente pelo título: correr duas vezes não duplica a folha.
 
