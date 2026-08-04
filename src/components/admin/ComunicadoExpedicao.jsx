@@ -11,10 +11,18 @@ import {
   textoParaDestinatario,
   textoDifusao,
   primeiroNome,
+  linhasActivas,
+  candidatosPosteriores,
+  acrescentarDestinatario,
+  dispensarCandidato,
+  desfazerDispensa,
+  rotuloDaRegra,
 } from "../../lib/comunicados";
+import { getEventTypes } from "../../lib/invites";
 import { linkWhatsApp } from "../../lib/mensagens";
 import { Esqueleto } from "./acabamento";
 import { dataDita, diaDito, quandoDita, quandoAs } from "./comunicadoTempo";
+import GuardarComoMolde from "./GuardarComoMolde";
 
 // ============================================================
 // ComunicadoExpedicao — fazer a folha chegar à lista congelada,
@@ -79,6 +87,83 @@ const Medalha = ({ tamanho = 18 }) => (
   </svg>
 );
 
+// «Acrescentada» DERIVA-SE, não se guarda (081): é a linha criada depois
+// do congelamento. Datas comparadas como datas — o formato do Postgres
+// («+00:00») e o do toISOString («Z») não se comparam como texto.
+const eAcrescentada = (l, congeladoEm) =>
+  Boolean(congeladoEm) && new Date(l.created_at) > new Date(congeladoEm);
+
+const PastilhaAcrescentada = () => (
+  <span
+    style={{
+      flex: "none",
+      padding: "2px 8px",
+      borderRadius: "999px",
+      backgroundColor: "#FEF9EC",
+      border: "1px solid var(--gold-light)",
+      fontSize: "8.5px",
+      fontWeight: "700",
+      letterSpacing: "0.12em",
+      color: "var(--gold-dark)",
+      whiteSpace: "nowrap",
+    }}
+  >
+    ACRESCENTADA
+  </span>
+);
+
+// Números por extenso até dez — as frases do fecho dizem «quatro saíram»,
+// não «4 saíram». Dois géneros porque mensagens e linhas são femininas e
+// nomes são masculinos; acima de dez, o algarismo é mais honesto que uma
+// tabela infinita.
+const EXTENSO_F = ["zero", "uma", "duas", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"];
+const EXTENSO_M = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"];
+const extensoF = (n) => EXTENSO_F[n] || String(n);
+const extensoM = (n) => EXTENSO_M[n] || String(n);
+const maiuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const minusculaInicial = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+
+// O género de um tipo de evento, para «um casamento» / «uma festinha» /
+// «uma comunhão» — a mesma família de heurística do pluralDeTipo (lib):
+// serve os tipos da casa, e um tipo exótico sai no masculino sem drama.
+const tipoFeminino = (tipo) => /(a|ã|ão)$/i.test((tipo || "").trim());
+
+const IconeInformacao = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="var(--gold-dark)"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flex: "none", marginTop: "2px" }}
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="8" r="6.3" />
+    <path d="M8 7.4v3.4" />
+    <path d="M8 5.2v.1" />
+  </svg>
+);
+
+const IconeEnviar = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2.2 8L14 2.6 9.4 14l-2-4.4L2.2 8Z" />
+    <path d="M7.4 9.6l3-3" />
+  </svg>
+);
+
 // A régua do progresso: um traço que enche. Não é barra de percentagem
 // com número — o número já está escrito na retoma, por palavras.
 function Regua({ feitos, total, reduzido }) {
@@ -107,26 +192,202 @@ function Regua({ feitos, total, reduzido }) {
 }
 
 // ------------------------------------------------------------
-// O FIM — o fecho sereno, quando já não há ninguém à espera.
+// O FIM — o fecho sereno, quando já não há ninguém à espera. E é ao
+// fecho que a pergunta de «quem entrou depois» está ancorada (desenho
+// «O evento que entrou depois»): a lista congelada não se vigia em
+// contínuo — é aqui, ao fechar, que a casa olha uma vez e decide.
 // ------------------------------------------------------------
-function OFim({ comunicado, linhas, onVoltarExpedicao, onVoltarDetalhe }) {
+function OFim({
+  comunicado,
+  linhas,
+  ocupado,
+  erro,
+  reduzido,
+  onAbrirConversa,
+  onResponder,
+  onRecarregar,
+  onVoltarExpedicao,
+  onVoltarDetalhe,
+}) {
   const enviadas = linhas
     .filter((l) => l.enviado_em)
     .sort((a, b) => new Date(a.enviado_em) - new Date(b.enviado_em));
-  const semNumero = linhas.filter((l) => !l.telefone);
+  const comNumero = linhas.filter((l) => l.telefone);
+  const semNumero = linhas.filter((l) => !l.telefone && !l.enviado_em);
+  const esperas = comNumero.filter((l) => l.aberto_em && !l.enviado_em);
+  const porAbrir = comNumero.filter((l) => !l.aberto_em && !l.enviado_em);
+  const porSair = comNumero.filter((l) => !l.enviado_em);
+  const tudoSaido = porSair.length === 0;
   const primeira = enviadas[0];
   const ultima = enviadas[enviadas.length - 1];
   const n = enviadas.length;
   const leituras = comunicado.n_acessos || 0;
+  const eAcr = (l) => eAcrescentada(l, comunicado.congelado_em);
 
-  // «As quatro mensagens saíram — a primeira ontem, a última hoje às
-  // 18:12.» Com uma só, a frase não se põe no plural a fingir.
-  const frase =
-    n === 0
-      ? "Não saiu nenhuma mensagem por aqui."
-      : n === 1
-        ? `A mensagem saiu ${quandoAs(ultima.enviado_em)}.`
-        : `As ${n} mensagens saíram — a primeira ${diaDito(primeira.enviado_em)}, a última ${quandoAs(ultima.enviado_em)}.`;
+  // Quem entrou depois de a lista fechar — corre ao montar o fecho.
+  // null = a caminho; cada candidato carrega o seu estado local
+  // (pergunta → dispensado) e o id da linha de dispensa, para o Desfazer.
+  const [candidatos, setCandidatos] = useState(null);
+  const [tipos, setTipos] = useState([]);
+  const [armado, setArmado] = useState(null);
+  const [ocupadoFim, setOcupadoFim] = useState(false);
+  const [erroFim, setErroFim] = useState("");
+  const timerArmar = useRef(null);
+
+  // O convite do molde: estado da VISITA, de propósito — «agora não» é
+  // adiar a conversa, não uma decisão a guardar; na próxima visita o
+  // convite volta (decisão registada).
+  const [convite, setConvite] = useState("inicial"); // inicial | adiado | guardado
+  const [gaveta, setGaveta] = useState(false);
+  const [nomeMoldeGuardado, setNomeMoldeGuardado] = useState("");
+
+  useEffect(() => {
+    let vivo = true;
+    Promise.all([candidatosPosteriores(comunicado), getEventTypes().catch(() => [])])
+      .then(([cs, ts]) => {
+        if (!vivo) return;
+        setCandidatos(cs.map((c) => ({ ...c, estado: "pergunta", dispensaId: null })));
+        setTipos(ts || []);
+      })
+      .catch((e) => {
+        // A pergunta de quem entrou depois é um extra do fecho: se a
+        // consulta falhar, o fecho continua de pé, sem cartões.
+        console.error(e);
+        if (vivo) setCandidatos([]);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [comunicado]);
+
+  useEffect(() => () => clearTimeout(timerArmar.current), []);
+
+  // Acrescentar reabre uma lista congelada — por isso é em DUAS FASES no
+  // próprio botão, e a segunda fase diz o que vai acontecer.
+  const armarOuAcrescentar = async (c, i) => {
+    if (ocupadoFim || ocupado) return;
+    if (armado !== i) {
+      clearTimeout(timerArmar.current);
+      setArmado(i);
+      timerArmar.current = setTimeout(() => setArmado(null), 4000);
+      return;
+    }
+    clearTimeout(timerArmar.current);
+    setArmado(null);
+    setOcupadoFim(true);
+    setErroFim("");
+    try {
+      await acrescentarDestinatario(comunicado.id, c);
+      setCandidatos((prev) => (prev || []).filter((x) => x !== c));
+      await onRecarregar();
+    } catch (e) {
+      console.error(e);
+      setErroFim("Não foi possível acrescentar a linha. Tente outra vez.");
+    } finally {
+      setOcupadoFim(false);
+    }
+  };
+
+  // Dispensar GRAVA (linha com dispensado_em): a pergunta não volta a
+  // aparecer por esta pessoa — nem amanhã, nem noutro ecrã.
+  const dispensar = async (c) => {
+    if (ocupadoFim || ocupado) return;
+    clearTimeout(timerArmar.current);
+    setArmado(null);
+    setOcupadoFim(true);
+    setErroFim("");
+    try {
+      const linha = await dispensarCandidato(comunicado.id, c);
+      setCandidatos((prev) =>
+        (prev || []).map((x) =>
+          x === c ? { ...x, estado: "dispensado", dispensaId: linha.id } : x,
+        ),
+      );
+      await onRecarregar();
+    } catch (e) {
+      console.error(e);
+      setErroFim("Não foi possível registar a decisão. Tente outra vez.");
+    } finally {
+      setOcupadoFim(false);
+    }
+  };
+
+  // Desfazer limpa a coluna e a linha entra na lista como acrescentada —
+  // a letra do dono. (O protótipo voltava à pergunta; desvio registado.)
+  const desfazer = async (c) => {
+    if (ocupadoFim || ocupado) return;
+    setOcupadoFim(true);
+    setErroFim("");
+    try {
+      await desfazerDispensa(c.dispensaId);
+      setCandidatos((prev) => (prev || []).filter((x) => x !== c));
+      await onRecarregar();
+    } catch (e) {
+      console.error(e);
+      setErroFim("Não foi possível desfazer. Tente outra vez.");
+    } finally {
+      setOcupadoFim(false);
+    }
+  };
+
+  const pub = comunicado.publico || {};
+  const rotuloMin = minusculaInicial(rotuloDaRegra(comunicado.publico, tipos) || "");
+  const pendentes = (candidatos || []).filter((c) => c.estado === "pergunta");
+
+  // O convite do molde só com a expedição arrumada e sem pergunta de
+  // candidato por decidir — e nunca num comunicado que JÁ nasceu de um
+  // molde: voltar a guardar o que veio de um molde é ruído (decisão
+  // registada).
+  const mostrarConvite =
+    tudoSaido && !comunicado.modelo_id && candidatos !== null && pendentes.length === 0;
+
+  // O título e o sub DERIVAM do estado real — com linhas entradas depois
+  // por enviar, o fecho não finge que acabou. Com uma só enviada, a
+  // frase não se põe no plural a fingir.
+  let titulo;
+  let frase;
+  if (tudoSaido) {
+    titulo = "Todos enviados.";
+    if (n === 0) frase = "Não saiu nenhuma mensagem por aqui.";
+    else if (eAcr(ultima))
+      // A última a sair foi a linha que entrou depois — o fecho di-lo.
+      frase =
+        n === 1
+          ? `A mensagem saiu ${quandoAs(ultima.enviado_em)}, para a linha que entrou depois.`
+          : `${maiuscula(extensoF(n))} mensagens ao todo — a última ${quandoAs(ultima.enviado_em)}, para a linha que entrou depois.`;
+    else
+      frase =
+        n === 1
+          ? `A mensagem saiu ${quandoAs(ultima.enviado_em)}.`
+          : `As ${n} mensagens saíram — a primeira ${diaDito(primeira.enviado_em)}, a última ${quandoAs(ultima.enviado_em)}.`;
+  } else {
+    const k = porSair.length;
+    titulo = k === 1 ? "Falta uma." : `Faltam ${extensoF(k)}.`;
+    const dias = new Set(enviadas.map((l) => new Date(l.enviado_em).toDateString()));
+    const saiu =
+      n === 0
+        ? "Ainda não saiu nenhuma."
+        : dias.size === 1
+          ? `${maiuscula(extensoF(n))} ${n === 1 ? "saiu" : "saíram"} ${diaDito(ultima.enviado_em)}.`
+          : `${maiuscula(extensoF(n))} saíram — a última ${quandoAs(ultima.enviado_em)}.`;
+    const entrou = porSair.every(eAcr)
+      ? k === 1
+        ? "A linha que entrou depois ainda não saiu."
+        : `As ${extensoF(k)} linhas que entraram depois ainda não saíram.`
+      : k === 1
+        ? "Uma linha ainda não saiu."
+        : `${maiuscula(extensoF(k))} linhas ainda não saíram.`;
+    frase = `${saiu} ${entrou}`;
+  }
+
+  // A lista fechada, em filas: enviadas primeiro, depois o que ainda vai
+  // sair (o que entrou depois), por fim quem não tem número.
+  const filas = [
+    ...enviadas.map((l) => ({ l, tipo: "enviada" })),
+    ...esperas.map((l) => ({ l, tipo: "espera" })),
+    ...porAbrir.map((l) => ({ l, tipo: "porabrir" })),
+    ...semNumero.map((l) => ({ l, tipo: "semnumero" })),
+  ];
 
   return (
     <div style={{ maxWidth: "560px" }}>
@@ -153,17 +414,31 @@ function OFim({ comunicado, linhas, onVoltarExpedicao, onVoltarDetalhe }) {
             lineHeight: 1.25,
           }}
         >
-          Todos enviados.
+          {titulo}
         </h1>
       </div>
       <p style={{ margin: "10px 0 0", fontSize: "13px", lineHeight: 1.65, color: "var(--gray-mid)" }}>
-        {frase} A lista fica guardada tal como acabou.
+        {frase}
+        {tudoSaido ? " A lista fica guardada tal como acabou." : ""}
       </p>
-      <div style={{ marginTop: "14px", height: "3px", backgroundColor: "var(--gold)", borderRadius: "999px" }} />
+      {/* A régua do fecho enche só com tudo saído — com uma linha
+          entrada depois por enviar, mostra o que falta, sem fingir. */}
+      <Regua feitos={n} total={comNumero.length} reduzido={reduzido} />
+
+      {(erro || erroFim) && (
+        <p role="alert" style={{ margin: "14px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+          {erro || erroFim}
+        </p>
+      )}
 
       <div style={{ ...OVERLINE, marginTop: "26px" }}>A LISTA, FECHADA</div>
       <div style={{ ...CARTAO, marginTop: "10px", padding: "4px 16px" }}>
-        {enviadas.map((l, i) => (
+        {/* Dispensadas nunca aparecem (a prop já vem por linhasActivas);
+            quem não tinha número fica, sem visto e sem hora — esteve cá,
+            e o fecho não finge que lhe chegou. Uma linha entrada depois
+            do congelamento leva a pastilha e, por enviar, o MESMO fluxo
+            dos dois carimbos: nada se marca sozinho, nem no fecho. */}
+        {filas.map(({ l, tipo }, i) => (
           <div
             key={l.id}
             style={{
@@ -172,64 +447,251 @@ function OFim({ comunicado, linhas, onVoltarExpedicao, onVoltarDetalhe }) {
               gap: "11px",
               padding: "12px 0",
               borderBottom:
-                i === enviadas.length - 1 && semNumero.length === 0
-                  ? "1px solid transparent"
-                  : "1px solid #F5ECD7",
+                i === filas.length - 1 ? "1px solid transparent" : "1px solid #F5ECD7",
             }}
           >
-            <VistoDourado />
+            {tipo === "enviada" ? (
+              <VistoDourado />
+            ) : (
+              <span
+                aria-hidden
+                style={{
+                  flex: "none",
+                  width: "14px",
+                  height: "14px",
+                  borderRadius: "50%",
+                  border: tipo === "semnumero" ? "1.5px dashed #E8DCC0" : "1.5px solid var(--gold-light)",
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "13px", fontWeight: "600" }}>{l.nome}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    color: tipo === "semnumero" ? "var(--gray-mid)" : undefined,
+                  }}
+                >
+                  {l.nome}
+                </div>
+                {eAcr(l) && <PastilhaAcrescentada />}
+              </div>
               <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "1px" }}>{l.ancora}</div>
             </div>
-            <div
-              style={{
-                flex: "none",
-                fontSize: "11.5px",
-                color: "#9B9B9B",
-                fontVariantNumeric: "tabular-nums",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {quandoDita(l.enviado_em)}
-            </div>
-          </div>
-        ))}
-        {/* Quem não tinha número fica na lista, sem visto e sem hora:
-            esteve cá, e o fecho não finge que lhe chegou. */}
-        {semNumero.map((l, i) => (
-          <div
-            key={l.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "11px",
-              padding: "12px 0",
-              borderBottom:
-                i === semNumero.length - 1 ? "1px solid transparent" : "1px solid #F5ECD7",
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                flex: "none",
-                width: "14px",
-                height: "14px",
-                borderRadius: "50%",
-                border: "1.5px dashed #E8DCC0",
-                boxSizing: "border-box",
-              }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
-              <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "1px" }}>{l.ancora}</div>
-            </div>
-            <div style={{ flex: "none", fontSize: "11.5px", color: "#9B9B9B", whiteSpace: "nowrap" }}>
-              sem número
-            </div>
+            {tipo === "enviada" ? (
+              <div
+                style={{
+                  flex: "none",
+                  fontSize: "11.5px",
+                  color: "#9B9B9B",
+                  fontVariantNumeric: "tabular-nums",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {quandoDita(l.enviado_em)}
+              </div>
+            ) : tipo === "espera" ? (
+              <div style={{ flex: "none", fontSize: "11.5px", color: "#9B9B9B", whiteSpace: "nowrap" }}>
+                à espera de resposta
+              </div>
+            ) : tipo === "porabrir" ? (
+              <button
+                onClick={() => onAbrirConversa(l)}
+                disabled={ocupado || ocupadoFim}
+                className="acao acao--ouro"
+                style={{
+                  flex: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "9px 14px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <IconeEnviar />
+                Enviar
+              </button>
+            ) : (
+              <div style={{ flex: "none", fontSize: "11.5px", color: "#9B9B9B", whiteSpace: "nowrap" }}>
+                sem número
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {/* A PERGUNTA DA VOLTA, também no fecho — o «Enviar» de uma linha
+          entrada depois abre a conversa e carimba o aberto_em; só a
+          resposta dela carimba o enviado_em. */}
+      {esperas.map((l) => (
+        <div
+          key={`volta-${l.id}`}
+          style={{
+            marginTop: "14px",
+            backgroundColor: "#FFFDF6",
+            border: "1px solid #F0D9B5",
+            borderRadius: "12px",
+            padding: "13px 14px",
+          }}
+        >
+          <div style={{ fontSize: "13px", lineHeight: 1.55 }}>
+            A conversa da <span style={{ fontWeight: "600" }}>{primeiroNome(l.nome) || l.nome}</span>{" "}
+            abriu-se. A mensagem saiu?
+          </div>
+          <div style={{ display: "flex", gap: "10px", marginTop: "11px" }}>
+            <button
+              onClick={() => onResponder(l, true)}
+              disabled={ocupado || ocupadoFim}
+              className="acao acao--cheia"
+              style={{ padding: "10px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+            >
+              Saiu — enviei
+            </button>
+            <button
+              onClick={() => onResponder(l, false)}
+              disabled={ocupado || ocupadoFim}
+              className="acao acao--ouro"
+              style={{ padding: "10px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+            >
+              Não saiu
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* O EVENTO QUE ENTROU DEPOIS — um cartão por candidato. A lista
+          está fechada e assim fica, a não ser que ela decida o contrário. */}
+      {(candidatos || []).map((c, i) => {
+        if (c.estado === "dispensado") {
+          const alvo =
+            pub.origem === "eventos"
+              ? (() => {
+                  const t = ((c.ancora || "").split(" · ")[0] || "evento").trim();
+                  return `por ${tipoFeminino(t) ? "esta" : "este"} ${t.toLowerCase()}`;
+                })()
+              : "por esta pessoa";
+          return (
+            <p
+              key={`disp-${i}`}
+              style={{ margin: "16px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)", textWrap: "pretty" }}
+            >
+              A lista fica como acabou. Não se volta a perguntar {alvo}.{" "}
+              <button
+                onClick={() => desfazer(c)}
+                disabled={ocupadoFim}
+                className="ligacao"
+                style={{
+                  fontSize: "12px",
+                  color: "var(--gray-mid)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "3px",
+                }}
+              >
+                Desfazer
+              </button>
+            </p>
+          );
+        }
+        const entrada =
+          pub.origem === "eventos"
+            ? (() => {
+                const [tipoParte, dataParte] = (c.ancora || "").split(" · ");
+                const t = (tipoParte || "evento").trim();
+                return {
+                  cabeca: `Entrou ${tipoFeminino(t) ? "uma" : "um"} ${t.toLowerCase()} depois de esta lista ter sido congelada: `,
+                  quando:
+                    dataParte && dataParte !== "sem data marcada"
+                      ? `, ${dataParte}`
+                      : ", ainda sem data marcada",
+                };
+              })()
+            : {
+                cabeca: "Entrou um contacto depois de esta lista ter sido congelada: ",
+                quando: "",
+              };
+        const estaArmado = armado === i;
+        return (
+          <div key={`cand-${i}`} style={{ ...CARTAO, borderRadius: "14px", marginTop: "16px", padding: "15px 16px" }}>
+            <div style={{ display: "flex", gap: "11px" }}>
+              <IconeInformacao />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
+                  {entrada.cabeca}
+                  <span style={{ fontWeight: "600" }}>{c.nome}</span>
+                  {entrada.quando}. Pela regra deste comunicado
+                  {rotuloMin ? ` — ${rotuloMin} — ` : " "}
+                  teria recebido.
+                </div>
+                <div style={{ fontSize: "11.5px", lineHeight: 1.6, color: "var(--gray-mid)", marginTop: "7px" }}>
+                  A lista está fechada e assim fica, a não ser que decida o contrário.
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "10px",
+                marginTop: "13px",
+                borderTop: "1px solid #F5ECD7",
+                paddingTop: "12px",
+              }}
+            >
+              <button
+                onClick={() => armarOuAcrescentar(c, i)}
+                disabled={ocupadoFim}
+                className={`acao ${estaArmado ? "acao--cheia" : "acao--ouro"}`}
+                style={{ padding: "11px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+              >
+                {estaArmado ? "Confirmar? A lista reabre para uma linha." : "Acrescentar à lista"}
+              </button>
+              <button
+                onClick={() => dispensar(c)}
+                disabled={ocupadoFim}
+                className="acao"
+                style={{
+                  padding: "11px 14px",
+                  border: "none",
+                  borderRadius: "10px",
+                  background: "transparent",
+                  color: "var(--gray-mid)",
+                  fontSize: "12.5px",
+                  fontWeight: "600",
+                }}
+              >
+                Deixar como está
+              </button>
+            </div>
+            {estaArmado && (
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: "11.5px",
+                  fontStyle: "italic",
+                  lineHeight: 1.6,
+                  color: "var(--gray-mid)",
+                  textWrap: "pretty",
+                }}
+              >
+                Entra uma linha só, e o envio continua a ser seu: a lista passa a ter{" "}
+                {extensoM(linhas.length + 1)} nomes,{" "}
+                {n === 0
+                  ? "nenhum deles ainda enviado"
+                  : n === 1
+                    ? "um deles já enviado"
+                    : `${extensoM(n)} deles já enviados`}
+                .
+              </p>
+            )}
+          </div>
+        );
+      })}
 
       <div
         style={{
@@ -261,6 +723,79 @@ function OFim({ comunicado, linhas, onVoltarExpedicao, onVoltarDetalhe }) {
         </p>
       </div>
 
+      {/* O CONVITE DO MOLDE — ancorado no fecho: é com tudo enviado que
+          se sabe se isto vai repetir-se. */}
+      {mostrarConvite && convite === "inicial" && (
+        <div style={{ ...CARTAO, borderRadius: "14px", marginTop: "16px", padding: "15px 16px" }}>
+          <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
+            Isto vai repetir-se em cada casamento novo. Quer guardar como molde?
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginTop: "12px" }}>
+            <button
+              onClick={() => setGaveta(true)}
+              className="acao acao--ouro"
+              style={{ padding: "11px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+            >
+              Guardar como molde
+            </button>
+            <button
+              onClick={() => setConvite("adiado")}
+              className="acao"
+              style={{
+                padding: "11px 14px",
+                border: "none",
+                borderRadius: "10px",
+                background: "transparent",
+                color: "var(--gray-mid)",
+                fontSize: "12.5px",
+                fontWeight: "600",
+              }}
+            >
+              Agora não
+            </button>
+          </div>
+        </div>
+      )}
+      {mostrarConvite && convite === "adiado" && (
+        <p style={{ margin: "16px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)", textWrap: "pretty" }}>
+          Fica como está. Pode guardar como molde a partir do próprio comunicado,
+          quando quiser.{" "}
+          <button
+            onClick={() => setGaveta(true)}
+            className="ligacao"
+            style={{
+              fontSize: "12px",
+              color: "var(--gold-dark)",
+              textDecoration: "underline",
+              textDecorationColor: "var(--gold-light)",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            Guardar agora
+          </button>
+        </p>
+      )}
+      {convite === "guardado" && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "11px",
+            marginTop: "16px",
+            backgroundColor: "#FEF9EC",
+            border: "1px solid var(--gold-light)",
+            borderRadius: "12px",
+            padding: "13px 14px",
+          }}
+        >
+          <VistoDourado />
+          <div style={{ flex: 1, minWidth: 0, fontSize: "12.5px", lineHeight: 1.6 }}>
+            Molde guardado: <span style={{ fontWeight: "600" }}>{nomeMoldeGuardado}</span> ·
+            Fica em Comunicados · Moldes.
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "24px" }}>
         {comunicado.token && (
           <a
@@ -287,6 +822,19 @@ function OFim({ comunicado, linhas, onVoltarExpedicao, onVoltarDetalhe }) {
           O comunicado e as leituras
         </button>
       </div>
+
+      {/* A gaveta de guardar como molde é da frente irmã — aqui só se
+          monta e se recebe o molde guardado. */}
+      <GuardarComoMolde
+        comunicado={comunicado}
+        aberta={gaveta}
+        onFechar={() => setGaveta(false)}
+        onGuardado={(modelo) => {
+          setGaveta(false);
+          setNomeMoldeGuardado(modelo?.nome || "");
+          setConvite("guardado");
+        }}
+      />
     </div>
   );
 }
@@ -353,11 +901,15 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
   }, [difArmado]);
 
   const ls = linhas || [];
-  const comNumero = ls.filter((l) => l.telefone);
-  const semNumero = ls.filter((l) => !l.telefone);
+  // Dispensadas ficam FORA de tudo o que este ecrã conta e mostra —
+  // total, feitos, retoma e difusão só vêem linhas activas (fase 3; a
+  // lib exclui-as da difusão, e aqui exclui-se da vista).
+  const activas = linhasActivas(ls);
+  const comNumero = activas.filter((l) => l.telefone);
+  const semNumero = activas.filter((l) => !l.telefone);
   const esperas = comNumero.filter((l) => l.aberto_em && !l.enviado_em);
   const porEnviar = comNumero.filter((l) => !l.aberto_em && !l.enviado_em);
-  const enviados = ls.filter((l) => l.enviado_em);
+  const enviados = activas.filter((l) => l.enviado_em);
   const feitos = enviados.length;
   const total = comNumero.length;
   const acabou = total > 0 && feitos === total;
@@ -500,7 +1052,13 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
     return (
       <OFim
         comunicado={comunicado}
-        linhas={ls}
+        linhas={activas}
+        ocupado={ocupado}
+        erro={erro}
+        reduzido={reduzido}
+        onAbrirConversa={abrirConversa}
+        onResponder={responder}
+        onRecarregar={recarregar}
         onVoltarExpedicao={() => setNoFim(false)}
         onVoltarDetalhe={onVoltar}
       />
@@ -532,7 +1090,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
       </h1>
       <p style={{ margin: "7px 0 0", fontSize: "12px", color: "var(--gray-mid)" }}>
         Lista congelada {comunicado.congelado_em ? `a ${dataDita(comunicado.congelado_em)}` : ""} ·{" "}
-        {ls.length} {ls.length === 1 ? "nome" : "nomes"} ·{" "}
+        {activas.length} {activas.length === 1 ? "nome" : "nomes"} ·{" "}
         <button
           onClick={onMensagem}
           className="ligacao"
@@ -714,7 +1272,10 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                       textAlign: "left",
                     }}
                   >
-                    <div style={{ fontSize: "13.5px", fontWeight: "600" }}>{l.nome}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <div style={{ fontSize: "13.5px", fontWeight: "600" }}>{l.nome}</div>
+                      {eAcrescentada(l, comunicado.congelado_em) && <PastilhaAcrescentada />}
+                    </div>
                     <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "2px" }}>{l.ancora}</div>
                     {l.mensagem && (
                       <div style={{ fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)", marginTop: "2px" }}>
@@ -783,7 +1344,10 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13.5px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <div style={{ fontSize: "13.5px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
+                      {eAcrescentada(l, comunicado.congelado_em) && <PastilhaAcrescentada />}
+                    </div>
                     <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "2px" }}>
                       {l.ancora} — sem número na ficha nem nas respostas
                     </div>
@@ -828,8 +1392,18 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   }}
                 >
                   <VistoDourado />
-                  <div style={{ flex: 1, minWidth: 0, fontSize: "13px", fontWeight: "600", color: "var(--gray-mid)" }}>
-                    {l.nome}
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
+                    {eAcrescentada(l, comunicado.congelado_em) && <PastilhaAcrescentada />}
                   </div>
                   <div
                     style={{
