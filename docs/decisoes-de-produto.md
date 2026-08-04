@@ -711,6 +711,37 @@ A morada-base do calculador de deslocação não é o armazém: a Nádia gasta
   Premium 50+, Supreme até 35, Essence até 20 (estavam trocadas entre
   Premium e Essence; pedidos antigos guardam o texto da altura).
 
+## Comunicados — fase 1, a folha (04/08/2026)
+
+O módulo nasce pelo desenho do Claude Design (seis momentos) e pela
+migração do Hélio (nascida 078, renumerada **079** — o 078 já era do
+pórtico). Fase 1: compor, publicar, retirar, imprimir. A expedição, os
+destinatários e os modelos são fase 2/3 e não se anteciparam.
+
+- **04/08/2026 — Blocos sem tipo, papel derivado:** o Design fixou os
+  blocos como {id, rótulo, texto} e o papel (prosa, nota, grupo,
+  cláusula, remate) deriva da posição e do conteúdo — numa função só
+  (comporFolha), porque há duas folhas a compor (pré-visualização e
+  página pública). O comentário «blocos tipados» da migração original
+  foi corrigido para dizer a verdade.
+- **04/08/2026 — A folha não leva um dado pessoal** — é o que a torna
+  reencaminhável; as leituras contam-se no total e a interface diz
+  porquê. Retirar ≠ revogar (glossário). Republicar devolve o MESMO
+  endereço.
+- **04/08/2026 — dlm_comunicado_ver é só do anon:** conta uma leitura
+  por chamada; se o backoffice a chamasse, a espreitadela da Nádia
+  contava como leitura de cliente. A pré-visualização lê a tabela.
+- **04/08/2026 — O cartão do WhatsApp é o caminho (a):** etiquetas OG
+  estáticas no index.html, iguais para todos os comunicados — o cartão
+  diz «isto vem da casa», a mensagem ao lado diz o assunto. O caminho
+  (b) (função de fronteira na Netlify a injectar etiquetas por
+  comunicado) fica anotado para quando fizer falta. A imagem
+  (public/cartao-comunicado.png, **1200×630**) exporta-se do desenho.
+- **04/08/2026 — Duas correcções reais na migração** (assinaladas no
+  ficheiro): grant do gerador de token a authenticated (publicar corre
+  como invoker e falhava sem ele) e search_path do pgcrypto (precedente
+  da 049).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

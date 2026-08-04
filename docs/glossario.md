@@ -237,6 +237,9 @@ regra desfaz-se.
 | A pipeline de fases | — | **funil** | `funil` |
 | Uma ocorrência a decorar | **o vosso evento** | **evento** | `submissions` (fica) |
 | A classe das superfícies públicas | — | **vitrina** | — |
+| O que a casa diz a muitos de uma vez | **comunicado** | **comunicado** | `comunicados` |
+| A página do comunicado, com endereço próprio | **a folha** | **folha** | `/comunicado/:token` |
+| Tirar uma folha pública do ar | — | **retirar** | `retirado_em` |
 
 Repara na última coluna: quase tudo **fica como está**. O trabalho de renomear é sobretudo
 nos rótulos que se leem — menu, slug, e algumas frases nas páginas. Baixo risco no código.
@@ -403,6 +406,23 @@ entende-se em todo o lado; "vitrine" resolvia o alcance mas é a forma brasileir
 > para uma *vista de materiais* no backoffice — outra coisa, que por acaso usava a mesma
 > palavra. Ficou como estava de propósito: alinhá-la punha a palavra a fazer dois trabalhos,
 > que é precisamente o que este glossário existe para evitar.
+
+### Comunicado / folha / retirar (04/08/2026)
+**Comunicado** é o que a casa diz a muitos de uma vez — condições de montagem, avisos
+operacionais, mais tarde promoções. A palavra estava livre (o levantamento confirmou-o) e as
+vizinhas têm dono: **mensagem** é da biblioteca de mensagens-tipo, **notificação** é da Caixa
+de Entrada, **aviso** é a família âmbar e o conteúdo de uma notificação. Nenhuma delas podia
+fazer este trabalho sem passar a fazer dois.
+
+**Folha** é a página do comunicado: endereço próprio, pública, feita para ser lida e
+**reencaminhada** — dos noivos para o espaço, para a wedding planner, para os fornecedores.
+Por isso não leva um único dado pessoal, e por isso não vive no portal (que é pessoal e
+escrevível). As leituras contam-se **no total**, nunca por pessoa — a interface di-lo.
+
+**Retirar** é tirar uma folha pública do ar. **Não confundir com revogar**, que é fechar um
+acesso pessoal (o portal do cliente). Actos diferentes sobre objectos diferentes ficam com
+palavras diferentes. Retirar é reversível: voltar a publicar devolve o **mesmo** endereço,
+porque o endereço é a identidade da folha.
 
 ---
 
