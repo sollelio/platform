@@ -3,11 +3,16 @@ import { motion } from "framer-motion";
 // Faixa visível apenas no ambiente de teste/desenvolvimento.
 // Mostra um banner no topo e uma moldura subtil à volta da página,
 // para nunca haver dúvida sobre em que ambiente se está.
+//
+// `no-print` nas duas peças: os documentos da casa imprimem-se do
+// próprio browser, e quem testa imprime DESTE ambiente — sem isto, a
+// faixa vermelha e a moldura saíam no papel das provas.
 export default function EnvBanner() {
   return (
     <>
       {/* Moldura à volta de toda a página */}
       <div
+        className="no-print"
         style={{
           position: "fixed",
           inset: 0,
@@ -20,6 +25,7 @@ export default function EnvBanner() {
 
       {/* Banner no topo, ao centro */}
       <motion.div
+        className="no-print"
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}

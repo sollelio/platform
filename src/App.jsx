@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import BriefingPage from "./pages/BriefingPage";
 import ContribuirPage from "./pages/ContribuirPage";
 import PortalPage from "./pages/PortalPage";
+import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import CaptacaoPage from "./pages/CaptacaoPage";
@@ -132,6 +133,11 @@ function App() {
             que a migração 049 existe para respeitar — um id que escape
             expõe o registo completo por outro RPC anónimo. */}
         <Route path="/acompanhar/:token/:vista?/:sub?" element={<PortalPage />} />
+        {/* A folha de um comunicado — pública e REENCAMINHÁVEL, ao
+            contrário do portal, que é pessoal. Leitura pela RPC
+            dlm_comunicado_ver (079), concedida só ao anon; retirada,
+            expirada e inexistente dão a mesma cortina, de propósito. */}
+        <Route path="/comunicado/:token" element={<ComunicadoPage />} />
         <Route path="*" element={<DestinoDesconhecido />} />
       </Routes>
       </MotionConfig>
