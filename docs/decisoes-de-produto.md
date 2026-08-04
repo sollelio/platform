@@ -846,6 +846,21 @@ os gestos são o produto.
   fora (são o sistema de desenho, não a identidade do negócio). O dia do
   segundo negócio, a camada entra ali sem reescrever nada.
 
+## Comunicados — o rasto do rascunho (04/08/2026, revê a fase 1)
+
+O teste real do Hélio apanhou o que a fase 1 decidiu mal: o «+ Novo
+comunicado» criava a linha na base ao abrir o editor, e cancelar deixava
+um «Sem título, por enquanto» na lista, sem remédio.
+
+- **04/08/2026 — A folha nasce ao PRIMEIRO GUARDAR**, nunca ao abrir o
+  editor. Cancelar deixa zero rasto. (Revê a decisão da fase 1 «a folha
+  nasce e o editor abre logo».)
+- **04/08/2026 — Apagar existe, mas só para folhas SEM HISTÓRIA** — nem
+  leituras, nem lista de expedição — em duas fases no cartão da lista,
+  como os moldes. A regra vive na camada de dados (o método recusa),
+  não só no ecrã. Uma folha lida ou expedida é registo do que
+  aconteceu: o gesto público para essas é RETIRAR, nunca apagar.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
