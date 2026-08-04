@@ -10,6 +10,9 @@ import {
 } from "../../lib/comunicados";
 import { Convite, Esqueleto } from "./acabamento";
 import ComunicadoEditor from "./ComunicadoEditor";
+import MensagemEditor from "./MensagemEditor";
+import ComunicadoRecorte from "./ComunicadoRecorte";
+import ComunicadoExpedicao from "./ComunicadoExpedicao";
 
 // ============================================================
 // ComunicadosTab — as folhas públicas da casa, no separador Gestão.
@@ -97,7 +100,7 @@ function PastilhaEstado({ estado }) {
 // gesto — copiar, armar o retirar, a revelação — nascer limpo de
 // cada vez que outra folha abre.
 // ------------------------------------------------------------
-function DetalheComunicado({ comunicado, onVoltar, onEditar, onMudou }) {
+function DetalheComunicado({ comunicado, onVoltar, onEditar, onMensagem, onPublico, onExpedicao, onMudou }) {
   const reduzido = useReducedMotion();
   const estado = estadoDe(comunicado);
 
@@ -223,6 +226,22 @@ function DetalheComunicado({ comunicado, onVoltar, onEditar, onMudou }) {
           }}
         >
           Editar a folha
+        </button>{" "}
+        ·{" "}
+        {/* A mensagem que acompanha o endereço na expedição — mora ao
+            lado do editar porque é a outra metade da mesma escrita. */}
+        <button
+          onClick={onMensagem}
+          className="ligacao"
+          style={{
+            fontSize: "12.5px",
+            color: "var(--gold-dark)",
+            textDecoration: "underline",
+            textDecorationColor: "var(--gold-light)",
+            textUnderlineOffset: "3px",
+          }}
+        >
+          Escrever a mensagem
         </button>
       </p>
 
@@ -497,6 +516,66 @@ function DetalheComunicado({ comunicado, onVoltar, onEditar, onMudou }) {
           </p>
         )}
       </section>
+
+      {/* A EXPEDIÇÃO — só depois de a folha ter endereço: escolher a quem
+          se destina antes de haver o que mandar era pôr o carro à frente.
+          A zona conta o que já está feito e dá o gesto seguinte, um só. */}
+      {estado === "publicada" && (
+        <section
+          style={{
+            marginTop: "18px",
+            backgroundColor: "white",
+            border: "1px solid #F0E6D0",
+            borderRadius: "16px",
+            padding: "22px 24px",
+          }}
+        >
+          <div style={{ fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.15em", color: "var(--gold-dark)" }}>
+            A EXPEDIÇÃO
+          </div>
+          {comunicado.congelado_em ? (
+            <>
+              <p style={{ margin: "10px 0 0", fontSize: "13.5px", lineHeight: 1.6 }}>
+                A lista está congelada{" "}
+                <span style={{ color: "var(--gray-mid)" }}>
+                  {quandoGuardada(comunicado.congelado_em).replace(/^guardada /, "")}
+                </span>
+                .
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "14px" }}>
+                <button
+                  onClick={onExpedicao}
+                  className="acao acao--cheia"
+                  style={{ padding: "11px 20px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+                >
+                  Abrir a expedição →
+                </button>
+                <button
+                  onClick={onPublico}
+                  className="acao acao--neutra"
+                  style={{ padding: "11px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+                >
+                  Ver o público
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: "10px 0 0", fontSize: "13.5px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
+                Falta dizer a quem se destina. O recorte responde com a contagem
+                antes de fixar seja o que for.
+              </p>
+              <button
+                onClick={onPublico}
+                className="acao acao--cheia"
+                style={{ marginTop: "14px", padding: "11px 20px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
+              >
+                Escolher quem recebe →
+              </button>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }
@@ -509,7 +588,12 @@ export default function ComunicadosTab() {
   const [erroLista, setErroLista] = useState("");
   const [aberto, setAberto] = useState(null); // a folha em detalhe
   const [emEdicao, setEmEdicao] = useState(null); // a folha no editor
+  const [emMensagem, setEmMensagem] = useState(null); // a folha na mensagem
   const [aCriar, setACriar] = useState(false);
+  // Dentro de uma folha aberta: detalhe → público (o recorte) → expedição.
+  // Estado, e não rota: o separador inteiro é uma vista só, e o URL do
+  // admin já leva o separador. Voltar à lista repõe o detalhe.
+  const [vista, setVista] = useState("detalhe");
 
   // Em cadeia de promessas, não em async/await: todos os setState vivem
   // dentro de callbacks, e o efeito de arranque não corre nada síncrono.
@@ -533,6 +617,7 @@ export default function ComunicadosTab() {
 
   const abrir = (c) => {
     setAberto(c);
+    setVista("detalhe");
     // O que está em mão mostra-se já; as leituras frescas chegam logo a
     // seguir, sem esqueleto — o número acerta-se à frente dos olhos.
     getComunicado(c.id)
@@ -598,15 +683,34 @@ export default function ComunicadosTab() {
         }
       `}</style>
 
-      {aberto ? (
+      {aberto && vista === "publico" ? (
+        <ComunicadoRecorte
+          key={`recorte-${aberto.id}`}
+          comunicado={aberto}
+          onVoltar={() => setVista("detalhe")}
+          onMudou={setAberto}
+          onAbrirExpedicao={() => setVista("expedicao")}
+        />
+      ) : aberto && vista === "expedicao" ? (
+        <ComunicadoExpedicao
+          key={`expedicao-${aberto.id}`}
+          comunicado={aberto}
+          onVoltar={() => setVista("detalhe")}
+          onMensagem={() => setEmMensagem(aberto)}
+        />
+      ) : aberto ? (
         <DetalheComunicado
           key={aberto.id}
           comunicado={aberto}
           onVoltar={() => {
             setAberto(null);
+            setVista("detalhe");
             carregar();
           }}
           onEditar={() => setEmEdicao(aberto)}
+          onMensagem={() => setEmMensagem(aberto)}
+          onPublico={() => setVista("publico")}
+          onExpedicao={() => setVista("expedicao")}
           onMudou={setAberto}
         />
       ) : (
@@ -763,6 +867,20 @@ export default function ComunicadosTab() {
             // Guardar fecha PARA O DETALHE — o gesto seguinte natural é
             // publicar, e é lá que ele mora.
             setEmEdicao(null);
+            setAberto(rec);
+            carregar();
+          }}
+        />
+      )}
+
+      {emMensagem && (
+        <MensagemEditor
+          comunicado={emMensagem}
+          onFechar={() => setEmMensagem(null)}
+          onGuardado={(rec) => {
+            // A mensagem guardada volta ao detalhe com o registo fresco
+            // — a expedição vai lê-la de lá.
+            setEmMensagem(null);
             setAberto(rec);
             carregar();
           }}
