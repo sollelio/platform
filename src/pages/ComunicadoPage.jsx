@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { comporFolha } from "../lib/comunicados";
+import { linkWhatsAppCasa } from "../lib/casa";
 import logo from "../assets/logo.png";
 
 // ============================================================
@@ -21,6 +22,10 @@ import logo from "../assets/logo.png";
 // diferentes, como a do portal) e a folha. Inexistente, retirada e
 // expirada são indistinguíveis de propósito: a resposta é a mesma.
 //
+// A folha tem um REGISTO (080): 'aviso' ou 'oferta' — a MESMA página
+// com dois temperamentos, nunca dois componentes. O registo decide o
+// desenho (centrado, maior, à sangria); o conteúdo é o mesmo.
+//
 // O PDF nasce da impressão da própria página — o padrão dos geradores
 // da casa: um <style> de impressão dentro da página e a troca do
 // document.title durante o print (o molde do GerarOrcamento).
@@ -31,7 +36,10 @@ import logo from "../assets/logo.png";
 // os grupos de cláusulas em duas colunas — no ecrã a coluna única lê-se
 // melhor ao telemóvel, no papel a folha inteira quer caber numa página.
 // Os !important existem porque os estilos em linha ganham sempre à
-// folha de estilos; aqui é o papel que tem de ganhar.
+// folha de estilos; aqui é o papel que tem de ganhar. A .sangria (a
+// imagem da oferta, que no ecrã fura as margens do cartão) volta a
+// caber na coluna: o A4 não tem sangria — sem esta regra a imagem
+// saía do papel.
 const ESTILO_IMPRESSAO = `
 @page { size: A4; margin: 13mm 15mm 12mm; }
 @media print {
@@ -42,6 +50,7 @@ const ESTILO_IMPRESSAO = `
   #folha-comunicado { border: none !important; box-shadow: none !important; border-radius: 0 !important; max-width: none !important; padding: 14px 2px 0 !important; margin-top: 8px !important; }
   #folha-comunicado .atos { display: grid !important; grid-template-columns: 1fr 1fr; column-gap: 32px; }
   #folha-comunicado .bloco { break-inside: avoid; }
+  #folha-comunicado .sangria { margin-left: 0 !important; margin-right: 0 !important; }
   #folha-comunicado .clausula { padding: 12px 0 10px !important; }
   #folha-comunicado .par { font-size: 12.5px !important; line-height: 1.6 !important; }
   #folha-comunicado .texto-final { font-size: 15px !important; }
@@ -52,9 +61,10 @@ const ESTILO_IMPRESSAO = `
 // ---------- Peças locais ----------
 // Nenhuma outra página as usa; ficam aqui.
 
-// A cápsula da casa (o botão de imprimir, o «Escrever à casa», o
-// «Tentar novamente»). Hover por estado porque :hover não se escreve em
-// linha — e a folha de estilos desta página é só de impressão.
+// A cápsula da casa (o botão de imprimir, o «Falar pelo WhatsApp», o
+// «Tentar novamente», a chamada do registo aviso). Hover por estado
+// porque :hover não se escreve em linha — e a folha de estilos desta
+// página é só de impressão.
 function Capsula({ href, onClick, children, style }) {
   const [sobre, setSobre] = useState(false);
   const base = {
@@ -84,6 +94,35 @@ function Capsula({ href, onClick, children, style }) {
     <a href={href} style={base} {...eventos}>{children}</a>
   ) : (
     <button type="button" onClick={onClick} style={base} {...eventos}>{children}</button>
+  );
+}
+
+// O botão dourado cheio — só a chamada do registo oferta o usa: a
+// oferta pede, o aviso informa, e o peso do botão diz qual é qual.
+// Hover por estado, como a Capsula e pela mesma razão.
+function BotaoDourado({ href, children }) {
+  const [sobre, setSobre] = useState(false);
+  return (
+    <a
+      href={href}
+      onMouseEnter={() => setSobre(true)}
+      onMouseLeave={() => setSobre(false)}
+      style={{
+        display: "inline-block",
+        padding: "15px 34px",
+        borderRadius: "12px",
+        backgroundColor: sobre ? "#B9973E" : "#C9A84C",
+        color: "#1A1A1A",
+        fontFamily: "'Inter', sans-serif",
+        fontSize: "14px",
+        fontWeight: 600,
+        textDecoration: "none",
+        boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+        transition: "background-color 140ms ease",
+      }}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -251,16 +290,19 @@ function Cortina({ titulo, corpo, aoRepetir }) {
         </div>
       ) : (
         <>
+          {/* O meio de contacto é o WhatsApp da casa (correcção do
+              dono) — nada de mailto em lado nenhum desta página. O
+              texto pré-escrito conta a situação de quem está na
+              cortina: um endereço que não abre. */}
           <div style={{ marginTop: "32px" }}>
             <Capsula
-              href="mailto:geral@doluxoamesa.pt"
+              href={linkWhatsAppCasa("Olá! Recebi um endereço de uma folha da Do Luxo à Mesa, mas não abre.")}
               style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="3.5" width="12" height="9" rx="1.6" />
-                <path d="M2.5 4.5L8 9l5.5-4.5" />
+                <path d="M4.5 11A5 5 0 1 1 6.3 12.2L2.8 13.6Z" />
               </svg>
-              Escrever à casa
+              Falar pelo WhatsApp
             </Capsula>
           </div>
           <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
@@ -314,7 +356,7 @@ function Clausula({ peca, ultima }) {
   );
 }
 
-function Peca({ peca }) {
+function Peca({ peca, oferta }) {
   if (peca.papel === "prosa") {
     return (
       <div className="bloco">
@@ -322,6 +364,8 @@ function Peca({ peca }) {
           <p
             style={{
               margin: "22px 0 0",
+              // Na oferta tudo se centra — a prosa é convite, não carta.
+              textAlign: oferta ? "center" : undefined,
               fontFamily: "'Playfair Display', serif",
               fontStyle: "italic",
               fontSize: "17px",
@@ -333,16 +377,102 @@ function Peca({ peca }) {
         )}
         <p
           className="par"
-          style={{
-            margin: peca.saudacao ? "12px 0 0" : "22px 0 0",
-            fontSize: "13.5px",
-            lineHeight: 1.75,
-            whiteSpace: "pre-line",
-            textWrap: "pretty",
-          }}
+          style={
+            oferta
+              ? {
+                  // O registo oferta: centrada, maior, mais arejada e
+                  // apertada à medida do desenho — a coluna estreita é
+                  // o que faz a prosa curta parecer intencional.
+                  margin: peca.saudacao ? "12px auto 0" : "24px auto 0",
+                  maxWidth: "330px",
+                  textAlign: "center",
+                  fontSize: "14.5px",
+                  lineHeight: 1.85,
+                  whiteSpace: "pre-line",
+                  textWrap: "pretty",
+                }
+              : {
+                  margin: peca.saudacao ? "12px 0 0" : "22px 0 0",
+                  fontSize: "13.5px",
+                  lineHeight: 1.75,
+                  whiteSpace: "pre-line",
+                  textWrap: "pretty",
+                }
+          }
         >
           {peca.texto}
         </p>
+      </div>
+    );
+  }
+  // A imagem: no aviso, uma moldura dentro da coluna; na oferta, à
+  // sangria — as margens negativas anulam o padding do cartão e o
+  // recorte é do PRÓPRIO bloco (overflow no cartão arriscava cortar
+  // conteúdo na fronteira de página do papel).
+  if (peca.papel === "imagem") {
+    // Sem endereço não há moldura vazia — o bloco não sai na folha.
+    if (!peca.url) return null;
+    const legenda = peca.legenda ? (
+      <p
+        style={{
+          margin: oferta ? "10px auto 0" : "8px 0 0",
+          textAlign: oferta ? "center" : undefined,
+          fontSize: "11px",
+          fontStyle: "italic",
+          color: "#6B6B6B",
+        }}
+      >
+        {peca.legenda}
+      </p>
+    ) : null;
+    const imagem = (
+      <img
+        src={peca.url}
+        alt={peca.legenda || ""}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    );
+    // A legenda mora no mesmo .bloco da imagem para o papel nunca as
+    // separar (break-inside: avoid é por bloco).
+    return oferta ? (
+      <div className="bloco">
+        <div className="sangria" style={{ margin: "26px -26px 0", height: "320px", overflow: "hidden" }}>
+          {imagem}
+        </div>
+        {legenda}
+      </div>
+    ) : (
+      <div className="bloco">
+        <div style={{ margin: "22px 0 0", height: "200px", border: "1px solid #E8D5A3", borderRadius: "12px", overflow: "hidden" }}>
+          {imagem}
+        </div>
+        {legenda}
+      </div>
+    );
+  }
+  // A chamada: botão dourado cheio na oferta, cápsula de contorno no
+  // aviso — o mesmo destino com dois pesos. A nota em itálico por baixo
+  // situa o botão com as palavras de quem escreveu a folha.
+  if (peca.papel === "chamada") {
+    // Um botão sem palavras ou sem destino não é botão — não sai.
+    if (!peca.rotulo || !peca.url) return null;
+    return (
+      <div
+        className="bloco"
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: oferta ? "26px" : "22px" }}
+      >
+        {oferta ? (
+          <BotaoDourado href={peca.url}>{peca.rotulo}</BotaoDourado>
+        ) : (
+          <Capsula href={peca.url} style={{ padding: "11px 22px", fontSize: "12.5px", letterSpacing: "normal" }}>
+            {peca.rotulo}
+          </Capsula>
+        )}
+        {peca.nota && (
+          <p style={{ margin: oferta ? "10px 0 0" : "9px 0 0", fontSize: "11px", fontStyle: "italic", color: "#6B6B6B", textAlign: "center" }}>
+            {peca.nota}
+          </p>
+        )}
       </div>
     );
   }
@@ -432,6 +562,13 @@ const estruturar = (pecas) => {
 function Folha({ dados }) {
   const itens = estruturar(comporFolha(dados.blocos));
 
+  // O registo é temperamento, não outra página: 'oferta' centra, cresce
+  // e enche; qualquer outro valor (ou nenhum — as folhas da fase 1)
+  // desenha o 'aviso' de sempre. Nota destaque, remate e assinatura não
+  // mudam de registo.
+  const oferta = dados.registo === "oferta";
+  const subtitulo = (dados.subtitulo || "").trim();
+
   // O browser põe o <title> no nome do PDF; trocamo-lo durante a
   // impressão para o título da folha e repomos logo a seguir — o padrão
   // do GerarOrcamento.
@@ -485,6 +622,9 @@ function Folha({ dados }) {
           padding: "34px 26px 34px",
         }}
       >
+        {/* Na oferta o subtítulo SOBE para a overline («DIA DA MÃE») e
+            não repete em parágrafo — a folha ganha um assunto em vez de
+            um resumo; sem subtítulo fica o «COMUNICADO» de sempre. */}
         <div
           style={{
             textAlign: "center",
@@ -492,24 +632,25 @@ function Folha({ dados }) {
             fontWeight: 700,
             letterSpacing: "0.22em",
             color: "#A07830",
+            textTransform: "uppercase",
           }}
         >
-          COMUNICADO
+          {oferta && subtitulo ? subtitulo : "COMUNICADO"}
         </div>
         <h1
           style={{
-            margin: "12px 0 0",
+            margin: oferta ? "14px 0 0" : "12px 0 0",
             textAlign: "center",
             fontFamily: "'Playfair Display', serif",
-            fontSize: "24px",
-            lineHeight: 1.32,
+            fontSize: oferta ? "27px" : "24px",
+            lineHeight: oferta ? 1.35 : 1.32,
             fontWeight: 400,
             textWrap: "balance",
           }}
         >
           {dados.titulo}
         </h1>
-        {dados.subtitulo && (
+        {!oferta && dados.subtitulo && (
           <p
             style={{
               margin: "13px auto 0",
@@ -524,16 +665,41 @@ function Folha({ dados }) {
           </p>
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", margin: "22px 0 0" }}>
-          <div style={{ width: "56px", height: "1px", backgroundColor: "#E8D5A3" }} />
-        </div>
+        {/* O filete central é do aviso; na oferta o título respira
+            sozinho — é a imagem ou a prosa que abrem a seguir. */}
+        {!oferta && (
+          <div style={{ display: "flex", justifyContent: "center", margin: "22px 0 0" }}>
+            <div style={{ width: "56px", height: "1px", backgroundColor: "#E8D5A3" }} />
+          </div>
+        )}
 
         {itens.map((item, i) =>
           item.tipo === "atos" ? (
             <div className="atos" key={`atos-${i}`} style={{ marginTop: "6px" }}>
               {item.seccoes.map((s) => (
                 <section key={s.grupo.id}>
-                  <FileteRotulado margem="24px 0 2px">{s.grupo.rotulo}</FileteRotulado>
+                  {/* Na oferta o grupo não separa: anuncia — a overline
+                      dourada centrada («Mesas a partir de seis pessoas»)
+                      respira com line-height em vez de filetes. */}
+                  {oferta ? (
+                    <div
+                      style={{
+                        margin: "20px auto 0",
+                        textAlign: "center",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        letterSpacing: "0.16em",
+                        lineHeight: 1.9,
+                        color: "#A07830",
+                        textTransform: "uppercase",
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {s.grupo.rotulo}
+                    </div>
+                  ) : (
+                    <FileteRotulado margem="24px 0 2px">{s.grupo.rotulo}</FileteRotulado>
+                  )}
                   {s.clausulas.map((c, j) => (
                     <Clausula key={c.id} peca={c} ultima={j === s.clausulas.length - 1} />
                   ))}
@@ -541,7 +707,7 @@ function Folha({ dados }) {
               ))}
             </div>
           ) : (
-            <Peca key={item.peca.id} peca={item.peca} />
+            <Peca key={item.peca.id} peca={item.peca} oferta={oferta} />
           )
         )}
 
@@ -582,7 +748,9 @@ function Folha({ dados }) {
         </div>
 
         {/* «esta folha», e não «estas orientações»: o desenho falava do
-            exemplo; a pergunta tem de servir qualquer assunto. */}
+            exemplo; a pergunta tem de servir qualquer assunto. E a
+            resposta é o WhatsApp da casa (correcção do dono) — o email
+            saiu de todas as folhas: é pelo WhatsApp que a casa fala. */}
         <div
           className="bloco"
           style={{ marginTop: "28px", borderTop: "1px solid #F5ECD7", paddingTop: "14px", textAlign: "center" }}
@@ -590,11 +758,12 @@ function Folha({ dados }) {
           <p style={{ margin: 0, fontSize: "11.5px", lineHeight: 1.6, color: "#6B6B6B" }}>
             Alguma questão sobre esta folha?{" "}
             <a
-              href="mailto:geral@doluxoamesa.pt"
+              href={linkWhatsAppCasa("Olá! Escrevo sobre uma folha da Do Luxo à Mesa.")}
               style={{ color: "#A07830", textDecorationColor: "#E8D5A3", textUnderlineOffset: "3px" }}
             >
-              geral@doluxoamesa.pt
+              Fale connosco pelo WhatsApp
             </a>
+            .
           </p>
         </div>
       </main>
