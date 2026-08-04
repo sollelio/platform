@@ -7,12 +7,16 @@ import {
   publicarComunicado,
   retirarComunicado,
   enderecoDoComunicado,
+  nascerDeMolde,
 } from "../../lib/comunicados";
 import { Convite, Esqueleto } from "./acabamento";
 import ComunicadoEditor from "./ComunicadoEditor";
 import MensagemEditor from "./MensagemEditor";
 import ComunicadoRecorte from "./ComunicadoRecorte";
 import ComunicadoExpedicao from "./ComunicadoExpedicao";
+import ComunicadoModelos from "./ComunicadoModelos";
+import GuardarComoMolde from "./GuardarComoMolde";
+import ComunicadoDeMolde from "./ComunicadoDeMolde";
 
 // ============================================================
 // ComunicadosTab — as folhas públicas da casa, no separador Gestão.
@@ -100,7 +104,18 @@ function PastilhaEstado({ estado }) {
 // gesto — copiar, armar o retirar, a revelação — nascer limpo de
 // cada vez que outra folha abre.
 // ------------------------------------------------------------
-function DetalheComunicado({ comunicado, onVoltar, onEditar, onMensagem, onPublico, onExpedicao, onMudou }) {
+function DetalheComunicado({
+  comunicado,
+  onVoltar,
+  onEditar,
+  onMensagem,
+  onPublico,
+  onExpedicao,
+  onMudou,
+  onGuardarMolde,
+  moldeGuardado,
+  onVerMoldes,
+}) {
   const reduzido = useReducedMotion();
   const estado = estadoDe(comunicado);
 
@@ -242,8 +257,68 @@ function DetalheComunicado({ comunicado, onVoltar, onEditar, onMensagem, onPubli
           }}
         >
           Escrever a mensagem
+        </button>{" "}
+        ·{" "}
+        {/* A porta para os moldes — discreta, entre as ligações: o
+            comunicado que já serviu uma vez pode servir muitas. */}
+        <button
+          onClick={onGuardarMolde}
+          className="ligacao"
+          style={{
+            fontSize: "12.5px",
+            color: "var(--gold-dark)",
+            textDecoration: "underline",
+            textDecorationColor: "var(--gold-light)",
+            textUnderlineOffset: "3px",
+          }}
+        >
+          Guardar como molde
         </button>
       </p>
+
+      {/* A banda que confirma o molde guardado e diz ONDE ele mora —
+          com a ligação directa para a biblioteca. */}
+      {moldeGuardado && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginTop: "18px",
+            backgroundColor: "#FEF9EC",
+            border: "1px solid var(--gold-light)",
+            borderRadius: "14px",
+            padding: "15px 16px",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <circle cx="8" cy="8" r="7" fill="var(--gold)" />
+            <path
+              d="M4.6 8.4l2.4 2.4 4.4-5"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: "13px", fontWeight: "600" }}>
+              Molde guardado: {moldeGuardado.nome}
+            </div>
+            <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "2px" }}>
+              Fica em Comunicados · Moldes.
+            </div>
+          </div>
+          <button
+            onClick={onVerMoldes}
+            className="ligacao"
+            style={{ flexShrink: 0, fontSize: "12.5px", color: "var(--gold-dark)", whiteSpace: "nowrap" }}
+          >
+            Ver →
+          </button>
+        </div>
+      )}
 
       <section
         style={{
@@ -590,10 +665,23 @@ export default function ComunicadosTab() {
   const [emEdicao, setEmEdicao] = useState(null); // a folha no editor
   const [emMensagem, setEmMensagem] = useState(null); // a folha na mensagem
   const [aCriar, setACriar] = useState(false);
-  // Dentro de uma folha aberta: detalhe → público (o recorte) → expedição.
-  // Estado, e não rota: o separador inteiro é uma vista só, e o URL do
-  // admin já leva o separador. Voltar à lista repõe o detalhe.
+  // Dentro de uma folha aberta: detalhe → público (o recorte) → expedição
+  // → e, desde a fase 3, o nascimento (uma folha acabada de nascer de um
+  // molde). Estado, e não rota: o separador inteiro é uma vista só, e o
+  // URL do admin já leva o separador. Voltar à lista repõe o detalhe.
   const [vista, setVista] = useState("detalhe");
+  // De onde se abriu o público: o «voltar» do recorte regressa a quem o
+  // chamou — o detalhe, ou o ecrã de nascimento de um molde.
+  const [vistaMae, setVistaMae] = useState("detalhe");
+  // Feitos | Moldes — os dois separadores internos da lista. Doze é o
+  // que há na navegação e doze é o que fica: isto vive AQUI dentro.
+  const [tab, setTab] = useState("feitos");
+  // O nome do molde que deu origem à folha em nascimento — o ecrã da
+  // frente irmã di-lo no cabeçalho.
+  const [nomeMoldeUsado, setNomeMoldeUsado] = useState("");
+  // A gaveta «Guardar como molde» e a banda de confirmação no detalhe.
+  const [gavetaMolde, setGavetaMolde] = useState(false);
+  const [moldeGuardado, setMoldeGuardado] = useState(null);
 
   // Em cadeia de promessas, não em async/await: todos os setState vivem
   // dentro de callbacks, e o efeito de arranque não corre nada síncrono.
@@ -618,11 +706,38 @@ export default function ComunicadosTab() {
   const abrir = (c) => {
     setAberto(c);
     setVista("detalhe");
+    setVistaMae("detalhe");
+    setMoldeGuardado(null);
+    setGavetaMolde(false);
     // O que está em mão mostra-se já; as leituras frescas chegam logo a
     // seguir, sem esqueleto — o número acerta-se à frente dos olhos.
     getComunicado(c.id)
       .then(setAberto)
       .catch(() => {});
+  };
+
+  // Usar um molde: nasce um comunicado novo (folha + mensagem + regra,
+  // sem endereço nem lista) e abre-se a vista de nascimento. Os erros
+  // sobem — é o cartão do molde que os mostra, ao lado do gesto.
+  const usarMolde = async (modelo) => {
+    const novo = await nascerDeMolde(modelo);
+    setLista((prev) => (prev ? [novo, ...prev] : [novo]));
+    setNomeMoldeUsado(modelo.nome || "");
+    setMoldeGuardado(null);
+    setGavetaMolde(false);
+    setAberto(novo);
+    setVista("nascimento");
+    setVistaMae("detalhe");
+    return novo;
+  };
+
+  // A ligação «Ver →» da banda: da folha para a biblioteca de moldes.
+  const irAosMoldes = () => {
+    setAberto(null);
+    setVista("detalhe");
+    setMoldeGuardado(null);
+    setTab("moldes");
+    carregar();
   };
 
   const novo = async () => {
@@ -681,13 +796,16 @@ export default function ComunicadosTab() {
           border-color: var(--gold-light);
           box-shadow: 0 2px 12px rgba(0,0,0,0.05);
         }
+        .dlm-tab-com:hover:not(.dlm-tab-com--activa) {
+          color: var(--charcoal);
+        }
       `}</style>
 
       {aberto && vista === "publico" ? (
         <ComunicadoRecorte
           key={`recorte-${aberto.id}`}
           comunicado={aberto}
-          onVoltar={() => setVista("detalhe")}
+          onVoltar={() => setVista(vistaMae)}
           onMudou={setAberto}
           onAbrirExpedicao={() => setVista("expedicao")}
         />
@@ -698,6 +816,32 @@ export default function ComunicadosTab() {
           onVoltar={() => setVista("detalhe")}
           onMensagem={() => setEmMensagem(aberto)}
         />
+      ) : aberto && vista === "nascimento" ? (
+        // A folha acabada de nascer de um molde — o ecrã é da frente
+        // irmã; este separador só lhe dá a folha e as portas.
+        <ComunicadoDeMolde
+          key={`nascimento-${aberto.id}`}
+          comunicado={aberto}
+          nomeMolde={nomeMoldeUsado}
+          onVoltar={() => {
+            setAberto(null);
+            setVista("detalhe");
+            setVistaMae("detalhe");
+            setTab("moldes");
+            carregar();
+          }}
+          onMudou={setAberto}
+          onAbrirEditor={() => setEmEdicao(aberto)}
+          onAbrirMensagem={() => setEmMensagem(aberto)}
+          onAbrirPublico={() => {
+            setVistaMae("nascimento");
+            setVista("publico");
+          }}
+          onIrAoDetalhe={() => {
+            setVista("detalhe");
+            setVistaMae("detalhe");
+          }}
+        />
       ) : aberto ? (
         <DetalheComunicado
           key={aberto.id}
@@ -705,153 +849,228 @@ export default function ComunicadosTab() {
           onVoltar={() => {
             setAberto(null);
             setVista("detalhe");
+            setVistaMae("detalhe");
+            setMoldeGuardado(null);
             carregar();
           }}
           onEditar={() => setEmEdicao(aberto)}
           onMensagem={() => setEmMensagem(aberto)}
-          onPublico={() => setVista("publico")}
+          onPublico={() => {
+            setVistaMae("detalhe");
+            setVista("publico");
+          }}
           onExpedicao={() => setVista("expedicao")}
           onMudou={setAberto}
+          onGuardarMolde={() => setGavetaMolde(true)}
+          moldeGuardado={moldeGuardado}
+          onVerMoldes={irAosMoldes}
         />
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: "16px",
-              maxWidth: "640px",
-            }}
-          >
-            <div>
-              <h2
-                style={{
-                  fontSize: "22px",
-                  fontFamily: "Playfair Display, serif",
-                  color: "var(--charcoal)",
-                  margin: "0 0 4px 0",
-                }}
-              >
-                Comunicados
-              </h2>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--gray-mid)",
-                  margin: "0 0 20px 0",
-                  lineHeight: 1.6,
-                  maxWidth: "480px",
-                }}
-              >
-                Folhas públicas com endereço próprio — escrevem-se uma vez e
-                chegam a muitos: o espaço, a wedding planner, os fornecedores.
-                Publicar dá o endereço; retirar tira a folha do ar.
-              </p>
+          {/* Feitos | Moldes — tabs de texto com underline dourado no
+              activo (o padrão do desenho da biblioteca), não a pastilha
+              deslizante: são vistas irmãs, não um filtro. */}
+          <div style={{ maxWidth: "640px" }}>
+            <div style={{ fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.15em", color: "var(--gold-dark)" }}>
+              COMUNICADOS
             </div>
-            <button
-              onClick={novo}
-              disabled={aCriar}
-              className="acao acao--ouro"
+            <div
+              role="tablist"
+              aria-label="Feitos ou moldes"
               style={{
-                flexShrink: 0,
-                padding: "9px 16px",
-                borderRadius: "999px",
-                fontSize: "12.5px",
-                fontWeight: "600",
+                display: "flex",
+                gap: "22px",
+                marginTop: "12px",
+                marginBottom: "22px",
+                borderBottom: "1px solid #F0E6D0",
               }}
             >
-              + Novo comunicado
-            </button>
-          </div>
-
-          {erroLista && (
-            <p role="alert" style={{ maxWidth: "640px", fontSize: "12.5px", color: "#DC2626", margin: "0 0 14px" }}>
-              {erroLista}{" "}
-              <button
-                onClick={carregar}
-                className="ligacao"
-                style={{ fontSize: "12.5px", color: "var(--gold-dark)", textDecoration: "underline" }}
-              >
-                Tentar de novo
-              </button>
-            </p>
-          )}
-
-          {lista === null && (
-            <div style={{ maxWidth: "640px" }}>
-              {[0, 1, 2].map((i) => (
-                <Esqueleto key={i} h={68} r={12} style={{ marginBottom: "12px" }} />
+              {[
+                ["feitos", "Feitos"],
+                ["moldes", "Moldes"],
+              ].map(([id, nome]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={tab === id}
+                  onClick={() => setTab(id)}
+                  className={`acao dlm-tab-com${tab === id ? " dlm-tab-com--activa" : ""}`}
+                  style={{
+                    padding: "0 0 11px",
+                    border: "none",
+                    borderBottom: tab === id ? "2px solid var(--gold)" : "2px solid transparent",
+                    borderRadius: 0,
+                    background: "transparent",
+                    fontSize: "13.5px",
+                    fontWeight: "600",
+                    color: tab === id ? "var(--charcoal)" : "var(--gray-mid)",
+                  }}
+                >
+                  {nome}
+                </button>
               ))}
             </div>
-          )}
+          </div>
 
-          {lista !== null && ordenados.length === 0 && !erroLista && (
-            <div style={{ maxWidth: "640px" }}>
-              <Convite
-                titulo="Nenhuma folha, por enquanto."
-                texto="Um comunicado é uma folha pública com endereço próprio — escreve-se uma vez, publica-se, e o endereço passa de mão em mão até chegar a quem precisa de o ler."
-                accao="Escrever a primeira folha"
-                onAccao={novo}
-              />
-            </div>
-          )}
-
-          {lista !== null && ordenados.length > 0 && (
-            <div style={{ maxWidth: "640px" }}>
-              {ordenados.map((c) => {
-                const estado = estadoDe(c);
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => abrir(c)}
-                    className="acao dlm-cartao-com"
+          {tab === "moldes" ? (
+            <ComunicadoModelos onUsar={usarMolde} onIrAosFeitos={() => setTab("feitos")} />
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  maxWidth: "640px",
+                }}
+              >
+                <div>
+                  <h2
                     style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      boxSizing: "border-box",
-                      borderRadius: "12px",
-                      padding: "14px 16px",
-                      marginBottom: "12px",
+                      fontSize: "22px",
+                      fontFamily: "Playfair Display, serif",
+                      color: "var(--charcoal)",
+                      margin: "0 0 4px 0",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                      }}
-                    >
-                      <span
+                    Comunicados
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--gray-mid)",
+                      margin: "0 0 20px 0",
+                      lineHeight: 1.6,
+                      maxWidth: "480px",
+                    }}
+                  >
+                    Folhas públicas com endereço próprio — escrevem-se uma vez e
+                    chegam a muitos: o espaço, a wedding planner, os fornecedores.
+                    Publicar dá o endereço; retirar tira a folha do ar.
+                  </p>
+                </div>
+                <button
+                  onClick={novo}
+                  disabled={aCriar}
+                  className="acao acao--ouro"
+                  style={{
+                    flexShrink: 0,
+                    padding: "9px 16px",
+                    borderRadius: "999px",
+                    fontSize: "12.5px",
+                    fontWeight: "600",
+                  }}
+                >
+                  + Novo comunicado
+                </button>
+              </div>
+
+              {erroLista && (
+                <p role="alert" style={{ maxWidth: "640px", fontSize: "12.5px", color: "#DC2626", margin: "0 0 14px" }}>
+                  {erroLista}{" "}
+                  <button
+                    onClick={carregar}
+                    className="ligacao"
+                    style={{ fontSize: "12.5px", color: "var(--gold-dark)", textDecoration: "underline" }}
+                  >
+                    Tentar de novo
+                  </button>
+                </p>
+              )}
+
+              {lista === null && (
+                <div style={{ maxWidth: "640px" }}>
+                  {[0, 1, 2].map((i) => (
+                    <Esqueleto key={i} h={68} r={12} style={{ marginBottom: "12px" }} />
+                  ))}
+                </div>
+              )}
+
+              {lista !== null && ordenados.length === 0 && !erroLista && (
+                <div style={{ maxWidth: "640px" }}>
+                  <Convite
+                    titulo="Nenhuma folha, por enquanto."
+                    texto="Um comunicado é uma folha pública com endereço próprio — escreve-se uma vez, publica-se, e o endereço passa de mão em mão até chegar a quem precisa de o ler."
+                    accao="Escrever a primeira folha"
+                    onAccao={novo}
+                  />
+                </div>
+              )}
+
+              {lista !== null && ordenados.length > 0 && (
+                <div style={{ maxWidth: "640px" }}>
+                  {ordenados.map((c) => {
+                    const estado = estadoDe(c);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => abrir(c)}
+                        className="acao dlm-cartao-com"
                         style={{
-                          fontSize: "14.5px",
-                          fontWeight: c.titulo?.trim() ? "600" : "400",
-                          color: c.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
-                          fontStyle: c.titulo?.trim() ? "normal" : "italic",
-                          overflow: "hidden",
-                          whiteSpace: "nowrap",
-                          textOverflow: "ellipsis",
-                          minWidth: 0,
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          boxSizing: "border-box",
+                          borderRadius: "12px",
+                          padding: "14px 16px",
+                          marginBottom: "12px",
                         }}
                       >
-                        {c.titulo?.trim() || "Sem título, por enquanto"}
-                      </span>
-                      <PastilhaEstado estado={estado} />
-                    </div>
-                    <div style={{ marginTop: "5px", fontSize: "12px", color: "var(--gray-mid)" }}>
-                      {estado === "publicada" && (
-                        <>{plural(c.n_acessos || 0, "1 leitura", "leituras")} · </>
-                      )}
-                      guardada {quandoGuardada(c.actualizado_em)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "14.5px",
+                              fontWeight: c.titulo?.trim() ? "600" : "400",
+                              color: c.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
+                              fontStyle: c.titulo?.trim() ? "normal" : "italic",
+                              overflow: "hidden",
+                              whiteSpace: "nowrap",
+                              textOverflow: "ellipsis",
+                              minWidth: 0,
+                            }}
+                          >
+                            {c.titulo?.trim() || "Sem título, por enquanto"}
+                          </span>
+                          <PastilhaEstado estado={estado} />
+                        </div>
+                        <div style={{ marginTop: "5px", fontSize: "12px", color: "var(--gray-mid)" }}>
+                          {estado === "publicada" && (
+                            <>{plural(c.n_acessos || 0, "1 leitura", "leituras")} · </>
+                          )}
+                          guardada {quandoGuardada(c.actualizado_em)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </>
+      )}
+
+      {/* A gaveta «Guardar como molde» vive ao nível do separador: o
+          detalhe abre-a, mas é aqui que a banda de confirmação nasce.
+          Montada sempre que há folha aberta, para a folha deslizar
+          (320ms) em vez de aparecer. */}
+      {aberto && (
+        <GuardarComoMolde
+          comunicado={aberto}
+          aberta={gavetaMolde}
+          onFechar={() => setGavetaMolde(false)}
+          onGuardado={(m) => {
+            setGavetaMolde(false);
+            setMoldeGuardado(m);
+          }}
+        />
       )}
 
       {emEdicao && (
