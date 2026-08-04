@@ -885,6 +885,25 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   no separador Formulários (cliente novo, sem evento — não há ponte
   possível); a sua vez chega com a aba «O pedido» (projecto próprio do
   glossário).
+- **04/08/2026 — Mudar o tipo re-corre a ponte SEM apagar trabalho:**
+  o que a Nádia escreveu à mão sobrevive quando o campo existe no tipo
+  novo (continua sem distintivo — é dela, não da ponte); os valores da
+  ponte recalculam-se para o tipo novo. Campos adicionados mas ainda
+  vazios não viajam — como no painel antigo, que recomeçava do zero.
+- **04/08/2026 — Os campos do composer reutilizam o FormField:** é a
+  peça que já sabe desenhar todos os tipos (radio, checkbox, paleta,
+  morada, textarea) com erros e foco resolvidos; reconstruir inputs
+  próprios seria uma segunda linguagem de campo a divergir da primeira.
+  O cartão fino do mock dá a moldura (passo + distintivo + remover), o
+  FormField dá o campo.
+- **04/08/2026 — «Pedido» inclui a reserva provisória:** a reserva
+  escreve as mesmas chaves canónicas da entrada (nomeDoCliente,
+  contactoPrincipal, mensagemInicial) — para a ponte é a mesma conversa
+  inicial, e o cartão «O PEDIDO» mostra-a. Um evento criado à mão (sem
+  nenhuma chave da entrada) é o estado «sem pedido de orçamento».
+- **04/08/2026 — O nome nunca é par de referência:** no cartão «O
+  PEDIDO» o nome é o cabeçalho (Playfair); repeti-lo nos pares seria
+  dizê-lo duas vezes.
 
 ## Validação — regra da casa
 

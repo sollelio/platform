@@ -2,18 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { documentosDoEvento, marcarPassoDocumento } from "../../lib/documentos";
 import {
-  createInvite,
   estadoFormularioDoEvento,
   podeSerAdoptadoPor,
 } from "../../lib/invites";
-import PainelNovoFormulario from "./PainelNovoFormulario";
-import {
-  abrirQuestionarioComoCliente,
-  dataDoRascunho,
-  getAllFields,
-  getDefaultCampos,
-  validarRascunho,
-} from "../../lib/camposFormulario";
+import FormularioDoEvento from "./FormularioDoEvento";
+import { abrirQuestionarioComoCliente } from "../../lib/camposFormulario";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { Icone } from "./Navegacao";
 import { Esqueleto } from "./acabamento";
@@ -356,19 +349,13 @@ export default function DocumentosEvento({
   const proximoDoc = DOC_DA_FASE[submissao?.fase] || null;
 
   // ------------------------------------------------------------
-  // O PAINEL DE CRIAÇÃO, agora AQUI.
-  //
-  // Estado local da aba, não do route state: a intenção nasce nesta
-  // linha e resolve-se nesta linha, não precisa de viajar por rota
-  // nenhuma. E a aba fica montada quando se sai dela (display:none, ver
-  // EventoPage), por isso um painel meio composto sobrevive a ir aos
-  // Pagamentos e voltar — o que morre é sair do evento, e isso é a
-  // decisão do Hélio.
+  // O COMPOSER — a bancada da ponte (FormularioDoEvento), de ecrã
+  // inteiro. Esta linha só guarda a intenção de o abrir: o rascunho, a
+  // ponte e o createInvite vivem lá dentro. O painel inline (e com ele
+  // o bloco de botões «Copiar») morreu — o transporte do pedido para os
+  // campos é agora trabalho do código, não da Nádia.
   // ------------------------------------------------------------
-  const [aCompor, setACompor] = useState(false);
-  const [rascunho, setRascunho] = useState(null);
-  const [errosRascunho, setErrosRascunho] = useState({});
-  const [aCriar, setACriar] = useState(false);
+  const [mostrarComposer, setMostrarComposer] = useState(false);
   const [aAdoptar, setAAdoptar] = useState(null);
 
   // «Preencher» — a Nádia responde ela própria. Sai daqui directamente:
@@ -388,71 +375,6 @@ export default function DocumentosEvento({
   const orfaosAdoptaveis = (orfaos || []).filter((o) =>
     podeSerAdoptadoPor(o, submissao),
   );
-
-  const abrirPainel = () => {
-    const tipoId = submissao?.event_type_id || eventTypes[0]?.id || "";
-    const tipo = eventTypes.find((et) => et.id === tipoId);
-
-    // A DATA já preenchida, pelo id REAL do campo do modelo. O caminho
-    // antigo (que passava pelo separador Formulários) fazia isto, e ao
-    // trazê-lo para cá esqueci-me — o painel abria vazio e obrigava-a a
-    // reescrever uma data que a app já sabe.
-    const campoData = getAllFields(tipo).find((f) => f.type === "date");
-    const valores = {};
-    const camposAtivos = [...getDefaultCampos(tipo)];
-    if (campoData && submissao?.data_evento) {
-      valores[campoData.id] = submissao.data_evento;
-      camposAtivos.push(campoData.id);
-    }
-
-    setRascunho({
-      eventTypeId: tipoId,
-      camposAtivos,
-      valores,
-      // O vínculo à reserva vem dos DADOS, não da navegação: é ele que
-      // faz a reserva passar a «Confirmada» quando a cliente submeter.
-      reservaId: reservaProvisoria?.id || null,
-      // O alvo é este evento, sempre. É o que faz o painel ser curto.
-      submissionAlvoId: submissao?.id || null,
-    });
-    setErrosRascunho({});
-    setACompor(true);
-  };
-
-  const criarFormulario = async () => {
-    const erros = validarRascunho(rascunho, eventTypes);
-    if (Object.keys(erros).length > 0) {
-      setErrosRascunho(erros);
-      return;
-    }
-    if (!rascunho.eventTypeId) {
-      setErrosRascunho({
-        geral: "Escolha o tipo de evento antes de criar o formulário.",
-      });
-      return;
-    }
-    setACriar(true);
-    try {
-      const convite = await createInvite({
-        dataEvento: dataDoRascunho(rascunho, eventTypes),
-        eventTypeId: rascunho.eventTypeId,
-        respostas: rascunho.valores,
-        reservaId: rascunho.reservaId || null,
-        submissionAlvoId: submissao.id,
-      });
-      if (onConviteCriado) onConviteCriado(convite);
-      setACompor(false);
-      setRascunho(null);
-      setErrosRascunho({});
-    } catch (e) {
-      console.error("Erro ao criar o formulário:", e);
-      setErrosRascunho({
-        geral:
-          "Não foi possível criar o formulário. Verifique a ligação e tente novamente.",
-      });
-    }
-    setACriar(false);
-  };
 
   // O estado da linha Formulário vem da fonte única (lib/invites) — a
   // mesma conta da Jornada e do drawer. "preenchido-noutro" é o rasto
@@ -564,7 +486,7 @@ export default function DocumentosEvento({
         icone="formularios"
         titulo="Formulário"
         descricao={
-          aCompor
+          mostrarComposer
             ? "A compor…"
             : respondidoPortal
               ? `Respondido no acompanhamento ${dataCurta(submissao.questionario_entregue_em)} — não precisa de convite`
@@ -577,7 +499,7 @@ export default function DocumentosEvento({
                 : `Criado ${dataCurta(convite.created_at)} · à espera de resposta`
         }
         tom={
-          aCompor
+          mostrarComposer
             ? "destaque"
             : estadoFormulario === "nenhum" && !respondidoPortal
               ? "adormecido"
@@ -625,9 +547,9 @@ export default function DocumentosEvento({
             >
               {formularioFeito ? "Ver respostas" : "Preencher"}
             </button>
-          ) : aCompor ? null : (
+          ) : mostrarComposer ? null : (
             <button
-              onClick={abrirPainel}
+              onClick={() => setMostrarComposer(true)}
               className={classeBotao("ouro")}
               style={medidaBotao("ouro")}
             >
@@ -641,7 +563,7 @@ export default function DocumentosEvento({
           Aparece só quando este evento NÃO tem formulário e ela ainda não
           começou a compor um: é nesse instante que criar um segundo faria
           nascer o duplicado. Adoptar é preferir o que já existe. */}
-      {!aCompor &&
+      {!mostrarComposer &&
         estadoFormulario === "nenhum" &&
         orfaosAdoptaveis.length > 0 && (
           <div
@@ -736,39 +658,19 @@ export default function DocumentosEvento({
           </div>
         )}
 
-      {/* O PAINEL, por baixo da linha e indentado — a coluna estreita é
-          deliberada: a aba tem de continuar a ler-se como cinco linhas
-          calmas, e o painel foi desenhado para uma coluna, não para a
-          largura toda de uma página de evento.
-          `eventosParaEscolher={null}`: o alvo é ESTE evento, e um
-          selector de evento dentro de um evento seria UI morta.
-          `orfaos={null}`: esta página não tem visão global dos convites
-          — ausência DECLARADA, nunca uma lista vazia silenciosa. O aviso
-          dos órfãos dentro do evento é a metade seguinte do trabalho. */}
-      {aCompor && rascunho && (
-        <div style={{ maxWidth: "640px", marginLeft: "48px" }}>
-          <PainelNovoFormulario
-            showNewInvite={aCompor}
-            setShowNewInvite={setACompor}
-            newInvite={rascunho}
-            setNewInvite={setRascunho}
-            newInviteErrors={errosRascunho}
-            setNewInviteErrors={setErrosRascunho}
-            creatingInvite={aCriar}
-            eventTypes={eventTypes}
-            submissions={[submissao]}
-            invites={invites}
-            orfaos={null}
-            eventosParaEscolher={null}
-            reservaContexto={null}
-            /* Só para trazer os «Dados do pedido» (o cabeçalho «Vai
-               atualizar o evento de» fica de fora — ver o painel). */
-            eventoContexto={submissao}
-            setEventoContexto={() => {}}
-            handleCreateInvite={criarFormulario}
-            handleApontarConvite={() => {}}
-          />
-        </div>
+      {/* A BANCADA DA PONTE — sobreposição de ecrã inteiro, não um
+          painel indentado: compor um questionário com o pedido à vista
+          precisa da largura toda, e a aba continua a ler-se como cinco
+          linhas calmas porque o composer não vive entre elas. O alvo é
+          ESTE evento, fixo — é o que faz a bancada ser curta. */}
+      {mostrarComposer && (
+        <FormularioDoEvento
+          submissao={submissao}
+          eventTypes={eventTypes}
+          reservaProvisoria={reservaProvisoria}
+          onConviteCriado={onConviteCriado}
+          onFechar={() => setMostrarComposer(false)}
+        />
       )}
       </div>
 
