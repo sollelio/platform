@@ -7,6 +7,7 @@ import {
   ASSINATURA_FOLHA,
 } from "../../lib/casa";
 import {
+  criarComunicado,
   guardarComunicado,
   idDeBloco,
   comporFolha,
@@ -91,20 +92,22 @@ const CAMPO_ROTULO = {
 
 const CAMPO_LINHA = { ...CAMPO_ROTULO, fontWeight: "400" };
 
+// `comunicado` pode vir NULL: é uma folha nova, que ainda não existe na
+// base — só nasce no primeiro Guardar. Cancelar deixa zero rasto.
 export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
   const reduzido = useReducedMotion();
 
-  const [titulo, setTitulo] = useState(comunicado.titulo || "");
-  const [subtitulo, setSubtitulo] = useState(comunicado.subtitulo || "");
+  const [titulo, setTitulo] = useState(comunicado?.titulo || "");
+  const [subtitulo, setSubtitulo] = useState(comunicado?.subtitulo || "");
   // O temperamento da MESMA folha (080): aviso sóbrio ou oferta com
   // desejo. Grava-se com o resto, no Guardar — não é um acto à parte.
-  const [registo, setRegisto] = useState(comunicado.registo || "aviso");
+  const [registo, setRegisto] = useState(comunicado?.registo || "aviso");
   // Uma folha sem blocos abre com um em branco à espera — há sempre onde
   // escrever. O id nasce aqui e nunca mais se regenera. Cada tipo guarda
   // SÓ os campos que são seus — um cartão de imagem não arrasta um
   // `texto` fantasma que a derivação fosse ler por engano.
   const [blocos, setBlocos] = useState(() =>
-    Array.isArray(comunicado.blocos) && comunicado.blocos.length
+    Array.isArray(comunicado?.blocos) && comunicado.blocos.length
       ? comunicado.blocos.map((b) =>
           b.tipo === "imagem"
             ? { id: b.id, tipo: "imagem", url: b.url || "", legenda: b.legenda || "" }
@@ -339,7 +342,7 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
     setErroRede("");
     setAGuardar(true);
     try {
-      const rec = await guardarComunicado(comunicado.id, {
+      const campos = {
         titulo: titulo.trim(),
         subtitulo: subtitulo.trim() || null,
         registo,
@@ -359,7 +362,11 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
                 }
               : { id: b.id, rotulo: b.rotulo, texto: b.texto },
         ),
-      });
+      };
+      // Uma folha nova NASCE aqui, no primeiro Guardar — nunca antes.
+      const rec = comunicado?.id
+        ? await guardarComunicado(comunicado.id, campos)
+        : await criarComunicado(campos);
       setGuardado(true);
       // O visto fica 900ms à vista antes de a porta fechar — tempo de o
       // olho registar que o gesto aconteceu.

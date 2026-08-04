@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   listarComunicados,
   getComunicado,
-  criarComunicado,
+  apagarComunicado,
   publicarComunicado,
   retirarComunicado,
   enderecoDoComunicado,
@@ -664,7 +664,35 @@ export default function ComunicadosTab() {
   const [aberto, setAberto] = useState(null); // a folha em detalhe
   const [emEdicao, setEmEdicao] = useState(null); // a folha no editor
   const [emMensagem, setEmMensagem] = useState(null); // a folha na mensagem
-  const [aCriar, setACriar] = useState(false);
+  // Apagar em duas fases, no cartão — só para folhas SEM HISTÓRIA (nem
+  // leituras, nem lista): o rascunho que se criou por engano. O resto
+  // retira-se, nunca se apaga.
+  const [apagarArmado, setApagarArmado] = useState(null);
+  const [erroApagar, setErroApagar] = useState("");
+  useEffect(() => {
+    if (!apagarArmado) return undefined;
+    const t = setTimeout(() => setApagarArmado(null), 4000);
+    return () => clearTimeout(t);
+  }, [apagarArmado]);
+
+  const apagar = (c) => {
+    if (apagarArmado !== c.id) {
+      setApagarArmado(c.id);
+      return;
+    }
+    setApagarArmado(null);
+    setErroApagar("");
+    apagarComunicado(c.id)
+      .then(() => carregar())
+      .catch((e) => {
+        console.error(e);
+        setErroApagar(
+          /hist/i.test(e?.message || "")
+            ? e.message
+            : "Não foi possível apagar a folha. Tente outra vez.",
+        );
+      });
+  };
   // Dentro de uma folha aberta: detalhe → público (o recorte) → expedição
   // → e, desde a fase 3, o nascimento (uma folha acabada de nascer de um
   // molde). Estado, e não rota: o separador inteiro é uma vista só, e o
@@ -740,20 +768,13 @@ export default function ComunicadosTab() {
     carregar();
   };
 
-  const novo = async () => {
-    if (aCriar) return;
-    setACriar(true);
+  // O «+ Novo comunicado» já NÃO cria nada na base: abre o editor com a
+  // folha nula, e a folha nasce no primeiro Guardar (lib/comunicados).
+  // Nasceu ao contrário na fase 1 e o teste real do dono apanhou o
+  // rasto: cancelar deixava um «Sem título» na lista, sem remédio.
+  const novo = () => {
     setErroLista("");
-    try {
-      const rec = await criarComunicado();
-      // A folha nasce e o editor abre logo — o primeiro gesto é escrever.
-      setEmEdicao(rec);
-    } catch (e) {
-      console.error(e);
-      setErroLista("Não foi possível criar o comunicado. Tente outra vez.");
-    } finally {
-      setACriar(false);
-    }
+    setEmEdicao("nova");
   };
 
   // POR PUBLICAR primeiro (é onde há trabalho por acabar), depois as
@@ -791,6 +812,10 @@ export default function ComunicadosTab() {
         .dlm-cartao-com {
           background-color: #fff;
           border: 1px solid #F0E6D0;
+        }
+        .dlm-apagar-com:hover {
+          color: #DC2626;
+          background-color: #FEF2F2;
         }
         .dlm-cartao-com:hover {
           border-color: var(--gold-light);
@@ -952,7 +977,6 @@ export default function ComunicadosTab() {
                 </div>
                 <button
                   onClick={novo}
-                  disabled={aCriar}
                   className="acao acao--ouro"
                   style={{
                     flexShrink: 0,
@@ -979,6 +1003,12 @@ export default function ComunicadosTab() {
                 </p>
               )}
 
+              {erroApagar && (
+                <p role="alert" style={{ margin: "0 0 12px", fontSize: "12.5px", color: "#DC2626", maxWidth: "640px" }}>
+                  {erroApagar}
+                </p>
+              )}
+
               {lista === null && (
                 <div style={{ maxWidth: "640px" }}>
                   {[0, 1, 2].map((i) => (
@@ -1002,52 +1032,122 @@ export default function ComunicadosTab() {
                 <div style={{ maxWidth: "640px" }}>
                   {ordenados.map((c) => {
                     const estado = estadoDe(c);
+                    // Sem história = sem leituras e sem lista congelada:
+                    // só esses rascunhos se podem apagar. O resto retira-se.
+                    const apagavel = (c.n_acessos || 0) === 0 && !c.congelado_em;
                     return (
-                      <button
+                      <div
                         key={c.id}
-                        onClick={() => abrir(c)}
-                        className="acao dlm-cartao-com"
+                        className="dlm-cartao-com"
                         style={{
-                          display: "block",
-                          width: "100%",
-                          textAlign: "left",
+                          display: "flex",
+                          alignItems: "stretch",
+                          gap: "4px",
                           boxSizing: "border-box",
                           borderRadius: "12px",
-                          padding: "14px 16px",
+                          padding: "14px 10px 14px 16px",
                           marginBottom: "12px",
                         }}
                       >
-                        <div
+                        <button
+                          onClick={() => abrir(c)}
+                          className="acao"
                           style={{
-                            display: "flex",
-                            alignItems: "baseline",
-                            justifyContent: "space-between",
-                            gap: "12px",
+                            flex: 1,
+                            minWidth: 0,
+                            display: "block",
+                            textAlign: "left",
+                            border: "none",
+                            background: "none",
+                            padding: 0,
                           }}
                         >
-                          <span
+                          <div
                             style={{
-                              fontSize: "14.5px",
-                              fontWeight: c.titulo?.trim() ? "600" : "400",
-                              color: c.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
-                              fontStyle: c.titulo?.trim() ? "normal" : "italic",
-                              overflow: "hidden",
-                              whiteSpace: "nowrap",
-                              textOverflow: "ellipsis",
-                              minWidth: 0,
+                              display: "flex",
+                              alignItems: "baseline",
+                              justifyContent: "space-between",
+                              gap: "12px",
                             }}
                           >
-                            {c.titulo?.trim() || "Sem título, por enquanto"}
-                          </span>
-                          <PastilhaEstado estado={estado} />
-                        </div>
-                        <div style={{ marginTop: "5px", fontSize: "12px", color: "var(--gray-mid)" }}>
-                          {estado === "publicada" && (
-                            <>{plural(c.n_acessos || 0, "1 leitura", "leituras")} · </>
-                          )}
-                          guardada {quandoGuardada(c.actualizado_em)}
-                        </div>
-                      </button>
+                            <span
+                              style={{
+                                fontSize: "14.5px",
+                                fontWeight: c.titulo?.trim() ? "600" : "400",
+                                color: c.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
+                                fontStyle: c.titulo?.trim() ? "normal" : "italic",
+                                overflow: "hidden",
+                                whiteSpace: "nowrap",
+                                textOverflow: "ellipsis",
+                                minWidth: 0,
+                              }}
+                            >
+                              {c.titulo?.trim() || "Sem título, por enquanto"}
+                            </span>
+                            <PastilhaEstado estado={estado} />
+                          </div>
+                          <div style={{ marginTop: "5px", fontSize: "12px", color: "var(--gray-mid)" }}>
+                            {estado === "publicada" && (
+                              <>{plural(c.n_acessos || 0, "1 leitura", "leituras")} · </>
+                            )}
+                            guardada {quandoGuardada(c.actualizado_em)}
+                          </div>
+                        </button>
+                        {apagavel &&
+                          (apagarArmado === c.id ? (
+                            <button
+                              onClick={() => apagar(c)}
+                              className="acao"
+                              style={{
+                                flex: "none",
+                                alignSelf: "center",
+                                padding: "8px 12px",
+                                border: "1px solid #FECACA",
+                                borderRadius: "999px",
+                                backgroundColor: "#FEF2F2",
+                                color: "#DC2626",
+                                fontSize: "11.5px",
+                                fontWeight: "600",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              Confirmar? A folha apaga-se.
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => apagar(c)}
+                              aria-label="Apagar a folha"
+                              title="Apagar a folha"
+                              className="acao dlm-apagar-com"
+                              style={{
+                                flex: "none",
+                                alignSelf: "center",
+                                width: "32px",
+                                height: "32px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "none",
+                                borderRadius: "8px",
+                                background: "transparent",
+                                color: "#C4C4C4",
+                              }}
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M4 4l8 8M12 4l-8 8" />
+                              </svg>
+                            </button>
+                          ))}
+                      </div>
                     );
                   })}
                 </div>
@@ -1075,7 +1175,7 @@ export default function ComunicadosTab() {
 
       {emEdicao && (
         <ComunicadoEditor
-          comunicado={emEdicao}
+          comunicado={emEdicao === "nova" ? null : emEdicao}
           onFechar={() => {
             // Fechar sem guardar: a folha fica como estava; a lista
             // refresca porque uma folha acabada de criar já lá vive.

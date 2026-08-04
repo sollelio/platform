@@ -43,17 +43,48 @@ export const getComunicado = async (id) => {
   return data;
 };
 
-// Nasce vazio, com um bloco em branco à espera — o editor abre logo
-// com onde escrever. O id do bloco gera-se aqui, no cliente, e nunca
-// mais se regenera (a lição do EventTypeEditor).
-export const criarComunicado = async () => {
+// A folha nasce ao PRIMEIRO GUARDAR, com o que ela escreveu — não ao
+// abrir o editor. Nasceu ao contrário na fase 1 (a linha entrava na base
+// logo no «+ Novo comunicado») e o teste real do dono apanhou o rasto:
+// cancelar deixava um «Sem título, por enquanto» na lista, sem remédio.
+// Cancelar agora deixa zero. Sem campos, nasce em branco (o caminho dos
+// moldes e das fixtures continua a valer).
+export const criarComunicado = async (campos = {}) => {
   const { data, error } = await supabase
     .from("comunicados")
-    .insert([{ titulo: "", blocos: [{ id: idDeBloco(), rotulo: "", texto: "" }] }])
+    .insert([
+      {
+        titulo: campos.titulo ?? "",
+        subtitulo: campos.subtitulo ?? null,
+        registo: campos.registo ?? "aviso",
+        blocos: campos.blocos ?? [{ id: idDeBloco(), rotulo: "", texto: "" }],
+        mensagem: campos.mensagem ?? null,
+      },
+    ])
     .select()
     .single();
   if (error) throw error;
   return data;
+};
+
+// Apagar só o que NÃO TEM HISTÓRIA: nem leituras, nem lista de
+// expedição. Uma folha lida ou expedida é registo do que aconteceu — o
+// gesto público para essas é RETIRAR, nunca apagar. O método verifica
+// (a UI já escondeu o botão, mas a regra vive aqui, não no ecrã).
+export const apagarComunicado = async (id) => {
+  const { data: c, error: erroLer } = await supabase
+    .from("comunicados")
+    .select("id, n_acessos, congelado_em")
+    .eq("id", id)
+    .single();
+  if (erroLer) throw erroLer;
+  if ((c.n_acessos || 0) > 0 || c.congelado_em) {
+    throw new Error(
+      "Esta folha tem história — leituras ou uma lista de expedição. Retira-se; não se apaga.",
+    );
+  }
+  const { error } = await supabase.from("comunicados").delete().eq("id", id);
+  if (error) throw error;
 };
 
 // Atualiza uma folha (whitelist — lição 3, o molde do updateMensagem).
