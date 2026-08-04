@@ -803,6 +803,11 @@ evento → formulário* :: *molde de comunicado → comunicado*.
   na lista como acrescentada — a letra do brief; o protótipo voltava à
   pergunta, e o desvio fica registado. «Acrescentada» deriva-se
   (created_at > congelado_em), sem coluna nova.
+- **04/08/2026 — Nascer de molde mantém os ids dos blocos:** cada
+  comunicado é uma cópia independente e os ids só têm de ser únicos
+  DENTRO da folha; mantê-los é o que deixa um bloco marcado no molde
+  ser encontrado na folha que dele nasceu (a marca `rever` aponta ao
+  mesmo id). Regenerar não protegia nada e apagava essa ponte.
 - **04/08/2026 — A história do molde deriva-se** (count/max sobre os
   comunicados com o modelo_id) — contador guardado é contador que
   deriva. «Guardado, ainda não usado» é o caso de zero e o mais comum.

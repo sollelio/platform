@@ -632,10 +632,21 @@ export const marcarTodosEnviados = async (comunicadoId) => {
     .eq("comunicado_id", comunicadoId)
     .is("enviado_em", null)
     .not("telefone", "is", null)
+    // Uma dispensada NUNCA leva carimbo: «dispensada e enviada» seria a
+    // contradição de registar «a mensagem saiu» sobre quem a casa
+    // decidiu não contactar. O CHECK da 081 rebentava aqui — este
+    // filtro é a cinta, o CHECK são os suspensórios.
+    .is("dispensado_em", null)
     .select("id");
   if (error) throw error;
   return (data || []).length;
 };
+
+// As linhas que CONTAM — sem dispensado_em. As vistas de expedição e as
+// contagens filtram por aqui; listarDestinatarios continua a devolver
+// tudo de propósito, porque o ecrã de «quem entrou depois» precisa de
+// ver as dispensadas (é assim que sabe não voltar a perguntar).
+export const linhasActivas = (linhas) => (linhas || []).filter((l) => !l.dispensado_em);
 
 // ---- A imagem da folha ----
 
@@ -696,4 +707,366 @@ export const textoDifusao = (comunicado, endereco) => {
     .replace(/[ \t]{2,}/g, " ")
     .replace(/ ([!?.,;:])/g, "$1");
   return resolverMensagem(semNome, { linkFolha: endereco });
+};
+
+// ============================================================
+// FASE 3 — os moldes e quem entrou depois (migração 081).
+//
+// Um molde guarda três coisas: a FOLHA, a MENSAGEM e a REGRA de público
+// — nunca os nomes, o endereço ou as leituras. Cada comunicado que nasce
+// de um molde é novo, ganha endereço próprio e conta os nomes de novo.
+// A história de um molde («Usado 2 vezes · o último em agosto») não se
+// guarda: DERIVA-SE dos comunicados com o modelo_id — contador guardado
+// é contador que deriva.
+// ============================================================
+
+// ---- Modelos: o CRUD e a história derivada ----
+
+// Os moldes todos, cada um com {usos, ultimoUso} derivados. São duas
+// idas (moldes + comunicados com modelo_id) agregadas aqui, em vez de
+// um contador guardado — a regra da 081.
+export const listarModelos = async () => {
+  const [moldes, usos] = await Promise.all([
+    supabase
+      .from("comunicado_modelos")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("comunicados")
+      .select("modelo_id, created_at")
+      .not("modelo_id", "is", null),
+  ]);
+  if (moldes.error) throw moldes.error;
+  if (usos.error) throw usos.error;
+
+  // count e max(created_at) por modelo_id, no cliente — a lista é curta
+  // (uma casa, uma dúzia de moldes) e a BD já deu tudo o que sabe.
+  const porModelo = new Map();
+  for (const c of usos.data || []) {
+    const h = porModelo.get(c.modelo_id) || { usos: 0, ultimoUso: null };
+    h.usos += 1;
+    if (!h.ultimoUso || c.created_at > h.ultimoUso) h.ultimoUso = c.created_at;
+    porModelo.set(c.modelo_id, h);
+  }
+  return (moldes.data || []).map((m) => ({
+    ...m,
+    ...(porModelo.get(m.id) || { usos: 0, ultimoUso: null }),
+  }));
+};
+
+// «abril de 2026» — mês minúsculo, ano sempre (o cartão do molde diz
+// QUANDO foi o último uso, e sem o ano «abril» mentiria daqui a um ano).
+const mesEAno = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return `${MESES_ANCORA[d.getMonth()]} de ${d.getFullYear()}`;
+};
+
+// A frase da história do cartão. O caso de zero é o mais comum no
+// princípio — e diz «guardado», não «nunca usado», porque um molde
+// acabado de guardar não falhou nada.
+export const historiaDoModelo = (usos, ultimoUso) => {
+  if (!usos) return "Guardado, ainda não usado";
+  const quando = mesEAno(ultimoUso);
+  if (usos === 1) return quando ? `Usado uma vez · ${quando}` : "Usado uma vez";
+  return quando
+    ? `Usado ${usos} vezes · o último em ${quando}`
+    : `Usado ${usos} vezes`;
+};
+
+// Atualiza um molde (whitelist — a mesma lição do guardarComunicado).
+export const guardarModelo = async (id, campos) => {
+  const permitidos = ["nome", "registo", "titulo", "subtitulo", "blocos", "mensagem", "publico"];
+  const patch = {};
+  for (const k of permitidos) {
+    if (k in campos) patch[k] = campos[k];
+  }
+  if (Object.keys(patch).length === 0) throw new Error("Nada para atualizar.");
+  patch.actualizado_em = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("comunicado_modelos")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Apagar é a sério — a UI já confirmou em duas fases. Os comunicados
+// que nasceram deste molde FICAM: o FK é on delete set null, e o que se
+// perde é só a contagem de utilizações.
+export const apagarModelo = async (id) => {
+  const { error } = await supabase.from("comunicado_modelos").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// ---- De comunicado a molde, e de molde a comunicado ----
+
+// Guarda um comunicado como molde. Os blocos vêm por argumento (não do
+// comunicado) porque é o ecrã de guardar que os traz já com as marcas
+// de revisão — rever/pergunta decidem-se ao GUARDAR, com o contexto
+// todo à frente, não ao usar.
+export const guardarComoMolde = async (comunicado, nome, blocos) => {
+  const n = (nome || "").trim();
+  if (!n) throw new Error("O molde precisa de um nome.");
+  const { data, error } = await supabase
+    .from("comunicado_modelos")
+    .insert([
+      {
+        nome: n,
+        registo: comunicado.registo || "aviso",
+        titulo: comunicado.titulo || "",
+        subtitulo: comunicado.subtitulo,
+        blocos: Array.isArray(blocos) ? blocos : comunicado.blocos || [],
+        mensagem: comunicado.mensagem,
+        publico: comunicado.publico,
+      },
+    ])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Um comunicado novo a partir de um molde: a folha e a mensagem TAL E
+// QUAL (com rever/pergunta — é no comunicado que a revisão se fecha),
+// a regra de público pré-carregada (o ComunicadoRecorte lê
+// comunicado.publico para os filtros iniciais), e a proveniência no
+// modelo_id. SEM token e SEM congelado_em: publicar e congelar são
+// actos deste comunicado, não herança.
+//
+// Os ids dos blocos MANTÊM-SE (decisão registada): cada comunicado é
+// uma cópia independente e os ids só têm de ser únicos DENTRO da folha
+// — e mantê-los é o que deixa um bloco marcado no molde ser encontrado
+// na folha que nasceu dele.
+export const nascerDeMolde = async (modelo) => {
+  const { data, error } = await supabase
+    .from("comunicados")
+    .insert([
+      {
+        titulo: modelo.titulo || "",
+        subtitulo: modelo.subtitulo,
+        registo: modelo.registo || "aviso",
+        blocos: modelo.blocos || [],
+        mensagem: modelo.mensagem,
+        publico: modelo.publico,
+        modelo_id: modelo.id,
+      },
+    ])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// «Está certo» fecha a revisão de UM bloco NESTE comunicado: limpa
+// rever/pergunta e grava. O molde fica intacto — a marca dele volta a
+// aparecer no próximo comunicado que nascer.
+export const marcarBlocoRevisto = (comunicadoId, blocos, blocoId) => {
+  const limpos = (blocos || []).map((b) => {
+    if (b.id !== blocoId) return b;
+    // Tirar as chaves em vez de as pôr a false/vazio: um bloco revisto
+    // fica IGUAL a um bloco que nunca teve marca.
+    const resto = { ...b };
+    delete resto.rever;
+    delete resto.pergunta;
+    return resto;
+  });
+  return guardarComunicado(comunicadoId, { blocos: limpos });
+};
+
+// ---- O que envelhece: a heurística de AJUDA ----
+
+// True se o texto trouxer sinais de data ou prazo — mês por extenso,
+// ano, dd/mm, palavras de prazo. Serve para PROPOR a marca de revisão
+// ao guardar o molde; nunca decide sozinha (ela confirma, desmarca ou
+// acrescenta). Errar por excesso aqui custa um clique; errar por
+// defeito custa uma folha com a data do ano passado.
+export const detectarEnvelhecimento = (texto) => {
+  const t = String(texto || "");
+  if (new RegExp(`(^|[^a-zà-ü])(${MESES_ANCORA.join("|")})([^a-zà-ü]|$)`, "i").test(t)) return true;
+  if (/\b20\d\d\b/.test(t)) return true;
+  if (/\b\d{1,2}\/\d{1,2}\b/.test(t)) return true;
+  // «até » com espaço: apanha «até 30 de…» sem disparar em «atéu»
+  // (que não existe) nem exigir fronteira ASCII depois do é.
+  return /até\s|prazo|marcações|inscrições|reservas/i.test(t);
+};
+
+// A pergunta-padrão que acompanha uma marca de revisão — datada de
+// AGORA, porque é agora que o molde se guarda. Ela pode reescrevê-la.
+export const perguntaProposta = () => {
+  const d = new Date();
+  return `Vem de ${MESES_ANCORA[d.getMonth()]} de ${d.getFullYear()}. A data ainda serve?`;
+};
+
+// ---- Quem entrou depois de a lista fechar ----
+
+// Corre a regra guardada (comunicado.publico) pelos MESMOS selectores
+// do recorte e devolve quem NÃO está na lista congelada — os que
+// entraram depois. A comparação é por telefone_chave quando houver
+// (a identidade da casa desde a 043); sem chave, por submission_id ou
+// cliente_id. As dispensadas ESTÃO na lista (é linha, não tabela nova),
+// por isso excluem-se sozinhas — não se volta a perguntar.
+export const candidatosPosteriores = async (comunicado) => {
+  const pub = comunicado.publico;
+  // Sem regra guardada não há o que correr — um comunicado congelado
+  // antes da fase 2 tardia, ou nunca congelado, não tem «depois».
+  if (!pub || !pub.origem) return [];
+
+  const existentes = await listarDestinatarios(comunicado.id);
+  const chaves = new Set(existentes.map((d) => d.telefone_chave).filter(Boolean));
+  const subs = new Set(existentes.map((d) => d.submission_id).filter(Boolean));
+  const clis = new Set(existentes.map((d) => d.cliente_id).filter(Boolean));
+
+  let candidatos;
+  if (pub.origem === "eventos") {
+    const rows = await seleccionarEventos({
+      eventTypeId: pub.event_type_id,
+      janela: pub.janela || "todos",
+    });
+    const [detalhes, tipos] = await Promise.all([completarDetalhes(rows), tiposDeEvento()]);
+    candidatos = rows.map((r) => {
+      const det = detalhes.get(r.submission_id);
+      const tipoNome =
+        (r.event_type_id && tipos.get(r.event_type_id)) ||
+        (det?.tipoEventoOutro || "").trim() ||
+        "Evento";
+      return {
+        nome: (r.nome || "").trim() || nomeDasRespostas(det) || SEM_NOME,
+        // A MESMA âncora do congelamento — o cartão do candidato tem de
+        // se ler como as linhas ao lado dele.
+        ancora: `${tipoNome} · ${ancoraDeData(r.data_evento) || "sem data marcada"}`,
+        telefone: r.telefone,
+        telefone_chave: r.telefone_chave,
+        submission_id: r.submission_id,
+        cliente_id: r.cliente_id,
+      };
+    });
+  } else if (pub.origem === "contactos") {
+    const { incluidos } = await seleccionarContactos({ quem: pub.quem || "todos" });
+    candidatos = incluidos.map((p) => ({
+      nome: p.nome,
+      ancora: p.classe,
+      telefone: p.telefone,
+      telefone_chave: p.telefone_chave,
+      submission_id: null,
+      cliente_id: p.cliente_id,
+    }));
+  } else {
+    throw new Error(`Origem de recorte inválida: ${pub.origem}`);
+  }
+
+  const jaNaLista = (c) =>
+    c.telefone_chave
+      ? chaves.has(c.telefone_chave)
+      : c.submission_id
+        ? subs.has(c.submission_id)
+        : Boolean(c.cliente_id) && clis.has(c.cliente_id);
+
+  // Deduplicar os candidatos entre si pela mesma regra do congelamento:
+  // duas linhas novas com o mesmo telefone são UMA pessoa a perguntar.
+  const vistos = new Set();
+  const novos = [];
+  for (const c of candidatos) {
+    if (jaNaLista(c)) continue;
+    if (c.telefone_chave) {
+      if (vistos.has(c.telefone_chave)) continue;
+      vistos.add(c.telefone_chave);
+    }
+    novos.push(c);
+  }
+  return novos.sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+};
+
+// A ordem da linha nova: no fim da lista — quem entrou depois não fura
+// a fila de expedição que a Nádia já tem na cabeça.
+const inserirLinhaPosterior = async (comunicadoId, candidato, extra = {}) => {
+  const { data: ultima, error: erroUltima } = await supabase
+    .from("comunicado_destinatarios")
+    .select("ordem")
+    .eq("comunicado_id", comunicadoId)
+    .order("ordem", { ascending: false })
+    .limit(1);
+  if (erroUltima) throw erroUltima;
+  const ordem = ultima && ultima.length ? (ultima[0].ordem ?? 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from("comunicado_destinatarios")
+    .insert([
+      {
+        comunicado_id: comunicadoId,
+        submission_id: candidato.submission_id ?? null,
+        cliente_id: candidato.cliente_id ?? null,
+        nome: candidato.nome,
+        ancora: candidato.ancora,
+        telefone: candidato.telefone ?? null,
+        telefone_chave: candidato.telefone_chave ?? null,
+        ordem,
+        ...extra,
+      },
+    ])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Acrescentar: linha normal, no fim. «Acrescentada» não é coluna —
+// deriva-se de created_at > congelado_em do comunicado.
+export const acrescentarDestinatario = (comunicadoId, candidato) =>
+  inserirLinhaPosterior(comunicadoId, candidato);
+
+// Dispensar: a linha grava-se NA MESMA (o instantâneo fica guardado e o
+// índice único continua a valer), mas com dispensado_em — não conta
+// para nada e não se volta a perguntar por esta pessoa.
+export const dispensarCandidato = (comunicadoId, candidato) =>
+  inserirLinhaPosterior(comunicadoId, candidato, {
+    dispensado_em: new Date().toISOString(),
+  });
+
+// «Desfazer» a dispensa limpa a coluna — a letra do brief (o protótipo
+// voltava à pergunta; o desvio ficou registado nas decisões). A linha
+// passa a contar como acrescentada, derivado do created_at dela.
+export const desfazerDispensa = (id) => patchDestinatario(id, { dispensado_em: null });
+
+// ---- O rótulo humano de uma regra de público ----
+
+// O plural de um nome de tipo de evento, para o rótulo. As regras
+// comuns chegam para os tipos da casa (Casamento→Casamentos,
+// Festinha→Festinhas, Comunhão→Comunhões); um tipo com plural irregular
+// em -ão (Pães?) sairia errado — aceita-se, é um rótulo, não um
+// documento.
+const pluralDeTipo = (nome) => {
+  const s = (nome || "").trim();
+  if (!s) return "Eventos";
+  if (/s$/i.test(s)) return s;
+  if (/ão$/i.test(s)) return s.slice(0, -2) + "ões";
+  if (/m$/i.test(s)) return s.slice(0, -1) + "ns";
+  if (/[rz]$/i.test(s)) return s + "es";
+  return s + "s";
+};
+
+// A regra de público em UMA linha legível: «Casamentos por vir»,
+// «Festinhas — todos», «Todos os contactos», «Só clientes». Recebe os
+// tipos do getEventTypes (a lista, não o Map interno) porque é o que os
+// ecrãs já têm na mão. Sem tipo conhecido, «Eventos»; sem regra
+// nenhuma, null — o cartão decide o que mostra a um comunicado sem
+// público.
+export const rotuloDaRegra = (publico, tipos) => {
+  if (!publico || !publico.origem) return null;
+  if (publico.origem === "contactos") {
+    if (publico.quem === "clientes") return "Só clientes";
+    if (publico.quem === "interessados") return "Só interessados";
+    return "Todos os contactos";
+  }
+  if (publico.origem === "eventos") {
+    const tipo = (tipos || []).find((t) => t.id === publico.event_type_id);
+    const base = tipo ? pluralDeTipo(tipo.nome) : "Eventos";
+    if (publico.janela === "porvir") return `${base} por vir`;
+    if (publico.janela === "passados") return `${base} passados`;
+    return `${base} — todos`;
+  }
+  return null;
 };
