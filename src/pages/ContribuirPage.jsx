@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
+import { EMPRESA } from "../lib/casa";
 import { getCampanhaPublica, prometerContribuicao } from "../lib/campanhas";
 import { CONTRIBUICAO_COLETIVA_ATIVA } from "../lib/funcionalidades";
 import { Taca } from "../components/admin/ContribuicaoColetiva";
@@ -425,7 +426,7 @@ export default function ContribuirPage() {
           color: "#C0B79F",
         }}
       >
-        Do Luxo à Mesa
+        {EMPRESA.designacao}
       </p>
     </div>
   );

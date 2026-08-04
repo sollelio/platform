@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { TITULO_BACKOFFICE } from "../lib/casa";
 import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
 import { getEventoCompleto, updateStatus } from "../lib/clientes";
 import {
@@ -179,7 +180,7 @@ export default function EventoPage() {
   // com o título público que o portal tenha deixado. O AdminPage já o
   // repõe via notificacoes.js; esta é a outra porta de entrada.
   useEffect(() => {
-    document.title = "Sistema DLM — Do Luxo à Mesa";
+    document.title = TITULO_BACKOFFICE;
   }, []);
 
   // O aviso da Caixa de Entrada manda «trate na folha do Acompanhamento»

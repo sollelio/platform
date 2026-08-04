@@ -1,6 +1,10 @@
 import { useState, useRef } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
-import logoUrl from "../../../assets/logo.png";
+import {
+  LOGO_CASA as logoUrl,
+  EMPRESA,
+  ASSINATURA_TITULAR,
+} from "../../../lib/casa";
 import { formatarDataPT } from "./orcamentoConfig";
 import { uploadImagemProposta } from "../../../lib/propostas";
 
@@ -82,7 +86,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
 
   const imprimir = () => {
     const tituloAnterior = document.title;
-    document.title = `Projecto — ${cliente || "Do Luxo à Mesa"}`;
+    document.title = `Projecto — ${cliente || EMPRESA.designacao}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -443,7 +447,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
           <div style={{ textAlign: "center" }}>
             <img
               src={logoUrl}
-              alt="Do Luxo à Mesa"
+              alt={EMPRESA.designacao}
               style={{ width: "120px", height: "auto", margin: "0 auto 28px" }}
             />
             <h1
@@ -516,7 +520,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
               margin: 0,
             }}
           >
-            Do Luxo à Mesa · by Nádia Schultz
+            {ASSINATURA_TITULAR}
           </p>
         </div>
 

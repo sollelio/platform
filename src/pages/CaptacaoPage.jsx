@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
+import { ASSINATURA_TITULAR } from "../lib/casa";
 
 // ============================================================
 // CaptacaoPage — a página pública /interesse: a porta do funil.
@@ -267,7 +268,7 @@ export default function CaptacaoPage() {
             margin: "18px 0 0 0",
           }}
         >
-          Do Luxo à Mesa · by Nádia Schultz
+          {ASSINATURA_TITULAR}
         </p>
       </div>
 

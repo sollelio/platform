@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import logoUrl from "../../assets/logo.png";
+import { LOGO_CASA as logoUrl, EMPRESA, DOMINIO_CASA } from "../../lib/casa";
 import {
   guardarComunicado,
   listarDestinatarios,
@@ -357,7 +357,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
               >
                 <img
                   src={logoUrl}
-                  alt="Do Luxo à Mesa"
+                  alt={EMPRESA.designacao}
                   style={{ height: "34px", width: "auto", flex: "none" }}
                 />
                 <div style={{ minWidth: 0 }}>
@@ -381,9 +381,9 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    Uma folha da Do Luxo à Mesa, para ler e partilhar.
+                    {`Uma folha da ${EMPRESA.designacao}, para ler e partilhar.`}
                   </div>
-                  <div style={{ fontSize: "10px", color: "#9B9B9B" }}>doluxoamesa.pt</div>
+                  <div style={{ fontSize: "10px", color: "#9B9B9B" }}>{DOMINIO_CASA}</div>
                 </div>
               </div>
               <div

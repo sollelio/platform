@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { linkWhatsApp } from "../../lib/mensagens";
+import { EMPRESA } from "../../lib/casa";
 import { MarcaVisto, MarcaCruz } from "./marcas";
 
 // ============================================================
@@ -1012,7 +1013,7 @@ function ConteudoCaixa({
                 margin: "0 0 3px 0",
               }}
             >
-              Do Luxo à Mesa
+              {EMPRESA.designacao}
             </p>
             <h2
               style={{

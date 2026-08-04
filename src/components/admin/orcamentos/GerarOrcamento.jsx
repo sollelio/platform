@@ -1,7 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
-import logoUrl from "../../../assets/logo.png";
+import {
+  LOGO_CASA as logoUrl,
+  EMPRESA,
+  RODAPE_MARCA_ORCAMENTO,
+} from "../../../lib/casa";
 import { uploadImagemReferencia } from "../../../lib/captacao";
 import { guardarValorAcordado } from "../../../lib/clientes";
 import PainelDeslocacao from "./PainelDeslocacao";
@@ -257,7 +261,7 @@ export default function GerarOrcamento({
   // no CSS elimina os cabeçalhos por completo — cinto e suspensórios).
   const imprimir = () => {
     const tituloAnterior = document.title;
-    document.title = `Orçamento — ${cliente || "Do Luxo à Mesa"}`;
+    document.title = `Orçamento — ${cliente || EMPRESA.designacao}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -982,7 +986,7 @@ function OrcamentoDocumento({
         <div style={{ flex: "0 0 auto" }}>
           <img
             src={logoUrl}
-            alt="Do Luxo à Mesa"
+            alt={EMPRESA.designacao}
             style={{ width: "110px", height: "auto", display: "block" }}
           />
         </div>
@@ -1209,7 +1213,7 @@ function OrcamentoDocumento({
           margin: 0,
         }}
       >
-        DO LUXO À MESA &nbsp;|&nbsp; By Nádia Schultz
+        {RODAPE_MARCA_ORCAMENTO}
       </p>
     </div>
   );

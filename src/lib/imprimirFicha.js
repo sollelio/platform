@@ -1,4 +1,5 @@
 import { coresDeTexto } from "./paletaCores";
+import { EMPRESA, LINHA_BY_LUXURY } from "./casa";
 
 // ============================================================
 // imprimirFicha — gera as TRÊS listas operacionais de um evento
@@ -96,8 +97,8 @@ const gerarLista = (titulo, subtitulo, linhas, submissao, tituloEvento) => {
   <section class="lista">
     <header class="cabecalho">
       <div>
-        <p class="marca">Do Luxo à Mesa</p>
-        <p class="marca-sub">by Luxury Events</p>
+        <p class="marca">${EMPRESA.designacao}</p>
+        <p class="marca-sub">${LINHA_BY_LUXURY}</p>
       </div>
       <div class="cabecalho-direita">
         <h1>${escapar(titulo)}</h1>

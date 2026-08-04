@@ -7,6 +7,7 @@ import {
   idDoSlug,
 } from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 import {
   createInvite,
   ehFormularioOrfao,
@@ -706,7 +707,7 @@ export default function AdminPage() {
     const url = `${window.location.origin}/?codigo=${invite.code}`;
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     const emoji = tipo?.icone === "couple" ? "💍" : "✨";
-    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso questionário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\nPlaneamos cada detalhe. Criamos memórias inesquecíveis. ✨`;
+    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso questionário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`;
   };
 
   // `silencioso`: os refetches do realtime não mostram esqueletos — o
@@ -938,7 +939,7 @@ export default function AdminPage() {
               lineHeight: 1.1,
             }}
           >
-            Do Luxo à Mesa
+            {EMPRESA.designacao}
           </h1>
           <p
             style={{
@@ -949,7 +950,7 @@ export default function AdminPage() {
               margin: 0,
             }}
           >
-            by Luxury Events
+            {LINHA_BY_LUXURY}
           </p>
         </div>
       )}

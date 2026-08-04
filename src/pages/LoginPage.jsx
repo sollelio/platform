@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { destinoDepoisDoLogin, useSessao } from "../lib/sessao";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.png";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {
   return (
@@ -274,7 +275,7 @@ export default function LoginPage() {
               lineHeight: 1.1,
             }}
           >
-            Do Luxo à Mesa
+            {EMPRESA.designacao}
           </h1>
           <p
             style={{
@@ -285,7 +286,7 @@ export default function LoginPage() {
               margin: "0 0 20px 0",
             }}
           >
-            by Luxury Events
+            {LINHA_BY_LUXURY}
           </p>
           <div
             style={{
@@ -547,7 +548,7 @@ export default function LoginPage() {
               margin: "4px 0 0",
             }}
           >
-            Planeamos cada detalhe. Criamos memórias inesquecíveis.
+            {SLOGAN_CASA}
           </p>
         </div>
       </div>

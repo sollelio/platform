@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { markInviteUsed } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 import flores from "../assets/flores.png";
 import { iniciarTour, tourJaVista } from "../lib/tour";
 import { submeterFormulario } from "../lib/clientes";
@@ -723,7 +724,7 @@ export default function FormPage() {
               margin: 0,
             }}
           >
-            Planeamos cada detalhe. Criamos memórias inesquecíveis.
+            {SLOGAN_CASA}
           </p>
         </motion.div>
       </div>
@@ -822,7 +823,7 @@ export default function FormPage() {
                 lineHeight: 1.1,
               }}
             >
-              Do Luxo à Mesa
+              {EMPRESA.designacao}
             </h1>
             <p
               style={{
@@ -834,7 +835,7 @@ export default function FormPage() {
                 fontWeight: "400",
               }}
             >
-              by Luxury Events
+              {LINHA_BY_LUXURY}
             </p>
             <div
               style={{
@@ -1249,7 +1250,7 @@ export default function FormPage() {
                 margin: "4px 0 0",
               }}
             >
-              Planeamos cada detalhe. Criamos memórias inesquecíveis.
+              {SLOGAN_CASA}
             </p>
           </div>
         </div>

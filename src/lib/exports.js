@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { EMPRESA, TAGLINE_EXPORTS } from './casa'
 
 // ─── Mapeamento de campos para labels legíveis ───
 const FIELD_LABELS = {
@@ -104,7 +105,7 @@ const formatDate = (date) => {
 export const exportClienteExcel = (submission) => {
   const rows = []
 
-  rows.push(['Do Luxo à Mesa — Questionário do Evento'])
+  rows.push([`${EMPRESA.designacao} — Questionário do Evento`])
   rows.push([`${submission.nome_noivo} & ${submission.nome_noiva}`])
   rows.push([`Evento: ${formatDate(submission.data_evento)} | Estado: ${submission.status}`])
   rows.push([])
@@ -165,8 +166,8 @@ export const exportClientePDF = (submission) => {
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text('DO LUXO À MESA', 14, 9)
-  doc.text('Planeamento · Personalização · Organização · Detalhes', 210 - 14, 9, { align: 'right' })
+  doc.text(EMPRESA.designacao.toUpperCase(), 14, 9)
+  doc.text(TAGLINE_EXPORTS, 210 - 14, 9, { align: 'right' })
 
   y = 28
 
@@ -250,7 +251,7 @@ export const exportClientePDF = (submission) => {
     doc.setFontSize(8)
     doc.setTextColor(...goldLight)
     doc.text(
-      `Do Luxo à Mesa · Página ${i} de ${totalPages}`,
+      `${EMPRESA.designacao} · Página ${i} de ${totalPages}`,
       105, 290, { align: 'center' }
     )
   }

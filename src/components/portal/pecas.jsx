@@ -16,6 +16,7 @@
 import {
   overline, playfair,
 } from "./base";
+import { ASSINATURA_PUBLICA } from "../../lib/casa";
 
 // As datas e os estilos vivem em `base.js` — ficheiro `.js` porque o
 // linter da casa não deixa misturar funções puras com componentes.
@@ -219,7 +220,7 @@ export function Assinatura({ style }) {
         ...style,
       }}
     >
-      Do Luxo à Mesa · by Luxury Events
+      {ASSINATURA_PUBLICA}
     </p>
   );
 }

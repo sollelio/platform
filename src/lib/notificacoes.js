@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
+import { TITULO_BACKOFFICE } from "./casa";
 
 // ============================================================
 // notificacoes.js — a Caixa de Entrada da Nádia (migração 022).
@@ -146,7 +147,7 @@ export function useNotificacoes() {
   const naoLidas = lista.filter((n) => !n.lida_em).length;
 
   useEffect(() => {
-    const base = "Sistema DLM — Do Luxo à Mesa";
+    const base = TITULO_BACKOFFICE;
     document.title = naoLidas > 0 ? `(${naoLidas}) ${base}` : base;
   }, [naoLidas]);
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { validateCode } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.png";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {
   return (
@@ -186,7 +187,7 @@ export default function FormEntryPage() {
               lineHeight: 1.1,
             }}
           >
-            Do Luxo à Mesa
+            {EMPRESA.designacao}
           </h1>
           <p
             style={{
@@ -197,7 +198,7 @@ export default function FormEntryPage() {
               margin: "0 0 20px 0",
             }}
           >
-            by Luxury Events
+            {LINHA_BY_LUXURY}
           </p>
           <div
             style={{
@@ -436,7 +437,7 @@ export default function FormEntryPage() {
               margin: "4px 0 0",
             }}
           >
-            Planeamos cada detalhe. Criamos memórias inesquecíveis.
+            {SLOGAN_CASA}
           </p>
         </div>
       </div>

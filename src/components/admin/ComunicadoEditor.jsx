@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import logoUrl from "../../assets/logo.png";
+import {
+  LOGO_CASA as logoUrl,
+  EMPRESA,
+  LINHA_ACTIVIDADE,
+  ASSINATURA_FOLHA,
+} from "../../lib/casa";
 import {
   guardarComunicado,
   idDeBloco,
@@ -985,8 +990,7 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
               color: "var(--gray-mid)",
             }}
           >
-            A assinatura — «Com carinho, Do Luxo à Mesa» — fecha todas as
-            folhas da casa.
+            {`A assinatura — «${ASSINATURA_FOLHA.despedida} ${ASSINATURA_FOLHA.nome}» — fecha todas as folhas da casa.`}
           </div>
         </div>
       </div>
@@ -1166,7 +1170,7 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
             <img
               src={logoUrl}
-              alt="Do Luxo à Mesa"
+              alt={EMPRESA.designacao}
               style={{ height: "84px", width: "auto", display: "block" }}
             />
             <div
@@ -1180,7 +1184,7 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
                 textAlign: "center",
               }}
             >
-              DECORAÇÃO E ALUGUER PARA EVENTOS
+              {LINHA_ACTIVIDADE.toUpperCase()}
             </div>
           </div>
           <div
@@ -1538,10 +1542,10 @@ export default function ComunicadoEditor({ comunicado, onFechar, onGuardado }) {
                   color: "var(--gold-dark)",
                 }}
               >
-                Com carinho,
+                {ASSINATURA_FOLHA.despedida}
               </p>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "17px", marginTop: "2px" }}>
-                Do Luxo à Mesa
+                {ASSINATURA_FOLHA.nome}
               </div>
             </div>
           </div>

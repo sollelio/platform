@@ -83,7 +83,9 @@ export const naoVazio = (v) => typeof v === "string" && v.trim() !== "";
 export const WHATSAPP_URL = linkWhatsAppCasa(
   "Olá! Escrevo a partir da página de acompanhamento do meu evento.",
 );
-export const SITE_URL = "https://doluxoamesa.pt";
+// O endereço do site mudou-se para lib/casa.js com o resto da identidade;
+// re-exporta-se daqui para os importadores do portal não mudarem.
+export { SITE_URL } from "../../lib/casa";
 
 // ---------- Dinheiro à portuguesa ----------
 // 1 291,50 € — espaço nos milhares, vírgula nos cêntimos, símbolo no fim,

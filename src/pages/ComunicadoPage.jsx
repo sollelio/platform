@@ -2,8 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { comporFolha } from "../lib/comunicados";
-import { linkWhatsAppCasa } from "../lib/casa";
-import logo from "../assets/logo.png";
+import {
+  linkWhatsAppCasa,
+  EMPRESA,
+  LINHA_ACTIVIDADE,
+  ASSINATURA_FOLHA,
+  SITE_URL,
+  DOMINIO_CASA,
+  LOGO_CASA as logo,
+} from "../lib/casa";
 
 // ============================================================
 // ComunicadoPage — /comunicado/:token, a folha pública de um comunicado.
@@ -182,7 +189,7 @@ function Marca({ altura = 118 }) {
       />
       <img
         src={logo}
-        alt="Do Luxo à Mesa"
+        alt={EMPRESA.designacao}
         style={{ position: "relative", height: `${altura}px`, width: "auto", display: "block" }}
       />
       <div
@@ -198,7 +205,7 @@ function Marca({ altura = 118 }) {
           textAlign: "center",
         }}
       >
-        Decoração e aluguer para eventos
+        {LINHA_ACTIVIDADE}
       </div>
     </header>
   );
@@ -307,7 +314,7 @@ function Cortina({ titulo, corpo, aoRepetir }) {
           </div>
           <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
             E se procura a Do Luxo à Mesa, está em{" "}
-            <a href="https://doluxoamesa.pt" style={ligacao}>doluxoamesa.pt</a>.
+            <a href={SITE_URL} style={ligacao}>{DOMINIO_CASA}</a>.
           </p>
         </>
       )}
@@ -574,7 +581,7 @@ function Folha({ dados }) {
   // do GerarOrcamento.
   const imprimir = () => {
     const anterior = document.title;
-    document.title = `${dados.titulo || "Comunicado"} — Do Luxo à Mesa`;
+    document.title = `${dados.titulo || "Comunicado"} — ${EMPRESA.designacao}`;
     window.print();
     document.title = anterior;
   };
@@ -729,10 +736,10 @@ function Folha({ dados }) {
               color: "#A07830",
             }}
           >
-            Com carinho,
+            {ASSINATURA_FOLHA.despedida}
           </p>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "21px", marginTop: "4px" }}>
-            Do Luxo à Mesa
+            {ASSINATURA_FOLHA.nome}
           </div>
           <div
             style={{
@@ -743,7 +750,7 @@ function Folha({ dados }) {
               marginTop: "9px",
             }}
           >
-            DOLUXOAMESA.PT
+            {DOMINIO_CASA.toUpperCase()}
           </div>
         </div>
 
@@ -861,9 +868,9 @@ export default function ComunicadoPage() {
   // neutro do index.html, que a pré-visualização das conversas usa.
   useEffect(() => {
     if (resultado?.estado === "activo") {
-      document.title = `${resultado.dados.titulo || "Comunicado"} — Do Luxo à Mesa`;
+      document.title = `${resultado.dados.titulo || "Comunicado"} — ${EMPRESA.designacao}`;
     } else {
-      document.title = "Do Luxo à Mesa";
+      document.title = EMPRESA.designacao;
     }
   }, [resultado]);
 

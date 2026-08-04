@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
 import { obterDocumento, assinarPelaCasa } from "../../../lib/documentos";
 import { getPublicacoes } from "../../../lib/portal";
-import logoUrl from "../../../assets/logo.png";
+import { LOGO_CASA as logoUrl } from "../../../lib/casa";
 import {
   EMPRESA,
   CONTRATO_INTRO,
@@ -258,7 +258,7 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
   const imprimir = () => {
     const tituloAnterior = document.title;
     const nomePrimeiro = contraentes[0]?.nome;
-    document.title = `Contrato — ${nomePrimeiro || "Do Luxo à Mesa"}`;
+    document.title = `Contrato — ${nomePrimeiro || EMPRESA.designacao}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -747,7 +747,7 @@ function ContratoDocumento({
       <div style={{ textAlign: "center", marginBottom: "24px" }}>
         <img
           src={logoUrl}
-          alt="Do Luxo à Mesa"
+          alt={EMPRESA.designacao}
           style={{ width: "90px", height: "auto", margin: "0 auto 16px" }}
         />
         <h1

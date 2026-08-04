@@ -5,14 +5,10 @@
 // ============================================================
 
 // Dados fixos da 2.ª contraente (Do Luxo à Mesa) — aparecem nos contratos.
-export const EMPRESA = {
-  nome: "Nádia Schultz",
-  morada: "Rua dos Moinhos nº 31 - Ericeira",
-  nif: "243705689",
-  iban: "PT50 0193 0000 1050 1570 8076 8",
-  designacao: "Do Luxo à Mesa",
-  foro: "comarca de Sintra",
-};
+// O objecto mudou-se para lib/casa.js (a costura da marca: a identidade
+// da casa lê-se de um sítio só); re-exporta-se daqui para quem sempre o
+// importou deste ficheiro continuar a receber exactamente o mesmo objecto.
+export { EMPRESA } from "../../../lib/casa";
 
 // Condições fixas que aparecem no rodapé do orçamento.
 // A primeira nomeia o sinal e a percentagem: «mediante confirmação» era

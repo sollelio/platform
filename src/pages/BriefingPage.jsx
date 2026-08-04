@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { ehFuncaoRpcEmFalta } from "../lib/rpc";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 import {
   normalizeSubmission,
   getValorAtual,
@@ -743,7 +744,7 @@ export default function BriefingPage() {
                   margin: "0 0 2px 0",
                 }}
               >
-                Do Luxo à Mesa
+                {EMPRESA.designacao}
               </h1>
               <p
                 style={{
@@ -754,7 +755,7 @@ export default function BriefingPage() {
                   margin: 0,
                 }}
               >
-                by Luxury Events
+                {LINHA_BY_LUXURY}
               </p>
             </div>
             <div
@@ -960,10 +961,10 @@ export default function BriefingPage() {
                 margin: 0,
               }}
             >
-              Planeamos cada detalhe. Criamos memórias inesquecíveis.
+              {SLOGAN_CASA}
             </p>
             <p style={{ fontSize: "10px", color: "#6B7280", margin: 0 }}>
-              Do Luxo à Mesa · {new Date().getFullYear()}
+              {EMPRESA.designacao} · {new Date().getFullYear()}
             </p>
           </div>
         </div>

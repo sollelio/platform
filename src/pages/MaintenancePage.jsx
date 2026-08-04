@@ -1,6 +1,7 @@
 import { useState, useEffect, useId } from "react";
 import { motion } from "framer-motion";
 import flores from "../assets/flores.png";
+import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {
   return (
@@ -311,10 +312,10 @@ export default function MaintenancePage() {
               lineHeight: 1.1,
             }}
           >
-            Do Luxo à Mesa
+            {EMPRESA.designacao}
           </h1>
           <p style={{ fontSize: "11px", color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.28em", margin: 0 }}>
-            by Luxury Events
+            {LINHA_BY_LUXURY}
           </p>
         </motion.div>
 
@@ -550,7 +551,7 @@ export default function MaintenancePage() {
         >
           <Ornament />
           <p style={{ textAlign: "center", fontSize: "10px", color: "var(--gold-light)", textTransform: "uppercase", letterSpacing: "0.18em", margin: "4px 0 0" }}>
-            Planeamos cada detalhe. Criamos memórias inesquecíveis.
+            {SLOGAN_CASA}
           </p>
         </motion.div>
       </div>

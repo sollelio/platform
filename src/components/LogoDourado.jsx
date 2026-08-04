@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import logoUrl from "../assets/logo.png";
+import { LOGO_CASA as logoUrl, EMPRESA } from "../lib/casa";
 
 // ============================================================
 // LogoDourado — o tratamento de luxo do logo (halo de champanhe +
@@ -28,7 +28,7 @@ const POEIRA = [
 
 export default function LogoDourado({
   size = 200,
-  alt = "Do Luxo à Mesa",
+  alt = EMPRESA.designacao,
   // Dois interruptores, ambos no valor de sempre por omissão — as páginas
   // que já usavam este componente não notam nada.
   //

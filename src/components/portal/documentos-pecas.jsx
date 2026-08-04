@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   overline, playfair, HACHURA, formatarEuroPT, diaMesAno,
 } from "./base";
+import { EMPRESA } from "../../lib/casa";
 
 // ============================================================
 // documentos-pecas.jsx — as doze peças dos documentos e dos actos
@@ -51,7 +52,7 @@ export function Folha({ children, selada = false }) {
 export function Timbre({ logoUrl, nome, versao, quando }) {
   return (
     <div style={{ padding: "24px 22px 18px", textAlign: "center", borderBottom: "1px solid #F3EBDA" }}>
-      <img src={logoUrl} alt="Do Luxo à Mesa" style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
+      <img src={logoUrl} alt={EMPRESA.designacao} style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
       <p style={{ ...overline(), marginTop: "16px" }}>{nome}</p>
       <SeloVersao versao={versao} quando={quando} comDe={false} style={{ marginTop: "8px" }} />
     </div>

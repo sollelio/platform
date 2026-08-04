@@ -11,6 +11,8 @@
 // ecrã avisar na barra da casa (nunca alert()).
 // ============================================================
 
+import { EMPRESA, LINHA_BY_LUXURY } from "./casa";
+
 const escapar = (t) =>
   String(t ?? "")
     .replaceAll("&", "&amp;")
@@ -202,8 +204,8 @@ export const imprimirConferencia = ({
 <div class="folha">
   <header class="cabecalho">
     <div>
-      <p class="marca">Do Luxo à Mesa</p>
-      <p class="marca-sub">by Luxury Events</p>
+      <p class="marca">${EMPRESA.designacao}</p>
+      <p class="marca-sub">${LINHA_BY_LUXURY}</p>
     </div>
     <div class="cabecalho-direita">
       <h1>O que sai</h1>

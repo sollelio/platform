@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import logoUrl from "../../assets/logo.png";
+import { LOGO_CASA as logoUrl, EMPRESA } from "../../lib/casa";
 import { Esqueleto } from "../admin/acabamento";
 import {
   overline, playfair, diaMesAno, diaEMes, horaCurta, formatarEuroPT,
@@ -1931,7 +1931,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           />
           <div style={{ padding: "22px 22px 24px" }}>
             <div style={{ textAlign: "center" }}>
-              <img src={logoUrl} alt="Do Luxo à Mesa" style={{ width: "74px", height: "auto", display: "block", margin: "0 auto", opacity: 0.8 }} />
+              <img src={logoUrl} alt={EMPRESA.designacao} style={{ width: "74px", height: "auto", display: "block", margin: "0 auto", opacity: 0.8 }} />
               <SeloVersao versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} comDe={false} style={{ marginTop: "14px" }} />
             </div>
             {/* No papel sai o contrato completo (o bloco só-de-impressão a
