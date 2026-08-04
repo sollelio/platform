@@ -777,6 +777,39 @@ Migração **080** (número confirmado livre). As decisões que moldam a fase:
   é reutilização de recortes, fase 3. O fecho guarda a linha de ouro:
   «Mais leituras do que envios é bom sinal: alguém partilhou.»
 
+## Comunicados — fase 3, os moldes (04/08/2026)
+
+Migração **081** (número confirmado livre). Fecha o círculo: *modelo de
+evento → formulário* :: *molde de comunicado → comunicado*.
+
+- **04/08/2026 — O invariante que faltava na migração:** nada impedia uma
+  linha dispensada de ganhar carimbos de envio — e a difusão da fase 2
+  («marcar todos como enviados») produzia exactamente isso em silêncio:
+  «a mensagem saiu» sobre quem ela decidiu não contactar. CHECK novo
+  (dispensada nunca tem carimbos) + o código a excluí-las — cinta e
+  suspensórios. Verificação 5 acrescentada.
+- **04/08/2026 — O que envelhece marca-se ao GUARDAR, com a heurística
+  como ajuda** (a alínea (b) com a (a) do brief): ao guardar o molde, o
+  sistema propõe as linhas onde encontrou datas/meses/anos/prazos, já
+  assinaladas; ela confirma, desmarca ou acrescenta, e a pergunta que
+  aparecerá ao usar («Vem de agosto de 2026. A data ainda serve?») é
+  editável. A heurística serve para ela não se esquecer, não para
+  decidir sozinha. `rever`/`pergunta` vivem no próprio bloco (jsonb) —
+  a mesma regra dos blocos tipados da fase 2, zero migração.
+- **04/08/2026 — Publicar com revisões pendentes não se bloqueia** — o
+  rodapé avisa («Pode publicar mesmo assim — mas a data acima fica como
+  está.»). Avisar, nunca trancar.
+- **04/08/2026 — «Desfazer» a dispensa limpa a coluna** e a linha entra
+  na lista como acrescentada — a letra do brief; o protótipo voltava à
+  pergunta, e o desvio fica registado. «Acrescentada» deriva-se
+  (created_at > congelado_em), sem coluna nova.
+- **04/08/2026 — A história do molde deriva-se** (count/max sobre os
+  comunicados com o modelo_id) — contador guardado é contador que
+  deriva. «Guardado, ainda não usado» é o caso de zero e o mais comum.
+- **04/08/2026 — Sem separador novo:** os moldes vivem dentro de
+  Comunicados, em dois separadores internos (Feitos · Moldes). Doze é o
+  que há e doze é o que fica.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

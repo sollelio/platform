@@ -243,6 +243,8 @@ regra desfaz-se.
 | O temperamento da folha (aviso ou oferta) | — | **registo** | `comunicados.registo` |
 | Fixar os nomes de quem recebe | — | **congelar** | `congelado_em` |
 | Fazer o comunicado chegar à lista | — | **expedição** | `comunicado_destinatarios` |
+| O que se guarda de um comunicado para voltar a usar | — | **molde** | `comunicado_modelos` |
+| Decidir que quem entrou depois não recebe | — | **dispensar** | `dispensado_em` |
 
 Repara na última coluna: quase tudo **fica como está**. O trabalho de renomear é sobretudo
 nos rótulos que se leem — menu, slug, e algumas frases nas páginas. Baixo risco no código.
@@ -445,6 +447,23 @@ no total, nunca por pessoa. Nada se marca sozinho.
 passou o sinal — as fases pós-sinal (`FASES_POS_SINAL`: contrato · cliente · projecto);
 **interessado** é quem tem evento vivo antes disso. É a definição que o código já dava e que
 coincide com a proposta do dono.
+
+### Molde / dispensar (04/08/2026 — fase 3)
+**Molde** é o que se guarda de um comunicado para voltar a usar: **a folha, a mensagem e a
+regra de público** — nunca os nomes, nunca o endereço, nunca as leituras. Cada comunicado que
+nasce de um molde é novo: conta os nomes outra vez e ganha endereço próprio ao publicar. É o
+par dos modelos de evento (*modelo de evento → formulário* :: *molde → comunicado*), e fecha o
+círculo que deu origem ao módulo. O nome do molde é **interno** — só o vê a casa; as clientes
+vêem o título da folha. Apagar um molde **não leva os comunicados atrás** (ficam, órfãos do
+molde), e a interface di-lo antes de ela confirmar. Um bloco do molde pode estar marcado como
+**a rever** (`rever` + `pergunta`, decididos ao guardar — a heurística das datas propõe, ela
+decide): ao usar o molde, essas linhas nascem editáveis com a pergunta ao lado.
+
+**Dispensar** é decidir que alguém que entrou **depois de a lista fechar** não recebe — e não
+se volta a perguntar por essa pessoa. Grava-se (`dispensado_em`, com o instantâneo do nome);
+«Desfazer» limpa a coluna e a linha entra na lista como acrescentada. Uma dispensada nunca tem
+carimbos de envio — é o invariante da 081. Não confundir com o «Agora não» do convite ao
+molde, que é só desta visita e não se grava.
 
 ---
 
