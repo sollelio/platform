@@ -267,7 +267,10 @@ function Chip({ children, cheio }) {
         backgroundColor: cheio ? "#FBF7EF" : "white",
         border: "1px solid var(--gold-light)",
         color: "var(--gold-dark)",
-        whiteSpace: "nowrap",
+        // o texto livre legado («Outro: …») pode exceder o cartão —
+        // a pastilha quebra em vez de transbordar
+        maxWidth: "100%",
+        overflowWrap: "anywhere",
       }}
     >
       {children}
@@ -282,12 +285,33 @@ function DetalhePedido({ n }) {
   const r = n.dados?.respostas || {};
   const dataEvento = n.dados?.data_evento || r.dataEvento || null;
   const convidados = n.dados?.numero_convidados ?? r.numeroConvidados ?? null;
-  const servicos = [
-    ...(Array.isArray(r.servicos) ? r.servicos : []),
-    ...(Array.isArray(r.servicosBuffet) ? r.servicosBuffet : []),
-    ...(Array.isArray(r.servicosBalcao) ? r.servicosBalcao : []),
-    ...(Array.isArray(r.pretende) ? r.pretende : []),
+  // Serviços com hierarquia — o pai vive em `servicos`, o detalhe em
+  // campos próprios. O agrupamento é pelo CAMPO de origem, nunca por
+  // comparação de texto: as grafias históricas (julho de 2026, com
+  // «Cocktail & bar» e lotações trocadas) agrupam na mesma. O grupo
+  // consome o pai; sem detalhe (Buffet antigo sem pacote) o pai fica
+  // pastilha plana. O «pretende» legado é sempre plano, e o Set no fim
+  // evita a pastilha — e a chave React — dupla num registo importado
+  // que traga os dois campos.
+  const grupos = [
+    ["Buffet", r.servicosBuffet],
+    ["Balcão", r.servicosBalcao],
+  ]
+    .map(([nome, filhos]) => [
+      nome,
+      Array.isArray(filhos) ? [...new Set(filhos)] : [],
+    ])
+    .filter(([, filhos]) => filhos.length > 0);
+  const nomesComGrupo = new Set(grupos.map(([nome]) => nome));
+  const planos = [
+    ...new Set(
+      [
+        ...(Array.isArray(r.servicos) ? r.servicos : []),
+        ...(Array.isArray(r.pretende) ? r.pretende : []),
+      ].filter((s) => !nomesComGrupo.has(s)),
+    ),
   ];
+  const temServicos = planos.length > 0 || grupos.length > 0;
   const imagens = Array.isArray(r.imagensReferencia) ? r.imagensReferencia : [];
   const contacto = r.contactoPrincipal || null;
   const whatsapp = r.numeroWhatsapp || null;
@@ -317,7 +341,7 @@ function DetalhePedido({ n }) {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: "12px 16px",
-            marginBottom: servicos.length > 0 ? "14px" : 0,
+            marginBottom: temServicos ? "14px" : 0,
           }}
         >
           {pares.map(([rotulo, valor]) => (
@@ -334,24 +358,57 @@ function DetalhePedido({ n }) {
         </div>
       )}
 
-      {/* Serviços pedidos */}
-      {servicos.length > 0 && (
+      {/* Serviços pedidos — os simples na fila de pastilhas; um serviço
+          com detalhe (pacote de buffet, tipos de balcão) ganha a sua
+          linha: o nome à esquerda, os filhos como pastilhas ao lado */}
+      {temServicos && (
         <div style={{ marginBottom: "14px" }}>
           <Rotulo>Serviços pedidos</Rotulo>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "6px",
-              marginTop: "5px",
-            }}
-          >
-            {servicos.map((s) => (
-              <Chip key={s} cheio>
-                {s}
-              </Chip>
-            ))}
-          </div>
+          {planos.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                marginTop: "5px",
+              }}
+            >
+              {planos.map((s) => (
+                <Chip key={s} cheio>
+                  {s}
+                </Chip>
+              ))}
+            </div>
+          )}
+          {grupos.map(([nome, filhos], i) => (
+            <div
+              key={nome}
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "5px 6px",
+                marginTop: i === 0 && planos.length === 0 ? "5px" : "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "var(--charcoal)",
+                  whiteSpace: "nowrap",
+                  marginRight: "2px",
+                }}
+              >
+                {nome}
+              </span>
+              {filhos.map((f) => (
+                <Chip key={f} cheio>
+                  {f}
+                </Chip>
+              ))}
+            </div>
+          ))}
         </div>
       )}
 

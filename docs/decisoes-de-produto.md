@@ -905,6 +905,36 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   PEDIDO» o nome é o cabeçalho (Playfair); repeti-lo nos pares seria
   dizê-lo duas vezes.
 
+## Caixa de Entrada — serviços com hierarquia (06/08/2026)
+
+- **06/08/2026 — As pastilhas de «Serviços pedidos» ganham hierarquia
+  (direção B, linhas de serviço).** Os serviços simples ficam na fila
+  de pastilhas de sempre; um serviço com detalhe (pacote de buffet,
+  tipos de balcão) ganha a sua linha — o nome em charcoal firme à
+  esquerda, os filhos como pastilhas ao lado. Escolhida sobre mockup
+  de três direções nos estados difíceis. Porquê: o parentesco
+  comunica-se por posição e texto de alto contraste, e estende a
+  gramática rótulo/valor que o painel já usa. A alternativa A
+  (pastilha composta) criava a pastilha multi-linha, forma que a casa
+  proíbe; a C (ninho) assentava num contorno abaixo do limiar de
+  contraste não-textual (WCAG 3:1).
+- **06/08/2026 — O agrupamento é pelo campo de origem, nunca por
+  texto:** `servicosBuffet` agrupa sob «Buffet», `servicosBalcao` sob
+  «Balcão» — as grafias históricas de julho («Cocktail & bar»,
+  lotações trocadas de 22 Jul–3 Ago) agrupam na mesma e são dado
+  gravado, não UI. O grupo consome o pai; pai sem detalhe (Buffet de
+  11–22 Jul sem pacote) fica pastilha plana; `pretende` legado é
+  sempre plano; deduplicação por texto no fim (corrige também a chave
+  React dupla num registo importado com os dois campos). A pastilha
+  deixou de ser nowrap: o texto livre legado («Outro: …») quebra em
+  vez de transbordar o cartão.
+- **Pendentes desta decisão:** (1) o mesmo achatamento existe no
+  composer da ponte pedido→formulário (`pontePedido.js`) e no
+  `PainelNovoFormulario.jsx` — levar lá a direção B fica por decidir;
+  (2) o dourado do texto das pastilhas (#a07830 sobre creme, ≈3.8:1)
+  fica aquém do AA em todo o painel — escurecer para ≈#8a6528 é
+  decisão de casa, por tomar.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
