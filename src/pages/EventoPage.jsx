@@ -40,7 +40,7 @@ import FotografiasEvento from "../components/admin/FotografiasEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
 import DocumentosEvento from "../components/admin/DocumentosEvento";
-import FichaMateriais from "../components/admin/FichaMateriais";
+import FichaEvento from "../components/admin/FichaEvento";
 
 // ============================================================
 // EventoPage — /evento/:id/:aba?
@@ -914,11 +914,10 @@ export default function EventoPage() {
 
           {visitadas.has("materiais") && (
             <Painel visivel={activeAba === "materiais"}>
-              <FichaMateriais
-                submissionId={id}
-                submissao={submissao}
-                realce={realce}
-                onRealceConsumido={() => setRealce(null)}
+              <FichaEvento
+                submissions={[submissao]}
+                eventTypes={eventTypes}
+                submissionIdFixo={id}
                 onContagem={(n) => reportarContagem("materiais", n)}
               />
             </Painel>
