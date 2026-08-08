@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
 import {
   SEPARADOR_POR_OMISSAO,
@@ -213,6 +213,24 @@ export default function AdminPage() {
   // aviso manda ir. Um pedido de código diz «emita o código na folha do
   // evento» — abrir o drawer da captação era prometer uma coisa e
   // entregar outra. Só a captação fica no drawer.
+  // Datas com mais do que um evento vivo — a marca âmbar «dia disputado»
+  // dos avisos da Caixa (decisão de 09/08). Deriva em leitura, como toda
+  // a disputa; dias passados já não disputam nada. Comparações por string
+  // YYYY-MM-DD com a data LOCAL, a regra da casa.
+  const datasDisputadas = useMemo(() => {
+    const agora = new Date();
+    const hojeISO = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+    const porData = new Map();
+    (submissions || []).forEach((s) => {
+      const dia = String(s.data_evento || "").slice(0, 10);
+      if (!dia || s.fase === "perdido" || dia < hojeISO) return;
+      porData.set(dia, (porData.get(dia) || 0) + 1);
+    });
+    return new Set(
+      [...porData].filter(([, n]) => n > 1).map(([dia]) => dia),
+    );
+  }, [submissions]);
+
   const handleAbrirEventoDeNotificacao = async (submissionId, tipo) => {
     if (!submissionId) return;
     // Estes quatro tratam-se na folha do Acompanhamento — a página do
@@ -228,6 +246,9 @@ export default function AdminPage() {
         "orcamento_aceite",
         "projecto_aprovado",
         "contrato_assinado",
+        // 083 · a confirmação do sinal trata-se na folha (a confirmação
+        // viva e o limpar) e o registo fica a um separador — Pagamentos.
+        "sinal_confirmado",
       ].includes(tipo)
     ) {
       setNotifAberto(false);
@@ -1421,6 +1442,7 @@ export default function AdminPage() {
         onMarcarTodas={notificacoes.marcarTodas}
         onApagarVarias={notificacoes.apagarVarias}
         onAbrirEvento={handleAbrirEventoDeNotificacao}
+        datasDisputadas={datasDisputadas}
       />
 
       {/* O momento WOW: pedido novo chega → cartão dourado + sino */}

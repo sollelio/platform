@@ -141,12 +141,14 @@ const iniciais = (nome) =>
 // existiram. O título vem do servidor e está certo; o que faltava era
 // tudo o resto.
 const TIPOS_DO_PORTAL = {
+  // 083 · o véu do orçamento morreu — o código ficou só onde tranca:
+  // a assinatura do contrato.
   codigo_pedido: {
-    resumo: "Pediu um código para ver",
+    resumo: "Pediu o código para assinar",
     corpo:
-      "A cliente pediu para abrir o que tem valores. Emita o código na " +
-      "folha do evento e envie-lho pela conversa de WhatsApp que já tem " +
-      "com ela — é esse passo que confirma que é mesmo ela.",
+      "A cliente quer assinar o contrato. Emita o código na folha do " +
+      "evento e envie-lho pela conversa de WhatsApp que já tem com ela — " +
+      "é esse passo que confirma que é mesmo ela a assinar.",
   },
   pedido_alteracao: {
     resumo: "Pediu uma alteração",
@@ -192,11 +194,14 @@ const TIPOS_DO_PORTAL = {
   },
   // 072 · As respostas que faltavam. Antes, aceitar/aprovar/assinar era
   // silêncio na Caixa — e eram os momentos de agir na hora.
+  // A ordem final (077): aceite → sinal → contrato. O texto antigo
+  // prometia o contrato primeiro — mentia desde a 077.
   orcamento_aceite: {
     resumo: "Aceitou o orçamento",
     corpo:
-      "O próximo passo é o contrato: prepare-o e publique-o no " +
-      "acompanhamento — com ele assinado, o sinal guarda a data.",
+      "O próximo passo é o sinal: o portal dela já mostra a forma de " +
+      "pagamento que configurar na folha do Acompanhamento. Com o " +
+      "sinal registado, a data fica guardada — e segue-se o contrato.",
   },
   projecto_aprovado: {
     resumo: "Aprovou o projecto",
@@ -207,8 +212,21 @@ const TIPOS_DO_PORTAL = {
   contrato_assinado: {
     resumo: "Assinou o contrato",
     corpo:
-      "O contrato ficou trancado, com o nome dela no registo. É a deixa " +
-      "para o sinal — metade do valor guarda a data.",
+      "O contrato ficou trancado, com o nome dela no registo. A data já " +
+      "estava guardada pelo sinal — segue-se o projecto da mesa.",
+  },
+  // 083 · a confirmação do sinal — ela disse «já paguei». O aviso NÃO
+  // reserva nada: quem carimba é o registo do pagamento na ficha; até
+  // lá, o dia fica «em confirmação» para os rivais.
+  sinal_confirmado: {
+    resumo: "Confirmou o pagamento do sinal",
+    corpo:
+      "Confira a conta e registe o pagamento na folha do evento — é " +
+      "isso que reserva a data e acorda o acompanhamento. Se o " +
+      "pagamento não aparecer, limpe a confirmação na folha do " +
+      "Acompanhamento: o dia volta a abrir.",
+    // O método que ela indicou (opcional) — diz-te onde conferir.
+    citar: (d) => (d?.metodo_indicado ? `Indicou: ${d.metodo_indicado}` : null),
   },
 };
 
@@ -281,9 +299,13 @@ function Chip({ children, cheio }) {
 // O retrato completo do pedido — tudo o que o interessado preencheu,
 // em leitura confortável: grelha de pares rótulo/valor, chips para os
 // serviços, a mensagem em citação e as fotos de inspiração em fila.
-function DetalhePedido({ n }) {
+function DetalhePedido({ n, datasDisputadas }) {
   const r = n.dados?.respostas || {};
   const dataEvento = n.dados?.data_evento || r.dataEvento || null;
+  // A marca da disputa (decisão de 09/08): o pedido chegou para um dia
+  // que já tem outro evento vivo — a Nádia sabe-o antes de abrir a ficha.
+  const disputado =
+    !!dataEvento && (datasDisputadas?.has(String(dataEvento).slice(0, 10)) ?? false);
   const convidados = n.dados?.numero_convidados ?? r.numeroConvidados ?? null;
   // Serviços com hierarquia — o pai vive em `servicos`, o detalhe em
   // campos próprios. O agrupamento é pelo CAMPO de origem, nunca por
@@ -334,6 +356,12 @@ function DetalhePedido({ n }) {
         paddingTop: "14px",
       }}
     >
+      {disputado && (
+        <p style={{ margin: "0 0 10px" }}>
+          <PastilhaDisputa />
+        </p>
+      )}
+
       {/* Grelha dos factos */}
       {pares.length > 0 && (
         <div
@@ -541,7 +569,32 @@ const ROTULO_DOC = {
   contrato: "Contrato",
 };
 
-function DetalheDoPortal({ corpo, citacao, contexto, onAbrirFicha }) {
+// A pastilha âmbar da disputa — a mesma pele do selo do cabeçalho do
+// evento. Aparece quando o aviso diz respeito a um dia com mais do que
+// um pedido vivo (decisão de 09/08).
+function PastilhaDisputa() {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        fontSize: "9.5px",
+        fontWeight: "700",
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+        color: "#92400E",
+        backgroundColor: "#FEF3E2",
+        border: "1px solid #F0D9B5",
+        borderRadius: "999px",
+        padding: "4px 9px",
+      }}
+    >
+      dia disputado
+    </span>
+  );
+}
+
+function DetalheDoPortal({ corpo, citacao, contexto, disputado, onAbrirFicha }) {
   return (
     <div
       style={{
@@ -550,6 +603,11 @@ function DetalheDoPortal({ corpo, citacao, contexto, onAbrirFicha }) {
         borderTop: "1px solid #F0E6D0",
       }}
     >
+      {disputado && (
+        <p style={{ margin: "0 0 8px" }}>
+          <PastilhaDisputa />
+        </p>
+      )}
       {contexto && (
         <p
           style={{
@@ -723,6 +781,7 @@ function CartaoNotificacao({
   onToggle,
   onToggleSelecao,
   onAbrirEvento,
+  datasDisputadas,
 }) {
   const naoLida = !n.lida_em;
   const doPortal = TIPOS_DO_PORTAL[n.tipo] || null;
@@ -897,6 +956,12 @@ function CartaoNotificacao({
               <DetalheDoPortal
                 corpo={doPortal.corpo}
                 citacao={doPortal.citar ? doPortal.citar(n.dados) : null}
+                // A disputa vem do servidor no aviso do sinal (083) — e
+                // para os restantes deriva das datas vivas da página.
+                disputado={
+                  !!n.dados?.dia_disputado ||
+                  (datasDisputadas?.has(String(n.dados?.data_evento || "").slice(0, 10)) ?? false)
+                }
                 contexto={
                   n.dados?.tipo_documento && n.dados?.versao
                     ? `${ROTULO_DOC[n.dados.tipo_documento] || n.dados.tipo_documento}, versão ${n.dados.versao}`
@@ -921,6 +986,7 @@ function CartaoNotificacao({
                   __abrirFicha: () =>
                     onAbrirEvento && onAbrirEvento(n.submission_id),
                 }}
+                datasDisputadas={datasDisputadas}
               />
             )}
           </motion.div>
@@ -974,6 +1040,7 @@ function ConteudoCaixa({
   onMarcarTodas,
   onApagarVarias,
   onAbrirEvento,
+  datasDisputadas,
 }) {
   const [expandidaId, setExpandidaId] = useState(destaqueId || null);
   // null = fora do modo de seleção; Set (mesmo vazio) = a escolher
@@ -1238,6 +1305,7 @@ function ConteudoCaixa({
                 onToggle={() => alternarExpansao(n.id)}
                 onToggleSelecao={() => alternarSelecao(n.id)}
                 onAbrirEvento={onAbrirEvento}
+                datasDisputadas={datasDisputadas}
               />
             ))}
           </AnimatePresence>
@@ -1453,6 +1521,10 @@ export default function PainelNotificacoes({
   onMarcarTodas,
   onApagarVarias,
   onAbrirEvento,
+  // Datas com mais do que um evento vivo — a marca âmbar «dia disputado»
+  // nos avisos (decisão de 09/08). Vem calculada da página, que tem as
+  // submissions todas; aqui só se pergunta ao Set.
+  datasDisputadas,
 }) {
   const painelRef = useRef(null);
   const origemRef = useRef(null);
@@ -1526,6 +1598,7 @@ export default function PainelNotificacoes({
               onMarcarTodas={onMarcarTodas}
               onApagarVarias={onApagarVarias}
               onAbrirEvento={onAbrirEvento}
+              datasDisputadas={datasDisputadas}
             />
           </motion.div>
         </motion.div>

@@ -21,6 +21,17 @@ import {
 import { supabase } from "../../lib/supabase";
 import { documentosDoEvento } from "../../lib/documentos";
 import { comunicadosDoEvento } from "../../lib/comunicados";
+import {
+  confirmacaoViva,
+  guardarConfigSinal,
+  guardarPrazoDia,
+  limparConfirmacaoSinal,
+  prazoWhatsApp,
+} from "../../lib/disputaDia";
+import { linkWhatsApp } from "../../lib/mensagens";
+import { getValorAtual } from "../../lib/submissionFields";
+import { extrairDadosCliente } from "../../lib/clientes";
+import { EMPRESA } from "../../lib/casa";
 import { diaDito } from "./comunicadoTempo";
 import { guardarAlteracoes } from "../../lib/briefingEdicao";
 import { formatarMorada, moradaVazia } from "../../lib/morada";
@@ -116,6 +127,69 @@ const getCondicoesLidas = async (eventoId) => {
   return data?.criado_em || null;
 };
 
+// ── O SINAL (083) — as peças de leitura da secção ──────────────────────
+
+// As quatro formas de receber o sinal, na ordem do mockup aprovado. As
+// chaves são as do jsonb `sinal_pagamento` (083); quem as traduz em ecrã
+// para a cliente é o portal (SinalVista) — aqui só se escolhe e grava.
+const OPCOES_SINAL = [
+  ["mbway_iban", "MB Way + IBAN"],
+  ["conversa", "Pela conversa"],
+  ["dinheiro", "Dinheiro"],
+  ["outra", "À minha maneira"],
+];
+
+// A 083 pode ainda não ter corrido nesta BD — o padrão ehTabelaEmFalta
+// de notificacoes.js, alargado às colunas e às funções (os códigos que a
+// lib da disputa também escuta). A lib não exporta o detector; repete-se
+// cá o mínimo, porque a folha faz UMA leitura própria (abaixo).
+const ehSem083 = (erro) =>
+  ["42P01", "42703", "42883", "PGRST202", "PGRST204", "PGRST205"].includes(
+    erro?.code,
+  ) ||
+  /does not exist|could not find/i.test(erro?.message || "");
+
+// A config da forma de pagamento e o prazo do dia, frescos da BD. A lib
+// da disputa só os ESCREVE (guardarConfigSinal/guardarPrazoDia) — lê-los
+// ao abrir é papel da folha, que é quem precisa da verdade do momento.
+// Devolve:
+//   {config, prazo} — a 083 correu (mesmo que ambos venham null);
+//   null            — a 083 ainda não correu (a secção diz porquê);
+// e DEIXA SUBIR os outros erros — o Promise.all da folha trata-os como
+// aos factos acessórios irmãos (console.error, e a secção cala-se).
+const getSinalDoEvento = async (eventoId) => {
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("sinal_pagamento, dia_guardado_ate")
+    .eq("id", eventoId)
+    .single();
+  if (error) {
+    if (ehSem083(error)) return null;
+    throw error;
+  }
+  return {
+    config: data?.sinal_pagamento || null,
+    prazo: data?.dia_guardado_ate || null,
+  };
+};
+
+// «em confirmação há 3 dias», a contar do carimbo do «já paguei» — dias
+// inteiros, e no próprio dia diz-se «desde hoje» (um «há 0 dias» soava a
+// contador avariado).
+const emConfirmacaoHa = (iso) => {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (dias <= 0) return "desde hoje";
+  return dias === 1 ? "há 1 dia" : `há ${dias} dias`;
+};
+
+// «15/08/2026» a partir de 'YYYY-MM-DD', partido à mão — o padrão da
+// casa (base.js/disputaDia): um parse ISO por Date cai em UTC e num fuso
+// atrás recuava um dia sem ninguém dar por ele.
+const dataCurta = (iso) => {
+  const [a, m, d] = String(iso || "").slice(0, 10).split("-");
+  return a && m && d ? `${d}/${m}/${a}` : "";
+};
+
 // O que a cliente vai encontrar, dito pela FASE do evento — a única fonte
 // disponível sem gastar uma visita. Usa a lista canónica FASES_POS_SINAL,
 // a mesma da conferência da Logística e das lacunas de formulário, em vez
@@ -175,6 +249,25 @@ function Conteudo({ evento, onFechar }) {
   const [confirmaMorada, setConfirmaMorada] = useState(null);
   const [aAplicarMorada, setAAplicarMorada] = useState(false);
   const [moradaAplicada, setMoradaAplicada] = useState(null);
+  // ── O SINAL (083) ──
+  // O formulário da config — semeado UMA vez por abertura com o que está
+  // gravado (ver formaSemeadaRef): as recargas das outras secções não
+  // podem apagar uma edição a meio.
+  const [metodoSinal, setMetodoSinal] = useState("mbway_iban");
+  const [mbwaySinal, setMbwaySinal] = useState("");
+  const [ibanSinal, setIbanSinal] = useState("");
+  const [instrucaoSinal, setInstrucaoSinal] = useState("");
+  const [aGuardarConfig, setAGuardarConfig] = useState(false);
+  // Feedback discreto do «guardado» — o mesmo fôlego do «Copiado».
+  const [configGuardada, setConfigGuardada] = useState(false);
+  const [prazoInput, setPrazoInput] = useState("");
+  const [aGuardarPrazo, setAGuardarPrazo] = useState(false);
+  const [copiadoMsgPrazo, setCopiadoMsgPrazo] = useState(false);
+  // A confirmação limpa-se com confirmação inline (nunca window.confirm)
+  // — bandeira do «tem a certeza?» e bandeira própria do gesto.
+  const [confirmaLimparConf, setConfirmaLimparConf] = useState(false);
+  const [aLimparConf, setALimparConf] = useState(false);
+  const formaSemeadaRef = useRef(false);
 
   const eventoId = evento.id;
 
@@ -199,15 +292,39 @@ function Conteudo({ evento, onFechar }) {
         console.error(e);
         return [];
       }),
+      // O sinal (083): null = a 083 falta (a secção diz porquê);
+      // undefined = erro transitório (a secção cala-se — afirmar «falta a
+      // migração» num tropeço de rede seria mentir).
+      getSinalDoEvento(eventoId).catch((e) => {
+        console.error(e);
+        return undefined;
+      }),
+      // A confirmação viva degrada sozinha na lib quando a 083 falta;
+      // qualquer OUTRO erro sobe de lá — apara-se aqui como acessório.
+      confirmacaoViva(eventoId).catch((e) => {
+        console.error(e);
+        return null;
+      }),
     ])
-      .then(([a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados]) => {
-        if (!cancelado)
-          setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados });
+      .then(([a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados, sinal, confirmacao]) => {
+        if (cancelado) return;
+        setResultado({ estado: "pronto", acesso: a, docs, pubs, pedidos, papeis, pedidosQ, condicoesLidasEm, comunicados, sinal, confirmacao });
+        // A sementeira única do formulário da config: a primeira carga
+        // preenche; as recargas seguintes (publicar, emitir…) já não
+        // tocam no que a Nádia possa estar a escrever.
+        if (!formaSemeadaRef.current && sinal) {
+          formaSemeadaRef.current = true;
+          const c = sinal.config || {};
+          setMetodoSinal(c.metodo || "mbway_iban");
+          setMbwaySinal(c.mbway || "");
+          setIbanSinal(c.iban || "");
+          setInstrucaoSinal(c.instrucao || "");
+        }
       })
       .catch((e) => {
         console.error(e);
         if (!cancelado)
-          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [], condicoesLidasEm: null, comunicados: [] });
+          setResultado({ estado: "erro", acesso: null, docs: [], pubs: [], pedidos: [], papeis: [], pedidosQ: [], condicoesLidasEm: null, comunicados: [], sinal: undefined, confirmacao: null });
       });
     return () => {
       cancelado = true;
@@ -471,6 +588,164 @@ function Conteudo({ evento, onFechar }) {
     }
   };
 
+  // ── O SINAL (083) — o que a secção lê e faz ──────────────────────
+  // {config, prazo} | null (a 083 falta) | undefined (erro transitório).
+  const sinalInfo = resultado?.sinal;
+  const confirmacaoSinal = resultado?.confirmacao ?? null;
+  // O prazo só vale enquanto >= hoje — a MESMA leitura da dlm_dia_estado:
+  // um prazo de ontem já se dissolveu sozinho, e mostrá-lo seria afirmar
+  // uma promessa que o servidor já não conta.
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const prazoAtivo =
+    sinalInfo?.prazo && sinalInfo.prazo >= hojeISO ? sinalInfo.prazo : null;
+
+  // A conversa é com a CLIENTE — o número dela, pelas mesmas duas fontes
+  // que a página do evento usa para o botão de WhatsApp da moldura.
+  const numeroCliente =
+    getValorAtual(evento, "numeroWhatsapp") ||
+    getValorAtual(evento, "contactoPrincipal") ||
+    null;
+  // «Cliente sem nome» é rede das listas, não saudação — antes um «Olá!»
+  // simples do que um postal com o remendo à vista.
+  const nomeExtraido = extrairDadosCliente(evento.respostas || {}).nome;
+  const nomeCliente = nomeExtraido === "Cliente sem nome" ? null : nomeExtraido;
+  const mensagemPrazo = prazoAtivo
+    ? prazoWhatsApp(nomeCliente, evento.data_evento, prazoAtivo)
+    : null;
+  const ligacaoPrazo = mensagemPrazo
+    ? linkWhatsApp(numeroCliente, mensagemPrazo)
+    : null;
+
+  const guardarFormaSinal = async () => {
+    if (aGuardarConfig) return;
+    setAGuardarConfig(true);
+    setErro(null);
+    const aparar = (v) => (v && v.trim() ? v.trim() : null);
+    try {
+      // Só viajam os campos do método escolhido — um IBAN esquecido de
+      // uma escolha antiga não pode ressuscitar no portal.
+      const r = await guardarConfigSinal(eventoId, {
+        metodo: metodoSinal,
+        mbway: metodoSinal === "mbway_iban" ? aparar(mbwaySinal) : null,
+        iban: metodoSinal === "mbway_iban" ? aparar(ibanSinal) : null,
+        instrucao:
+          metodoSinal === "dinheiro" || metodoSinal === "outra"
+            ? aparar(instrucaoSinal)
+            : null,
+      });
+      if (!r) {
+        // A lib degradou: a 083 não está nesta BD — nada ficou gravado.
+        setErro({
+          zona: "sinal",
+          mensagem:
+            "A migração 083 ainda não correu nesta base — nada ficou gravado.",
+        });
+      } else {
+        setConfigGuardada(true);
+        setTimeout(() => setConfigGuardada(false), 2500);
+      }
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "sinal",
+        mensagem: "Não foi possível guardar a forma de pagamento. Tente novamente.",
+      });
+    } finally {
+      setAGuardarConfig(false);
+    }
+  };
+
+  // Guardar (dataISO) e limpar (null) são o mesmo gesto na lib — e nos
+  // dois casos pede-se a verdade à base outra vez, como as secções irmãs.
+  const gravarPrazo = async (dataISO) => {
+    if (aGuardarPrazo) return;
+    if (dataISO) {
+      if (dataISO < hojeISO) {
+        setErro({
+          zona: "sinal",
+          mensagem:
+            "O prazo tem de ser hoje ou à frente — um no passado dissolve-se sozinho.",
+        });
+        return;
+      }
+      if (evento.data_evento && dataISO > evento.data_evento) {
+        setErro({
+          zona: "sinal",
+          mensagem: "O prazo não pode passar o próprio dia do evento.",
+        });
+        return;
+      }
+    }
+    setAGuardarPrazo(true);
+    setErro(null);
+    try {
+      const r = await guardarPrazoDia(eventoId, dataISO);
+      if (!r) {
+        setErro({
+          zona: "sinal",
+          mensagem:
+            "A migração 083 ainda não correu nesta base — nada ficou gravado.",
+        });
+      } else {
+        setPrazoInput("");
+        setRecarga((x) => x + 1);
+      }
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "sinal",
+        mensagem: dataISO
+          ? "Não foi possível guardar o prazo. Tente novamente."
+          : "Não foi possível limpar o prazo. Tente novamente.",
+      });
+    } finally {
+      setAGuardarPrazo(false);
+    }
+  };
+
+  // A mensagem também se copia — para quem prefere colar na conversa já
+  // aberta. O texto é o MESMO do botão de abrir (a garantia vive na lib).
+  const copiarMensagemPrazo = async () => {
+    if (!mensagemPrazo) return;
+    try {
+      await navigator.clipboard.writeText(mensagemPrazo);
+      setErro((e) => (e?.zona === "sinal" ? null : e));
+      setCopiadoMsgPrazo(true);
+      setTimeout(() => setCopiadoMsgPrazo(false), 2500);
+    } catch (e) {
+      console.error(e);
+      // Sem número válido da cliente o botão do WhatsApp nem existe —
+      // apontar-lhe seria mandar procurar um botão que não está lá.
+      setErro({
+        zona: "sinal",
+        mensagem: ligacaoPrazo
+          ? "Não foi possível copiar automaticamente. Abra pelo botão do WhatsApp — a mensagem vai lá escrita."
+          : "Não foi possível copiar automaticamente. Tente novamente.",
+      });
+    }
+  };
+
+  const limparConfirmacao = async () => {
+    if (aLimparConf || !confirmacaoSinal) return;
+    setALimparConf(true);
+    setErro(null);
+    try {
+      // Anula com assinatura (nunca apaga) — e é idempotente na lib: se
+      // outra janela a limpou primeiro, o refetch conta a verdade.
+      await limparConfirmacaoSinal(confirmacaoSinal.id);
+      setConfirmaLimparConf(false);
+      setRecarga((x) => x + 1);
+    } catch (e) {
+      console.error(e);
+      setErro({
+        zona: "sinal",
+        mensagem: "Não foi possível limpar a confirmação. Tente novamente.",
+      });
+    } finally {
+      setALimparConf(false);
+    }
+  };
+
   // Os pedidos que precisam dela: por emitir, ou emitidos por usar (o
   // código fica à vista para reenviar). Os já usados são trilho, não fila.
   const pedidosVivos = pedidos.filter(
@@ -493,6 +768,11 @@ function Conteudo({ evento, onFechar }) {
       if (pedidosVivos.length > 0) zonasMontadas.add("codigos");
       if (pedidosQ.length > 0) zonasMontadas.add("questionario");
       if (papelPorConfirmar) zonasMontadas.add("papel");
+      // A zona conta como montada só quando o ErroDaZona dela está mesmo
+      // pintado — na variante «falta a 083» (sinalInfo null) a secção
+      // existe mas sem parágrafo de erro, e um erro órfão tem de cair no
+      // apanha-tudo do fundo, nunca desaparecer.
+      if (orcamentoNoAr && sinalInfo) zonasMontadas.add("sinal");
     }
   }
 
@@ -833,6 +1113,545 @@ function Conteudo({ evento, onFechar }) {
             </div>
           )}
 
+          {/* ── O SINAL (083) ────────────────────────────────────────────
+              Só com orçamento publicado: antes disso não há valor aceite
+              nem sinal para combinar — a secção seria uma pergunta sem
+              chão. Três peças, pela ordem do fluxo real:
+              (1) a CONFIG da forma de pagamento — o que a cliente vê ao
+                  dizer «quero pagar o sinal»; vazio, o portal usa os
+                  dados da casa;
+              (2) o PRAZO — «guardado para si até…», gesto da Nádia, com
+                  o WhatsApp pré-escrito no tom da casa (o sistema nunca
+                  envia sozinho);
+              (3) a CONFIRMAÇÃO viva — o «já paguei» dela, à espera do
+                  registo ou da limpeza.
+              Degradação graciosa: sinalInfo null = a 083 falta (diz-se
+              porquê); undefined = tropeço transitório (cala-se — mentir
+              «falta a migração» seria pior). */}
+          {orcamentoNoAr && sinalInfo !== undefined && (
+            <div
+              style={{
+                marginTop: "20px",
+                paddingTop: "16px",
+                borderTop: "1px solid var(--hairline, #F0E6D0)",
+              }}
+            >
+              <p style={{ ...overline, marginBottom: "8px" }}>
+                O sinal — como se paga neste evento
+              </p>
+              {sinalInfo === null ? (
+                <p
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1.6,
+                    color: "var(--gray-mid)",
+                    margin: 0,
+                  }}
+                >
+                  A configuração do sinal fica disponível depois de a
+                  migração 083 correr nesta base de dados.
+                </p>
+              ) : (
+                <>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1.6,
+                      color: "var(--gray-mid)",
+                      margin: 0,
+                    }}
+                  >
+                    É isto que a cliente encontra quando disser «quero pagar
+                    o sinal».
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "6px",
+                      marginTop: "10px",
+                    }}
+                  >
+                    {OPCOES_SINAL.map(([valor, rotulo]) => {
+                      const ativa = metodoSinal === valor;
+                      return (
+                        <button
+                          key={valor}
+                          onClick={() => setMetodoSinal(valor)}
+                          style={{
+                            ...botao,
+                            padding: "8px 14px",
+                            border: ativa
+                              ? "1.5px solid var(--gold)"
+                              : "1.5px solid var(--gold-light)",
+                            backgroundColor: ativa ? "var(--gold)" : "white",
+                            color: ativa ? "white" : "var(--gold-dark)",
+                          }}
+                        >
+                          {rotulo}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {metodoSinal === "mbway_iban" && (
+                    <>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "10px",
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "var(--gray-mid)",
+                          margin: "10px 0 4px",
+                        }}
+                      >
+                        MB Way
+                        <input
+                          type="text"
+                          value={mbwaySinal}
+                          onChange={(e) => setMbwaySinal(e.target.value)}
+                          placeholder="Vazio — a casa ainda não tem MB Way; fica só o IBAN"
+                          style={{
+                            width: "100%",
+                            boxSizing: "border-box",
+                            marginTop: "4px",
+                            padding: "9px 12px",
+                            borderRadius: "10px",
+                            border: "1.5px solid var(--gold-light)",
+                            fontSize: "12.5px",
+                            fontFamily: "inherit",
+                            letterSpacing: "normal",
+                            textTransform: "none",
+                            color: "var(--charcoal)",
+                            backgroundColor: "var(--branco-quente, #FDFBF5)",
+                            outline: "none",
+                          }}
+                        />
+                      </label>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "10px",
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          color: "var(--gray-mid)",
+                          margin: "10px 0 4px",
+                        }}
+                      >
+                        IBAN
+                        <input
+                          type="text"
+                          value={ibanSinal}
+                          onChange={(e) => setIbanSinal(e.target.value)}
+                          placeholder={`Vazio — usa o da casa (${EMPRESA.iban})`}
+                          style={{
+                            width: "100%",
+                            boxSizing: "border-box",
+                            marginTop: "4px",
+                            padding: "9px 12px",
+                            borderRadius: "10px",
+                            border: "1.5px solid var(--gold-light)",
+                            fontSize: "12.5px",
+                            fontFamily: "inherit",
+                            letterSpacing: "normal",
+                            textTransform: "none",
+                            color: "var(--charcoal)",
+                            backgroundColor: "var(--branco-quente, #FDFBF5)",
+                            outline: "none",
+                          }}
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {metodoSinal === "conversa" && (
+                    <p
+                      style={{
+                        fontSize: "11.5px",
+                        lineHeight: 1.6,
+                        color: "var(--gray-mid)",
+                        margin: "10px 0 0",
+                      }}
+                    >
+                      O portal entrega a cliente à conversa de WhatsApp com a
+                      mensagem já escrita — sem caixa de «já paguei»: o canal
+                      é a própria conversa.
+                    </p>
+                  )}
+
+                  {(metodoSinal === "dinheiro" || metodoSinal === "outra") && (
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "10px",
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        color: "var(--gray-mid)",
+                        margin: "10px 0 4px",
+                      }}
+                    >
+                      A instrução, nas suas palavras
+                      <textarea
+                        value={instrucaoSinal}
+                        onChange={(e) => setInstrucaoSinal(e.target.value)}
+                        rows={3}
+                        placeholder="Combinamos a entrega num café da Ericeira ou em nossa casa — diga-nos o dia que lhe dá jeito."
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          marginTop: "4px",
+                          padding: "9px 12px",
+                          borderRadius: "10px",
+                          border: "1.5px solid var(--gold-light)",
+                          fontSize: "12.5px",
+                          lineHeight: 1.6,
+                          fontFamily: "inherit",
+                          letterSpacing: "normal",
+                          textTransform: "none",
+                          color: "var(--charcoal)",
+                          backgroundColor: "var(--branco-quente, #FDFBF5)",
+                          outline: "none",
+                          resize: "vertical",
+                        }}
+                      />
+                    </label>
+                  )}
+
+                  <button
+                    onClick={guardarFormaSinal}
+                    disabled={aGuardarConfig}
+                    style={{
+                      ...botao,
+                      marginTop: "10px",
+                      border: "none",
+                      backgroundColor: configGuardada
+                        ? "#166534"
+                        : "var(--gold)",
+                      color: "white",
+                      opacity: aGuardarConfig ? 0.6 : 1,
+                      cursor: aGuardarConfig ? "wait" : "pointer",
+                      transition: "background-color 140ms ease",
+                    }}
+                  >
+                    {aGuardarConfig
+                      ? "A guardar…"
+                      : configGuardada
+                        ? "Guardado"
+                        : "Guardar a forma de pagamento"}
+                  </button>
+                  {metodoSinal === "mbway_iban" && (
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        lineHeight: 1.6,
+                        color: "#9B9B9B",
+                        margin: "8px 0 0",
+                      }}
+                    >
+                      Campos vazios usam os dados da casa — e sem MB Way da
+                      casa registado, o portal mostra só o IBAN.
+                    </p>
+                  )}
+
+                  {/* ── O PRAZO — «guardado para si até…» ──────────────
+                      Um gesto da Nádia, nunca do sistema: só COM prazo é
+                      que os clientes veem a disputa. Expira sozinho em
+                      leitura, e mudar a data do evento dissolve-o. */}
+                  <div style={{ marginTop: "16px" }}>
+                    {prazoAtivo ? (
+                      <>
+                        <p
+                          style={{
+                            fontSize: "12.5px",
+                            lineHeight: 1.6,
+                            color: "var(--charcoal)",
+                            margin: 0,
+                          }}
+                        >
+                          O dia está guardado para esta cliente até{" "}
+                          <strong>{dataCurta(prazoAtivo)}</strong> — o portal
+                          dela mostra-o, e até lá mais ninguém paga o sinal
+                          desta data pelo portal.
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "6px",
+                            marginTop: "9px",
+                          }}
+                        >
+                          {ligacaoPrazo && (
+                            <a
+                              href={ligacaoPrazo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                ...botao,
+                                display: "inline-block",
+                                padding: "7px 13px",
+                                fontSize: "11.5px",
+                                border: "none",
+                                backgroundColor: "var(--gold)",
+                                color: "white",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Avisá-la pelo WhatsApp
+                            </a>
+                          )}
+                          <button
+                            onClick={copiarMensagemPrazo}
+                            style={{
+                              ...botao,
+                              padding: "7px 13px",
+                              fontSize: "11.5px",
+                              border: "1px solid var(--gold)",
+                              backgroundColor: copiadoMsgPrazo
+                                ? "#166534"
+                                : "white",
+                              color: copiadoMsgPrazo
+                                ? "white"
+                                : "var(--gold-dark)",
+                              transition: "background-color 140ms ease",
+                            }}
+                          >
+                            {copiadoMsgPrazo ? "Copiada" : "Copiar a mensagem"}
+                          </button>
+                          <button
+                            onClick={() => gravarPrazo(null)}
+                            disabled={aGuardarPrazo}
+                            style={{
+                              ...botao,
+                              padding: "7px 13px",
+                              fontSize: "11.5px",
+                              border: "1px solid var(--hairline, #F0E6D0)",
+                              backgroundColor: "white",
+                              color: "var(--gray-mid)",
+                              opacity: aGuardarPrazo ? 0.6 : 1,
+                              cursor: aGuardarPrazo ? "wait" : "pointer",
+                            }}
+                          >
+                            {aGuardarPrazo ? "A limpar…" : "Limpar o prazo"}
+                          </button>
+                        </div>
+                        <p
+                          style={{
+                            fontSize: "11px",
+                            lineHeight: 1.6,
+                            color: "#9B9B9B",
+                            margin: "8px 0 0",
+                          }}
+                        >
+                          A mensagem já vai escrita no tom da casa — o envio é
+                          sempre um gesto seu, nunca do sistema.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "10px",
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            color: "var(--gray-mid)",
+                            margin: "0 0 4px",
+                          }}
+                        >
+                          Guardar o dia para esta cliente até…
+                        </label>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "stretch",
+                          }}
+                        >
+                          <input
+                            type="date"
+                            value={prazoInput}
+                            onChange={(e) => setPrazoInput(e.target.value)}
+                            min={hojeISO}
+                            max={evento.data_evento || undefined}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              boxSizing: "border-box",
+                              padding: "9px 12px",
+                              borderRadius: "10px",
+                              border: "1.5px solid var(--gold-light)",
+                              fontSize: "12.5px",
+                              fontFamily: "inherit",
+                              color: "var(--charcoal)",
+                              backgroundColor: "var(--branco-quente, #FDFBF5)",
+                              outline: "none",
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              if (!prazoInput) {
+                                setErro({
+                                  zona: "sinal",
+                                  mensagem:
+                                    "Escolha a data até quando o dia fica guardado.",
+                                });
+                                return;
+                              }
+                              gravarPrazo(prazoInput);
+                            }}
+                            disabled={aGuardarPrazo}
+                            style={{
+                              ...botao,
+                              border: "1px solid var(--gold)",
+                              backgroundColor: "white",
+                              color: "var(--gold-dark)",
+                              opacity: aGuardarPrazo ? 0.6 : 1,
+                              cursor: aGuardarPrazo ? "wait" : "pointer",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {aGuardarPrazo ? "A guardar…" : "Guardar o prazo"}
+                          </button>
+                        </div>
+                        <p
+                          style={{
+                            fontSize: "11px",
+                            lineHeight: 1.6,
+                            color: "#9B9B9B",
+                            margin: "8px 0 0",
+                          }}
+                        >
+                          Sem prazo, os clientes não veem disputa nenhuma. Com
+                          prazo, o portal desta cliente diz «guardado para si
+                          até…» — e o pagamento do sinal fecha aos outros
+                          interessados até essa data. Ao guardar, fica aqui a
+                          mensagem de WhatsApp pronta a enviar.
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* ── A CONFIRMAÇÃO VIVA — «ela disse que já pagou» ──
+                      Nunca reserva o dia (quem carimba é o registo), mas
+                      fecha o ecrã do sinal aos rivais enquanto estiver de
+                      pé — é o instrumento contra quem confirma e nunca
+                      paga: confere-se a conta e regista-se, ou limpa-se. */}
+                  {confirmacaoSinal && (
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        backgroundColor: "#FEF3E2",
+                        border: "1px solid #F0D9B5",
+                        borderRadius: "10px",
+                        padding: "13px 14px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          lineHeight: 1.5,
+                          color: "#92400E",
+                          margin: "0 0 6px",
+                        }}
+                      >
+                        ⚠ A cliente disse que já pagou o sinal
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "12.5px",
+                          lineHeight: 1.6,
+                          color: "#92400E",
+                          margin: 0,
+                        }}
+                      >
+                        Em confirmação {emConfirmacaoHa(confirmacaoSinal.criadoEm)}
+                        {confirmacaoSinal.metodo
+                          ? ` — disse que enviou por ${confirmacaoSinal.metodo}`
+                          : ""}
+                        . Enquanto estiver de pé, fecha o pagamento do sinal
+                        aos outros interessados. Confira a conta e registe o
+                        pagamento — ou limpe a confirmação, se nada entrou.
+                      </p>
+                      {confirmaLimparConf ? (
+                        <div style={{ marginTop: "10px" }}>
+                          <p
+                            style={{
+                              fontSize: "11.5px",
+                              lineHeight: 1.6,
+                              color: "#92400E",
+                              margin: 0,
+                            }}
+                          >
+                            A cliente volta a ver o ecrã de pagamento, com uma
+                            linha a dizer que a confirmação foi anulada. Nada
+                            se apaga do registo.
+                          </p>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              marginTop: "9px",
+                            }}
+                          >
+                            <button
+                              onClick={limparConfirmacao}
+                              disabled={aLimparConf}
+                              style={{
+                                ...botao,
+                                padding: "6px 12px",
+                                fontSize: "11.5px",
+                                border: "none",
+                                backgroundColor: "var(--gold)",
+                                color: "white",
+                                opacity: aLimparConf ? 0.6 : 1,
+                                cursor: aLimparConf ? "wait" : "pointer",
+                              }}
+                            >
+                              {aLimparConf ? "A limpar…" : "Limpar mesmo"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmaLimparConf(false)}
+                              style={{
+                                ...botao,
+                                padding: "6px 12px",
+                                fontSize: "11.5px",
+                                border: "1px solid var(--hairline, #F0E6D0)",
+                                backgroundColor: "white",
+                                color: "var(--gray-mid)",
+                              }}
+                            >
+                              Deixar estar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmaLimparConf(true)}
+                          style={{
+                            ...botao,
+                            marginTop: "10px",
+                            padding: "6px 12px",
+                            fontSize: "11.5px",
+                            border: "1px solid #D9A441",
+                            backgroundColor: "white",
+                            color: "#92400E",
+                          }}
+                        >
+                          Limpar a confirmação
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <ErroDaZona erro={erro} zona="sinal" />
+                </>
+              )}
+            </div>
+          )}
+
           {/* ── OS PEDIDOS DE CÓDIGO ─────────────────────────────────────
               A cliente pediu para ver os valores (ou para assinar). Emitir
               gera o código; o envio é dela para ela — pelo WhatsApp da
@@ -873,9 +1692,12 @@ function Conteudo({ evento, onFechar }) {
                       flex: 1,
                     }}
                   >
+                    {/* 083 · o véu do orçamento morreu — o código ficou só
+                        na assinatura; a queda sem contexto (pedidos
+                        antigos) fala dela, não de valores. */}
                     {p.contexto && ROTULO_DOCUMENTO[p.contexto]
                       ? `Para abrir o ${ROTULO_DOCUMENTO[p.contexto].toLowerCase()}`
-                      : "Para ver os valores"}{" "}
+                      : "Para assinar o contrato"}{" "}
                     · {dataHora(p.pedido_em)}
                   </p>
                   {/* Às cinco tentativas erradas a base mata o código —

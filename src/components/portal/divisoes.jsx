@@ -8,6 +8,9 @@ import {
   FileteComLosango, FileteComRotulo, CartaoBranco, Medalhao, EngasteVazio,
   CabecalhoDivisao, CitacaoDela, ListaDaCasa, FraseDeFecho, Divisao,
 } from "./pecas";
+import { LigacaoDiscreta } from "./documentos-pecas";
+import DestaqueAcompanhamento from "./DestaqueAcompanhamento";
+import { LINHAS_DO_SINAL } from "./conteudo";
 
 // ============================================================
 // divisoes.jsx — as sete divisões da fase 2 do acompanhamento.
@@ -52,8 +55,9 @@ function LigacaoDeCartao({ to, rotulo, externa = false, novaAba = false }) {
       {rotulo}
     </span>
   );
-  // `externa`: a pendência do sinal leva à conversa (WhatsApp) — um Link
-  // do router num URL de fora rebentava na navegação interna.
+  // `externa`: um Link do router num URL de fora rebentava na navegação
+  // interna — hoje serve as folhas dos comunicados (a pendência do sinal
+  // passou a viver no ecrã próprio, /sinal).
   // `novaAba`: a folha de um comunicado é OUTRA página, com vida própria —
   // abre ao lado e o acompanhamento fica aberto atrás. O rel corta o
   // acesso da janela nova ao opener, como manda a segurança de sempre.
@@ -88,13 +92,11 @@ function LigacaoDeCartao({ to, rotulo, externa = false, novaAba = false }) {
 // Engastes apagados, de propósito: são coisas que ainda não aconteceram,
 // e antes do sinal nem ao meio-tom do engaste normal têm direito.
 // ------------------------------------------------------------
-export function OQueOSinalAbre() {
-  const linhas = [
-    "O questionário da sua mesa",
-    "O projecto, desenhado para si",
-    "A preparação, passo a passo",
-    "As fotografias do dia",
-  ];
+export function OQueOSinalAbre({ reduzir }) {
+  // As linhas vivem em conteudo.js e importam-se de lá — uma lista só,
+  // para a divisão e o destaque escuro nunca divergirem uma palavra.
+  const [destaqueAberto, setDestaqueAberto] = useState(false);
+  const linhas = LINHAS_DO_SINAL;
   return (
     <Divisao>
       <h2 style={{ ...overline(), textAlign: "center" }}>O que o sinal abre</h2>
@@ -112,8 +114,21 @@ export function OQueOSinalAbre() {
           escuro, voz da casa. É ela que diz o que o sinal é, sem o pedir. */}
       <p style={{ ...playfair, fontSize: "16px", lineHeight: 1.62, color: "var(--gold-dark)", margin: "24px 0 0", textAlign: "center", textWrap: "pretty", padding: "0 6px" }}>
         Com a data reservada, tudo isto acorda. Metade do valor guarda o dia
-        — combinamos o pagamento consigo pela conversa.
+        — e o passo está à sua espera nesta página.
       </p>
+      {/* O teaser do destaque escuro — a versão expandida desta divisão,
+          no padrão do pórtico (decisão de 08/08). O gesto é da cliente. */}
+      <p style={{ textAlign: "center", margin: "16px 0 0" }}>
+        <LigacaoDiscreta onClick={() => setDestaqueAberto(true)}>
+          Ver melhor o que se abre
+        </LigacaoDiscreta>
+      </p>
+      {destaqueAberto && (
+        <DestaqueAcompanhamento
+          reduzir={reduzir}
+          aoFechar={() => setDestaqueAberto(false)}
+        />
+      )}
     </Divisao>
   );
 }

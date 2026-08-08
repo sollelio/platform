@@ -9,6 +9,21 @@
 import { diaEMes } from "./base";
 
 // ------------------------------------------------------------
+// As quatro linhas do que o sinal abre — UMA lista só, consumida pela
+// divisão «O que o sinal abre» (divisoes.jsx) e pelo destaque escuro
+// (DestaqueAcompanhamento.jsx), para as duas superfícies nunca
+// divergirem uma palavra. Vive aqui porque é conteúdo, não desenho —
+// e porque o linter da casa não deixa constantes partilhadas em
+// ficheiros de componentes.
+// ------------------------------------------------------------
+export const LINHAS_DO_SINAL = [
+  "O questionário da sua mesa",
+  "O projecto, desenhado para si",
+  "A preparação, passo a passo",
+  "As fotografias do dia",
+];
+
+// ------------------------------------------------------------
 // A composição das novidades e das pendências.
 //
 // Vive aqui, ao lado das divisões que a consomem, e não na página: é regra
@@ -219,7 +234,7 @@ export function comporPendencias(dados, caducou = false) {
       chave: "sinal",
       titulo: "O sinal",
       corpo:
-        "Metade do valor guarda a sua data — ninguém mais leva o dia. O pagamento combina-se connosco, pela conversa.",
+        "Metade do valor guarda a sua data — ninguém mais leva o dia.",
     });
   }
 

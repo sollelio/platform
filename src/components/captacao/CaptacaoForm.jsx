@@ -6,6 +6,8 @@ import {
 } from "../../lib/captacao";
 import { supabase } from "../../lib/supabase";
 import { registarErroFormulario } from "../../lib/errosForm";
+import { irmaosDoDia } from "../../lib/disputaDia";
+import AvisoDiaDisputado from "../AvisoDiaDisputado";
 
 // ============================================================
 // CaptacaoForm — os campos da captação, PARTILHADOS entre:
@@ -80,11 +82,44 @@ export default function CaptacaoForm({
   // muda de propósito: revelar que um número já existe seria fuga de
   // privacidade). { tipo: "duplicado"|"reutilizado", submission }
   const [avisoDedupe, setAvisoDedupe] = useState(null);
+  // A disputa da data escolhida — eventos vivos + reservas provisórias
+  // do mesmo dia (Bloco 4; absorve a decisão pendente de 30/07). SÓ no
+  // modo interno: a página pública nunca consulta nem revela a agenda
+  // — dia disputado ≠ indisponível, e o aviso é para os olhos da Nádia
+  // (decisão de 09/08). Guarda-se {data, irmaos} e só se pinta quando
+  // a data guardada É a data actual do campo: uma resposta atrasada de
+  // uma data antiga nunca aparece, e mudar a data apaga o aviso sem
+  // precisar de limpeza síncrona no efeito.
+  const [disputaDia, setDisputaDia] = useState(null);
   const inputImagens = useRef(null);
 
   useEffect(() => {
     getTiposParaCaptacao().then(setTipos);
   }, []);
+
+  // Consulta a disputa quando a data muda — com um debounce leve (o
+  // input de data dispara a meio da escrita). Se a migração 083 ainda
+  // não correu, irmaosDoDia devolve [] em silêncio e o aviso
+  // simplesmente não existe — degradação graciosa da casa.
+  useEffect(() => {
+    if (!modoInterno || !/^\d{4}-\d{2}-\d{2}$/.test(dataEvento || "")) {
+      return undefined;
+    }
+    let cancelado = false;
+    const temporizador = setTimeout(async () => {
+      const lista = await irmaosDoDia(dataEvento);
+      if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+    }, 350);
+    return () => {
+      cancelado = true;
+      clearTimeout(temporizador);
+    };
+  }, [modoInterno, dataEvento]);
+
+  // Os irmãos VÁLIDOS para a data que está no campo agora — [] se a
+  // consulta guardada for de outra data (ou não houver nenhuma).
+  const irmaosDia =
+    disputaDia && disputaDia.data === dataEvento ? disputaDia.irmaos : [];
 
   // Progresso dos campos obrigatórios — alimenta a barra dourada da
   // página pública. O total é dinâmico: serviços (e balcão) só contam
@@ -124,13 +159,6 @@ export default function CaptacaoForm({
     enviando,
     onProgresso,
   ]);
-
-  // Regista a função de envio para o botão externo (barra dourada).
-  // Corre em cada render de propósito: garante que a barra chama
-  // sempre a versão mais recente do submeter (sem closures velhas).
-  useEffect(() => {
-    if (registarSubmeter) registarSubmeter(submeter);
-  });
 
   const toggleServico = (opt) => {
     setServicos((prev) => {
@@ -303,6 +331,16 @@ export default function CaptacaoForm({
     setEnviando(false);
   };
 
+  // Regista a função de envio para o botão externo (barra dourada).
+  // Corre em cada render de propósito: garante que a barra chama
+  // sempre a versão mais recente do submeter (sem closures velhas).
+  // Vive DEPOIS da declaração do submeter — ler antes era acesso a
+  // const por declarar (react-hooks/immutability); a ordem entre
+  // efeitos não muda nada aqui, o registo é só guardar a referência.
+  useEffect(() => {
+    if (registarSubmeter) registarSubmeter(submeter);
+  });
+
   if (avisoDedupe) {
     const duplicado = avisoDedupe.tipo === "duplicado";
     return (
@@ -466,6 +504,17 @@ export default function CaptacaoForm({
           />
         </Campo>
       </div>
+
+      {/* O aviso da disputa — NUNCA bloqueia: a criação segue na mesma
+          (o dia só muda de mãos no registo do sinal, não aqui). Fica
+          logo por baixo do campo da data, a que ele responde. */}
+      {modoInterno && irmaosDia.length > 0 && (
+        <AvisoDiaDisputado
+          dataISO={dataEvento}
+          irmaos={irmaosDia}
+          estilo={{ margin: "-4px 0 14px" }}
+        />
+      )}
 
       <Campo label="Local do evento">
         <input
@@ -765,6 +814,7 @@ export default function CaptacaoForm({
 }
 
 // ---- helpers ----
+
 function Campo({ label, erro, children, flex }) {
   return (
     <div style={{ marginBottom: "14px", flex }}>

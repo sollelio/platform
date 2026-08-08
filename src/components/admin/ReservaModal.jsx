@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   createReserva,
@@ -6,6 +6,8 @@ import {
   deleteReserva,
   cancelarReserva,
 } from "../../lib/reservas";
+import { irmaosDoDia } from "../../lib/disputaDia";
+import AvisoDiaDisputado from "../AvisoDiaDisputado";
 
 // ============================================================
 // ReservaModal — criar ou editar uma reserva provisória.
@@ -43,6 +45,38 @@ export default function ReservaModal({
   const [erro, setErro] = useState(null);
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
+  // A disputa da data escolhida — eventos vivos + reservas provisórias
+  // do mesmo dia (Bloco 4; absorve a decisão pendente de 30/07). O "+"
+  // do Calendário já traz a data pré-preenchida, por isso o aviso pinta
+  // logo à abertura. Guarda-se {data, irmaos} e só se pinta quando a
+  // data guardada É a actual do campo: uma resposta atrasada de uma
+  // data antiga nunca aparece, e mudar a data apaga o aviso sozinha.
+  const [disputaDia, setDisputaDia] = useState(null);
+
+  // Consulta a disputa quando a data muda — debounce leve (o input de
+  // data dispara a meio da escrita). Em edição exclui-se o evento
+  // ligado à própria reserva (ninguém é rival de si mesmo); a linha da
+  // própria reserva filtra-se abaixo pela mesma razão. Se a migração
+  // 083 ainda não correu, irmaosDoDia devolve [] em silêncio e o aviso
+  // não existe — degradação graciosa da casa.
+  useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dataEvento || "")) return undefined;
+    let cancelado = false;
+    const temporizador = setTimeout(async () => {
+      const lista = await irmaosDoDia(dataEvento, reserva?.submission_id);
+      if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+    }, 350);
+    return () => {
+      cancelado = true;
+      clearTimeout(temporizador);
+    };
+  }, [dataEvento, reserva?.submission_id]);
+
+  // Os irmãos VÁLIDOS para a data que está no campo agora — sem a
+  // própria reserva (em edição, ela viria na lista como se fosse rival).
+  const irmaosDia = (
+    disputaDia && disputaDia.data === dataEvento ? disputaDia.irmaos : []
+  ).filter((i) => !(i.ehReserva && reserva && i.id === reserva.id));
 
   const guardar = async () => {
     if (!nomeCliente.trim()) {
@@ -228,6 +262,17 @@ export default function ReservaModal({
               </select>
             </div>
           </div>
+
+          {/* O aviso da disputa — NUNCA bloqueia: a reserva cria-se na
+              mesma (o dia só muda de mãos no registo do sinal). Fica
+              logo por baixo do campo da data, a que ele responde. */}
+          {irmaosDia.length > 0 && (
+            <AvisoDiaDisputado
+              dataISO={dataEvento}
+              irmaos={irmaosDia}
+              estilo={{ margin: "-4px 0 14px" }}
+            />
+          )}
 
           {/* Contacto */}
           <div style={{ marginBottom: "14px" }}>

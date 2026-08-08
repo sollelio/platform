@@ -78,6 +78,24 @@ const pastilha = {
   whiteSpace: "nowrap",
 };
 
+// O selo da DISPUTA — a mesma pele e medida da pastilha da contagem,
+// vestida do âmbar da casa (o registo de FormulariosOrfaos): não é erro
+// nem alarme, é um facto que tem de estar à vista ANTES de a Nádia
+// prometer o dia a alguém. Vive nas DUAS medidas de propósito — a linha
+// compacta é o que se vê durante quase toda a página, e um aviso que
+// desaparecesse ao rolar não era aviso.
+const pastilhaDisputa = {
+  ...pastilha,
+  color: "#92400E",
+  backgroundColor: "#FEF3E2",
+  border: "1px solid #F0D9B5",
+};
+
+// O selo só aponta; quem conta a história (rivais, prazo, acções) é o
+// banner da página, logo abaixo do cabeçalho.
+const TITULO_SELO_DISPUTA =
+  "Há outro pedido vivo para esta data — o aviso completo está abaixo do cabeçalho";
+
 // A identidade (cor, borda, hover) vive nas classes .acao--* do
 // index.css; aqui fica só a medida, que é desta moldura.
 const medidaBotao = {
@@ -292,6 +310,7 @@ export default function CabecalhoEvento({
   submissao,
   resumoEvento,
   nomeTipo,
+  diaDisputado = false,
   invites = [],
   previstos,
   pagamentos,
@@ -526,6 +545,11 @@ export default function CabecalhoEvento({
                 </span>
               ))}
               {quantoFalta && <span style={pastilha}>{quantoFalta}</span>}
+              {diaDisputado && (
+                <span style={pastilhaDisputa} title={TITULO_SELO_DISPUTA}>
+                  dia disputado
+                </span>
+              )}
             </div>
           </div>
 
@@ -631,6 +655,17 @@ export default function CabecalhoEvento({
                 }}
               >
                 {quantoFalta}
+              </span>
+            )}
+            {/* flexShrink: 0 — nesta linha o título tem ellipsis; o selo
+                nunca pode ser ele a encolher, senão sumia justamente
+                quando o nome é comprido. */}
+            {diaDisputado && (
+              <span
+                style={{ ...pastilhaDisputa, flexShrink: 0 }}
+                title={TITULO_SELO_DISPUTA}
+              >
+                dia disputado
               </span>
             )}
           </div>

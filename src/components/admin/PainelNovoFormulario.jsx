@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CampoSeletor from "./CampoSeletor";
 import FormField from "../form/FormField";
 import { estadoFormularioDoEvento } from "../../lib/invites";
 import { getResumoSubmissao } from "../../lib/submissionFields";
+import { irmaosDoDia } from "../../lib/disputaDia";
+import AvisoDiaDisputado from "../AvisoDiaDisputado";
 import {
+  dataDoRascunho,
   getAllFields,
   getCamposActivosInfo,
   getDefaultCampos,
@@ -168,6 +171,59 @@ export default function PainelNovoFormulario({
   handleCreateInvite,
 }) {
   // ------------------------------------------------------------
+  // A disputa do dia na criação (Bloco 4; absorve a decisão pendente
+  // de 30/07): quando a data preenchida no campo da data já tem
+  // pedidos vivos, um banner âmbar informa — e NUNCA trava a criação
+  // (o dia só muda de mãos no registo do sinal). O evento-alvo
+  // escolhido sai da conta: ninguém é rival de si mesmo.
+  //
+  // A data lê-se por dataDoRascunho — o leitor canónico (os ids dos
+  // campos são gerados da etiqueta; a chave literal "dataEvento" é só
+  // rede para convites antigos). Foi exactamente esta divergência que
+  // já deu um bug (camposFormulario.js) — não se repete aqui.
+  // ------------------------------------------------------------
+  const dataDoPainel = showNewInvite
+    ? dataDoRascunho(newInvite, eventTypes)
+    : null;
+  const dataEscolhida = /^\d{4}-\d{2}-\d{2}$/.test(dataDoPainel || "")
+    ? dataDoPainel
+    : null;
+  const alvoAExcluir = newInvite?.submissionAlvoId || null;
+  // Guarda-se {data, alvo, irmaos} e só se pinta quando data e alvo
+  // guardados SÃO os actuais: uma resposta atrasada de uma data antiga
+  // nunca aparece, e mudar a data apaga o aviso sem precisar de
+  // limpeza síncrona no efeito.
+  const [disputaDia, setDisputaDia] = useState(null);
+
+  // Debounce leve (o input de data dispara a meio da escrita). Se a
+  // 083 ainda não correu, irmaosDoDia devolve [] em silêncio e o
+  // banner não existe — degradação graciosa da casa.
+  useEffect(() => {
+    if (!dataEscolhida) return undefined;
+    let cancelado = false;
+    const temporizador = setTimeout(async () => {
+      const lista = await irmaosDoDia(dataEscolhida, alvoAExcluir);
+      if (!cancelado)
+        setDisputaDia({
+          data: dataEscolhida,
+          alvo: alvoAExcluir,
+          irmaos: lista || [],
+        });
+    }, 350);
+    return () => {
+      cancelado = true;
+      clearTimeout(temporizador);
+    };
+  }, [dataEscolhida, alvoAExcluir]);
+
+  // Os irmãos VÁLIDOS para a data e o alvo que estão no painel agora.
+  const irmaosDia =
+    disputaDia &&
+    disputaDia.data === dataEscolhida &&
+    disputaDia.alvo === alvoAExcluir
+      ? disputaDia.irmaos
+      : [];
+  // ------------------------------------------------------------
   // As mutações do rascunho vivem AQUI, num sítio só.
   //
   // Estavam espalhadas pela AdminPage e o rascunho é um objecto com
@@ -249,6 +305,17 @@ export default function PainelNovoFormulario({
                 const camposDisponiveis = todosOsCampos.filter(
                   (f) => !newInvite.camposAtivos.includes(f.id),
                 );
+                // O campo a que o aviso da disputa se cola: o primeiro
+                // campo de data com a data escolhida — o mesmo critério
+                // do leitor canónico, para o banner aparecer debaixo do
+                // campo que efectivamente deu a data.
+                const campoAncoraDisputa = dataEscolhida
+                  ? camposActivosInfo.find(
+                      (f) =>
+                        f.type === "date" &&
+                        newInvite.valores[f.id] === dataEscolhida,
+                    ) || null
+                  : null;
                 // O evento-alvo escolhido e o estado do formulário
                 // DELE — para avisar quando já existe um convite
                 // (pendente, respondido, ou desviado para um duplicado)
@@ -610,6 +677,18 @@ export default function PainelNovoFormulario({
                                   })
                                 }
                               />
+                              {/* O aviso da disputa vive colado ao campo
+                                  que lhe dá origem — por baixo da Data
+                                  do Evento, e só quando há rivais. */}
+                              {campoAncoraDisputa &&
+                                field.id === campoAncoraDisputa.id &&
+                                irmaosDia.length > 0 && (
+                                  <AvisoDiaDisputado
+                                    dataISO={dataEscolhida}
+                                    irmaos={irmaosDia}
+                                    estilo={{ marginTop: "8px" }}
+                                  />
+                                )}
                             </div>
                           ))}
                         </div>

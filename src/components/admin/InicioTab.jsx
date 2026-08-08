@@ -7,6 +7,7 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import CaptacaoForm from "../captacao/CaptacaoForm";
 import ErrosFormulario from "./ErrosFormulario";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
+import ConsultaData from "./ConsultaData";
 import { Icone } from "./Navegacao";
 import AvisosBloqueantes from "./AvisosBloqueantes";
 
@@ -78,6 +79,7 @@ export default function InicioTab({
 }) {
   const [novoInteressado, setNovoInteressado] = useState(false);
   const [consultaAberta, setConsultaAberta] = useState(false);
+  const [consultaDataAberta, setConsultaDataAberta] = useState(false);
 
   // 3 colunas só quando há largura para elas (senão empilham)
   const [largura, setLargura] = useState(window.innerWidth);
@@ -340,7 +342,7 @@ export default function InicioTab({
           : ""}
       </p>
 
-      {/* Procura rápida + consulta de deslocação */}
+      {/* Procura rápida + as duas consultas (deslocação e data) */}
       <div
         style={{
           display: "flex",
@@ -471,7 +473,10 @@ export default function InicioTab({
         <div style={{ position: "relative", flexShrink: 0 }}>
           <button
             type="button"
-            onClick={() => setConsultaAberta((v) => !v)}
+            onClick={() => {
+              setConsultaDataAberta(false);
+              setConsultaAberta((v) => !v);
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -498,6 +503,49 @@ export default function InicioTab({
                   style={{ position: "fixed", inset: 0, zIndex: 40 }}
                 />
                 <ConsultaDeslocacao onFechar={() => setConsultaAberta(false)} />
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Pílula "Data" — a Consulta da Data (decisão de 09/08, o
+            cenário da Carla ao telefone): livre / em negociação /
+            preferência / tomado, pela definição única da dlm_dia_estado.
+            O mesmo padrão descartável da irmã — abrir uma fecha a outra
+            (dois popovers ancorados ao mesmo canto não podem coexistir). */}
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setConsultaAberta(false);
+              setConsultaDataAberta((v) => !v);
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+              padding: "10.5px 16px",
+              borderRadius: "999px",
+              fontSize: "13px",
+              fontWeight: consultaDataAberta ? "700" : "500",
+              border: `1.5px solid ${consultaDataAberta ? "var(--gold)" : "var(--gold-light)"}`,
+              backgroundColor: consultaDataAberta ? "var(--gold)" : "white",
+              color: consultaDataAberta ? "white" : "var(--charcoal)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Icone nome="agenda" tamanho={14} />
+            Data
+          </button>
+          <AnimatePresence>
+            {consultaDataAberta && (
+              <>
+                <div
+                  onClick={() => setConsultaDataAberta(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                />
+                <ConsultaData onFechar={() => setConsultaDataAberta(false)} />
               </>
             )}
           </AnimatePresence>

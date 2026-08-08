@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
 import { EMPRESA, DOMINIO_CASA } from "../lib/casa";
@@ -34,6 +34,7 @@ import DocumentosVista from "../components/portal/DocumentosVista";
 import QuestionarioVista from "../components/portal/QuestionarioVista";
 import AsFotografias from "../components/portal/AsFotografias";
 import AvaliacaoVista from "../components/portal/AvaliacaoVista";
+import SinalVista from "../components/portal/SinalVista";
 import {
   WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, diaMesAno, semanaEAno,
 } from "../components/portal/base";
@@ -240,6 +241,7 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
 
 export default function PortalPage() {
   const { token, vista, sub } = useParams();
+  const navigate = useNavigate();
   const [resultado, setResultado] = useState(null);
   // Conta as repetições pedidas pela cortina de erro: o «Tentar novamente»
   // incrementa-a e o efeito refaz o pedido — sem window.location.reload.
@@ -290,6 +292,29 @@ export default function PortalPage() {
     };
   }, [vista, token]);
 
+  // A reconferência do ecrã do sinal (e de quem mais precisar): re-pede a
+  // projecção em silêncio — os dados velhos ficam no ecrã até os frescos
+  // chegarem, e um falhanço não escurece nada. É esta função que cumpre o
+  // «será esta página a dizê-lo» da disputa do dia.
+  const recarregarSilencioso = useCallback(() => {
+    // Devolve a promessa — o ecrã do sinal espera por ela antes de
+    // decidir se tem base (a cápsula do aceite chega com dados velhos).
+    return getPortal(token)
+      .then((d) => {
+        if (d?.estado === "activo") {
+          setResultado({ token, estado: "pronto", dados: d });
+        } else {
+          // O token morreu a meio da sessão — a cortina do terminado é
+          // a única resposta honesta, indistinguível de inexistente
+          // como manda a regra da casa.
+          setResultado({ token, estado: "terminado", dados: null });
+        }
+      })
+      .catch(() => {
+        /* silencioso — os dados velhos ficam */
+      });
+  }, [token]);
+
   // O título do separador fala à cliente na língua da casa — «Sistema DLM»
   // é vocabulário interno e fica no backoffice.
   useEffect(() => {
@@ -297,6 +322,7 @@ export default function PortalPage() {
       documentos: "Os seus documentos",
       questionario: "O questionário",
       avaliar: "A avaliação",
+      sinal: "O sinal",
     };
     document.title = `${porVista[vista] || "O seu acompanhamento"} — ${EMPRESA.designacao}`;
   }, [vista]);
@@ -483,6 +509,26 @@ export default function PortalPage() {
     );
   }
 
+  // ---------- O sinal (o passo que guarda o dia) ----------
+  // Vista à parte: é um acto, não uma divisão. A própria vista devolve à
+  // jornada se não houver orçamento aceite por tratar — e é ela que fala
+  // com a disputa do dia (migração 083) pela chave `sinal` da projecção.
+  if (vista === "sinal") {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "var(--cream)" }}>
+        <div ref={focoRef} tabIndex={-1} style={{ maxWidth: "480px", margin: "0 auto", outline: "none" }}>
+          <SinalVista
+            token={token}
+            dados={dados}
+            reduzir={reduzir}
+            aoVoltar={() => navigate(`/acompanhar/${token}`)}
+            aoRecarregar={recarregarSilencioso}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // ---------- A área dos documentos (fases 3 e 4) ----------
   // A cortina do terminado já respondeu acima; aqui o token está vivo.
   // A área tem cabeçalho próprio (o timbre da folha) — sem logo grande.
@@ -623,14 +669,15 @@ export default function PortalPage() {
   const pendencias = {
     ...pendenciasBase,
     pendencias: pendenciasBase.pendencias.map((p) => {
-      // O sinal paga-se pela conversa — a ligação certa é o WhatsApp,
-      // não uma página do portal.
-      if (p.chave === "sinal" && WHATSAPP_URL) {
+      // O sinal trata-se no ecrã próprio — é lá que vive a forma de
+      // pagamento que a Nádia configurou e a confirmação (decisões de
+      // 08/08). A conversa só quando a config o disser, e é o ecrã a
+      // encaminhá-la.
+      if (p.chave === "sinal") {
         return {
           ...p,
-          href: WHATSAPP_URL,
-          hrefRotulo: "Combinar pela conversa",
-          externa: true,
+          href: `/acompanhar/${token}/sinal`,
+          hrefRotulo: "Tratar do sinal",
         };
       }
       return HREF_PENDENCIA[p.chave]
@@ -995,7 +1042,7 @@ export default function PortalPage() {
             Logo a seguir à jornada, antes das pendências: primeiro onde
             estamos, depois o que o sinal acorda, e só então o que falta
             de si. Só existe na janela entre o aceite e o sinal. */}
-        {mostrarOQueOSinalAbre && <OQueOSinalAbre />}
+        {mostrarOQueOSinalAbre && <OQueOSinalAbre reduzir={reduzir} />}
 
         {/* ── AS DIVISÕES DA FASE 2 ──────────────────────────────────
             A ordem é fixa (folha de decisões): o que falta de si · as

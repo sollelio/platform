@@ -971,6 +971,92 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   era por aí que, em `npm run dev`, abrir uma linha antiga sem
   metadados zerava o Valor (€). Corrigido para dev e produção.)
 
+## O ecrã do sinal e a disputa do dia (08/08/2026)
+
+O Hélio aprovou o mockup completo (17 decisões) do redesenho do fluxo
+do sinal no Portal do Cliente + a gestão de conflitos de data. A fonte
+visual é o mockup validado; aqui fica a substância:
+
+- **08/08/2026 — O véu dos valores do orçamento morre** — valores à
+  vista desde sempre. O véu do CONTRATO fica (tapa NIF/morada/contacto).
+  O mecanismo do código fica (é a prova da assinatura); aceitar e pedir
+  alteração passam a servir-se da ligação privada, sem código — custo
+  assumido: a posse da ligação é a prova do aceite. Assinar não muda.
+- **08/08/2026 — O ecrã do sinal** (vista própria `/acompanhar/:token/
+  sinal`): convite sereno pós-aceite → «Quero pagar o sinal» revela a
+  forma de pagamento configurada pela Nádia por evento (MB Way+IBAN |
+  conversa/WhatsApp | dinheiro | à minha maneira; sem escolha → dados
+  da casa, e sem MB Way da casa registado o default é só IBAN) → caixa
+  «já fiz o pagamento» (+ método indicado, opcional) → aviso
+  `sinal_confirmado` na Caixa. A confirmação NUNCA reserva — quem
+  carimba é o registo da Nádia. Valor do sinal = metade do total do
+  instantâneo da versão aceite, calculado na projecção (nunca do plano
+  de pagamentos, que pode não existir). Quem já pagou e volta é
+  devolvido à jornada.
+- **08/08/2026 — O destaque escuro do acompanhamento** reusa o padrão
+  do pórtico (rgba(26,24,20,0.94), sem blur) como versão expandida da
+  divisão «O que o sinal abre» (linhas idênticas); SEM código novo —
+  a ligação é a chave, o sinal abre-a. As frases «pela conversa» da
+  pendência e do fecho reescrevem-se (apontam ao ecrã do sinal; só
+  dizem conversa quando a config é essa).
+- **08/08/2026 — A disputa do dia:** tomado = evento vivo com sinal
+  feito (pagamento origem sinal OU fase pós-sinal); vivo = fase ≠
+  perdido, data futura, reservas provisórias contam. Sem prazo dado,
+  os clientes não veem a disputa (a pressão visível é gesto da Nádia).
+  O prazo «guardado para si até DD/MM» (um por dia, no máximo) mostra-se
+  no portal do preferido e fecha o ecrã do sinal aos rivais por inteiro.
+  «Em confirmação» (cliente confirmou «já paguei») fecha o ecrã aos
+  rivais até a Nádia registar ou limpar — ESTREITA a janela do duplo
+  pagamento, não a fecha; o desfecho do cruzamento é a devolução
+  integral do segundo sinal. Tudo deriva de `data_evento` em leitura
+  (padrão do caducou): mudar a data dissolve disputa/prazo/preferência.
+- **08/08/2026 — A guarda do dia no servidor:** TODAS as portas por
+  onde um dia muda de mãos passam pela mesma verificação — registo na
+  ficha, «Sinal recebido» do Funil (ordem invertida: guarda primeiro,
+  fase depois), avulsos/importados de origem sinal, e avanço de fase à
+  mão para pós-sinal. A Nádia pode registar por cima de um prazo ativo
+  (o sistema avisa que quebra a promessa — o portal da preterida
+  mostra-o com as desculpas da casa); o rival nunca é marcado perdido
+  automaticamente. Aviso âmbar também na criação com data disputada
+  (absorve a decisão pendente de 30/07) e na recuperação de perdidos.
+- **08/08/2026 — Verdade da canalização:** a RPC do «já paguei»
+  reconfere o dia no clique (dia_tomado/em_confirmacao); o portal
+  reconfere ao voltar à página e ao ganhar foco. Sem prometer «na
+  hora» (canal em directo fica como bloco opcional futuro).
+- **09/08/2026 — Três acrescentos ao Bloco 4** (cenário da Carla, a
+  contactar pelo Insta/telefone): (1) a notificação de pedido novo na
+  Caixa leva a marca âmbar «dia disputado» quando a data colide; (2) a
+  **Consulta da Data** no Início, ao lado da consulta de deslocação —
+  escolhe uma data e vê livre / em negociação (quem, fase, há quanto
+  tempo) / preferência até / tomado, alimentada pela dlm_dia_estado;
+  (3) ao dar o prazo, a folha oferece o WhatsApp pré-escrito no tom da
+  casa («guardámos o dia para si até…») — o sistema nunca envia
+  sozinho. O formulário público /interesse NÃO revela a agenda (dia
+  disputado ≠ indisponível; o aviso é para os olhos da Nádia).
+- **09/08/2026 — Confirmado com o Hélio (cenário Carla/Gina):** com
+  prazo alheio ativo, o rival não paga pelo portal (ecrã fechado), não
+  confirma (RPC recusa 'fechado') e o registo é recusado à própria
+  Nádia sem forçar consciente — o dia não muda de mãos durante um
+  prazo por acidente. A janela residual (sem prazo, sem confirmação,
+  transferências cruzadas) é infechável por desenho e tem desfecho:
+  devolução integral do segundo sinal.
+- **Estado dos blocos (09/08/2026):** 1) migração 083 ✓ corrida e
+  testada; 2) ecrã do sinal no portal ✓; 3) destaque escuro ✓;
+  4) o lado da Nádia ✓ (folha com config+prazo+WhatsApp, selo e banner
+  da disputa, as 4 portas com a guarda — Funil com a ordem invertida —,
+  Consulta da Data no Início, avisos de criação em pedido/formulário/
+  reserva, migração 084 ✓ corrida); 5) Caixa de Entrada ✓ (aviso
+  sinal_confirmado, marca âmbar «dia disputado», e três textos antigos
+  corrigidos — codigo_pedido pós-véu, orcamento_aceite e
+  contrato_assinado que ainda contavam a ordem pré-077).
+- **09/08/2026 — Duas nuances de comportamento decididas na obra:**
+  (a) o H″ (as desculpas da promessa quebrada) dissolve-se quando o
+  prazo prometido passa — a contradição visível morre com ele; (b) o
+  selo «dia disputado» do cabeçalho acende também com o dia TOMADO por
+  rival (o caso mais grave); a gravidade conta-a o banner. Sinalizado
+  ao Hélio, não bloqueante: a EventoPage usa hojeISO em UTC
+  (pré-existente) enquanto o resto da disputa compara com a data local.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

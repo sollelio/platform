@@ -10,7 +10,16 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { TITULO_BACKOFFICE } from "../lib/casa";
 import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
-import { getEventoCompleto, updateStatus } from "../lib/clientes";
+import {
+  extrairDadosCliente,
+  getEventoCompleto,
+  updateStatus,
+} from "../lib/clientes";
+import {
+  guardarPrazoDia,
+  irmaosDoDia,
+  prazoWhatsApp,
+} from "../lib/disputaDia";
 import {
   apontarConviteAoEvento,
   getEventTypes,
@@ -31,7 +40,7 @@ import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
 import PainelNotificacoes, { ToastNotificacao } from "../components/admin/CentroNotificacoes";
 import { documentosDoEvento } from "../lib/documentos";
 import { useNotificacoes } from "../lib/notificacoes";
-import { FASES_POS_SINAL } from "../components/admin/faseConfig";
+import { FASE_LABEL, FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
 import CabecalhoEvento from "../components/admin/CabecalhoEvento";
@@ -108,6 +117,408 @@ function Centrado({ children }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+// ============================================================
+// O BANNER DA DISPUTA DO DIA — o lado da Nádia (mockup 2c).
+//
+// Quando a data deste evento tem outro pedido vivo (ou uma reserva
+// provisória na Agenda), o banner conta a história inteira no lugar:
+// quem é o rival, em que fase vai, há quanto tempo, se já confirmou
+// «já paguei» — e dá o gesto do prazo («guardado para si até DD/MM»),
+// que é o que o portal da preferida passa a mostrar e o que fecha o
+// ecrã do sinal aos rivais. NADA aqui bloqueia: informa e oferece.
+//
+// A confirmação de um rival SÓ SE MOSTRA — limpa-se na folha do
+// próprio evento que confirmou, onde a conta se confere. Um botão de
+// limpar aqui seria anular a promessa de OUTRO evento sem lhe abrir a
+// ficha, e é exactamente o tipo de gesto cego que a casa recusa.
+//
+// Veste o padrão âmbar de FormulariosOrfaos (#FEF3E2/#F0D9B5/#92400E,
+// linha do ⚠ a 13px/700): atenção sem alarme — a disputa não é um
+// erro, é o negócio a acontecer.
+// ============================================================
+
+// Os meses à mão, como disputaDia.js e base.js (a cópia é deliberada,
+// padrão da casa): grafia pré-acordo com maiúscula, que o
+// toLocaleDateString não garante — num browser sem ICU pt-PT cai em
+// inglês sem erro nenhum.
+const MESES_LONGOS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio",
+  "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+// «25 de Agosto» a partir de 'YYYY-MM-DD', partido à mão — um parse ISO
+// por Date cai em UTC e num fuso atrás recuava um dia (padrão
+// partesDaData/base.js).
+const diaPorExtenso = (iso) => {
+  const [, m, d] = String(iso || "").slice(0, 10).split("-").map(Number);
+  if (!m || !d || !MESES_LONGOS[m - 1]) return "";
+  return `${d} de ${MESES_LONGOS[m - 1]}`;
+};
+
+// «15/08» — a medida curta, para o prazo dentro de uma frase.
+const diaCurto = (iso) => {
+  const [, m, d] = String(iso || "").slice(0, 10).split("-").map(Number);
+  if (!m || !d) return "";
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+};
+
+// «há 12 dias» a partir de um timestamp. Floor e não round: à noite,
+// um pedido de ontem de manhã ainda é «há 1 dia» — arredondar para
+// cima envelhecia a disputa e apressava a conversa.
+const haQuantoTempo = (iso) => {
+  if (!iso) return "";
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (dias <= 0) return "hoje";
+  if (dias === 1) return "há 1 dia";
+  return `há ${dias} dias`;
+};
+
+// Os botões do banner, no registo ofício (12.5px/600, raio 10) — o
+// dourado para o gesto da preferência, o âmbar para os restantes.
+const botaoAmbar = {
+  fontSize: "12.5px",
+  fontWeight: "600",
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "1.5px solid #F0D9B5",
+  backgroundColor: "white",
+  color: "#92400E",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  whiteSpace: "nowrap",
+};
+const botaoOuroClaro = {
+  ...botaoAmbar,
+  border: "1.5px solid var(--gold-light)",
+  color: "var(--gold-dark)",
+};
+
+function BannerDisputaDia({
+  irmaos,
+  dataEvento,
+  hojeISO,
+  submissionId,
+  prazoAtual,
+  nomeCliente,
+  numeroWhatsapp,
+  onPrazoGuardado,
+  onAbrirRival,
+}) {
+  // O gesto do prazo a meio — estado local, não é estado de negócio.
+  const [aDarPrazo, setADarPrazo] = useState(false);
+  const [prazoEscolhido, setPrazoEscolhido] = useState("");
+  const [aGuardar, setAGuardar] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [copiado, setCopiado] = useState(false);
+
+  // Um irmão com sinal = o dia já é dele; a conversa muda de tom.
+  const tomadoPor = irmaos.find((i) => i.temSinal) || null;
+
+  // O prazo expira sozinho em leitura (o padrão do caducou): um
+  // dia_guardado_ate no passado é como se não existisse.
+  const prazoAtivo = prazoAtual && prazoAtual >= hojeISO ? prazoAtual : null;
+
+  // «Um prazo por dia, no máximo» (decisão de 08/08) — a lib delega a
+  // guarda na UI, e a UI é AQUI, onde a promessa se faz: com o dia já
+  // guardado a um rival, oferecer o botão era a mesma promessa a duas
+  // clientes. O gesto ausenta-se e a linha do rival diz o facto.
+  const rivalComPrazo = irmaos.some(
+    (i) => i.guardadoAte && i.guardadoAte >= hojeISO,
+  );
+
+  // A oferta do WhatsApp nasce do prazo ACTIVO (e sobrevive a reloads,
+  // por isso deriva da BD e não de um «acabei de guardar»). O texto é o
+  // MESMO do copiar e do abrir — vem da lib, uma vez. Com o dia TOMADO
+  // por um rival (sinal registado por cima do prazo, com aviso), a
+  // promessa já não se pode enviar — «guardámos o dia para si» seria
+  // mentira, e a caixa cala-se.
+  const mensagem =
+    prazoAtivo && !tomadoPor
+      ? prazoWhatsApp(nomeCliente, dataEvento, prazoAtivo)
+      : null;
+  const ligacao =
+    mensagem && numeroWhatsapp ? linkWhatsApp(numeroWhatsapp, mensagem) : null;
+
+  const guardar = async () => {
+    if (!prazoEscolhido || aGuardar) return;
+    setAGuardar(true);
+    setErro(null);
+    let resposta = null;
+    try {
+      resposta = await guardarPrazoDia(submissionId, prazoEscolhido);
+    } catch (e) {
+      console.error("Erro ao guardar o prazo do dia:", e);
+    }
+    setAGuardar(false);
+    if (!resposta) {
+      // A recusa responde AQUI, no banner — nunca num diálogo do browser.
+      setErro("Não foi possível guardar o prazo. Tente outra vez.");
+      return;
+    }
+    onPrazoGuardado(resposta);
+    setADarPrazo(false);
+    setPrazoEscolhido("");
+  };
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(mensagem);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Sem clipboard (http, permissões): a mensagem está escrita ao
+      // lado — diz-se isso em vez de fingir que copiou.
+      setErro("Não foi possível copiar — a mensagem está escrita acima.");
+    }
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#FEF3E2",
+        border: "1px solid #F0D9B5",
+        borderRadius: "12px",
+        padding: "12px 14px",
+        marginBottom: "20px",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 6px",
+          fontSize: "13px",
+          fontWeight: "700",
+          color: "#92400E",
+          lineHeight: 1.5,
+        }}
+      >
+        ⚠{" "}
+        {tomadoPor
+          ? `O dia ${diaPorExtenso(dataEvento)} está reservado por ${tomadoPor.nome} — este evento precisa de nova data`
+          : `${diaPorExtenso(dataEvento)} tem ${
+              irmaos.length === 1
+                ? "outro pedido vivo"
+                : `mais ${irmaos.length} pedidos vivos`
+            }`}
+      </p>
+
+      {irmaos.map((irmao) => (
+        <p
+          key={irmao.id}
+          style={{
+            margin: "0 0 4px",
+            fontSize: "12.5px",
+            color: "#92400E",
+            lineHeight: 1.55,
+          }}
+        >
+          <b>{irmao.nome}</b>
+          {" — "}
+          {irmao.ehReserva
+            ? "reserva provisória na Agenda"
+            : `${(FASE_LABEL[irmao.fase] || irmao.fase || "sem fase").toLowerCase()}${
+                irmao.temSinal ? ", com sinal registado" : ", sem sinal"
+              }`}
+          {irmao.criadoEm ? `, ${haQuantoTempo(irmao.criadoEm)}.` : "."}
+          {/* O prazo do RIVAL mostra-se onde a promessa se faria — é ele
+              que explica porque o botão de guardar o dia não aparece.
+              Gere-se (altera-se, limpa-se) na folha desse evento. */}
+          {irmao.guardadoAte && irmao.guardadoAte >= hojeISO && (
+            <>
+              {" "}
+              <b>
+                O dia está guardado para essa cliente até{" "}
+                {diaCurto(irmao.guardadoAte)}
+              </b>{" "}
+              (o prazo gere-se na folha desse evento).
+            </>
+          )}
+          {irmao.confirmacao && (
+            <>
+              {" "}
+              <b>
+                Em confirmação {haQuantoTempo(irmao.confirmacao.criadoEm)}
+              </b>{" "}
+              (disse que enviou o sinal — confere-se e limpa-se na folha
+              desse evento).
+            </>
+          )}
+        </p>
+      ))}
+
+      {!tomadoPor && (
+        <p
+          style={{
+            margin: "2px 0 10px",
+            fontSize: "12.5px",
+            color: "#92400E",
+            lineHeight: 1.55,
+          }}
+        >
+          Só o primeiro sinal registado reserva o dia.
+          {prazoAtivo && (
+            <>
+              {" "}
+              <b>Dia guardado para esta cliente até {diaCurto(prazoAtivo)}.</b>
+            </>
+          )}
+        </p>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px",
+          alignItems: "center",
+          marginTop: tomadoPor ? "10px" : 0,
+        }}
+      >
+        {/* O prazo é uma promessa a ESTA cliente — num dia já tomado não
+            há promessa para fazer, e com o dia guardado a um RIVAL não
+            se promete duas vezes (um prazo por dia, no máximo): nos
+            dois casos o botão ausenta-se. */}
+        {!tomadoPor && !rivalComPrazo && !aDarPrazo && (
+          <button
+            onClick={() => {
+              setADarPrazo(true);
+              setPrazoEscolhido(prazoAtivo || "");
+              setErro(null);
+            }}
+            style={botaoOuroClaro}
+          >
+            {prazoAtivo
+              ? "Alterar o prazo…"
+              : "Guardar o dia para esta cliente até…"}
+          </button>
+        )}
+        {!tomadoPor && !rivalComPrazo && aDarPrazo && (
+          <>
+            <input
+              type="date"
+              value={prazoEscolhido}
+              // Entre hoje e a data do evento: um prazo no passado já
+              // nascia expirado, e um depois do evento não guarda nada.
+              min={hojeISO}
+              max={dataEvento}
+              onChange={(e) => setPrazoEscolhido(e.target.value)}
+              style={{
+                border: "1px solid var(--gold-light)",
+                borderRadius: "10px",
+                padding: "6px 10px",
+                fontSize: "12.5px",
+                fontFamily: "inherit",
+                backgroundColor: "white",
+                color: "var(--charcoal)",
+              }}
+            />
+            <button
+              onClick={guardar}
+              disabled={!prazoEscolhido || aGuardar}
+              style={{
+                ...botaoOuroClaro,
+                opacity: !prazoEscolhido || aGuardar ? 0.6 : 1,
+                cursor: !prazoEscolhido || aGuardar ? "default" : "pointer",
+              }}
+            >
+              {aGuardar ? "A guardar…" : "Guardar o dia"}
+            </button>
+            <button
+              onClick={() => {
+                setADarPrazo(false);
+                setErro(null);
+              }}
+              style={botaoAmbar}
+            >
+              Cancelar
+            </button>
+          </>
+        )}
+        {/* Só os rivais que SÃO eventos têm ficha para abrir; uma
+            reserva provisória resolve-se na Agenda, e a linha dela
+            di-lo em vez de aparecer um botão que recusaria. */}
+        {irmaos
+          .filter((i) => !i.ehReserva)
+          .map((i) => (
+            <button
+              key={i.id}
+              onClick={() => onAbrirRival(i.id)}
+              style={botaoAmbar}
+            >
+              Abrir o evento de{" "}
+              {String(i.nome || "").trim().split(/\s+/)[0] || "rival"}
+            </button>
+          ))}
+      </div>
+
+      {/* O WhatsApp pré-escrito da promessa — oferece-se, nunca se
+          envia sozinho (decisão de 09/08). */}
+      {mensagem && (
+        <div
+          style={{
+            marginTop: "10px",
+            backgroundColor: "white",
+            border: "1px solid #F0D9B5",
+            borderRadius: "9px",
+            padding: "10px 12px",
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 8px",
+              fontSize: "12px",
+              fontStyle: "italic",
+              color: "var(--charcoal)",
+              lineHeight: 1.55,
+            }}
+          >
+            «{mensagem}»
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px",
+              alignItems: "center",
+            }}
+          >
+            {ligacao && (
+              <button
+                onClick={() => window.open(ligacao, "_blank")}
+                style={botaoOuroClaro}
+              >
+                Enviar por WhatsApp
+              </button>
+            )}
+            <button onClick={copiar} style={botaoAmbar}>
+              {copiado ? "Copiado ✓" : "Copiar a mensagem"}
+            </button>
+            <span
+              style={{
+                fontSize: "11.5px",
+                color: "#92400E",
+                fontStyle: "italic",
+              }}
+            >
+              o aviso é seu de enviar — o sistema nunca escreve sozinho
+            </span>
+          </div>
+        </div>
+      )}
+
+      {erro && (
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: "12px",
+            fontWeight: "600",
+            color: "#B91C1C",
+          }}
+        >
+          {erro}
+        </p>
+      )}
     </div>
   );
 }
@@ -354,6 +765,52 @@ export default function EventoPage() {
     // reserva errada.
   }, [id]);
 
+  // Os IRMÃOS do dia — a matéria-prima do selo e do banner da disputa.
+  //
+  // Vive num efeito PRÓPRIO, preso à data, e não no Promise.all da
+  // carga: a data_evento só se conhece quando o evento pousa, e prender
+  // o efeito a ela dá as duas coisas de uma vez — a primeira leitura
+  // (logo a seguir à carga) e a releitura quando a data muda (edição do
+  // briefing ou UPDATE em directo). Mudar a data dissolve a disputa
+  // sozinha, como manda o padrão do caducou.
+  //
+  // Só se pergunta quando este evento COMPETE: vivo (fase ≠ perdido) e
+  // com a data ainda por vir — um evento perdido não disputa nada, e
+  // numa data passada a corrida já não existe (a definição de «vivo»
+  // da decisão de 08/08). Se a 083 ainda não correu, a lib devolve []
+  // em silêncio e a UI cala-se.
+  //
+  // A resposta viaja COM a chave do dia (o padrão das `visitas`, um
+  // andar acima): mudar de data ou de evento invalida a lista velha no
+  // próprio render — sem um setState síncrono no efeito a limpá-la, e
+  // sem a disputa do dia anterior aparecer um instante na data nova.
+  const [respostaIrmaos, setRespostaIrmaos] = useState({
+    chave: null,
+    lista: [],
+  });
+  const dataEvento = submissao?.data_evento || null;
+  const eventoCompete =
+    !!dataEvento && dataEvento >= hojeISO && submissao?.fase !== "perdido";
+  const chaveDia = eventoCompete ? `${id}|${dataEvento}` : null;
+  useEffect(() => {
+    if (!chaveDia) return undefined;
+    let cancelado = false;
+    irmaosDoDia(dataEvento, id)
+      .then(
+        (lista) =>
+          !cancelado &&
+          setRespostaIrmaos({ chave: chaveDia, lista: lista || [] }),
+      )
+      // Falhar cala-se — nunca se afirma «sem disputa» por um erro de
+      // leitura (a chave não bate e a lista não se mostra).
+      .catch((e) => console.error("Erro ao ler os irmãos do dia:", e));
+    return () => {
+      cancelado = true;
+    };
+  }, [chaveDia, dataEvento, id]);
+  const irmaos =
+    chaveDia && respostaIrmaos.chave === chaveDia ? respostaIrmaos.lista : [];
+
   // O canal DESTE evento (Lote 4A): a página é onde vive a edição do
   // briefing — o sítio mais perigoso para uma base velha. A submissão
   // do formulário do cliente (um UPDATE) chega cá em direto e a base
@@ -583,6 +1040,15 @@ export default function EventoPage() {
   const portalIndisponivel =
     submissao?.fase === "perdido" || (dataPassou && !negocioFechou);
 
+  // A DISPUTA vista deste evento: disputado = há irmãos vivos ainda sem
+  // sinal (ou reservas provisórias) — a corrida está aberta; tomado =
+  // um irmão já registou sinal — o dia é dele e este evento precisa de
+  // nova data. O selo do cabeçalho acende em QUALQUER dos casos (um dia
+  // tomado disputa-se ainda mais); a diferença de gravidade conta-a o
+  // banner.
+  const diaDisputado = irmaos.some((i) => !i.temSinal);
+  const diaTomadoPorRival = irmaos.some((i) => i.temSinal);
+
   // Mudar de separador não mexe na edição: ela fica onde estava, e a
   // Visão geral encontra-a intacta quando se voltar.
   const irParaAba = (novaAba) => {
@@ -786,6 +1252,7 @@ export default function EventoPage() {
           submissao={submissao}
           resumoEvento={resumoEvento}
           nomeTipo={getNomeTipoEvento(submissao, eventTypes)}
+          diaDisputado={diaDisputado || diaTomadoPorRival}
           invites={invites}
           previstos={plano.previstos}
           pagamentos={plano.pagamentos}
@@ -831,6 +1298,33 @@ export default function EventoPage() {
         />
 
         <div key={id} style={{ padding: "24px 40px 60px" }}>
+          {/* O banner da disputa vive ACIMA dos painéis e fora deles:
+              é da página, não de um separador — a Nádia tem de o ver
+              esteja onde estiver, e nada aqui bloqueia o trabalho. */}
+          {(diaDisputado || diaTomadoPorRival) && (
+            <BannerDisputaDia
+              irmaos={irmaos}
+              dataEvento={dataEvento}
+              hojeISO={hojeISO}
+              submissionId={id}
+              prazoAtual={submissao.dia_guardado_ate || null}
+              nomeCliente={
+                submissao.cliente?.nome ||
+                extrairDadosCliente(submissao.respostas || {}).nome
+              }
+              numeroWhatsapp={numeroWhatsapp}
+              onPrazoGuardado={(atualizado) =>
+                // O prazo volta da BD já gravado; o retrato local
+                // acompanha-o sem reler a página inteira.
+                setSubmissao((s) =>
+                  s
+                    ? { ...s, dia_guardado_ate: atualizado.dia_guardado_ate }
+                    : s,
+                )
+              }
+              onAbrirRival={(rivalId) => navigate(`/evento/${rivalId}`)}
+            />
+          )}
           {visitadas.has("visao-geral") && (
             <Painel visivel={activeAba === "visao-geral"}>
               <VisaoGeralEvento

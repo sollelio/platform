@@ -10,6 +10,7 @@ import {
 } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
 import { marcarPagamentoFinal, updateFase } from "../../lib/clientes";
+import { registarSinalComGuarda } from "../../lib/disputaDia";
 import { Icone } from "./Navegacao";
 import { Convite, useContagemAnimada } from "./acabamento";
 import ContribuicaoColetiva from "./ContribuicaoColetiva";
@@ -506,6 +507,135 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, novoI
   );
 }
 
+// ------------------------------------------------------------
+// O painel âmbar da guarda do dia (083) — a resposta da porta do
+// registo do sinal quando o dia não é simplesmente deste evento.
+// Padrão âmbar da casa (FormulariosOrfaos): a linha do ⚠ a 13px/700
+// sobre #FEF3E2/#F0D9B5, corpo a 12.5px; botões do registo ofício
+// (12.5px/600, raio 10px — o mockup 2c). Três vozes:
+//   ja_registado — aviso simples: o duplo sinal não entra;
+//   dia_tomado   — recusa firme: NUNCA se regista por cima (nem o
+//                  servidor deixaria com forcar);
+//   prazo_alheio — a decisão é dela: quebrar a promessa é possível,
+//                  mas nunca por acidente.
+// ------------------------------------------------------------
+function PainelGuardaDia({ guarda, dataEvento, aForcar, onForcar, onVoltar }) {
+  const rival = guarda.rival || "outra cliente";
+  const linha = {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#92400E",
+    lineHeight: 1.5,
+    margin: "0 0 6px",
+  };
+  const corpo = {
+    fontSize: "12.5px",
+    color: "#92400E",
+    lineHeight: 1.55,
+    margin: "0 0 10px",
+  };
+  const btnBase = {
+    fontSize: "12.5px",
+    fontWeight: "600",
+    padding: "8px 14px",
+    borderRadius: "10px",
+    cursor: aForcar ? "wait" : "pointer",
+  };
+  const btnCalmo = {
+    ...btnBase,
+    border: "1.5px solid #F0D9B5",
+    backgroundColor: "white",
+    color: "#92400E",
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#FEF3E2",
+        border: "1.5px solid #F0D9B5",
+        borderRadius: "12px",
+        padding: "12px 14px",
+        marginTop: "8px",
+      }}
+    >
+      {guarda.estado === "ja_registado" && (
+        <>
+          <p style={linha}>⚠ Este evento já tem o sinal registado</p>
+          <p style={corpo}>
+            Um segundo pagamento do sinal não entra por aqui — confere as
+            linhas da parcela acima.
+          </p>
+          <button onClick={onVoltar} className="acao" style={btnCalmo}>
+            Fechar
+          </button>
+        </>
+      )}
+      {guarda.estado === "dia_tomado" && (
+        <>
+          <p style={linha}>
+            ⚠ O dia {dataEvento ? formatarDataLonga(dataEvento) : "deste evento"}{" "}
+            está reservado por {rival}
+          </p>
+          <p style={corpo}>
+            Este registo não pode entrar — só o primeiro sinal registado
+            reserva o dia. Combine uma nova data com esta cliente.
+          </p>
+          <button onClick={onVoltar} className="acao" style={btnCalmo}>
+            Voltar
+          </button>
+        </>
+      )}
+      {guarda.estado === "prazo_alheio" && (
+        <>
+          <p style={linha}>
+            ⚠ Guardou o dia a {rival}
+            {guarda.ate ? ` até ${formatarDataPT(guarda.ate)}` : ""}
+          </p>
+          <p style={corpo}>
+            Registar este sinal quebra essa promessa — o portal dela passa a
+            mostrá-lo, com as desculpas da casa.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            <button
+              onClick={onForcar}
+              disabled={aForcar}
+              className="acao"
+              style={{
+                ...btnBase,
+                border: "1.5px solid var(--gold)",
+                backgroundColor: "var(--gold)",
+                color: "white",
+              }}
+            >
+              {aForcar ? "A registar..." : "Registar na mesma"}
+            </button>
+            <button
+              onClick={onVoltar}
+              disabled={aForcar}
+              className="acao"
+              style={btnCalmo}
+            >
+              Voltar
+            </button>
+          </div>
+          {guarda.erro && (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#B91C1C",
+                lineHeight: 1.5,
+                margin: "8px 0 0",
+              }}
+            >
+              {guarda.erro}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function PagamentosEvento({
   submissao,
   previstos = [],
@@ -528,6 +658,11 @@ export default function PagamentosEvento({
   // A aterragem da pílula "registar o sinal": a parcela acende (pulso)
   // e o formulário abre-se já — a promessa cumpre-se, ela não procura.
   const [pulsando, setPulsando] = useState(null); // id do previsto
+  // A resposta da guarda do dia (083) quando recusa o registo do sinal:
+  // {estado, rival, ate, pendente:{previstoId, dados}} — o formulário
+  // fica aberto com os valores, e o painel âmbar diz o resto.
+  const [guardaSinal, setGuardaSinal] = useState(null);
+  const [aForcarSinal, setAForcarSinal] = useState(false);
   // Hooks da sugestão de avanço (Lote 2B) — declarados AQUI, antes dos
   // early returns lá em baixo: um hook depois de um return condicional
   // muda a contagem de hooks entre renders e rebenta o componente.
@@ -688,19 +823,11 @@ export default function PagamentosEvento({
     setAAvancarFase(false);
   };
 
-  // No fluxo final (077) o sinal ANTES do contrato é o desenho, não a
-  // excepção — o aviso «sinal sem contrato assinado» morreu com a
-  // ordem antiga. Regista-se, e pronto.
-  const guardarPagamento = async (previstoId, origem, dados) => {
-    const registo = await registarPagamento(submissao.id, {
-      previstoId: previstoId === "avulso" ? null : previstoId,
-      valor: dados.valor,
-      data: dados.data,
-      metodo: dados.metodo,
-      origem,
-      contribuinte: dados.contribuinte,
-      notas: dados.notas,
-    });
+  // A cauda comum de qualquer registo que entrou: a lista, o brilho, a
+  // sincronização do pagamento_final e o avanço de fase seguem IGUAIS
+  // ao fluxo de sempre — venha o registo da porta com guarda (083) ou
+  // do insert directo.
+  const concluirRegisto = async (registo) => {
     const novaLista = [...pagamentos, registo];
     if (onPagamentos) onPagamentos(novaLista);
     setFormularioAberto(null);
@@ -724,6 +851,141 @@ export default function PagamentosEvento({
         console.warn("Sinal saldado; a fase fica para o banner:", e?.message || e);
       }
     }
+  };
+
+  // No fluxo final (077) o sinal ANTES do contrato é o desenho, não a
+  // excepção — o aviso «sinal sem contrato assinado» morreu com a
+  // ordem antiga. Regista-se — mas o SINAL é o carimbo que reserva o
+  // dia, e desde a 083 passa pela porta do servidor (a guarda do dia)
+  // em vez do insert directo. Null da lib = a 083 ainda não correu
+  // nesta BD: cai-se no insert de sempre, sem fricção nenhuma.
+  const guardarPagamento = async (previstoId, origem, dados) => {
+    setGuardaSinal(null);
+    if (origem === "sinal") {
+      const resposta = await registarSinalComGuarda({
+        submissionId: submissao.id,
+        valor: Number(dados.valor),
+        data: dados.data,
+        metodo: dados.metodo,
+        contribuinte: dados.contribuinte || null,
+        notas: dados.notas || null,
+      });
+      if (resposta) {
+        if (resposta.estado === "ok") {
+          // A linha monta-se do que se acabou de enviar (o id vem da
+          // RPC) — o padrão optimista da lista, sem uma segunda query
+          // só para reler o que já sabemos.
+          await concluirRegisto({
+            id: resposta.id,
+            submission_id: submissao.id,
+            previsto_id: previstoId === "avulso" ? null : previstoId,
+            valor: Number(dados.valor),
+            data: dados.data || null,
+            metodo: dados.metodo,
+            origem: "sinal",
+            contribuinte: dados.contribuinte || null,
+            notas: dados.notas || null,
+            reconstituido: false,
+          });
+          return;
+        }
+        if (
+          ["ja_registado", "dia_tomado", "prazo_alheio"].includes(
+            resposta.estado,
+          )
+        ) {
+          // A recusa fala no painel âmbar junto à parcela; os valores
+          // ficam no formulário para a decisão (ou a nova data).
+          setGuardaSinal({
+            estado: resposta.estado,
+            rival: resposta.rival_nome || null,
+            ate: resposta.ate || null,
+            pendente: { previstoId, dados },
+          });
+          return;
+        }
+        // 'invalido'/'nao_encontrado' — a mensagem cai na linha de erro
+        // do próprio formulário, como qualquer recusa do registo.
+        throw new Error(
+          resposta.estado === "invalido"
+            ? "O registo do sinal precisa de valor, data e método."
+            : "Não foi possível registar o sinal. Tenta novamente.",
+        );
+      }
+    }
+    const registo = await registarPagamento(submissao.id, {
+      previstoId: previstoId === "avulso" ? null : previstoId,
+      valor: dados.valor,
+      data: dados.data,
+      metodo: dados.metodo,
+      origem,
+      contribuinte: dados.contribuinte,
+      notas: dados.notas,
+    });
+    await concluirRegisto(registo);
+  };
+
+  // «Registar na mesma»: a promessa do prazo quebra-se CONSCIENTE — a
+  // mesma porta, agora com forcar. Se entretanto o dia mudou de mãos a
+  // sério (a corrida perdeu-se), a resposta nova substitui o painel.
+  const forcarRegistoSinal = async () => {
+    if (!guardaSinal?.pendente) return;
+    const { previstoId, dados } = guardaSinal.pendente;
+    setAForcarSinal(true);
+    // A tentativa nova começa limpa — deixar o erro antigo à vista
+    // enquanto o pedido corre era o painel a contradizer o botão.
+    setGuardaSinal((g) => (g?.erro ? { ...g, erro: null } : g));
+    try {
+      const resposta = await registarSinalComGuarda({
+        submissionId: submissao.id,
+        valor: Number(dados.valor),
+        data: dados.data,
+        metodo: dados.metodo,
+        contribuinte: dados.contribuinte || null,
+        notas: dados.notas || null,
+        forcar: true,
+      });
+      if (resposta?.estado === "ok") {
+        setGuardaSinal(null);
+        await concluirRegisto({
+          id: resposta.id,
+          submission_id: submissao.id,
+          previsto_id: previstoId === "avulso" ? null : previstoId,
+          valor: Number(dados.valor),
+          data: dados.data || null,
+          metodo: dados.metodo,
+          origem: "sinal",
+          contribuinte: dados.contribuinte || null,
+          notas: dados.notas || null,
+          reconstituido: false,
+        });
+      } else if (
+        resposta &&
+        ["ja_registado", "dia_tomado", "prazo_alheio"].includes(resposta.estado)
+      ) {
+        setGuardaSinal({
+          estado: resposta.estado,
+          rival: resposta.rival_nome || null,
+          ate: resposta.ate || null,
+          pendente: { previstoId, dados },
+        });
+      } else {
+        // Null (a 083 desapareceu a meio?) ou estado desconhecido — o
+        // painel fecha-se; o formulário continua lá para tentar de novo.
+        setGuardaSinal(null);
+      }
+    } catch (e) {
+      console.error("forcarRegistoSinal falhou:", e);
+      // A falha diz-se onde a decisão estava parada — o padrão inline
+      // da casa; um clique que morre só na consola parecia um botão
+      // avariado.
+      setGuardaSinal((g) =>
+        g
+          ? { ...g, erro: "Não foi possível registar o sinal. Tenta novamente." }
+          : g,
+      );
+    }
+    setAForcarSinal(false);
   };
 
   const fecharConfirmacaoApagar = () => {
@@ -856,13 +1118,30 @@ export default function PagamentosEvento({
             formularioAberto={formularioAberto}
             novoId={novoId}
             onAbrirFormulario={(id) => setFormularioAberto(id)}
-            onFecharFormulario={() => setFormularioAberto(null)}
+            onFecharFormulario={() => {
+              setFormularioAberto(null);
+              // Cancelar o formulário arruma também a conversa da
+              // guarda — um painel órfão afirmaria um registo que já
+              // ninguém está a tentar.
+              setGuardaSinal(null);
+            }}
             onGuardarPagamento={(previstoId, dados) => {
               const origem = previsto.ordem === 1 ? "sinal" : "remanescente";
               return guardarPagamento(previstoId, origem, dados);
             }}
             onPedirApagar={setPagamentoParaApagar}
           />
+          {/* A guarda do dia (083) fala aqui, colada à parcela do
+              sinal — é dela que a recusa trata. */}
+          {previsto.ordem === 1 && guardaSinal && (
+            <PainelGuardaDia
+              guarda={guardaSinal}
+              dataEvento={submissao.data_evento}
+              aForcar={aForcarSinal}
+              onForcar={forcarRegistoSinal}
+              onVoltar={() => setGuardaSinal(null)}
+            />
+          )}
         </div>
       ))}
 

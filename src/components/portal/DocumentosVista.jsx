@@ -1859,7 +1859,14 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                 ...(feito.nome ? [["Assinado por", feito.nome]] : []),
                 ["Versão", `Versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}`],
                 ["Data e hora", `${diaMesAno(diaLocalISO(feito.quando))}, às ${horaCurta(feito.quando)}`],
-                ["Verificação", "Com o código que a Do Luxo à Mesa lhe enviou"],
+                // Só a assinatura exige código (083): o aceite prova-se
+                // pela posse da ligação privada — e é isso que se regista.
+                [
+                  "Verificação",
+                  ehAssinatura
+                    ? "Com o código que a Do Luxo à Mesa lhe enviou"
+                    : "Pela sua ligação privada de acompanhamento",
+                ],
               ]}
             />
             <div style={{ textAlign: "center", marginTop: "20px" }}>
@@ -1884,7 +1891,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                 ? "A Do Luxo à Mesa lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui."
                 : tipo === "proposta"
                   ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
-                  : "O sinal — metade do valor reserva a sua data; combinamos o pagamento consigo pela conversa. Depois, o contrato chega-lhe aqui para assinar."}
+                  : "O sinal — metade do valor reserva a sua data, e o passo está à sua espera nesta página. Depois, o contrato chega-lhe aqui para assinar."}
           </p>
           {/* A promessa por trás do sinal: não é só um pagamento, é a
               chave desta página inteira. Diz-se como promessa, nunca
@@ -1898,10 +1905,21 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           )}
         </div>
 
-        {/* O acto está feito — o caminho natural é a jornada, que já
-            conta a novidade. Cápsula, não ligação apagada: é o passo
-            seguinte, não uma saída de emergência. */}
+        {/* O acto está feito — o caminho natural depende dele: ao aceite
+            do orçamento segue-se O SINAL (o ecrã próprio, cápsula cheia
+            porque é o passo que guarda o dia); nos restantes, a jornada,
+            que já conta a novidade. */}
         <div style={{ marginTop: "26px", textAlign: "center" }}>
+          {!ehAssinatura && !ehAlteracao && tipo !== "proposta" && (
+            <div style={{ marginBottom: "12px" }}>
+              <CapsulaCheia
+                onClick={() => navigate(`/acompanhar/${token}/sinal`)}
+                style={{ width: "auto", display: "inline-block", padding: "14px 26px" }}
+              >
+                Tratar do sinal
+              </CapsulaCheia>
+            </div>
+          )}
           <CapsulaVazada
             onClick={irAoAcompanhamento}
             style={{ width: "auto", display: "inline-block", padding: "13px 26px" }}

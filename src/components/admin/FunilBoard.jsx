@@ -7,16 +7,19 @@ import {
 import { estadoFormularioDoEvento } from "../../lib/invites";
 import {
   registarSinalDoFunil,
+  sincronizarPrevistos,
   METODOS_SUGERIDOS,
   getPagamentosEvento,
   saldoSinalPendente,
 } from "../../lib/pagamentos";
+import { estadoDoDia, registarSinalComGuarda } from "../../lib/disputaDia";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import {
   FASE_LABEL,
   FASE_COR,
   FASES_BOARD,
+  FASES_POS_SINAL,
   PROXIMA_FASE,
   AVANCO_LABEL,
 } from "./faseConfig";
@@ -72,6 +75,20 @@ const formatarData = (iso) => {
     "dez",
   ];
   return `${Number(d)} ${meses[Number(m) - 1]} ${a}`;
+};
+
+// A frase de cada estado do dia (dlm_dia_estado, 083) na voz do
+// cartão — partilhada pelo painel da disputa e pela linha do painel de
+// recuperação, para as duas nunca divergirem. O rival sem nome (não
+// devia acontecer, mas os dados mandam) fica «outra cliente» — nunca
+// um «tomado por null» à frente da Nádia.
+const descreveEstadoDia = (disputa) => {
+  const rival = disputa.rival || "outra cliente";
+  if (disputa.estado === "tomado")
+    return `já está tomado por ${rival} (sinal feito)`;
+  if (disputa.estado === "preferencia")
+    return `está guardado para ${rival} até ${formatarData(disputa.ate)}`;
+  return `está em confirmação por ${rival} (disse que já enviou o sinal)`;
 };
 
 // Soma o valor acordado de uma lista de eventos (quem não tem valor
@@ -187,6 +204,12 @@ export default function FunilBoard({
   // silêncio: confirma-se inline, com a consequência à vista.
   const [confirmandoAvancoSemValor, setConfirmandoAvancoSemValor] =
     useState(null); // id do evento
+  // A disputa do dia (083) parada num cartão, à espera da decisão:
+  // { id, porta:'sinal'|'avanco', estado, rival, ate, dados } — na
+  // porta 'sinal' os dados são o {metodo, data, valorSinal} recusado
+  // (para o «Registar na mesma» com forcar); na 'avanco', o destino
+  // {fase, opcoes} que ficou suspenso.
+  const [disputaCartao, setDisputaCartao] = useState(null);
   const [atualizando, setAtualizando] = useState(null); // id do evento
   const [novoInteressado, setNovoInteressado] = useState(false); // modal aberto
   const [avisoErro, setAvisoErro] = useState(null); // toast discreto (adeus alert)
@@ -200,6 +223,7 @@ export default function FunilBoard({
     setConfirmandoPerda(null);
     setConfirmandoSinal(null);
     setConfirmandoAvancoSemValor(null);
+    setDisputaCartao(null);
     setRecuperando(null);
     try {
       const data = await getEventosFunil();
@@ -375,6 +399,47 @@ export default function FunilBoard({
     setConfirmandoPerda(null);
     setRecuperando(null);
     setConfirmandoAvancoSemValor(null);
+    setDisputaCartao(null);
+  };
+
+  // A QUARTA porta da guarda do dia (083): avançar a fase à mão de
+  // pré para pós-sinal reserva o dia aos olhos do portal — antes do
+  // updateFase pergunta-se ao servidor como está o dia. 'livre' (ou a
+  // lib muda porque a 083 não correu) segue sem fricção; qualquer
+  // disputa pára no cartão para a decisão ser dela — o sistema avisa,
+  // nunca decide. Dentro do pós-sinal não se pergunta: o dia já era
+  // deste evento.
+  const avancarComGuardaDia = async (ev, fase, opcoes = {}) => {
+    const reservaODia =
+      FASES_POS_SINAL.includes(fase) && !FASES_POS_SINAL.includes(faseDe(ev));
+    if (reservaODia && ev.data_evento) {
+      setAtualizando(ev.id);
+      let dia = null;
+      try {
+        dia = await estadoDoDia(ev.data_evento, ev.id);
+      } catch (e) {
+        // Sem resposta não se trava o gesto — esta porta é aviso; a
+        // lei dura vive na RPC do registo do sinal.
+        console.warn("estadoDoDia sem resposta — o avanço segue:", e);
+      }
+      if (
+        dia &&
+        ["tomado", "preferencia", "em_confirmacao"].includes(dia.estado)
+      ) {
+        setAtualizando(null);
+        setConfirmandoAvancoSemValor(null);
+        setDisputaCartao({
+          id: ev.id,
+          porta: "avanco",
+          estado: dia.estado,
+          rival: dia.rival_nome || null,
+          ate: dia.ate || null,
+          dados: { fase, opcoes },
+        });
+        return;
+      }
+    }
+    await mudarFase(ev, fase, opcoes);
   };
 
   // Recuperar um perdido — informado pelos dados, nunca em silêncio
@@ -424,56 +489,200 @@ export default function FunilBoard({
     const sinalPago =
       !!previstoSinal &&
       saldoSinalPendente(ev.id, plano?.previstos || [], pagamentos) <= 0;
-    setRecuperando({ id: ev.id, sinalPago, totalPago });
+    // A disputa do dia (083) entra no painel: «Para Clientes» é um
+    // regresso a pós-sinal — se a data entretanto ganhou dono, prazo ou
+    // confirmação de outrem, diz-se ANTES da escolha, na mesma folha.
+    // Null da lib (083 por correr) ou falha = a linha simplesmente não
+    // aparece, como a casa degrada sempre.
+    let dia = null;
+    if (ev.data_evento) {
+      try {
+        dia = await estadoDoDia(ev.data_evento, ev.id);
+      } catch (e2) {
+        console.warn("estadoDoDia sem resposta na recuperação:", e2);
+      }
+      if (pedidoRecuperacaoRef.current !== ev.id) return;
+    }
+    setRecuperando({
+      id: ev.id,
+      sinalPago,
+      totalPago,
+      disputa:
+        dia && dia.estado !== "livre"
+          ? {
+              estado: dia.estado,
+              rival: dia.rival_nome || null,
+              ate: dia.ate || null,
+            }
+          : null,
+    });
     setAtualizando(null);
   };
 
   // "Sinal recebido →" é a ÚNICA transição de fase que move dinheiro a
   // sério — por isso é a única que pede método + data antes de avançar
-  // (ver FormularioSinalInline). A fase avança mesmo que o registo do
-  // pagamento falhe (são coisas decoupled: fase é funil, pagamento é
-  // dinheiro) — só avisa a Nádia para o registar à mão na ficha.
+  // (ver FormularioSinalInline). Desde a 083 a ordem INVERTEU-SE: a
+  // guarda do dia corre PRIMEIRO (registarSinalComGuarda) e a fase só
+  // avança depois do 'ok' — a fase sozinha já reserva o dia aos olhos
+  // do portal, e não pode afirmar um sinal que a guarda ia recusar.
   const confirmarSinalRecebido = async (ev, { metodo, data }) => {
     setAtualizando(ev.id);
     try {
-      // Ordem final (077): o sinal pago reserva a data — a fase
-      // seguinte é 'contrato' (por assinar), não 'cliente'.
-      await updateFase(ev.id, "contrato");
-      setEventos((prev) =>
-        prev.map((e) => (e.id === ev.id ? { ...e, fase: "contrato" } : e)),
-      );
+      // O valor confirmado é o que se regista (o previsto lido ao
+      // abrir a confirmação — ver pedirSinal); a metade é só a rede.
+      const valorSinal =
+        confirmandoSinal?.id === ev.id
+          ? confirmandoSinal.valorSinal
+          : (Number(ev.valor_acordado) || 0) / 2;
+      // O plano sincroniza-se como o registarSinalDoFunil fazia — o
+      // previsto de ordem 1 tem de existir para o pagamento se
+      // pendurar nele. Falhar não trava a guarda: a RPC aguenta um
+      // pagamento solto (o saldo conta-se sempre dos pagamentos, 025).
       try {
-        const registo = await registarSinalDoFunil(
+        await sincronizarPrevistos(
           ev.id,
-          ev.valor_acordado,
+          Number(ev.valor_acordado) || 0,
           ev.data_evento,
-          { metodo, data },
         );
-        if (!registo) {
-          // Devolveu null sem erro: sem plano utilizável ou o sinal já
-          // tinha um pagamento — a fase avançou, mas nada foi
-          // registado AGORA. Diz-se, em vez do silêncio.
+      } catch (e2) {
+        console.warn("Plano por sincronizar antes da guarda:", e2);
+      }
+      const resposta = await registarSinalComGuarda({
+        submissionId: ev.id,
+        valor: valorSinal,
+        data,
+        metodo,
+      });
+      if (resposta === null) {
+        // A 083 ainda não correu nesta BD — o fluxo de sempre, por
+        // inteiro: fase primeiro, registo depois, avisos de sempre.
+        await updateFase(ev.id, "contrato");
+        setEventos((prev) =>
+          prev.map((e) => (e.id === ev.id ? { ...e, fase: "contrato" } : e)),
+        );
+        try {
+          const registo = await registarSinalDoFunil(
+            ev.id,
+            ev.valor_acordado,
+            ev.data_evento,
+            { metodo, data },
+          );
+          if (!registo) {
+            // Devolveu null sem erro: sem plano utilizável ou o sinal
+            // já tinha um pagamento — a fase avançou, mas nada foi
+            // registado AGORA. Diz-se, em vez do silêncio.
+            mostrarAviso(
+              "A fase avançou, mas o sinal não ficou registado agora (sem plano utilizável ou já existia um pagamento do sinal) — confirma na ficha do evento.",
+              6000,
+            );
+          }
+        } catch (e2) {
+          console.error("registarSinalDoFunil falhou:", e2);
           mostrarAviso(
-            "A fase avançou, mas o sinal não ficou registado agora (sem plano utilizável ou já existia um pagamento do sinal) — confirma na ficha do evento.",
+            "A fase avançou, mas não foi possível registar o pagamento do sinal — registe-o na ficha do evento.",
             6000,
           );
         }
-      } catch (e2) {
-        console.error("registarSinalDoFunil falhou:", e2);
+        if (onDadosMudaram) onDadosMudaram();
+      } else if (resposta.estado === "ok") {
+        // O sinal está no livro — AGORA a fase pode afirmá-lo.
+        try {
+          await updateFase(ev.id, "contrato");
+          setEventos((prev) =>
+            prev.map((e) => (e.id === ev.id ? { ...e, fase: "contrato" } : e)),
+          );
+        } catch (e2) {
+          console.error(e2);
+          mostrarAviso(
+            "O sinal ficou registado, mas a fase não avançou — tenta outra vez ou acerta-a na ficha do evento.",
+            6000,
+          );
+        }
+        if (onDadosMudaram) onDadosMudaram();
+      } else if (
+        ["ja_registado", "dia_tomado", "prazo_alheio"].includes(resposta.estado)
+      ) {
+        // A guarda recusou: nada avançou, nada se escreveu — a recusa
+        // fala no cartão e a decisão é dela (padrão inline da casa).
+        setDisputaCartao({
+          id: ev.id,
+          porta: "sinal",
+          estado: resposta.estado,
+          rival: resposta.rival_nome || null,
+          ate: resposta.ate || null,
+          dados: { metodo, data, valorSinal },
+        });
+      } else {
         mostrarAviso(
-          "A fase avançou, mas não foi possível registar o pagamento do sinal — regista-o na ficha do evento.",
-          6000,
+          "Não foi possível registar o sinal — verifica a ligação e as migrações.",
         );
       }
-      if (onDadosMudaram) onDadosMudaram();
     } catch (e) {
       console.error(e);
       mostrarAviso(
-        "Não foi possível atualizar a fase — verifica a ligação e as migrações.",
+        "Não foi possível registar o sinal — verifica a ligação e as migrações.",
       );
     }
     setAtualizando(null);
     setConfirmandoSinal(null);
+  };
+
+  // O «Registar na mesma» do prazo alheio — a mesma guarda, com
+  // forcar: a promessa quebra-se CONSCIENTE, nunca por acidente. Se
+  // entretanto o dia ficou tomado a sério (a corrida perdeu-se), a
+  // resposta nova substitui o painel.
+  const forcarSinalFunil = async (ev) => {
+    if (disputaCartao?.id !== ev.id || disputaCartao.porta !== "sinal") return;
+    const { metodo, data, valorSinal } = disputaCartao.dados;
+    setAtualizando(ev.id);
+    try {
+      const resposta = await registarSinalComGuarda({
+        submissionId: ev.id,
+        valor: valorSinal,
+        data,
+        metodo,
+        forcar: true,
+      });
+      if (resposta?.estado === "ok") {
+        setDisputaCartao(null);
+        try {
+          await updateFase(ev.id, "contrato");
+          setEventos((prev) =>
+            prev.map((e) => (e.id === ev.id ? { ...e, fase: "contrato" } : e)),
+          );
+        } catch (e2) {
+          console.error(e2);
+          mostrarAviso(
+            "O sinal ficou registado, mas a fase não avançou — tenta outra vez ou acerta-a na ficha do evento.",
+            6000,
+          );
+        }
+        if (onDadosMudaram) onDadosMudaram();
+      } else if (
+        resposta &&
+        ["ja_registado", "dia_tomado", "prazo_alheio"].includes(resposta.estado)
+      ) {
+        setDisputaCartao({
+          id: ev.id,
+          porta: "sinal",
+          estado: resposta.estado,
+          rival: resposta.rival_nome || null,
+          ate: resposta.ate || null,
+          dados: { metodo, data, valorSinal },
+        });
+      } else {
+        setDisputaCartao(null);
+        mostrarAviso(
+          "Não foi possível registar o sinal — verifica a ligação e as migrações.",
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      mostrarAviso(
+        "Não foi possível registar o sinal — verifica a ligação e as migrações.",
+      );
+    }
+    setAtualizando(null);
   };
 
   const nomeTipo = (ev) => {
@@ -710,7 +919,7 @@ export default function FunilBoard({
                       : null
                   }
                   onAbrir={() => onAbrirEvento && onAbrirEvento(ev)}
-                  onAvancar={() => mudarFase(ev, PROXIMA_FASE[faseDe(ev)])}
+                  onAvancar={() => avancarComGuardaDia(ev, PROXIMA_FASE[faseDe(ev)])}
                   onPedirPerda={() => setConfirmandoPerda(ev.id)}
                   onCancelarPerda={() => setConfirmandoPerda(null)}
                   onConfirmarPerda={() => mudarFase(ev, "perdido")}
@@ -728,13 +937,28 @@ export default function FunilBoard({
                   onPedirAvancoSemValor={() =>
                     setConfirmandoAvancoSemValor(ev.id)
                   }
-                  onConfirmarAvancoSemValor={() => mudarFase(ev, "contrato")}
+                  onConfirmarAvancoSemValor={() =>
+                    avancarComGuardaDia(ev, "contrato")
+                  }
                   onCancelarAvancoSemValor={() =>
                     setConfirmandoAvancoSemValor(null)
                   }
                   onPedirSinal={() => pedirSinal(ev)}
                   onCancelarSinal={() => setConfirmandoSinal(null)}
                   onConfirmarSinal={(dados) => confirmarSinalRecebido(ev, dados)}
+                  disputaDia={
+                    disputaCartao?.id === ev.id ? disputaCartao : null
+                  }
+                  onForcarSinalDisputado={() => forcarSinalFunil(ev)}
+                  onAvancarDisputado={() => {
+                    if (disputaCartao?.id === ev.id && disputaCartao.dados)
+                      mudarFase(
+                        ev,
+                        disputaCartao.dados.fase,
+                        disputaCartao.dados.opcoes,
+                      );
+                  }}
+                  onFecharDisputa={() => setDisputaCartao(null)}
                 />
               ))
             )}
@@ -962,6 +1186,127 @@ function FormularioSinalInline({ valorSinal, aAtualizar, onConfirmar, onCancelar
 }
 
 // ------------------------------------------------------------
+// O painel âmbar da disputa do dia (083), dentro do cartão — a recusa
+// da guarda no «Sinal recebido →» (porta 'sinal') ou o aviso do avanço
+// à mão para pós-sinal (porta 'avanco'). Padrão âmbar da casa
+// (FormulariosOrfaos: #FEF3E2/#F0D9B5/#92400E, linha do ⚠ a 13px/700)
+// com os botões do registo ofício (12.5px/600, raio 10px — mockup 2c).
+// O wrap com stopPropagation segue a lição do FormularioSinalInline:
+// sem ele, o clique no texto abria o drawer do cartão.
+// ------------------------------------------------------------
+function PainelDisputaCartao({
+  disputa,
+  dataEvento,
+  aAtualizar,
+  onForcarSinal,
+  onAvancar,
+  onFechar,
+}) {
+  const rival = disputa.rival || "outra cliente";
+  const linha = {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#92400E",
+    lineHeight: 1.5,
+    margin: "0 0 6px",
+  };
+  const corpo = {
+    fontSize: "12.5px",
+    color: "#92400E",
+    lineHeight: 1.55,
+    margin: "0 0 10px",
+  };
+  const btnBase = {
+    fontSize: "12.5px",
+    fontWeight: "600",
+    padding: "8px 14px",
+    borderRadius: "10px",
+    cursor: aAtualizar ? "wait" : "pointer",
+  };
+  const btnCalmo = {
+    ...btnBase,
+    border: "1.5px solid #F0D9B5",
+    backgroundColor: "white",
+    color: "#92400E",
+  };
+  const btnForte = {
+    ...btnBase,
+    border: "1.5px solid var(--gold)",
+    backgroundColor: "var(--gold)",
+    color: "white",
+  };
+
+  // Cada porta com a sua conversa — a acção forte só existe onde a
+  // decisão é mesmo dela (quebrar o prazo, avançar por cima do aviso).
+  let titulo;
+  let texto;
+  let accao = null;
+  let rotuloAccao = "";
+  if (disputa.porta === "sinal") {
+    if (disputa.estado === "ja_registado") {
+      titulo = "⚠ Este evento já tem o sinal registado";
+      texto =
+        "Um segundo pagamento do sinal não entra por aqui — confirma na ficha do evento (é lá que a fase também se acerta).";
+    } else if (disputa.estado === "dia_tomado") {
+      titulo = `⚠ O dia ${formatarData(dataEvento)} está reservado por ${rival}`;
+      texto =
+        "Este registo não pode entrar — só o primeiro sinal registado reserva o dia. Combine uma nova data com esta cliente.";
+    } else {
+      // prazo_alheio
+      titulo = `⚠ Guardou o dia a ${rival}${
+        disputa.ate ? ` até ${formatarData(disputa.ate)}` : ""
+      }`;
+      texto =
+        "Registar este sinal quebra essa promessa — o portal dela passa a mostrá-lo, com as desculpas da casa.";
+      accao = onForcarSinal;
+      rotuloAccao = "Registar na mesma";
+    }
+  } else {
+    titulo = "⚠ Este avanço reserva o dia aos olhos do portal";
+    texto = `O dia ${formatarData(dataEvento)} ${descreveEstadoDia(
+      disputa,
+    )}. Avançar não regista dinheiro nenhum — e o rival fica vivo, à espera da sua conversa.`;
+    accao = onAvancar;
+    rotuloAccao = "Avançar na mesma";
+  }
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        backgroundColor: "#FEF3E2",
+        border: "1.5px solid #F0D9B5",
+        borderRadius: "12px",
+        padding: "12px 14px",
+      }}
+    >
+      <p style={linha}>{titulo}</p>
+      <p style={corpo}>{texto}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        {accao && (
+          <button
+            onClick={accao}
+            disabled={aAtualizar}
+            className="acao"
+            style={btnForte}
+          >
+            {aAtualizar ? "..." : rotuloAccao}
+          </button>
+        )}
+        <button
+          onClick={onFechar}
+          disabled={aAtualizar}
+          className="acao"
+          style={btnCalmo}
+        >
+          {accao ? "Voltar" : "Fechar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // Card de um evento no funil
 // ------------------------------------------------------------
 function CardEvento({
@@ -990,6 +1335,10 @@ function CardEvento({
   onPedirSinal,
   onCancelarSinal,
   onConfirmarSinal,
+  disputaDia,
+  onForcarSinalDisputado,
+  onAvancarDisputado,
+  onFecharDisputa,
 }) {
   const proxima = PROXIMA_FASE[fase];
   const ehPerdido = fase === "perdido";
@@ -1097,7 +1446,18 @@ function CardEvento({
       {trilho && <TrilhoPreparacao itens={trilho} />}
 
       {/* Ações — dependem do estado */}
-      {aConfirmarPerda ? (
+      {disputaDia ? (
+        // A disputa do dia (083) fala primeiro: enquanto está de pé,
+        // nenhuma outra pergunta do cartão faz sentido por baixo dela.
+        <PainelDisputaCartao
+          disputa={disputaDia}
+          dataEvento={evento.data_evento}
+          aAtualizar={aAtualizar}
+          onForcarSinal={onForcarSinalDisputado}
+          onAvancar={onAvancarDisputado}
+          onFechar={onFecharDisputa}
+        />
+      ) : aConfirmarPerda ? (
         <div>
           <p
             style={{
@@ -1236,6 +1596,28 @@ function CardEvento({
             {aEscolherRecuperacao.sinalPago ? " — o sinal está pago" : ""}.
             Recuperar para onde?
           </p>
+          {aEscolherRecuperacao.disputa && (
+            // A disputa do dia (083): a data deste perdido já não está
+            // simplesmente livre — diz-se antes da escolha, porque
+            // «Para Clientes» volta a pôr o evento em cima do dia.
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#92400E",
+                backgroundColor: "#FEF3E2",
+                border: "1px solid #F0D9B5",
+                borderRadius: "8px",
+                padding: "7px 9px",
+                lineHeight: 1.5,
+                margin: "0 0 8px",
+              }}
+            >
+              <span style={{ fontSize: "13px", fontWeight: "700" }}>⚠</span>{" "}
+              O dia {formatarData(evento.data_evento)}{" "}
+              {descreveEstadoDia(aEscolherRecuperacao.disputa)} — recuperar
+              «Para Clientes» põe este evento em cima dessa disputa.
+            </p>
+          )}
           <div
             style={{ display: "flex", flexDirection: "column", gap: "6px" }}
           >
