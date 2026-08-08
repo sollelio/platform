@@ -49,9 +49,18 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
   // ser dela.
   const persistido = linha?.deslocacao;
   const [morada, setMorada] = useState(persistido?.morada || moradaPrefill || "");
-  const [distancia, setDistancia] = useState(
-    persistido?.distanciaKm != null ? String(persistido.distanciaKm) : "",
-  ); // string do input; "" = sem valor
+  const [distancia, setDistancia] = useState(() => {
+    if (persistido?.distanciaKm == null) return "";
+    // distâncias CALCULADAS antes da regra dos km inteiros ficaram
+    // gravadas com decimais (ex.: 6,5) — ao reabrir mostram-se já
+    // redondas (persistem na primeira edição real, nunca ao montar);
+    // o que foi escrito à mão fica tal como foi escrito
+    return String(
+      persistido.origem === "auto"
+        ? Math.round(persistido.distanciaKm)
+        : persistido.distanciaKm,
+    );
+  }); // string do input; "" = sem valor
   const [origem, setOrigem] = useState(persistido?.origem || null); // null | "auto" | "manual"
   const [nTrocos, setNTrocos] = useState(persistido?.nTrocos || TROCOS_PADRAO);
   const [isento, setIsento] = useState(persistido?.isento || false);
@@ -69,28 +78,29 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
     onAtualizarRef.current = onAtualizar;
   });
 
-  // Nunca escreve na PRIMEIRA renderização: montar o painel (linha nova
-  // OU reabrir uma linha já persistida) não deve, por si só, tocar no
-  // Valor (€) — só uma alteração real (morada, km, troços, isenção)
-  // depois de montado é que deve escrever. Sem isto, reabrir um
-  // documento com uma linha de Deslocação anterior a esta funcionalidade
-  // (sem metadados persistidos) zerava o Valor (€) só por abrir o editor.
-  const montadoRef = useRef(false);
+  // Nunca escreve ao montar: abrir o painel (linha nova OU reabrir uma
+  // linha já persistida) não deve, por si só, tocar no Valor (€) — só
+  // uma alteração real (morada, km, troços, isenção) é que escreve.
+  // A guarda compara com o ÚLTIMO snapshot escrito, não com um booleano
+  // de "já montou": o StrictMode (dev) corre o efeito duas vezes na
+  // montagem e um booleano deixava a segunda passagem escrever — era
+  // por aí que, em `npm run dev`, uma linha de Deslocação anterior a
+  // esta funcionalidade via o Valor (€) zerado só por abrir o editor.
+  const ultimoEscritoRef = useRef(null);
   useEffect(() => {
-    if (!montadoRef.current) {
-      montadoRef.current = true;
-      return;
-    }
-    onAtualizarRef.current?.({
-      valor: calc.custoFinal,
-      deslocacao: {
-        morada,
-        distanciaKm: distanciaNum ?? null,
-        origem,
-        nTrocos,
-        isento,
-      },
-    });
+    const deslocacao = {
+      morada,
+      distanciaKm: distanciaNum ?? null,
+      origem,
+      nTrocos,
+      isento,
+    };
+    const atual = JSON.stringify(deslocacao);
+    if (ultimoEscritoRef.current === atual) return;
+    const primeira = ultimoEscritoRef.current === null;
+    ultimoEscritoRef.current = atual;
+    if (primeira) return;
+    onAtualizarRef.current?.({ valor: calc.custoFinal, deslocacao });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [morada, distancia, origem, nTrocos, isento]);
 

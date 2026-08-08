@@ -8,7 +8,10 @@
 //
 // Contrato:
 //   POST { morada: string }
-//   200  { km: number }
+//   200  { km: number }  — km CRU (sem arredondar): a regra dos km
+//        inteiros vive no cliente (obterDistancia.js), e arredondar
+//        aqui a 1 decimal criava dupla arredondação (6,45 → 6,5 → 7,
+//        quando a regra sobre o valor real dá 6)
 //   4xx/5xx { erro: string }  — mensagem já em PT-PT, pronta a mostrar
 
 const CORS_HEADERS = {
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  const km = Math.round((elemento.distance.value / 1000) * 10) / 10;
+  const km = elemento.distance.value / 1000;
   return new Response(JSON.stringify({ km }), {
     status: 200,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

@@ -8,7 +8,10 @@ import { supabase } from "./supabase";
 // do Supabase, nunca aqui nem no bundle do frontend.
 //
 // Contrato preservado (quem consome isto não muda nada):
-//   obterDistancia(morada) => Promise<number> km, ou throw new Error("...")
+//   obterDistancia(morada) => Promise<number> km INTEIROS, ou throw
+//   new Error("...") — a Nádia trabalha em km redondos (6,90 → 7;
+//   6,4 → 6), e o arredondamento vive aqui, na porta única, para o
+//   painel, a consulta e a regra de custo verem todos o mesmo número.
 //
 // Protecção de quota: cache em memória por morada — o painel do
 // orçamento e a consulta rápida do Início partilham esta cache (é o
@@ -56,8 +59,9 @@ export const obterDistancia = async (morada) => {
     throw new Error("O serviço de distâncias está indisponível de momento.");
   }
 
-  cache.set(chaveCache, data.km);
-  return data.km;
+  const km = Math.round(data.km);
+  cache.set(chaveCache, km);
+  return km;
 };
 
 // As localidades mais comuns da zona — chips de sugestão do painel do

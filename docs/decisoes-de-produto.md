@@ -943,6 +943,34 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   fica aquém do AA em todo o painel — escurecer para ≈#8a6528 é
   decisão de casa, por tomar.
 
+## Deslocação — km inteiros (08/08/2026)
+
+- **08/08/2026 — A distância calculada arredonda ao km inteiro** (≥,50
+  sobe, <,50 desce: Ericeira 6,90 → 7; 6,4 → 6). O arredondamento vive
+  em `obterDistancia` — a porta única — para o painel do orçamento, a
+  consulta rápida e a regra de custo verem todos o mesmo número; a
+  cache guarda já o valor redondo. Porquê: a Nádia trabalha em km
+  redondos, e o custo acompanha o número que ela vê (7 km → 2 km fora
+  do raio, não 1,9). Os km escritos à mão ficam como escritos.
+- **08/08/2026 — A Edge Function devolve o km cru; o arredondamento
+  vive só no cliente.** O `obter-distancia` arredondava a 1 decimal
+  antes de responder, criando dupla arredondação (6,45 reais → 6,5 →
+  7, quando a regra sobre o valor real dá 6). Alteração preparada em
+  `supabase/functions/obter-distancia/index.ts`; **carece de deploy
+  pelo Hélio** (`supabase functions deploy obter-distancia`). Até lá,
+  a janela [x,45–x,50) sobe um km a mais — no máximo 2 € a 4 troços.
+- **08/08/2026 — As calculadas já guardadas também se mostram redondas**
+  (reforço da Nádia: nunca 6,50 no ecrã). Ao reabrir uma linha com
+  distância de origem «auto» gravada com decimais, o painel mostra-a
+  já arredondada; a gravação acontece na primeira edição real — nunca
+  ao montar, respeitando a regra de que abrir um documento não toca no
+  Valor (€). Até essa edição, o Valor gravado pode divergir um passo do
+  cálculo mostrado — resolve-se ao primeiro toque. (De caminho, a
+  guarda «nunca escrever ao montar» passou de booleano a snapshot: o
+  StrictMode em dev corria o efeito duas vezes e a segunda escrevia —
+  era por aí que, em `npm run dev`, abrir uma linha antiga sem
+  metadados zerava o Valor (€). Corrigido para dev e produção.)
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
