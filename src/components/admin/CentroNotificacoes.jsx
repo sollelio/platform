@@ -360,7 +360,8 @@ function DetalhePedido({ n }) {
 
       {/* Serviços pedidos — os simples na fila de pastilhas; um serviço
           com detalhe (pacote de buffet, tipos de balcão) ganha a sua
-          linha: o nome à esquerda, os filhos como pastilhas ao lado */}
+          linha: a pastilha do serviço à esquerda — a mesma dos simples —
+          e os filhos a negrito ao lado */}
       {temServicos && (
         <div style={{ marginBottom: "14px" }}>
           <Rotulo>Serviços pedidos</Rotulo>
@@ -391,21 +392,25 @@ function DetalhePedido({ n }) {
                 marginTop: i === 0 && planos.length === 0 ? "5px" : "8px",
               }}
             >
-              <span
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  color: "var(--charcoal)",
-                  whiteSpace: "nowrap",
-                  marginRight: "2px",
-                }}
-              >
-                {nome}
-              </span>
-              {filhos.map((f) => (
-                <Chip key={f} cheio>
+              <Chip cheio>{nome}</Chip>
+              {filhos.map((f, j) => (
+                // a vírgula viaja dentro do span: a quebra dá-se entre
+                // itens (num flex com wrap, o item só parte por dentro
+                // quando sozinho excede o cartão — um valor degenerado
+                // de importação quebra em vez de transbordar)
+                <span
+                  key={f}
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    color: "var(--charcoal)",
+                    maxWidth: "100%",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {f}
-                </Chip>
+                  {j < filhos.length - 1 ? "," : ""}
+                </span>
               ))}
             </div>
           ))}

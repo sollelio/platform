@@ -928,6 +928,14 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   React dupla num registo importado com os dois campos). A pastilha
   deixou de ser nowrap: o texto livre legado («Outro: …») quebra em
   vez de transbordar o cartão.
+- **08/08/2026 — Ênfase invertida a pedido da Nádia:** na linha do
+  serviço com detalhe, o pai é a **pastilha** («Buffet», «Balcão» — a
+  mesma pastilha dos serviços simples) e os filhos ficam a **negrito**
+  (13px/600 charcoal, separados por vírgula, quebra sempre entre itens
+  e nunca a meio de um nome). Porquê: preferência direta da
+  utilizadora — os serviços mantêm todos a mesma forma no painel, e o
+  realce passa para o detalhe escolhido. (Revê o desenho da linha de
+  06/08; a regra de dados não muda.)
 - **Pendentes desta decisão:** (1) o mesmo achatamento existe no
   composer da ponte pedido→formulário (`pontePedido.js`) e no
   `PainelNovoFormulario.jsx` — levar lá a direção B fica por decidir;
