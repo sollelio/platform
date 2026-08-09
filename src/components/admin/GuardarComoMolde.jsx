@@ -12,7 +12,8 @@ import { getEventTypes } from "../../lib/invites";
 
 // ============================================================
 // GuardarComoMolde — a gaveta de baixo que transforma um comunicado
-// num molde. Contrato: {comunicado, aberta, onFechar, onGuardado}.
+// num modelo de comunicado. Contrato: {comunicado, aberta, onFechar,
+// onGuardado}.
 //
 // A gaveta diz a verdade DUAS vezes antes de pedir o nome: o que
 // FICA (a folha, a mensagem, a regra) e o que NÃO FICA (os nomes,
@@ -22,7 +23,7 @@ import { getEventTypes } from "../../lib/invites";
 // E pergunta UMA coisa que o desenho não perguntava (decisão do
 // dono): «o que envelhece?» — a heurística propõe os blocos com
 // datas e prazos já assinalados; ela confirma, desmarca ou marca
-// qualquer outro. Um bloco marcado leva {rever, pergunta} no molde
+// qualquer outro. Um bloco marcado leva {rever, pergunta} no modelo
 // e a folha que nascer dele pede para o rever.
 // ============================================================
 
@@ -38,7 +39,7 @@ const OVERLINE = {
 const POR_EXTENSO = [null, null, "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"];
 
 const rotuloNomes = (n) => {
-  if (!n) return "Os nomes desta lista"; // sem lista congelada (ou ainda a contar)
+  if (!n) return "Os nomes desta lista"; // sem lista fechada (ou ainda a contar)
   if (n === 1) return "O nome desta lista";
   return `Os ${POR_EXTENSO[n] || n} nomes desta lista`;
 };
@@ -106,7 +107,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
 
   // Abrir é começar do princípio: o nome proposto é o título da folha
   // (ela muda se quiser), as marcas nascem da heurística — e de marcas
-  // que o comunicado já traga, se ele próprio nasceu de um molde.
+  // que o comunicado já traga, se ele próprio nasceu de um modelo.
   //
   // Semeia-se DURANTE o render (o padrão da casa para estado preso a
   // props), não num efeito: abrir a gaveta não é acontecimento externo,
@@ -187,7 +188,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
       onGuardado(modelo);
     } catch (e) {
       console.error(e);
-      setErroGuardar("Não foi possível guardar o molde. Tente outra vez.");
+      setErroGuardar("Não foi possível guardar o modelo. Tente outra vez.");
     } finally {
       setOcupado(false);
     }
@@ -197,16 +198,16 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
   const leituras = comunicado.n_acessos || 0;
   const noAr = Boolean(comunicado.publicado_em) && !comunicado.retirado_em;
   const regra = rotuloDaRegra(comunicado.publico, tipos);
-  const erroNome = tocou && !nome.trim() ? "O molde precisa de um nome." : "";
+  const erroNome = tocou && !nome.trim() ? "O modelo precisa de um nome." : "";
 
   const fica = [
     {
       nome: "A folha",
-      nota: `Título, linha de apresentação, ${nBlocos === 1 ? "o bloco" : `os ${nBlocos} blocos`} e o temperamento.`,
+      nota: `Título, linha de apresentação, ${nBlocos === 1 ? "o bloco" : `os ${nBlocos} blocos`} e o aspecto.`,
     },
     { nome: "A mensagem", nota: "O texto que acompanha o endereço na conversa." },
     {
-      nome: "A regra de público",
+      nome: "Quem recebe",
       nota: regra
         ? `«${regra}» — a regra, não os nomes.`
         : "Ainda sem regra escolhida — fica por dizer em cada comunicado novo.",
@@ -214,7 +215,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
   ];
 
   const naoFica = [
-    { nome: rotuloNomes(nomesLista), nota: "Contam-se de novo, de cada vez que usar o molde." },
+    { nome: rotuloNomes(nomesLista), nota: "Contam-se de novo, de cada vez que usar o modelo." },
     { nome: "O endereço da folha", nota: "Cada comunicado nasce sem endereço e ganha o seu ao publicar." },
     {
       nome: rotuloLeituras(leituras),
@@ -253,7 +254,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Guardar como molde"
+          aria-label="Guardar como modelo"
           aria-hidden={!aberta}
           style={{
             width: "100%",
@@ -276,7 +277,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             <div style={{ width: "36px", height: "4px", borderRadius: "999px", backgroundColor: "#E8DCC0" }} />
           </div>
 
-          <div style={{ marginTop: "16px", ...OVERLINE }}>GUARDAR COMO MOLDE</div>
+          <div style={{ marginTop: "16px", ...OVERLINE }}>GUARDAR COMO MODELO</div>
           <div style={{ margin: "8px 0 0", fontFamily: "'Playfair Display', serif", fontSize: "21px", lineHeight: 1.35 }}>
             O que fica guardado
           </div>
@@ -368,11 +369,11 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             }}
           >
             Cada comunicado que nascer daqui é novo: conta os nomes outra vez e
-            ganha endereço próprio.
+            ganha endereço próprio. Alterações só valem para envios novos.
           </p>
 
           <label htmlFor="dlm-nome-molde" style={{ display: "block", marginTop: "20px", ...OVERLINE }}>
-            NOME DO MOLDE
+            NOME DO MODELO
           </label>
           <input
             id="dlm-nome-molde"
@@ -411,7 +412,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               }}
             >
               {propos
-                ? "Datas e prazos ficam marcados; ao usar o molde, a folha pede para os rever."
+                ? "Datas e prazos ficam marcados; ao usar o modelo, a folha pede para os rever."
                 : "Nada aqui parece envelhecer — mas pode marcar qualquer linha."}
             </p>
             {blocosDeTexto.length > 0 && (
@@ -524,7 +525,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
             }}
           >
-            Guardar o molde
+            Guardar o modelo
           </button>
           <button
             onClick={onFechar}

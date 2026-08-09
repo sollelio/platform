@@ -12,14 +12,14 @@ import { Esqueleto, useContagemAnimada } from "./acabamento";
 import { quandoAs } from "./comunicadoTempo";
 
 // ============================================================
-// ComunicadoRecorte — «O público»: a regra que diz quem recebe.
+// ComunicadoRecorte — «Quem recebe»: a regra que o diz.
 //
 // Duas origens (Por eventos / Por contactos), os filtros de cada uma,
 // e um cartão de contagem que responde em tempo real via contarRecorte
 // — a pré-contagem honesta: quantas pessoas, quantos eventos, quem
-// fica de fora e PORQUÊ. Nada se escreve até «Congelar a lista», que
+// fica de fora e PORQUÊ. Nada se escreve até «Fechar a lista», que
 // fixa os nomes em comunicado_destinatarios; a partir daí um evento
-// novo já não entra e a expedição trabalha sem surpresas.
+// novo já não entra e o envio trabalha sem surpresas.
 // ============================================================
 
 const OVERLINE = {
@@ -131,9 +131,9 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
   const congelada = Boolean(comunicado.congelado_em);
   const pub = comunicado.publico || null;
 
-  // A regra do recorte. Quando a lista já foi congelada, os filtros
+  // A regra do recorte. Quando a lista já foi fechada, os filtros
   // nascem com a regra guardada (comunicados.publico) — o ecrã mostra
-  // O QUE se congelou, esmaecido, não um recorte novo.
+  // O QUE se fechou, esmaecido, não um recorte novo.
   const [tipos, setTipos] = useState(null); // null = a caminho
   const [erroTipos, setErroTipos] = useState(false);
   const [origem, setOrigem] = useState(pub?.origem || "eventos");
@@ -224,8 +224,8 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
       });
   }, [origem, tipoEscolhido, janela, quem, tick, chave]);
 
-  // Congelada: a banda precisa do número REAL de linhas fixadas, e o
-  // «Desfazer» precisa de saber se a expedição já lhes tocou.
+  // Fechada: a banda precisa do número REAL de linhas fixadas, e o
+  // «Desfazer» precisa de saber se o envio já lhes tocou.
   useEffect(() => {
     if (!congelada) return undefined;
     let vivo = true;
@@ -270,9 +270,9 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
       // As mensagens da camada de dados já falam a língua da casa;
       // qualquer outra (rede, permissões) leva a genérica.
       setErro(
-        /congelad|recorte/i.test(e?.message || "")
+        /fechad|recorte/i.test(e?.message || "")
           ? e.message
-          : "Não foi possível congelar a lista. Tente outra vez.",
+          : "Não foi possível fechar a lista. Tente outra vez.",
       );
     } finally {
       setOcupado(false);
@@ -290,9 +290,9 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
     } catch (e) {
       console.error(e);
       setErro(
-        /expedi/i.test(e?.message || "")
+        /envio|fecho/i.test(e?.message || "")
           ? e.message
-          : "Não foi possível desfazer o congelamento.",
+          : "Não foi possível desfazer o fecho da lista.",
       );
     } finally {
       setOcupado(false);
@@ -329,10 +329,10 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
           lineHeight: 1.3,
         }}
       >
-        O público
+        Quem recebe
       </h1>
       <p style={{ margin: "6px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
-        A regra que diz quem recebe. A lista só fica fixa quando a congelar.
+        A regra que diz quem recebe. A lista só fica fixa quando a fechar.
       </p>
 
       {/* A pastilha das origens — o indicador branco desliza (180ms,
@@ -402,7 +402,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
         </button>
       </div>
 
-      {/* Os filtros esmaecem quando a lista está congelada: mostram a
+      {/* Os filtros esmaecem quando a lista está fechada: mostram a
           regra que a produziu, mas já não se mexem. */}
       <div
         style={{
@@ -527,7 +527,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
         )}
       </div>
 
-      {/* O rodapé que acompanha: congela ou, congelada, dá a expedição. */}
+      {/* O rodapé que acompanha: fecha ou, fechada, dá o envio. */}
       <div
         style={{
           position: "sticky",
@@ -543,7 +543,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
             <button
               onClick={congelar}
               // Desactivado-suave, não desligado: o botão fica no sítio
-              // a dizer PORQUE não há nada para congelar.
+              // a dizer PORQUE não há nada para fechar.
               aria-disabled={!podeCongelar || ocupado}
               className="acao acao--cheia"
               style={{
@@ -557,12 +557,12 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
               }}
             >
               {podeCongelar
-                ? `Congelar a lista · ${pessoas} ${pessoas === 1 ? "nome" : "nomes"}`
+                ? `Fechar a lista · ${pessoas} ${pessoas === 1 ? "nome" : "nomes"}`
                 : "Não há ninguém para receber"}
             </button>
             <p style={{ margin: "9px 0 0", textAlign: "center", fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
               {podeCongelar
-                ? "Fixa estes nomes agora — a expedição trabalha sobre eles, sem surpresas."
+                ? "Fixa estes nomes agora — o envio trabalha sobre eles, sem surpresas."
                 : "Ajuste o recorte até a contagem responder."}
             </p>
           </>
@@ -595,7 +595,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
             </svg>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "12.5px", fontWeight: "600" }}>
-                Lista congelada:{" "}
+                Lista fechada:{" "}
                 {!congelada || nomesCongelados === null
                   ? "…"
                   : `${nomesCongelados} ${nomesCongelados === 1 ? "nome" : "nomes"}`}
@@ -633,7 +633,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 whiteSpace: "nowrap",
               }}
             >
-              Abrir a expedição →
+              Abrir o envio →
             </button>
           </div>
         )}

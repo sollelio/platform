@@ -67,7 +67,7 @@ export default function MensagensTab() {
             textUnderlineOffset: "3px",
           }}
         >
-          Comunicados
+          Envios
         </Link>
         .
       </p>

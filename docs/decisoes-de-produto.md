@@ -1057,6 +1057,46 @@ visual é o mockup validado; aqui fica a substância:
   ao Hélio, não bloqueante: a EventoPage usa hojeISO em UTC
   (pré-existente) enquanto o resto da disputa compara com a data local.
 
+## Comunicados — o briefing das melhorias (09/08/2026, fases A-C)
+
+O Hélio entregou um briefing formal por fases (o ficheiro é a fonte do
+método; aqui ficam as decisões aprovadas fase a fase).
+
+- **Fase A ✓ — o vocabulário** (glossário primeiro, código depois):
+  molde → **modelo de comunicado**; público → **quem recebe**; congelar
+  → **fechar a lista**; expedição → **enviar/Envios**; registo →
+  **aspecto** (Sóbrio/Convidativo; `aviso`/`oferta` quietos na BD); o
+  separador → **Envios**; «Feitos» → **Envios | Modelos**. As duas
+  linhas de doutrina nos editores (modelo de evento = ligação viva;
+  modelo de comunicado = cópia). Grafia da casa: «aspecto», pré-acordo.
+- **Fase B ✓ — o percurso do envio** (Hipótese 1, arrumar): o detalhe
+  virou percurso de 4 passos com pílulas (padrão do Importar + visto),
+  secções na ordem do ciclo, passos futuros visíveis mas dormentes, a
+  mensagem no passo Enviar (editável desde o início; o Enviar prende
+  sem ela), retirada = faixa transversal com pílulas congeladas,
+  concluído = balanço. Criação simétrica: «Começar de um modelo» abre o
+  editor pré-preenchido EM MEMÓRIA (o ecrã de nascimento morreu — um
+  ecrã a menos); escolhedor de duas vias no «+ Novo». O estado foi para
+  o URL (`/admin/envios/:id/quem-recebe|enviar`, slug novo com
+  redirecção do antigo).
+- **Fase C ✓ (aprovada; código em obra) — matar a magia invisível:**
+  pré-visualização promovida a coluna persistente ≥1240px (a gaveta
+  fica abaixo disso), etiquetas de papel por bloco (recompõem ao largar
+  o arrasto; a linha de instrução fica — etiquetas dizem o que É, ela
+  ensina o gesto); **saudação explícita** em coluna própria (a regra da
+  vírgula morreu; migração 085 migra as folhas existentes — só a
+  saudação de abertura — e a dlm_comunicado_ver passou a projectá-la;
+  guarda anti-duplicação com gesto de um toque); o X sempre presente
+  com a razão a responder no ecrã; **portal por escolha** por
+  destinatário (`no_portal`, caixa viva em todos os estados da linha,
+  difusão nunca liga; backfill honesto: os envios de até hoje ficam
+  como a 082 os mostrava; novos nascem desligados).
+- **Migração 085** escrita e aprovada (5 partes) — correr PERTO do
+  deploy do código da Fase C (janela curta em que a folha pública
+  compõe sem saudação entre uma coisa e outra).
+- Fases D (passe de Content UX) e E (a folha pública) do briefing:
+  por fazer, cada uma com aprovação própria.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

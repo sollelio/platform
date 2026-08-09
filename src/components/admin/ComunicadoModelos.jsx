@@ -9,15 +9,16 @@ import { getEventTypes } from "../../lib/invites";
 import { Esqueleto } from "./acabamento";
 
 // ============================================================
-// ComunicadoModelos — a biblioteca de moldes (fase 3).
+// ComunicadoModelos — a biblioteca de modelos de comunicado (fase 3).
 //
-// Um molde guarda TRÊS coisas — a folha, a mensagem e a regra de
-// público — e é isso que cada cartão mostra. Nunca guarda os nomes,
-// o endereço ou as leituras: esses nascem com cada comunicado.
+// Um modelo de comunicado guarda TRÊS coisas — a folha, a mensagem e
+// a regra de quem recebe — e é isso que cada cartão mostra. Nunca
+// guarda os nomes, o endereço ou as leituras: esses nascem com cada
+// comunicado.
 //
 // O ESTADO VAZIO é o ecrã principal do desenho: explica o que um
-// molde guarda ANTES de existir o primeiro, porque é aí que a
-// explicação faz falta. A história de cada molde («Usado 2 vezes ·
+// modelo guarda ANTES de existir o primeiro, porque é aí que a
+// explicação faz falta. A história de cada modelo («Usado 2 vezes ·
 // o último em agosto») vem já derivada do listarModelos — contador
 // guardado é contador que deriva.
 // ============================================================
@@ -39,16 +40,16 @@ const MINI_OVERLINE = {
 // O que o estado vazio promete que cada linha vai mostrar — as notas
 // são as do desenho, palavra a palavra.
 const O_QUE_GUARDA = [
-  { num: "I", nome: "A folha", nota: "O título, os blocos e o temperamento — aviso ou oferta." },
+  { num: "I", nome: "A folha", nota: "O título, os blocos e o aspecto — sóbrio ou convidativo." },
   { num: "II", nome: "A mensagem", nota: "O texto que acompanha o endereço na conversa." },
   {
     num: "III",
-    nome: "A regra de público",
+    nome: "Quem recebe",
     nota: "Não os nomes: a regra. «Casamentos por vir» conta-se de novo de cada vez.",
   },
 ];
 
-// A linha «A FOLHA» de um molde expandido: título · N blocos, e a
+// A linha «A FOLHA» de um modelo expandido: título · N blocos, e a
 // menção a fotografia/chamada quando os blocos tipados existem.
 const folhaDe = (m) => {
   const blocos = Array.isArray(m.blocos) ? m.blocos : [];
@@ -116,7 +117,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
       })
       .catch((e) => {
         console.error(e);
-        setErro("Não foi possível carregar os moldes.");
+        setErro("Não foi possível carregar os modelos.");
         setLista((prev) => prev || []);
       });
 
@@ -146,7 +147,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
       await onUsar(m);
     } catch (e) {
       console.error(e);
-      setErroCartao({ id: m.id, texto: "Não foi possível criar um comunicado deste molde. Tente outra vez." });
+      setErroCartao({ id: m.id, texto: "Não foi possível criar um comunicado deste modelo. Tente outra vez." });
     } finally {
       setOcupadoId(null);
     }
@@ -166,7 +167,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
       setLista((prev) => (prev || []).filter((x) => x.id !== m.id));
     } catch (e) {
       console.error(e);
-      setErroCartao({ id: m.id, texto: "Não foi possível apagar o molde. Tente outra vez." });
+      setErroCartao({ id: m.id, texto: "Não foi possível apagar o modelo. Tente outra vez." });
     } finally {
       setOcupadoId(null);
     }
@@ -202,7 +203,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
           lineHeight: 1.3,
         }}
       >
-        Moldes de comunicado
+        Modelos de comunicado
       </h1>
       <p
         style={{
@@ -215,7 +216,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
         }}
       >
         O que se guarda de um comunicado para voltar a usar: a folha, a
-        mensagem e a regra de público. Como os modelos de evento, mas para o
+        mensagem e a regra de quem recebe. Como os modelos de evento, mas para o
         que se diz a muita gente ao mesmo tempo.
       </p>
 
@@ -240,7 +241,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
         </div>
       )}
 
-      {/* O ESTADO VAZIO — o ecrã principal do desenho: o que um molde
+      {/* O ESTADO VAZIO — o ecrã principal do desenho: o que um modelo
           guarda, dito antes de existir o primeiro. */}
       {lista !== null && lista.length === 0 && !erro && (
         <div
@@ -252,7 +253,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
             padding: "24px 20px 22px",
           }}
         >
-          <div style={OVERLINE}>AINDA NÃO HÁ MOLDES</div>
+          <div style={OVERLINE}>AINDA NÃO HÁ MODELOS</div>
           <div
             style={{
               margin: "10px 0 0",
@@ -262,7 +263,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "balance",
             }}
           >
-            O primeiro molde nasce de um comunicado que já saiu.
+            O primeiro modelo nasce de um comunicado que já saiu.
           </div>
           <p
             style={{
@@ -273,7 +274,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "pretty",
             }}
           >
-            No fim de uma expedição, «Guardar como molde» fica com três coisas
+            No fim de um envio, «Guardar como modelo» fica com três coisas
             — e é o que verá aqui em cada linha:
           </p>
           <div
@@ -331,7 +332,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
             }}
           >
             Não guarda os nomes, nem o endereço, nem as leituras: cada
-            comunicado que nasce de um molde é novo, e ganha endereço próprio.
+            comunicado que nasce de um modelo é novo, e ganha endereço próprio.
           </p>
           <button
             onClick={onIrAosFeitos}
@@ -372,8 +373,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <div style={{ fontSize: "14px", fontWeight: "600", lineHeight: 1.35 }}>{m.nome}</div>
-                  {/* A pastilha do temperamento: a oferta veste-se de
-                      dourado, o aviso fica sóbrio — como na folha. */}
+                  {/* A pastilha do aspecto: o convidativo veste-se de
+                      dourado, o sóbrio fica quieto — como na folha. */}
                   <div
                     style={{
                       flexShrink: 0,
@@ -388,13 +389,13 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {eOferta ? "OFERTA" : "AVISO"}
+                    {eOferta ? "CONVIDATIVO" : "SÓBRIO"}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "7px", marginTop: "8px" }}>
                   <IconePessoas />
                   <div style={{ fontSize: "12px", color: "var(--gray-mid)" }}>
-                    {rotulo || "Ainda sem regra de público"}
+                    {rotulo || "Ainda sem regra de quem recebe"}
                   </div>
                 </div>
                 <div style={{ fontSize: "11.5px", color: "#9B9B9B", marginTop: "5px" }}>
@@ -424,7 +425,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
                     }}
                   >
-                    Usar este molde
+                    Usar este modelo
                   </button>
                   <button
                     onClick={() => setAbertoId(aberto ? null : m.id)}
@@ -457,7 +458,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                         fontWeight: "600",
                       }}
                     >
-                      {/* A verdade dita ANTES de confirmar: apagar o molde
+                      {/* A verdade dita ANTES de confirmar: apagar o modelo
                           não leva atrás os comunicados que dele nasceram. */}
                       Confirmar? Os comunicados feitos ficam.
                     </button>
@@ -465,8 +466,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                     <button
                       onClick={() => apagar(m)}
                       disabled={ocupado}
-                      aria-label="Apagar o molde"
-                      title="Apagar o molde"
+                      aria-label="Apagar o modelo"
+                      title="Apagar o modelo"
                       className="acao dlm-molde-x"
                       style={{
                         flexShrink: 0,
@@ -530,12 +531,24 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       </div>
                     </div>
                     <div>
-                      <div style={MINI_OVERLINE}>A REGRA DE PÚBLICO</div>
+                      <div style={MINI_OVERLINE}>QUEM RECEBE</div>
                       <div style={{ fontSize: "12.5px", lineHeight: 1.6, marginTop: "4px", color: "var(--gray-mid)" }}>
                         {rotulo
                           ? `${rotulo} — os nomes contam-se de novo de cada vez.`
                           : "Ainda sem regra — escolhe-se em cada comunicado que nascer daqui."}
                       </div>
+                    </div>
+                    {/* A linha de doutrina: o modelo de comunicado é
+                        CÓPIA, ao contrário do modelo de evento. */}
+                    <div
+                      style={{
+                        fontSize: "11.5px",
+                        fontStyle: "italic",
+                        lineHeight: 1.55,
+                        color: "var(--gray-mid)",
+                      }}
+                    >
+                      Alterações só valem para envios novos.
                     </div>
                   </div>
                 )}
@@ -552,7 +565,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "pretty",
             }}
           >
-            Um molde guarda o que se diz e a quem — nunca os nomes, o endereço
+            Um modelo de comunicado guarda o que se diz e a quem — nunca os nomes, o endereço
             ou as leituras. Esses nascem com cada comunicado.
           </p>
         </>

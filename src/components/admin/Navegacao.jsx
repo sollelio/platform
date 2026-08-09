@@ -24,7 +24,7 @@ export const NAV_GESTAO = [
   { id: "operacional", label: "Logística", icone: "logistica" },
   { id: "convites", label: "Formulários", icone: "formularios" },
   { id: "mensagens", label: "Mensagens", icone: "mensagens" },
-  { id: "comunicados", label: "Comunicados", icone: "comunicados" },
+  { id: "comunicados", label: "Envios", icone: "comunicados" },
   { id: "dashboard", label: "Dashboard", icone: "dashboard" },
   { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
 ];

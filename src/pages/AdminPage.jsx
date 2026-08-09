@@ -1008,8 +1008,30 @@ export default function AdminPage() {
         {/* ---- TAB MENSAGENS (biblioteca de mensagens-tipo) ---- */}
         {activeTab === "mensagens" && <MensagensTab />}
 
-        {/* ---- TAB COMUNICADOS (folhas públicas com endereço próprio) ---- */}
-        {activeTab === "comunicados" && <ComunicadosTab />}
+        {/* ---- TAB COMUNICADOS (slug visível: envios) ----
+            O estado da secção vive no URL, pelo precedente dos
+            Documentos: /admin/envios/:p1/:p2. É o tab que traduz —
+            p1='modelos' abre a bancada, p1=UUID abre o percurso desse
+            comunicado, p2 ∈ {'quem-recebe','enviar'} abre o passo; um
+            id inválido devolve à lista. Esta página só entrega os
+            segmentos e o gesto de navegar (push: cada passo é uma
+            viagem que o «voltar» deve desfazer; as CORRECÇÕES de URL
+            passam opts {replace:true} — o precedente dos Documentos —
+            para o «voltar» não regressar ao URL partido). */}
+        {activeTab === "comunicados" && (
+          <ComunicadosTab
+            rotaP1={p1}
+            rotaP2={p2}
+            aoNavegarRota={(sub, opts) =>
+              navigate(
+                sub
+                  ? `${caminhoDoSeparador("comunicados")}/${sub}`
+                  : caminhoDoSeparador("comunicados"),
+                opts,
+              )
+            }
+          />
+        )}
 
         {activeTab === "avaliacoes" && <AvaliacoesTab />}
 

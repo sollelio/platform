@@ -78,7 +78,7 @@ export const naoVazio = (v) => typeof v === "string" && v.trim() !== "";
 
 // ---------- Contacto da casa ----------
 // O número do negócio vive em lib/casa.js — um sítio só, partilhado com
-// a expedição dos comunicados; aqui só se compõe o link. A mensagem
+// o envio dos comunicados; aqui só se compõe o link. A mensagem
 // pré-escrita dá contexto a quem chega de uma ligação terminada.
 export const WHATSAPP_URL = linkWhatsAppCasa(
   "Olá! Escrevo a partir da página de acompanhamento do meu evento.",

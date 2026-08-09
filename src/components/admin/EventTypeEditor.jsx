@@ -1446,6 +1446,19 @@ export default function EventTypeEditor({
 
         {/* Corpo */}
         <div style={{ padding: "20px", flex: 1 }}>
+          {/* A doutrina do modelo de evento — ligação viva, ao contrário
+              do modelo de comunicado, que é cópia. Uma linha sempre
+              visível, para TODOS os modelos, não só o predefinido. */}
+          <p
+            style={{
+              fontSize: "11.5px",
+              fontStyle: "italic",
+              color: "var(--gray-mid)",
+              margin: "0 0 16px 0",
+            }}
+          >
+            Alterações aplicam-se já aos formulários por responder.
+          </p>
           {isPredefinido && (
             <p
               style={{

@@ -367,21 +367,6 @@ function Peca({ peca, oferta }) {
   if (peca.papel === "prosa") {
     return (
       <div className="bloco">
-        {peca.saudacao && (
-          <p
-            style={{
-              margin: "22px 0 0",
-              // Na oferta tudo se centra — a prosa é convite, não carta.
-              textAlign: oferta ? "center" : undefined,
-              fontFamily: "'Playfair Display', serif",
-              fontStyle: "italic",
-              fontSize: "17px",
-              color: "#A07830",
-            }}
-          >
-            {peca.saudacao}
-          </p>
-        )}
         <p
           className="par"
           style={
@@ -390,7 +375,7 @@ function Peca({ peca, oferta }) {
                   // O registo oferta: centrada, maior, mais arejada e
                   // apertada à medida do desenho — a coluna estreita é
                   // o que faz a prosa curta parecer intencional.
-                  margin: peca.saudacao ? "12px auto 0" : "24px auto 0",
+                  margin: "24px auto 0",
                   maxWidth: "330px",
                   textAlign: "center",
                   fontSize: "14.5px",
@@ -399,7 +384,7 @@ function Peca({ peca, oferta }) {
                   textWrap: "pretty",
                 }
               : {
-                  margin: peca.saudacao ? "12px 0 0" : "22px 0 0",
+                  margin: "22px 0 0",
                   fontSize: "13.5px",
                   lineHeight: 1.75,
                   whiteSpace: "pre-line",
@@ -575,6 +560,11 @@ function Folha({ dados }) {
   // mudam de registo.
   const oferta = dados.registo === "oferta";
   const subtitulo = (dados.subtitulo || "").trim();
+  // A saudação vive na COLUNA (085), não nos blocos: a composição já
+  // não a conhece e ela desenha-se UMA vez, aqui no topo. Se a RPC em
+  // produção ainda não a devolver (a 085 por correr), simplesmente não
+  // sai — nunca um crash.
+  const saudacao = (dados.saudacao || "").trim();
 
   // O browser põe o <title> no nome do PDF; trocamo-lo durante a
   // impressão para o título da folha e repomos logo a seguir — o padrão
@@ -678,6 +668,23 @@ function Folha({ dados }) {
           <div style={{ display: "flex", justifyContent: "center", margin: "22px 0 0" }}>
             <div style={{ width: "56px", height: "1px", backgroundColor: "#E8D5A3" }} />
           </div>
+        )}
+
+        {/* A saudação de cerimónia, antes da primeira peça. Na oferta
+            tudo se centra — a saudação é convite, não carta. */}
+        {saudacao && (
+          <p
+            style={{
+              margin: "22px 0 0",
+              textAlign: oferta ? "center" : undefined,
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: "italic",
+              fontSize: "17px",
+              color: "#A07830",
+            }}
+          >
+            {saudacao}
+          </p>
         )}
 
         {itens.map((item, i) =>

@@ -16,7 +16,7 @@
 // Acrescentar um separador é acrescentar UMA linha aqui — e nada mais
 // no resto da app precisa de saber que existe tradução.
 //
-// Sete dos doze separadores têm slug diferente do id; os outros cinco
+// Oito dos doze separadores têm slug diferente do id; os outros quatro
 // coincidem e estão listados na mesma, de propósito: a tabela é a
 // lista completa, não a lista das excepções.
 // ============================================================
@@ -33,7 +33,7 @@ export const SLUG_POR_ID = {
   operacional: "logistica",
   convites: "formularios",
   mensagens: "mensagens",
-  comunicados: "comunicados",
+  comunicados: "envios",
   dashboard: "dashboard",
   avaliacoes: "avaliacoes",
   tiposEvento: "modelos-evento",
@@ -75,6 +75,7 @@ export const caminhoDoContacto = (id) =>
 // ------------------------------------------------------------
 export const SLUG_ANTIGO = {
   clientes: "contactos", // renomeado a 29/07/2026 (ver docs/glossario.md)
+  comunicados: "envios", // renomeado a 09/08/2026 (ver docs/glossario.md)
 };
 
 export const caminhoDeSlugAntigo = (slug, ...resto) => {

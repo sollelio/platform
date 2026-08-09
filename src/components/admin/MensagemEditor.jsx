@@ -20,14 +20,14 @@ import { resolverMensagem } from "../../lib/mensagens";
 //
 // A pré «como chega» mostra a mensagem dentro de um balão de WhatsApp,
 // com o cartão da folha em miniatura por cima — resolvida com o
-// primeiro nome do primeiro destinatário congelado, se a lista já
+// primeiro nome do primeiro destinatário da lista fechada, se ela já
 // existir; senão com a Marta do desenho.
 //
 // props:
 //   comunicado — o registo (id + titulo + mensagem + token)
 //   onFechar   — fecha sem guardar
 //   onGuardado(rec) — guardou; recebe o registo actualizado
-// (A frente da expedição abre esta mesma porta — o componente não
+// (A frente do envio abre esta mesma porta — o componente não
 // assume de onde foi chamado.)
 // ============================================================
 
@@ -61,7 +61,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
   const timerGuardado = useRef(null);
   const areaRef = useRef(null);
 
-  // O nome do exemplo: o primeiro da lista congelada, se já existir —
+  // O nome do exemplo: o primeiro da lista fechada, se já existir —
   // a pré mostra a mensagem como vai mesmo sair para alguém real; sem
   // lista (ou sem rede), a Marta do desenho serve.
   const [nomeExemplo, setNomeExemplo] = useState("Marta");
@@ -109,7 +109,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
   };
 
   // As palavras do desenho — o endereço é obrigatório porque uma
-  // mensagem de expedição sem a folha não leva ninguém a lado nenhum.
+  // mensagem de envio sem a folha não leva ninguém a lado nenhum.
   const problema = () => {
     if (!base.trim()) return "A mensagem está vazia.";
     if (!base.includes("{LINK_FOLHA}")) {
@@ -146,7 +146,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
 
   const tituloFolha = (comunicado.titulo || "").trim();
   // A pré resolve com o endereço LIMPO (sem https://), como o desenho
-  // mostra — na expedição sai o completo, que é o que abre à primeira.
+  // mostra — no envio sai o completo, que é o que abre à primeira.
   const endereco = comunicado.token
     ? enderecoDoComunicado(comunicado.token).replace(/^https?:\/\//, "")
     : null;
@@ -253,7 +253,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
           <p style={{ margin: "8px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
             Escreve-se uma vez; em cada conversa sai com o nome da pessoa. Uma
             palavra a mudar para alguém em particular ajusta-se na própria
-            linha da expedição.
+            linha do envio.
           </p>
           <textarea
             id="campo-mensagem-base"

@@ -240,10 +240,12 @@ regra desfaz-se.
 | O que a casa diz a muitos de uma vez | **comunicado** | **comunicado** | `comunicados` |
 | A página do comunicado, com endereço próprio | **a folha** | **folha** | `/comunicado/:token` |
 | Tirar uma folha pública do ar | — | **retirar** | `retirado_em` |
-| O temperamento da folha (aviso ou oferta) | — | **registo** | `comunicados.registo` |
-| Fixar os nomes de quem recebe | — | **congelar** | `congelado_em` |
-| Fazer o comunicado chegar à lista | — | **expedição** | `comunicado_destinatarios` |
-| O que se guarda de um comunicado para voltar a usar | — | **molde** | `comunicado_modelos` |
+| O separador da família (todos os envios da casa) | — | **Envios** | `comunicados` (id do separador, fica) |
+| O temperamento da folha (sóbrio ou convidativo) | — | **aspecto** | `comunicados.registo` (`aviso`/`oferta` ficam) |
+| A regra que diz quem recebe | — | **quem recebe** | `comunicados.publico` |
+| Fixar os nomes de quem recebe | — | **fechar a lista** | `congelado_em` |
+| Fazer o comunicado chegar à lista | — | **enviar** (o ecrã «Enviar») | `comunicado_destinatarios` |
+| O que se guarda de um comunicado para voltar a usar | — | **modelo de comunicado** | `comunicado_modelos` |
 | Decidir que quem entrou depois não recebe | — | **dispensar** | `dispensado_em` |
 
 Repara na última coluna: quase tudo **fica como está**. O trabalho de renomear é sobretudo
@@ -429,41 +431,54 @@ acesso pessoal (o portal do cliente). Actos diferentes sobre objectos diferentes
 palavras diferentes. Retirar é reversível: voltar a publicar devolve o **mesmo** endereço,
 porque o endereço é a identidade da folha.
 
-### Registo / congelar / expedição (04/08/2026 — fase 2)
-**Registo** é o temperamento da folha: **aviso** (sóbrio, operacional) ou **oferta**
-(desejável, de campanha). Não são duas folhas nem dois componentes — é a mesma folha com duas
-caras, e a palavra evita «tipo», que já faz outros trabalhos (tipo de evento, tipo de bloco).
+### Aspecto / fechar a lista / enviar (04/08/2026 — fase 2; renomeados a 09/08/2026)
+**Aspecto** é o temperamento da folha: **Sóbrio** (operacional, o tom dos avisos da casa) ou
+**Convidativo** (desejável, de campanha). Não são duas folhas nem dois componentes — é a mesma
+folha com duas caras. A palavra evita «tipo», que já faz outros trabalhos (tipo de evento,
+tipo de bloco), e desfaz a sobrecarga tripla de «registo», que já era o registo linguístico e
+o registo público da Vitrina. Na base ficam `aviso`/`oferta`, quietos — a regra de ouro.
 
-**Congelar** é fixar os nomes de quem recebe. A lista deixa de seguir a regra que a produziu:
-se entrar um evento novo no recorte, a lista **não muda** — não se mexe debaixo dos pés de quem
-está a meio de enviar. Congelar guarda instantâneos (nome, âncora, número), não referências.
+**Fechar a lista** é fixar os nomes de quem recebe. A lista deixa de seguir a regra que a
+produziu: se entrar um evento novo no recorte, a lista **não muda** — não se mexe debaixo dos
+pés de quem está a meio de enviar. Fechar guarda instantâneos (nome, âncora, número), não
+referências. «Congelar» era jargão de sistema. Cuidado assumido: «fechar» passa a três
+trabalhos na casa (fechar negócio, fechar um passo do questionário, fechar a lista) — nos
+botões e rótulos, sempre com o complemento.
 
-**Expedição** é o acto de fazer o comunicado chegar à lista congelada, conversa a conversa.
-O vocabulário é honesto por desenho: «enviado» quer dizer que a conversa se abriu e ela
-confirmou que a mensagem saiu — não que foi recebida ou lida; as leituras da folha contam-se
-no total, nunca por pessoa. Nada se marca sozinho.
+**Enviar** é o acto de fazer o comunicado chegar à lista fechada, conversa a conversa — o
+ecrã chama-se «Enviar», e a família inteira, no separador, chama-se «Envios» («Expedição» era
+palavra de armazém, não do dia-a-dia). O vocabulário honesto fica: «enviado» quer dizer que a
+conversa se abriu e ela confirmou que a mensagem saiu — não que foi recebida ou lida; as
+leituras da folha contam-se no total, nunca por pessoa. Nada se marca sozinho.
 
 **Cliente / interessado** (a definição do funil, confirmada na fase 2): **cliente** é quem já
 passou o sinal — as fases pós-sinal (`FASES_POS_SINAL`: contrato · cliente · projecto);
 **interessado** é quem tem evento vivo antes disso. É a definição que o código já dava e que
 coincide com a proposta do dono.
 
-### Molde / dispensar (04/08/2026 — fase 3)
-**Molde** é o que se guarda de um comunicado para voltar a usar: **a folha, a mensagem e a
-regra de público** — nunca os nomes, nunca o endereço, nunca as leituras. Cada comunicado que
-nasce de um molde é novo: conta os nomes outra vez e ganha endereço próprio ao publicar. É o
-par dos modelos de evento (*modelo de evento → formulário* :: *molde → comunicado*), e fecha o
-círculo que deu origem ao módulo. O nome do molde é **interno** — só o vê a casa; as clientes
-vêem o título da folha. Apagar um molde **não leva os comunicados atrás** (ficam, órfãos do
-molde), e a interface di-lo antes de ela confirmar. Um bloco do molde pode estar marcado como
-**a rever** (`rever` + `pergunta`, decididos ao guardar — a heurística das datas propõe, ela
-decide): ao usar o molde, essas linhas nascem editáveis com a pergunta ao lado.
+### Modelo de comunicado / dispensar (04/08/2026 — fase 3; renomeado a 09/08/2026)
+**Modelo de comunicado** é o que se guarda de um comunicado para voltar a usar: **a folha, a
+mensagem e a regra de quem recebe** — nunca os nomes, nunca o endereço, nunca as leituras.
+«Molde» era a metáfora a fazer de nome, contra a nota dos modelos de evento (a metáfora
+explica, não baptiza) — e a máquina sempre disse `comunicado_modelos`; humano e máquina ficam
+alinhados. Diz-se sempre **qualificado**: há três famílias (modelo de evento, modelo de
+comunicado, modelo de mensagem) e «modelo» sozinho não diz qual. Cada comunicado que nasce de
+um modelo é novo: conta os nomes outra vez e ganha endereço próprio ao publicar. É o par dos
+modelos de evento (*modelo de evento → formulário* :: *modelo de comunicado → comunicado*) —
+MAS os dois comportam-se ao contrário, e cada editor di-lo numa linha sempre visível: o de
+evento é **ligação viva** («Alterações aplicam-se já aos formulários por responder.»); o de
+comunicado é **cópia** («Alterações só valem para envios novos.»). O **nome** do modelo é
+interno — só o vê a casa; as clientes vêem o **título** da folha. É a regra geral: *nome* é de
+dentro, *título* é o que se lê. Apagar um modelo **não leva os comunicados atrás** (ficam,
+órfãos do modelo), e a interface di-lo antes de ela confirmar. Um bloco do modelo pode estar
+marcado como **a rever** (`rever` + `pergunta`, decididos ao guardar — a heurística das datas
+propõe, ela decide): ao usar o modelo, essas linhas nascem editáveis com a pergunta ao lado.
 
 **Dispensar** é decidir que alguém que entrou **depois de a lista fechar** não recebe — e não
 se volta a perguntar por essa pessoa. Grava-se (`dispensado_em`, com o instantâneo do nome);
 «Desfazer» limpa a coluna e a linha entra na lista como acrescentada. Uma dispensada nunca tem
 carimbos de envio — é o invariante da 081. Não confundir com o «Agora não» do convite ao
-molde, que é só desta visita e não se grava.
+modelo, que é só desta visita e não se grava.
 
 ---
 
@@ -479,6 +494,18 @@ no código, que não vale o risco de mexer).
 | onboarding | **questionário** (é o que a pessoa faz depois de fechar) |
 | "formulário de interesse" | **pedido de orçamento** |
 | "formulário" (para quem preenche) | **questionário** (o longo) ou **pedido** (o curto) |
+
+E os renomeados de 09/08/2026 (a razão vive nas secções datadas acima) — ficam só nos nomes
+de máquina, que não vale o risco de mexer:
+
+| Não dizer | Dizer |
+|---|---|
+| molde | **modelo de comunicado** |
+| congelar (a lista) | **fechar a lista** |
+| expedição | **enviar** (o gesto) · **Envios** (a família, o separador) |
+| registo (da folha) | **aspecto** (Sóbrio / Convidativo) |
+| público (a audiência) | **quem recebe** |
+| Feitos (o sub-separador) | **Envios** (a lista) · **Modelos** (os modelos de comunicado) |
 
 ---
 
@@ -555,7 +582,7 @@ string** — aplica-se a regra de SQL da casa (idempotente, teste primeiro, depo
 
 > **Regra para os mudar com segurança: o slug antigo nunca morre.** O novo passa a canónico, o
 > antigo fica a redirecionar permanentemente. Assim nada parte, e a coordenação com os outros
-> repositórios deixa de ser bloqueante — muda-se aqui primeiro, os outros atualizam-se depois.
+> repositórios deixa de ser bloqueante — muda-se aqui primeiro, os outros actualizam-se depois.
 >
 > **Atenção à cadeia:** o site aponta para o guia interactivo, e o guia aponta para
 > `/interesse`. São **três repositórios em fila** — mudar o slug sem redirect parte o meio da

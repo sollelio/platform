@@ -27,7 +27,14 @@ export const listarComunicados = async () => {
     // registo e mensagem vêm já na lista: os editores podem abrir de uma
     // linha antes de o getComunicado fresco aterrar, e não podem nascer
     // com o temperamento (ou o texto) em branco por causa dessa corrida.
-    .select("id, titulo, subtitulo, blocos, registo, mensagem, token, publicado_em, retirado_em, expira_em, n_acessos, created_at, actualizado_em")
+    // congelado_em, publico e modelo_id vêm pela mesma razão: o «apagar»
+    // da lista decide-se por congelado_em (sem ele, o X aparecia a
+    // folhas com lista fechada), e o percurso deriva os passos 3 e 4 —
+    // sem estes campos, uma folha concluída abria a dizer «falta dizer
+    // a quem se destina» até o registo fresco aterrar. saudacao vem pela
+    // mesma razão que blocos: o editor abre da linha e a folha não pode
+    // abrir sem a sua saudação (Fase C, migração 085).
+    .select("id, titulo, subtitulo, saudacao, blocos, registo, mensagem, token, publicado_em, retirado_em, expira_em, n_acessos, congelado_em, publico, modelo_id, created_at, actualizado_em")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
@@ -47,8 +54,14 @@ export const getComunicado = async (id) => {
 // abrir o editor. Nasceu ao contrário na fase 1 (a linha entrava na base
 // logo no «+ Novo comunicado») e o teste real do dono apanhou o rasto:
 // cancelar deixava um «Sem título, por enquanto» na lista, sem remédio.
-// Cancelar agora deixa zero. Sem campos, nasce em branco (o caminho dos
-// moldes e das fixtures continua a valer).
+// Cancelar agora deixa zero. Sem campos, nasce em branco (o caminho das
+// fixtures continua a valer).
+//
+// A whitelist inclui publico e modelo_id porque nascer de um modelo é
+// AGORA o mesmo caminho: prepararDeModelo compõe em memória, o editor
+// deixa mexer, e é este primeiro Guardar que grava a regra de quem
+// recebe e a proveniência — a simetria de criação, o zero e o modelo
+// pela mesma porta.
 export const criarComunicado = async (campos = {}) => {
   const { data, error } = await supabase
     .from("comunicados")
@@ -56,9 +69,12 @@ export const criarComunicado = async (campos = {}) => {
       {
         titulo: campos.titulo ?? "",
         subtitulo: campos.subtitulo ?? null,
+        saudacao: campos.saudacao ?? null,
         registo: campos.registo ?? "aviso",
         blocos: campos.blocos ?? [{ id: idDeBloco(), rotulo: "", texto: "" }],
         mensagem: campos.mensagem ?? null,
+        publico: campos.publico ?? null,
+        modelo_id: campos.modelo_id ?? null,
       },
     ])
     .select()
@@ -68,7 +84,7 @@ export const criarComunicado = async (campos = {}) => {
 };
 
 // Apagar só o que NÃO TEM HISTÓRIA: nem leituras, nem lista de
-// expedição. Uma folha lida ou expedida é registo do que aconteceu — o
+// envios. Uma folha lida ou enviada é registo do que aconteceu — o
 // gesto público para essas é RETIRAR, nunca apagar. O método verifica
 // (a UI já escondeu o botão, mas a regra vive aqui, não no ecrã).
 export const apagarComunicado = async (id) => {
@@ -80,21 +96,21 @@ export const apagarComunicado = async (id) => {
   if (erroLer) throw erroLer;
   if ((c.n_acessos || 0) > 0 || c.congelado_em) {
     throw new Error(
-      "Esta folha tem história — leituras ou uma lista de expedição. Retira-se; não se apaga.",
+      "Esta folha tem história — leituras ou uma lista de envios. Retira-se; não se apaga.",
     );
   }
   const { error } = await supabase.from("comunicados").delete().eq("id", id);
   if (error) throw error;
 };
 
-// Atualiza uma folha (whitelist — lição 3, o molde do updateMensagem).
+// Actualiza uma folha (whitelist — lição 3, o padrão do updateMensagem).
 export const guardarComunicado = async (id, campos) => {
-  const permitidos = ["titulo", "subtitulo", "blocos", "mensagem", "expira_em", "registo"];
+  const permitidos = ["titulo", "subtitulo", "saudacao", "blocos", "mensagem", "expira_em", "registo"];
   const patch = {};
   for (const k of permitidos) {
     if (k in campos) patch[k] = campos[k];
   }
-  if (Object.keys(patch).length === 0) throw new Error("Nada para atualizar.");
+  if (Object.keys(patch).length === 0) throw new Error("Nada para actualizar.");
   patch.actualizado_em = new Date().toISOString();
 
   const { data, error } = await supabase
@@ -159,13 +175,10 @@ export const idDeBloco = () =>
 //     (o rotulo é o texto do botão)
 // Sem tipo, deriva como sempre.
 //
-// Na prosa, uma primeira linha curta terminada em vírgula é a saudação
-// («Queridos noivos,») e leva o tratamento de cerimónia — é assim que a
-// folha do Design abre, sem pedir um campo a mais a quem escreve.
-//
-// ⚠ ARMADILHA QUE FICA DE PÉ (registada a pedido do dono): a saudação
-// deriva da primeira linha curta terminada em VÍRGULA — «Queridos
-// noivos» sem a vírgula vira parágrafo normal e nada avisa quem escreve.
+// A SAUDAÇÃO não se deriva aqui: vive na coluna própria (comunicados.
+// saudacao, migração 085 — decisão da Fase C, que matou a armadilha da
+// vírgula) e renderiza-se uma vez no topo da folha, lida da coluna,
+// nos dois renders.
 // ------------------------------------------------------------
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 export const romano = (n) => ROMANOS[n - 1] || String(n);
@@ -213,17 +226,7 @@ export const comporFolha = (blocos) => {
     if (!rotulo && !texto) return { id: b.id, papel: "vazio", rotulo, texto };
     if (b.id === notaId) return { id: b.id, papel: "nota", rotulo, texto };
     if (b.id === remateId) return { id: b.id, papel: "remate", rotulo, texto };
-    if (!rotulo) {
-      // A saudação: primeira linha curta a acabar em vírgula.
-      const linhas = texto.split("\n");
-      const primeira = linhas[0].trim();
-      const saudacao =
-        primeira.endsWith(",") && primeira.length <= 60 && linhas.length > 1
-          ? primeira
-          : null;
-      const resto = saudacao ? linhas.slice(1).join("\n").trim() : texto;
-      return { id: b.id, papel: "prosa", rotulo, texto: resto, saudacao };
-    }
+    if (!rotulo) return { id: b.id, papel: "prosa", rotulo, texto };
     if (!texto) return { id: b.id, papel: "grupo", rotulo, texto };
     n += 1;
     return { id: b.id, papel: "clausula", rotulo, texto, num: romano(n) };
@@ -231,12 +234,12 @@ export const comporFolha = (blocos) => {
 };
 
 // ============================================================
-// FASE 2 — o público e a expedição (migração 080).
+// FASE 2 — quem recebe e o envio (migração 080).
 //
 // O RECORTE responde «quem vai receber isto?» antes de qualquer envio;
-// o CONGELAMENTO fixa a lista em comunicado_destinatarios (instantâneos:
+// FECHAR A LISTA fixa-a em comunicado_destinatarios (instantâneos:
 // se a ficha mudar depois, a linha continua a dizer o que dizia quando a
-// Nádia começou a enviar); a EXPEDIÇÃO é pessoa a pessoa, com dois
+// Nádia começou a enviar); o ENVIO é pessoa a pessoa, com dois
 // carimbos (aberto_em/enviado_em) e um texto próprio quando a base não
 // chega. A folha pública nunca sabe que nada disto existe.
 // ============================================================
@@ -308,8 +311,8 @@ const tiposDeEvento = async () => {
   return new Map((data || []).map((t) => [t.id, t.nome]));
 };
 
-// ---- A selecção crua de cada origem (partilhada por contar e congelar:
-// contar o que se congela e congelar o que se contou é a MESMA pergunta,
+// ---- A selecção crua de cada origem (partilhada por contar e fechar a
+// lista: contar o que se fecha e fechar o que se contou é a MESMA pergunta,
 // e uma pergunta com duas cópias é uma pergunta com duas respostas). ----
 
 const seleccionarEventos = async ({ eventTypeId, janela = "todos" }) => {
@@ -452,7 +455,8 @@ export const contarRecorte = async ({ origem, eventTypeId, janela, quem } = {}) 
 };
 
 // ------------------------------------------------------------
-// congelarLista — fixa o recorte em linhas de comunicado_destinatarios.
+// congelarLista — fecha a lista: fixa o recorte em linhas de
+// comunicado_destinatarios.
 // ------------------------------------------------------------
 
 // Os meses da âncora em minúscula («12 de setembro») — a grafia que o
@@ -473,7 +477,7 @@ const ancoraDeData = (iso) => {
 export const congelarLista = async (comunicadoId, regra = {}) => {
   // O método também verifica — o índice único é a rede, não o método.
   // E a rede tem um buraco de propósito: linhas sem telefone_chave não
-  // colidem, logo congelar por cima duplicava toda a gente sem número.
+  // colidem, logo fechar por cima duplicava toda a gente sem número.
   const { data: existentes, error: erroExistentes } = await supabase
     .from("comunicado_destinatarios")
     .select("id")
@@ -482,7 +486,7 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
   if (erroExistentes) throw erroExistentes;
   if (existentes && existentes.length) {
     throw new Error(
-      "Esta folha já tem uma lista congelada — desfaz o congelamento antes de congelar de novo.",
+      "Esta folha já tem uma lista fechada — desfaz o fecho antes de fechar de novo.",
     );
   }
 
@@ -523,7 +527,7 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
     throw new Error(`Origem de recorte inválida: ${origem}`);
   }
 
-  // Ordem de expedição: por data do evento (sem data no fim) e nome.
+  // Ordem de envio: por data do evento (sem data no fim) e nome.
   linhas.sort(
     (a, b) =>
       (a.dataOrdenacao || "9999-99-99").localeCompare(b.dataOrdenacao || "9999-99-99") ||
@@ -551,7 +555,7 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
     });
   }
   if (registos.length === 0) {
-    throw new Error("O recorte não apanha ninguém — não há lista para congelar.");
+    throw new Error("O recorte não apanha ninguém — não há lista para fechar.");
   }
 
   const { data: inseridos, error: erroInserir } = await supabase
@@ -563,7 +567,7 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
   // A regra guarda-se na forma que a 080 documenta (snake_case): é a BD
   // que se vai lembrar dela para a fase 3, não este ficheiro. Se este
   // update falhar depois do insert, desfazerCongelamento limpa — não há
-  // transação do lado do cliente.
+  // transacção do lado do cliente.
   const publico = {
     origem,
     event_type_id: regra.eventTypeId ?? null,
@@ -579,9 +583,9 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
   return (inseridos || []).sort((a, b) => a.ordem - b.ordem);
 };
 
-// Desfaz o congelamento — SÓ enquanto a expedição não começou: uma
+// Desfaz o fecho da lista — SÓ enquanto o envio não começou: uma
 // linha aberta ou enviada é história, e história não se apaga. (Entre a
-// verificação e o delete há uma janela sem transação; com uma equipa de
+// verificação e o delete há uma janela sem transacção; com uma equipa de
 // uma pessoa, aceita-se e regista-se.)
 export const desfazerCongelamento = async (comunicadoId) => {
   const { data: mexidas, error: erroMexidas } = await supabase
@@ -593,7 +597,7 @@ export const desfazerCongelamento = async (comunicadoId) => {
   if (erroMexidas) throw erroMexidas;
   if (mexidas && mexidas.length) {
     throw new Error(
-      "A expedição já começou — há conversas abertas ou envios marcados. O congelamento já não se desfaz.",
+      "O envio já começou — há conversas abertas ou envios marcados. O fecho da lista já não se desfaz.",
     );
   }
   const { error: erroApagar } = await supabase
@@ -652,6 +656,23 @@ export const guardarMensagemDestinatario = (id, texto) =>
     mensagem: typeof texto === "string" && texto.trim() !== "" ? texto : null,
   });
 
+// ---- O portal por escolha (4.4 · 085) ----
+
+// O PostgREST responde 42703/PGRST204 quando a COLUNA não existe — «a
+// 085 ainda não correu nesta BD». É a variante de coluna do padrão
+// ehTabelaEmFalta (notificacoes.js); quem chama esconde a caixa do
+// portal em silêncio na sessão.
+export const ehColunaEmFalta = (erro) =>
+  ["42703", "PGRST204"].includes(erro?.code) ||
+  /column .* does not exist|could not find the .* column/i.test(erro?.message || "");
+
+// A escolha explícita, por pessoa: mostrar (ou tirar) esta folha no
+// portal da cliente. Só faz sentido em linhas com submission_id — sem
+// evento não há portal; quem chama já filtra. A difusão e o «marcar
+// todos» NUNCA tocam nesta coluna: ligar é sempre um gesto da dona.
+export const marcarNoPortal = (id, ligado) =>
+  patchDestinatario(id, { no_portal: ligado === true });
+
 // Marca como enviadas todas as linhas POR ENVIAR que têm telefone —
 // o remate de uma sessão de difusão. Quem não tem número fica por
 // enviar (não recebeu nada); quem já tinha carimbo não é tocado.
@@ -673,7 +694,7 @@ export const marcarTodosEnviados = async (comunicadoId) => {
   return (data || []).length;
 };
 
-// As linhas que CONTAM — sem dispensado_em. As vistas de expedição e as
+// As linhas que CONTAM — sem dispensado_em. As vistas de envio e as
 // contagens filtram por aqui; listarDestinatarios continua a devolver
 // tudo de propósito, porque o ecrã de «quem entrou depois» precisa de
 // ver as dispensadas (é assim que sabe não voltar a perguntar).
@@ -730,7 +751,7 @@ const BUCKET_COMUNICADOS = "comunicados";
 // O caminho não leva o id de NADA — o balde é público por URL mas não
 // enumerável (080, §5), e um nome adivinhável seria uma porta.
 export const subirImagemFolha = async (file) => {
-  if (!file) throw new Error("Nenhum ficheiro selecionado.");
+  if (!file) throw new Error("Nenhum ficheiro seleccionado.");
   if (!file.type.startsWith("image/")) {
     throw new Error("O ficheiro tem de ser uma imagem.");
   }
@@ -782,20 +803,21 @@ export const textoDifusao = (comunicado, endereco) => {
 };
 
 // ============================================================
-// FASE 3 — os moldes e quem entrou depois (migração 081).
+// FASE 3 — os modelos de comunicado e quem entrou depois (migração 081).
 //
-// Um molde guarda três coisas: a FOLHA, a MENSAGEM e a REGRA de público
-// — nunca os nomes, o endereço ou as leituras. Cada comunicado que nasce
-// de um molde é novo, ganha endereço próprio e conta os nomes de novo.
-// A história de um molde («Usado 2 vezes · o último em agosto») não se
+// Um modelo de comunicado guarda três coisas: a FOLHA, a MENSAGEM e a
+// REGRA de quem recebe — nunca os nomes, o endereço ou as leituras. Cada
+// comunicado que nasce de um modelo é novo, ganha endereço próprio e
+// conta os nomes de novo.
+// A história de um modelo («Usado 2 vezes · o último em agosto») não se
 // guarda: DERIVA-SE dos comunicados com o modelo_id — contador guardado
 // é contador que deriva.
 // ============================================================
 
-// ---- Modelos: o CRUD e a história derivada ----
+// ---- Modelos de comunicado: o CRUD e a história derivada ----
 
-// Os moldes todos, cada um com {usos, ultimoUso} derivados. São duas
-// idas (moldes + comunicados com modelo_id) agregadas aqui, em vez de
+// Os modelos todos, cada um com {usos, ultimoUso} derivados. São duas
+// idas (modelos + comunicados com modelo_id) agregadas aqui, em vez de
 // um contador guardado — a regra da 081.
 export const listarModelos = async () => {
   const [moldes, usos] = await Promise.all([
@@ -812,7 +834,7 @@ export const listarModelos = async () => {
   if (usos.error) throw usos.error;
 
   // count e max(created_at) por modelo_id, no cliente — a lista é curta
-  // (uma casa, uma dúzia de moldes) e a BD já deu tudo o que sabe.
+  // (uma casa, uma dúzia de modelos) e a BD já deu tudo o que sabe.
   const porModelo = new Map();
   for (const c of usos.data || []) {
     const h = porModelo.get(c.modelo_id) || { usos: 0, ultimoUso: null };
@@ -826,7 +848,7 @@ export const listarModelos = async () => {
   }));
 };
 
-// «abril de 2026» — mês minúsculo, ano sempre (o cartão do molde diz
+// «abril de 2026» — mês minúsculo, ano sempre (o cartão do modelo diz
 // QUANDO foi o último uso, e sem o ano «abril» mentiria daqui a um ano).
 const mesEAno = (iso) => {
   const d = new Date(iso);
@@ -835,7 +857,7 @@ const mesEAno = (iso) => {
 };
 
 // A frase da história do cartão. O caso de zero é o mais comum no
-// princípio — e diz «guardado», não «nunca usado», porque um molde
+// princípio — e diz «guardado», não «nunca usado», porque um modelo
 // acabado de guardar não falhou nada.
 export const historiaDoModelo = (usos, ultimoUso) => {
   if (!usos) return "Guardado, ainda não usado";
@@ -846,14 +868,15 @@ export const historiaDoModelo = (usos, ultimoUso) => {
     : `Usado ${usos} vezes`;
 };
 
-// Atualiza um molde (whitelist — a mesma lição do guardarComunicado).
+// Actualiza um modelo de comunicado (whitelist — a mesma lição do
+// guardarComunicado).
 export const guardarModelo = async (id, campos) => {
-  const permitidos = ["nome", "registo", "titulo", "subtitulo", "blocos", "mensagem", "publico"];
+  const permitidos = ["nome", "registo", "titulo", "subtitulo", "saudacao", "blocos", "mensagem", "publico"];
   const patch = {};
   for (const k of permitidos) {
     if (k in campos) patch[k] = campos[k];
   }
-  if (Object.keys(patch).length === 0) throw new Error("Nada para atualizar.");
+  if (Object.keys(patch).length === 0) throw new Error("Nada para actualizar.");
   patch.actualizado_em = new Date().toISOString();
 
   const { data, error } = await supabase
@@ -867,22 +890,22 @@ export const guardarModelo = async (id, campos) => {
 };
 
 // Apagar é a sério — a UI já confirmou em duas fases. Os comunicados
-// que nasceram deste molde FICAM: o FK é on delete set null, e o que se
+// que nasceram deste modelo FICAM: o FK é on delete set null, e o que se
 // perde é só a contagem de utilizações.
 export const apagarModelo = async (id) => {
   const { error } = await supabase.from("comunicado_modelos").delete().eq("id", id);
   if (error) throw error;
 };
 
-// ---- De comunicado a molde, e de molde a comunicado ----
+// ---- De comunicado a modelo, e de modelo a comunicado ----
 
-// Guarda um comunicado como molde. Os blocos vêm por argumento (não do
+// Guarda um comunicado como modelo de comunicado. Os blocos vêm por argumento (não do
 // comunicado) porque é o ecrã de guardar que os traz já com as marcas
 // de revisão — rever/pergunta decidem-se ao GUARDAR, com o contexto
 // todo à frente, não ao usar.
 export const guardarComoMolde = async (comunicado, nome, blocos) => {
   const n = (nome || "").trim();
-  if (!n) throw new Error("O molde precisa de um nome.");
+  if (!n) throw new Error("O modelo de comunicado precisa de um nome.");
   const { data, error } = await supabase
     .from("comunicado_modelos")
     .insert([
@@ -891,6 +914,7 @@ export const guardarComoMolde = async (comunicado, nome, blocos) => {
         registo: comunicado.registo || "aviso",
         titulo: comunicado.titulo || "",
         subtitulo: comunicado.subtitulo,
+        saudacao: comunicado.saudacao ?? null,
         blocos: Array.isArray(blocos) ? blocos : comunicado.blocos || [],
         mensagem: comunicado.mensagem,
         publico: comunicado.publico,
@@ -902,58 +926,45 @@ export const guardarComoMolde = async (comunicado, nome, blocos) => {
   return data;
 };
 
-// Um comunicado novo a partir de um molde: a folha e a mensagem TAL E
-// QUAL (com rever/pergunta — é no comunicado que a revisão se fecha),
-// a regra de público pré-carregada (o ComunicadoRecorte lê
-// comunicado.publico para os filtros iniciais), e a proveniência no
-// modelo_id. SEM token e SEM congelado_em: publicar e congelar são
-// actos deste comunicado, não herança.
+// Um comunicado novo a partir de um modelo, EM MEMÓRIA — puro, sem uma
+// única ida à base. É a simetria de criação da Fase B: começar de um
+// modelo abre o editor normal pré-preenchido com isto, e nada existe na
+// BD até ao primeiro Guardar (criarComunicado, que aceita estes campos)
+// — sair sem guardar deixa rasto zero, exactamente como começar do zero.
+//
+// A folha e a mensagem vêm TAL E QUAL, com as marcas rever/pergunta (é
+// no comunicado que a revisão se fecha; o modelo fica intacto); a regra
+// de quem recebe vem em `publico` (é ela que pré-carrega o passo 3); a
+// proveniência vem em `modelo_id`. SEM token e SEM congelado_em:
+// publicar e fechar a lista são actos do comunicado, não herança.
 //
 // Os ids dos blocos MANTÊM-SE (decisão registada): cada comunicado é
 // uma cópia independente e os ids só têm de ser únicos DENTRO da folha
-// — e mantê-los é o que deixa um bloco marcado no molde ser encontrado
-// na folha que nasceu dele.
-export const nascerDeMolde = async (modelo) => {
-  const { data, error } = await supabase
-    .from("comunicados")
-    .insert([
-      {
-        titulo: modelo.titulo || "",
-        subtitulo: modelo.subtitulo,
-        registo: modelo.registo || "aviso",
-        blocos: modelo.blocos || [],
-        mensagem: modelo.mensagem,
-        publico: modelo.publico,
-        modelo_id: modelo.id,
-      },
-    ])
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-};
+// — e mantê-los é o que deixa um bloco marcado no modelo ser encontrado
+// na folha que nasceu dele. Cada bloco é copiado ({...b}) para o editor
+// poder limpar marcas em memória sem tocar no objecto do modelo.
+export const prepararDeModelo = (modelo) => ({
+  titulo: modelo.titulo || "",
+  subtitulo: modelo.subtitulo ?? null,
+  saudacao: modelo.saudacao ?? null,
+  registo: modelo.registo || "aviso",
+  blocos: (modelo.blocos || []).map((b) => ({ ...b })),
+  mensagem: modelo.mensagem ?? null,
+  publico: modelo.publico ?? null,
+  modelo_id: modelo.id,
+});
 
-// «Está certo» fecha a revisão de UM bloco NESTE comunicado: limpa
-// rever/pergunta e grava. O molde fica intacto — a marca dele volta a
-// aparecer no próximo comunicado que nascer.
-export const marcarBlocoRevisto = (comunicadoId, blocos, blocoId) => {
-  const limpos = (blocos || []).map((b) => {
-    if (b.id !== blocoId) return b;
-    // Tirar as chaves em vez de as pôr a false/vazio: um bloco revisto
-    // fica IGUAL a um bloco que nunca teve marca.
-    const resto = { ...b };
-    delete resto.rever;
-    delete resto.pergunta;
-    return resto;
-  });
-  return guardarComunicado(comunicadoId, { blocos: limpos });
-};
+// O nascimento antigo com insert imediato (nascerDeMolde) e o «Está
+// certo» gravado à peça (marcarBlocoRevisto) morreram com o
+// ComunicadoDeMolde na Fase B: a revisão fecha-se em memória, no
+// editor, e persiste no Guardar — prepararDeModelo + criarComunicado
+// são o único caminho.
 
 // ---- O que envelhece: a heurística de AJUDA ----
 
 // True se o texto trouxer sinais de data ou prazo — mês por extenso,
 // ano, dd/mm, palavras de prazo. Serve para PROPOR a marca de revisão
-// ao guardar o molde; nunca decide sozinha (ela confirma, desmarca ou
+// ao guardar o modelo; nunca decide sozinha (ela confirma, desmarca ou
 // acrescenta). Errar por excesso aqui custa um clique; errar por
 // defeito custa uma folha com a data do ano passado.
 export const detectarEnvelhecimento = (texto) => {
@@ -967,7 +978,7 @@ export const detectarEnvelhecimento = (texto) => {
 };
 
 // A pergunta-padrão que acompanha uma marca de revisão — datada de
-// AGORA, porque é agora que o molde se guarda. Ela pode reescrevê-la.
+// AGORA, porque é agora que o modelo se guarda. Ela pode reescrevê-la.
 export const perguntaProposta = () => {
   const d = new Date();
   return `Vem de ${MESES_ANCORA[d.getMonth()]} de ${d.getFullYear()}. A data ainda serve?`;
@@ -976,15 +987,15 @@ export const perguntaProposta = () => {
 // ---- Quem entrou depois de a lista fechar ----
 
 // Corre a regra guardada (comunicado.publico) pelos MESMOS selectores
-// do recorte e devolve quem NÃO está na lista congelada — os que
+// do recorte e devolve quem NÃO está na lista fechada — os que
 // entraram depois. A comparação é por telefone_chave quando houver
 // (a identidade da casa desde a 043); sem chave, por submission_id ou
 // cliente_id. As dispensadas ESTÃO na lista (é linha, não tabela nova),
 // por isso excluem-se sozinhas — não se volta a perguntar.
 export const candidatosPosteriores = async (comunicado) => {
   const pub = comunicado.publico;
-  // Sem regra guardada não há o que correr — um comunicado congelado
-  // antes da fase 2 tardia, ou nunca congelado, não tem «depois».
+  // Sem regra guardada não há o que correr — um comunicado com a lista
+  // fechada antes da fase 2 tardia, ou nunca fechada, não tem «depois».
   if (!pub || !pub.origem) return [];
 
   const existentes = await listarDestinatarios(comunicado.id);
@@ -1007,7 +1018,7 @@ export const candidatosPosteriores = async (comunicado) => {
         "Evento";
       return {
         nome: (r.nome || "").trim() || nomeDasRespostas(det) || SEM_NOME,
-        // A MESMA âncora do congelamento — o cartão do candidato tem de
+        // A MESMA âncora do fecho da lista — o cartão do candidato tem de
         // se ler como as linhas ao lado dele.
         ancora: `${tipoNome} · ${ancoraDeData(r.data_evento) || "sem data marcada"}`,
         telefone: r.telefone,
@@ -1037,7 +1048,7 @@ export const candidatosPosteriores = async (comunicado) => {
         ? subs.has(c.submission_id)
         : Boolean(c.cliente_id) && clis.has(c.cliente_id);
 
-  // Deduplicar os candidatos entre si pela mesma regra do congelamento:
+  // Deduplicar os candidatos entre si pela mesma regra do fecho da lista:
   // duas linhas novas com o mesmo telefone são UMA pessoa a perguntar.
   const vistos = new Set();
   const novos = [];
@@ -1053,7 +1064,7 @@ export const candidatosPosteriores = async (comunicado) => {
 };
 
 // A ordem da linha nova: no fim da lista — quem entrou depois não fura
-// a fila de expedição que a Nádia já tem na cabeça.
+// a fila de envio que a Nádia já tem na cabeça.
 const inserirLinhaPosterior = async (comunicadoId, candidato, extra = {}) => {
   const { data: ultima, error: erroUltima } = await supabase
     .from("comunicado_destinatarios")
@@ -1103,7 +1114,7 @@ export const dispensarCandidato = (comunicadoId, candidato) =>
 // passa a contar como acrescentada, derivado do created_at dela.
 export const desfazerDispensa = (id) => patchDestinatario(id, { dispensado_em: null });
 
-// ---- O rótulo humano de uma regra de público ----
+// ---- O rótulo humano de uma regra de quem recebe ----
 
 // O plural de um nome de tipo de evento, para o rótulo. As regras
 // comuns chegam para os tipos da casa (Casamento→Casamentos,
@@ -1120,12 +1131,12 @@ const pluralDeTipo = (nome) => {
   return s + "s";
 };
 
-// A regra de público em UMA linha legível: «Casamentos por vir»,
+// A regra de quem recebe em UMA linha legível: «Casamentos por vir»,
 // «Festinhas — todos», «Todos os contactos», «Só clientes». Recebe os
 // tipos do getEventTypes (a lista, não o Map interno) porque é o que os
 // ecrãs já têm na mão. Sem tipo conhecido, «Eventos»; sem regra
 // nenhuma, null — o cartão decide o que mostra a um comunicado sem
-// público.
+// regra de quem recebe.
 export const rotuloDaRegra = (publico, tipos) => {
   if (!publico || !publico.origem) return null;
   if (publico.origem === "contactos") {

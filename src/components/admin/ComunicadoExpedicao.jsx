@@ -17,6 +17,8 @@ import {
   dispensarCandidato,
   desfazerDispensa,
   rotuloDaRegra,
+  marcarNoPortal,
+  ehColunaEmFalta,
 } from "../../lib/comunicados";
 import { getEventTypes } from "../../lib/invites";
 import { linkWhatsApp } from "../../lib/mensagens";
@@ -25,7 +27,7 @@ import { dataDita, diaDito, quandoDita, quandoAs } from "./comunicadoTempo";
 import GuardarComoMolde from "./GuardarComoMolde";
 
 // ============================================================
-// ComunicadoExpedicao — fazer a folha chegar à lista congelada,
+// ComunicadoExpedicao — fazer a folha chegar à lista fechada,
 // conversa a conversa.
 //
 // A IDA E VOLTA EM DOIS CARIMBOS, e é o coração do ecrã: «Enviar»
@@ -87,8 +89,74 @@ const Medalha = ({ tamanho = 18 }) => (
   </svg>
 );
 
+// A CAIXA DO PORTAL (4.4 · 085) — a escolha explícita, por pessoa:
+// mostrar esta folha no portal da cliente. Vive na linha em TODOS os
+// estados — por enviar, à espera, enviada, sem número — porque ligar
+// depois de enviado é legítimo, e desligar também. Só em linhas com
+// submission_id: destinatários de contactos não têm portal. Grava no
+// toque; o optimismo e a reversão são de quem chama.
+const CaixaPortal = ({ ligada, onAlternar }) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={ligada}
+    onClick={onAlternar}
+    className="acao"
+    style={{
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "9px",
+      marginTop: "10px",
+      padding: 0,
+      border: "none",
+      background: "none",
+      textAlign: "left",
+      fontSize: "12.5px",
+      color: "var(--charcoal)",
+      cursor: "pointer",
+    }}
+  >
+    <span
+      aria-hidden
+      style={{
+        flex: "none",
+        width: "17px",
+        height: "17px",
+        boxSizing: "border-box",
+        marginTop: "1px",
+        border: `1.5px solid var(${ligada ? "--gold" : "--gold-light"})`,
+        borderRadius: "4px",
+        backgroundColor: ligada ? "var(--gold)" : "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "11px",
+        lineHeight: 1,
+        color: "white",
+      }}
+    >
+      {ligada ? "✓" : ""}
+    </span>
+    <span>{ligada ? "No portal desta cliente" : "Mostrar também no portal desta cliente"}</span>
+  </button>
+);
+
+// A 085 pode ainda não ter corrido nesta BD: sem a coluna no_portal, o
+// primeiro toque falha com erro de coluna e a caixa esconde-se em
+// silêncio o resto da SESSÃO (padrão ehTabelaEmFalta), com um único
+// console.warn — o flag vive no módulo para não avisar a cada montagem.
+let portalSemColunaNaSessao = false;
+const registarPortalSemColuna = () => {
+  if (!portalSemColunaNaSessao) {
+    portalSemColunaNaSessao = true;
+    console.warn(
+      "A coluna no_portal ainda não existe (migração 085 por correr) — a caixa do portal esconde-se nesta sessão.",
+    );
+  }
+};
+
 // «Acrescentada» DERIVA-SE, não se guarda (081): é a linha criada depois
-// do congelamento. Datas comparadas como datas — o formato do Postgres
+// do fecho da lista. Datas comparadas como datas — o formato do Postgres
 // («+00:00») e o do toISOString («Z») não se comparam como texto.
 const eAcrescentada = (l, congeladoEm) =>
   Boolean(congeladoEm) && new Date(l.created_at) > new Date(congeladoEm);
@@ -194,7 +262,7 @@ function Regua({ feitos, total, reduzido }) {
 // ------------------------------------------------------------
 // O FIM — o fecho sereno, quando já não há ninguém à espera. E é ao
 // fecho que a pergunta de «quem entrou depois» está ancorada (desenho
-// «O evento que entrou depois»): a lista congelada não se vigia em
+// «O evento que entrou depois»): a lista fechada não se vigia em
 // contínuo — é aqui, ao fechar, que a casa olha uma vez e decide.
 // ------------------------------------------------------------
 function OFim({
@@ -208,6 +276,8 @@ function OFim({
   onRecarregar,
   onVoltarExpedicao,
   onVoltarDetalhe,
+  mostraPortal,
+  onAlternarPortal,
 }) {
   const enviadas = linhas
     .filter((l) => l.enviado_em)
@@ -234,7 +304,7 @@ function OFim({
   const [erroFim, setErroFim] = useState("");
   const timerArmar = useRef(null);
 
-  // O convite do molde: estado da VISITA, de propósito — «agora não» é
+  // O convite do modelo de comunicado: estado da VISITA, de propósito — «agora não» é
   // adiar a conversa, não uma decisão a guardar; na próxima visita o
   // convite volta (decisão registada).
   const [convite, setConvite] = useState("inicial"); // inicial | adiado | guardado
@@ -262,7 +332,7 @@ function OFim({
 
   useEffect(() => () => clearTimeout(timerArmar.current), []);
 
-  // Acrescentar reabre uma lista congelada — por isso é em DUAS FASES no
+  // Acrescentar reabre uma lista fechada — por isso é em DUAS FASES no
   // próprio botão, e a segunda fase diz o que vai acontecer.
   const armarOuAcrescentar = async (c, i) => {
     if (ocupadoFim || ocupado) return;
@@ -334,9 +404,9 @@ function OFim({
   const rotuloMin = minusculaInicial(rotuloDaRegra(comunicado.publico, tipos) || "");
   const pendentes = (candidatos || []).filter((c) => c.estado === "pergunta");
 
-  // O convite do molde só com a expedição arrumada e sem pergunta de
+  // O convite do modelo só com o envio arrumado e sem pergunta de
   // candidato por decidir — e nunca num comunicado que JÁ nasceu de um
-  // molde: voltar a guardar o que veio de um molde é ruído (decisão
+  // modelo: voltar a guardar o que veio de um modelo é ruído (decisão
   // registada).
   const mostrarConvite =
     tudoSaido && !comunicado.modelo_id && candidatos !== null && pendentes.length === 0;
@@ -396,11 +466,11 @@ function OFim({
         className="ligacao"
         style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}
       >
-        ← A expedição
+        ← O envio
       </button>
 
       <div style={{ ...OVERLINE, marginTop: "14px", textTransform: "uppercase" }}>
-        EXPEDIÇÃO{comunicado.titulo?.trim() ? ` · ${comunicado.titulo.trim()}` : ""}
+        ENVIAR{comunicado.titulo?.trim() ? ` · ${comunicado.titulo.trim()}` : ""}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "18px" }}>
@@ -436,7 +506,7 @@ function OFim({
         {/* Dispensadas nunca aparecem (a prop já vem por linhasActivas);
             quem não tinha número fica, sem visto e sem hora — esteve cá,
             e o fecho não finge que lhe chegou. Uma linha entrada depois
-            do congelamento leva a pastilha e, por enviar, o MESMO fluxo
+            do fecho da lista leva a pastilha e, por enviar, o MESMO fluxo
             dos dois carimbos: nada se marca sozinho, nem no fecho. */}
         {filas.map(({ l, tipo }, i) => (
           <div
@@ -479,6 +549,11 @@ function OFim({
                 {eAcr(l) && <PastilhaAcrescentada />}
               </div>
               <div style={{ fontSize: "11.5px", color: "var(--gray-mid)", marginTop: "1px" }}>{l.ancora}</div>
+              {/* A caixa do portal também vive no fecho — a lista está
+                  fechada, mas a escolha do portal nunca fecha. */}
+              {mostraPortal(l) && (
+                <CaixaPortal ligada={Boolean(l.no_portal)} onAlternar={() => onAlternarPortal(l)} />
+              )}
             </div>
             {tipo === "enviada" ? (
               <div
@@ -561,6 +636,9 @@ function OFim({
               Não saiu
             </button>
           </div>
+          {/* Sem caixa do portal aqui: esta linha já a mostra na lista
+              fechada, logo acima — duas caixas para a mesma pessoa
+              seriam a mesma escolha a fingir de duas. */}
         </div>
       ))}
 
@@ -603,7 +681,7 @@ function OFim({
                 const [tipoParte, dataParte] = (c.ancora || "").split(" · ");
                 const t = (tipoParte || "evento").trim();
                 return {
-                  cabeca: `Entrou ${tipoFeminino(t) ? "uma" : "um"} ${t.toLowerCase()} depois de esta lista ter sido congelada: `,
+                  cabeca: `Entrou ${tipoFeminino(t) ? "uma" : "um"} ${t.toLowerCase()} depois de esta lista ter sido fechada: `,
                   quando:
                     dataParte && dataParte !== "sem data marcada"
                       ? `, ${dataParte}`
@@ -611,7 +689,7 @@ function OFim({
                 };
               })()
             : {
-                cabeca: "Entrou um contacto depois de esta lista ter sido congelada: ",
+                cabeca: "Entrou um contacto depois de esta lista ter sido fechada: ",
                 quando: "",
               };
         const estaArmado = armado === i;
@@ -723,12 +801,12 @@ function OFim({
         </p>
       </div>
 
-      {/* O CONVITE DO MOLDE — ancorado no fecho: é com tudo enviado que
-          se sabe se isto vai repetir-se. */}
+      {/* O CONVITE DO MODELO DE COMUNICADO — ancorado no fecho: é com
+          tudo enviado que se sabe se isto vai repetir-se. */}
       {mostrarConvite && convite === "inicial" && (
         <div style={{ ...CARTAO, borderRadius: "14px", marginTop: "16px", padding: "15px 16px" }}>
           <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
-            Isto vai repetir-se em cada casamento novo. Quer guardar como molde?
+            Isto vai repetir-se em cada casamento novo. Quer guardar como modelo de comunicado?
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginTop: "12px" }}>
             <button
@@ -736,7 +814,7 @@ function OFim({
               className="acao acao--ouro"
               style={{ padding: "11px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
             >
-              Guardar como molde
+              Guardar como modelo
             </button>
             <button
               onClick={() => setConvite("adiado")}
@@ -758,7 +836,7 @@ function OFim({
       )}
       {mostrarConvite && convite === "adiado" && (
         <p style={{ margin: "16px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)", textWrap: "pretty" }}>
-          Fica como está. Pode guardar como molde a partir do próprio comunicado,
+          Fica como está. Pode guardar como modelo a partir do próprio comunicado,
           quando quiser.{" "}
           <button
             onClick={() => setGaveta(true)}
@@ -790,8 +868,8 @@ function OFim({
         >
           <VistoDourado />
           <div style={{ flex: 1, minWidth: 0, fontSize: "12.5px", lineHeight: 1.6 }}>
-            Molde guardado: <span style={{ fontWeight: "600" }}>{nomeMoldeGuardado}</span> ·
-            Fica em Comunicados · Moldes.
+            Modelo guardado: <span style={{ fontWeight: "600" }}>{nomeMoldeGuardado}</span> ·
+            Fica em Envios · Modelos.
           </div>
         </div>
       )}
@@ -823,8 +901,8 @@ function OFim({
         </button>
       </div>
 
-      {/* A gaveta de guardar como molde é da frente irmã — aqui só se
-          monta e se recebe o molde guardado. */}
+      {/* A gaveta de guardar como modelo é da frente irmã — aqui só se
+          monta e se recebe o modelo guardado. */}
       <GuardarComoMolde
         comunicado={comunicado}
         aberta={gaveta}
@@ -840,7 +918,7 @@ function OFim({
 }
 
 // ------------------------------------------------------------
-// A EXPEDIÇÃO
+// O ENVIO
 // ------------------------------------------------------------
 export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }) {
   const reduzido = useReducedMotion();
@@ -857,6 +935,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
   const [copiadoDif, setCopiadoDif] = useState(false);
   const [copiadoId, setCopiadoId] = useState(null);
   const [noFim, setNoFim] = useState(false);
+  // A caixa do portal desaparece na sessão se a coluna faltar (085).
+  const [portalOculto, setPortalOculto] = useState(portalSemColunaNaSessao);
   const timers = useRef({});
 
   const recarregar = useCallback(
@@ -980,6 +1060,36 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
     }
   };
 
+  // A caixa do portal grava NO TOQUE, com optimismo: a linha muda já no
+  // ecrã e só se reverte se a BD disser que não — o erro responde
+  // inline, nunca num alert. Coluna em falta (085 por correr) esconde a
+  // caixa o resto da sessão, com um aviso único na consola. De propósito
+  // sem `ocupado`: a caixa não é um envio, é uma escolha leve.
+  const alternarPortal = async (l) => {
+    const novo = !l.no_portal;
+    const aplicar = (valor) =>
+      setLinhas((prev) =>
+        (prev || []).map((x) => (x.id === l.id ? { ...x, no_portal: valor } : x)),
+      );
+    aplicar(novo);
+    try {
+      await marcarNoPortal(l.id, novo);
+    } catch (e) {
+      aplicar(l.no_portal);
+      if (ehColunaEmFalta(e)) {
+        registarPortalSemColuna();
+        setPortalOculto(true);
+      } else {
+        console.error(e);
+        setErro("Não foi possível guardar a escolha do portal. Tente outra vez.");
+      }
+    }
+  };
+
+  // Só linhas com evento têm portal — as de contactos nem mostram a
+  // caixa; dispensadas nunca chegam cá (linhasActivas já as tira).
+  const mostraPortal = (l) => !portalOculto && Boolean(l?.submission_id);
+
   const abrirFicha = (l) => {
     setFichaId(l.id);
     setRascunhoFicha(textoDe(l));
@@ -1061,6 +1171,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         onRecarregar={recarregar}
         onVoltarExpedicao={() => setNoFim(false)}
         onVoltarDetalhe={onVoltar}
+        mostraPortal={mostraPortal}
+        onAlternarPortal={alternarPortal}
       />
     );
   }
@@ -1075,7 +1187,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         ← O comunicado
       </button>
 
-      <div style={{ ...OVERLINE, marginTop: "14px" }}>EXPEDIÇÃO</div>
+      <div style={{ ...OVERLINE, marginTop: "14px" }}>ENVIAR</div>
       <h1
         style={{
           margin: "6px 0 0",
@@ -1089,7 +1201,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         {comunicado.titulo?.trim() || "Sem título, por enquanto"}
       </h1>
       <p style={{ margin: "7px 0 0", fontSize: "12px", color: "var(--gray-mid)" }}>
-        Lista congelada {comunicado.congelado_em ? `a ${dataDita(comunicado.congelado_em)}` : ""} ·{" "}
+        Lista fechada {comunicado.congelado_em ? `a ${dataDita(comunicado.congelado_em)}` : ""} ·{" "}
         {activas.length} {activas.length === 1 ? "nome" : "nomes"} ·{" "}
         <button
           onClick={onMensagem}
@@ -1106,7 +1218,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         </button>
       </p>
 
-      {/* Sem mensagem base não se expede: o que a conversa levaria era
+      {/* Sem mensagem base não se envia: o que a conversa levaria era
           um endereço nu. Não se bloqueia com um aviso — dá-se o caminho. */}
       {semMensagem && (
         <div
@@ -1214,6 +1326,9 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   Não saiu
                 </button>
               </div>
+              {mostraPortal(l) && (
+                <CaixaPortal ligada={Boolean(l.no_portal)} onAlternar={() => alternarPortal(l)} />
+              )}
             </div>
           ))}
 
@@ -1256,10 +1371,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
             <>
               <div style={{ ...OVERLINE, marginTop: "22px" }}>POR ENVIAR · {porEnviar.length}</div>
               {porEnviar.map((l) => (
-                <div
-                  key={l.id}
-                  style={{ ...CARTAO, display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", marginTop: "8px" }}
-                >
+                <div key={l.id} style={{ ...CARTAO, padding: "12px 14px", marginTop: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <button
                     onClick={() => abrirFicha(l)}
                     className="acao"
@@ -1314,6 +1427,10 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                     </svg>
                     Enviar
                   </button>
+                  </div>
+                  {mostraPortal(l) && (
+                    <CaixaPortal ligada={Boolean(l.no_portal)} onAlternar={() => alternarPortal(l)} />
+                  )}
                 </div>
               ))}
               <p style={{ margin: "10px 0 0", fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)" }}>
@@ -1333,9 +1450,6 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 <div
                   key={l.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
                     backgroundColor: "white",
                     border: "1px dashed #E8DCC0",
                     borderRadius: "12px",
@@ -1343,6 +1457,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                     marginTop: "8px",
                   }}
                 >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <div style={{ fontSize: "13.5px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
@@ -1366,6 +1481,12 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   >
                     {copiadoId === l.id ? "Copiada" : "Copiar a mensagem"}
                   </button>
+                  </div>
+                  {/* Sem número, o portal pode ser o único caminho da
+                      folha até esta pessoa — a caixa fica. */}
+                  {mostraPortal(l) && (
+                    <CaixaPortal ligada={Boolean(l.no_portal)} onAlternar={() => alternarPortal(l)} />
+                  )}
                 </div>
               ))}
               <p style={{ margin: "8px 0 0", fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)" }}>
@@ -1381,9 +1502,6 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 <div
                   key={l.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "11px",
                     backgroundColor: "white",
                     border: "1px solid #F5ECD7",
                     borderRadius: "12px",
@@ -1391,31 +1509,40 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                     marginTop: "8px",
                   }}
                 >
-                  <VistoDourado />
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
-                    {eAcrescentada(l, comunicado.congelado_em) && <PastilhaAcrescentada />}
+                  <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
+                    <VistoDourado />
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--gray-mid)" }}>{l.nome}</div>
+                      {eAcrescentada(l, comunicado.congelado_em) && <PastilhaAcrescentada />}
+                    </div>
+                    <div
+                      style={{
+                        flex: "none",
+                        fontSize: "11.5px",
+                        color: "#9B9B9B",
+                        fontVariantNumeric: "tabular-nums",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {quandoDita(l.enviado_em)}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      flex: "none",
-                      fontSize: "11.5px",
-                      color: "#9B9B9B",
-                      fontVariantNumeric: "tabular-nums",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {quandoDita(l.enviado_em)}
-                  </div>
+                  {/* Junto ao carimbo, viva depois do envio: ligar (ou
+                      desligar) o portal é legítimo a qualquer hora. */}
+                  {mostraPortal(l) && (
+                    <div style={{ marginLeft: "25px" }}>
+                      <CaixaPortal ligada={Boolean(l.no_portal)} onAlternar={() => alternarPortal(l)} />
+                    </div>
+                  )}
                 </div>
               ))}
             </>
@@ -1658,6 +1785,14 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
           <p style={{ margin: "9px 0 0", fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)" }}>
             A conversa abre com esta mensagem já escrita — falta só, lá, o toque de enviar.
           </p>
+          {/* A MESMA caixa do portal da linha — mesmo estado, mesmo
+              toque; a gaveta não tem versão própria da escolha. */}
+          {ficha && mostraPortal(ficha) && (
+            <CaixaPortal
+              ligada={Boolean(ficha.no_portal)}
+              onAlternar={() => alternarPortal(ficha)}
+            />
+          )}
           <button
             onClick={enviarDaFicha}
             disabled={ocupado}

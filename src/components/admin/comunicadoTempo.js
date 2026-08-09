@@ -36,7 +36,7 @@ const pecas = (iso) => {
   };
 };
 
-// «3 de agosto» — o dia por extenso, sem relógio (a meta da expedição).
+// «3 de agosto» — o dia por extenso, sem relógio (a meta do envio).
 export const dataDita = (iso) => {
   if (!iso) return "";
   return pecas(iso).data;
