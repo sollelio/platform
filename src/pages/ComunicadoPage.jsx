@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { comporFolha } from "../lib/comunicados";
+import { realce } from "../lib/realce";
 import {
   linkWhatsAppCasa,
   NUMERO_WHATSAPP_CASA,
@@ -366,7 +367,7 @@ function Clausula({ peca, ultima }) {
           className="par"
           style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: 1.7, whiteSpace: "pre-line", textWrap: "pretty" }}
         >
-          {peca.texto}
+          {realce(peca.texto)}
         </p>
       </div>
     </div>
@@ -402,7 +403,7 @@ function Peca({ peca, oferta }) {
                 }
           }
         >
-          {peca.texto}
+          {realce(peca.texto)}
         </p>
       </div>
     );
@@ -507,7 +508,7 @@ function Peca({ peca, oferta }) {
           className="par"
           style={{ margin: "8px 0 0", fontSize: "13.5px", lineHeight: 1.7, whiteSpace: "pre-line", textWrap: "pretty" }}
         >
-          {peca.texto}
+          {realce(peca.texto)}
         </p>
       </aside>
     );
@@ -529,7 +530,7 @@ function Peca({ peca, oferta }) {
             textWrap: "pretty",
           }}
         >
-          {peca.texto}
+          {realce(peca.texto)}
         </p>
       </div>
     );

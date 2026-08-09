@@ -13,6 +13,7 @@ import {
   comporFolha,
   subirImagemFolha,
 } from "../../lib/comunicados";
+import { realce } from "../../lib/realce";
 
 // ============================================================
 // ComunicadoEditor — a folha de um comunicado a ser escrita.
@@ -823,7 +824,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                       }
                 }
               >
-                {p.texto}
+                {realce(p.texto)}
               </p>
             );
           if (p.papel === "nota")
@@ -850,7 +851,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                   {p.rotulo}
                 </div>
                 <p style={{ margin: "6px 0 0", fontSize: "12px", lineHeight: 1.65, whiteSpace: "pre-line", textWrap: "pretty" }}>
-                  {p.texto}
+                  {realce(p.texto)}
                 </p>
               </aside>
             );
@@ -914,7 +915,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: "12px", fontWeight: "600" }}>{p.rotulo}</div>
                   <p style={{ margin: "5px 0 0", fontSize: "12px", lineHeight: 1.65, whiteSpace: "pre-line", textWrap: "pretty" }}>
-                    {p.texto}
+                    {realce(p.texto)}
                   </p>
                 </div>
               </div>
@@ -951,7 +952,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                   textWrap: "pretty",
                 }}
               >
-                {p.texto}
+                {realce(p.texto)}
               </p>
             </div>
           );
@@ -1236,7 +1237,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               <div style={OVERLINE}>OS BLOCOS</div>
               <div style={{ fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
                 A ordem dá o papel a cada bloco — a etiqueta de cada cartão
-                mostra-o.
+                mostra-o. *Negrito* e _itálico_, como no WhatsApp.
               </div>
             </div>
 

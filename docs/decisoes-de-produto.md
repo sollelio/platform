@@ -1167,6 +1167,24 @@ método; aqui ficam as decisões aprovadas fase a fase).
   completo: Fases A, B, C (código em obra), D e E fechadas**; pendências
   fora de fase: migração 085 (correr perto do deploy da Fase C) e as
   notas «fora da fase» do briefing E (contagem de leituras, cartão OG).
+- **Realce nos textos dos envios ✓ (09/08/2026) — a sintaxe é a do
+  WhatsApp.** Pedido do Hélio: a Nádia precisa de pôr partes do texto
+  a negrito. Decisões dele: sintaxe **à WhatsApp** (`*negrito*` e
+  `_itálico_` — a que ela já usa todos os dias; na mensagem que
+  acompanha o endereço é o próprio WhatsApp que a lê, sem código) em
+  vez de Markdown clássico; e o ensino é **dica curta + a
+  pré-visualização** (a linha de instrução dos blocos ganhou
+  «*Negrito* e _itálico_, como no WhatsApp.» — dita UMA vez; a coluna
+  da Fase C mostra o resultado ao vivo). O motor vive em
+  **src/lib/realce.jsx**: regras mínimas à WhatsApp (o marcador
+  abraça o texto, não salta linhas, sem par fica literal — nunca
+  desaparece texto), nós de React sem dangerouslySetInnerHTML,
+  negrito a 600 (o semibold da casa). Aplica-se aos QUATRO textos
+  (prosa, cláusula, nota, remate) na folha pública e nas quatro peças
+  gémeas da pré-visualização do editor. Fora, de propósito: saudação
+  (cerimónia própria), rótulos/overlines, legenda da imagem e nota da
+  chamada (linhas curtas — se fizer falta, é chamar a mesma função
+  lá; a pré-visualização mostra a fronteira ao vivo).
 
 ## Validação — regra da casa
 
