@@ -1123,7 +1123,6 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               id="campo-titulo-comunicado"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="O nome do comunicado"
               className="caixa-texto"
               style={CAMPO}
             />
@@ -1145,7 +1144,6 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               id="campo-subtitulo-comunicado"
               value={subtitulo}
               onChange={(e) => setSubtitulo(e.target.value)}
-              placeholder="Uma linha por baixo do título, se a folha a pedir"
               className="caixa-texto"
               style={{ ...CAMPO, fontSize: "13.5px" }}
             />
@@ -1157,26 +1155,19 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               htmlFor="campo-saudacao-comunicado"
               style={{ display: "block", marginTop: "22px", ...OVERLINE }}
             >
-              SAUDAÇÃO
+              SAUDAÇÃO{" "}
+              <span style={{ fontWeight: "400", letterSpacing: "0.06em", color: "var(--gray-mid)" }}>
+                (opcional)
+              </span>
             </label>
             <input
               id="campo-saudacao-comunicado"
               value={saudacao}
               onChange={(e) => setSaudacao(e.target.value)}
-              placeholder="Queridos noivos,"
+              placeholder="Queridas clientes,"
               className="caixa-texto"
               style={{ ...CAMPO, fontSize: "13.5px" }}
             />
-            <div
-              style={{
-                marginTop: "5px",
-                fontSize: "11.5px",
-                fontStyle: "italic",
-                color: "var(--gray-mid)",
-              }}
-            >
-              Abre a folha em itálico de cerimónia. Vazio = sem saudação.
-            </div>
 
             {/* O ASPECTO — a pastilha deslizante da casa (o padrão do
                 recorte): trilho FBF7EF, pastilha branca a deslizar 180ms.
@@ -1239,19 +1230,13 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-                {registo === "oferta"
-                  ? "A folha ganha desejo: título maior, prosa centrada, imagem à largura."
-                  : "A folha fala sóbria — o tom dos avisos da casa."}
-              </div>
             </div>
 
             <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginTop: "30px" }}>
               <div style={OVERLINE}>OS BLOCOS</div>
               <div style={{ fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-                A ordem compõe a folha: o primeiro bloco com rótulo é a nota em
-                destaque, o último é o remate, e um bloco só com rótulo abre um
-                grupo.
+                A ordem dá o papel a cada bloco — a etiqueta de cada cartão
+                mostra-o.
               </div>
             </div>
 
@@ -1533,8 +1518,8 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                           }}
                         >
                           <span style={{ flex: 1, minWidth: "180px" }}>
-                            Esta primeira linha parece uma saudação — a
-                            saudação já vive no campo lá de cima.
+                            Esta linha parece uma saudação — já há um campo
+                            para ela, lá em cima.
                           </span>
                           <button
                             onClick={() => tirarLinhaSaudacao(b.id)}
@@ -1575,7 +1560,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                       fontWeight: "600",
                     }}
                   >
-                    Confirmar?
+                    Confirmar? O bloco sai.
                   </button>
                 ) : (
                   <button
@@ -1718,18 +1703,6 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                 + Chamada
               </button>
             </div>
-
-            <div
-              style={{
-                marginTop: "20px",
-                textAlign: "center",
-                fontSize: "11.5px",
-                fontStyle: "italic",
-                color: "var(--gray-mid)",
-              }}
-            >
-              {`A assinatura — «${ASSINATURA_FOLHA.despedida} ${ASSINATURA_FOLHA.nome}» — fecha todas as folhas da casa.`}
-            </div>
           </div>
         </div>
 
@@ -1746,16 +1719,6 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               borderLeft: "1px solid #F0E6D0",
             }}
           >
-            <div
-              style={{
-                textAlign: "right",
-                fontSize: "10px",
-                fontStyle: "italic",
-                color: "#9B9B9B",
-              }}
-            >
-              compõe-se a cada tecla
-            </div>
             {previa}
           </aside>
         )}

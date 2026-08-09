@@ -251,9 +251,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
             O TEXTO QUE ACOMPANHA O ENDEREÇO
           </label>
           <p style={{ margin: "8px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
-            Escreve-se uma vez; em cada conversa sai com o nome da pessoa. Uma
-            palavra a mudar para alguém em particular ajusta-se na própria
-            linha do envio.
+            Escreve-se uma vez; em cada conversa sai com o nome da pessoa.
           </p>
           <textarea
             id="campo-mensagem-base"
@@ -265,7 +263,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
             onChange={(e) => setBase(e.target.value)}
             onInput={(e) => ajustarAltura(e.currentTarget)}
             rows={5}
-            placeholder="Olá, {NOME}! Preparámos uma folha para si. Pode abri-la aqui — e partilhá-la com quem precisar de a ler: {LINK_FOLHA}"
+            placeholder="Olá, {NOME}! Temos uma folha para si — pode ler e partilhar: {LINK_FOLHA}"
             className="caixa-texto"
             style={{
               width: "100%",

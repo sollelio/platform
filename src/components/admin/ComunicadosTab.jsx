@@ -510,14 +510,14 @@ function PercursoComunicado({
           A mensagem veio do modelo: <span style={{ fontStyle: "italic" }}>«{excertoMensagem}»</span>
         </>
       ) : (
-        <>A mensagem que acompanha o endereço está escrita.</>
+        <>A mensagem está escrita.</>
       )}{" "}
       · <Lig onClick={onMensagem}>Editar a mensagem</Lig>
     </p>
   ) : (
     <p style={LINHA_META}>
-      A mensagem que acompanha o endereço ainda está por escrever — é ela que leva o
-      endereço. <Lig onClick={onMensagem}>Escrever a mensagem</Lig>
+      A mensagem que acompanha o endereço ainda está por escrever.{" "}
+      <Lig onClick={onMensagem}>Escrever a mensagem</Lig>
     </p>
   );
 
@@ -594,23 +594,9 @@ function PercursoComunicado({
         </button>
         <span style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}>
           <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>{leituras}</span>{" "}
-          {leituras === 1 ? "leitura" : "leituras"} até agora.
+          {leituras === 1 ? "leitura" : "leituras"} · contam-se no total.
         </span>
       </div>
-      <p
-        style={{
-          margin: "10px 0 0",
-          maxWidth: "420px",
-          fontSize: "11.5px",
-          fontStyle: "italic",
-          lineHeight: 1.6,
-          color: "var(--gray-mid)",
-          textWrap: "pretty",
-        }}
-      >
-        Contam-se no total: a folha é pública e reencaminhável, e não se sabe quem a
-        abriu nem quantas pessoas são.
-      </p>
       <div style={{ marginTop: "14px" }}>
         {retirarArmado ? (
           <button
@@ -701,7 +687,7 @@ function PercursoComunicado({
               flexShrink: 0,
             }}
           />
-          A folha saiu do ar — o percurso está suspenso. O endereço fica reservado.
+          A folha saiu do ar. O endereço fica reservado.
         </div>
       )}
 
@@ -843,9 +829,8 @@ function PercursoComunicado({
                 textWrap: "pretty",
               }}
             >
-              O endereço continua reservado a esta folha, mas quem o abrir agora
-              encontra uma página da casa a dizer que não há nada para ler — sem
-              nomes nem detalhes.
+              Quem abrir o endereço agora encontra uma página da casa a dizer que
+              não há nada para ler — sem nomes nem detalhes.
             </p>
             <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: "var(--gray-mid)" }}>
               Foi aberta{" "}
@@ -899,20 +884,6 @@ function PercursoComunicado({
               >
                 — ainda sem endereço —
               </div>
-              <p
-                style={{
-                  margin: "18px auto 0",
-                  maxWidth: "420px",
-                  fontSize: "13px",
-                  lineHeight: 1.7,
-                  color: "var(--gray-mid)",
-                  textWrap: "pretty",
-                }}
-              >
-                Publicar cria o endereço público da folha. A partir daí, qualquer
-                pessoa com o endereço pode abri-la e reencaminhá-la — é assim que
-                ela chega ao espaço e aos fornecedores.
-              </p>
               <button
                 onClick={publicar}
                 disabled={ocupado}
@@ -929,7 +900,7 @@ function PercursoComunicado({
                 Publicar a folha
               </button>
               <p style={{ margin: "14px 0 0", fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-                Pode retirá-la do ar a qualquer momento.
+                Cria o endereço. Ainda não envia nada.
               </p>
             </div>
           </section>
@@ -969,7 +940,7 @@ function PercursoComunicado({
       ) : estado === "publicada" && !retirada ? (
         <section style={SECCAO_CENTRAL}>
           <div style={OVERLINE}>3 · Quem recebe</div>
-          <div style={FRASE_CENTRAL}>Falta dizer a quem se destina.</div>
+          <div style={FRASE_CENTRAL}>Falta escolher quem recebe.</div>
           <p
             style={{
               margin: "12px auto 0",
@@ -980,7 +951,7 @@ function PercursoComunicado({
               textWrap: "pretty",
             }}
           >
-            O recorte responde com a contagem antes de fixar seja o que for.
+            Vê-se quantos são antes de fechar a lista.
           </p>
           <button
             onClick={onPublico}
@@ -1000,8 +971,8 @@ function PercursoComunicado({
         <section style={SECCAO}>
           <div style={OVERLINE}>3 · Quem recebe</div>
           <p style={LINHA_META}>
-            A regra do modelo: <span style={{ fontWeight: "600" }}>{rotuloRegra || "…"}</span> —
-            a lista conta-se ao fechar, de novo.
+            Do modelo: <span style={{ fontWeight: "600" }}>{rotuloRegra || "…"}</span> —
+            a lista conta-se ao fechar.
           </p>
         </section>
       ) : (
@@ -1130,9 +1101,6 @@ function PercursoComunicado({
                   >
                     Enviar →
                   </button>
-                  <p style={{ ...NOTA_DORMENTE, margin: "10px 0 0" }}>
-                    O Enviar acende com a mensagem escrita.
-                  </p>
                 </>
               )}
             </>
@@ -1543,8 +1511,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                     }}
                   >
                     Folhas públicas com endereço próprio — escrevem-se uma vez e
-                    chegam a muitos: o espaço, a wedding planner, os fornecedores.
-                    Publicar dá o endereço; retirar tira a folha do ar.
+                    chegam a muitos.
                   </p>
                 </div>
                 <button
@@ -1859,8 +1826,8 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                 <Esqueleto h={14} r={6} style={{ maxWidth: "260px", marginBottom: "12px" }} />
               ) : modelosEscolha.length === 0 ? (
                 <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: "0 0 4px", lineHeight: 1.6 }}>
-                  Ainda não há modelos de comunicado — guardam-se a partir de uma
-                  folha, em «Guardar como modelo».
+                  Ainda não há modelos — guardam-se a partir de uma folha, em
+                  «Guardar como modelo».
                 </p>
               ) : (
                 <>
@@ -1922,7 +1889,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                 Começar do zero
               </p>
               <p style={{ fontSize: "12px", color: "var(--gray-mid)", margin: "0 0 12px", lineHeight: 1.6 }}>
-                Uma folha em branco. Nada fica guardado até ao primeiro Guardar.
+                Nada fica guardado até ao primeiro Guardar.
               </p>
               <button
                 onClick={comecarDoZero}

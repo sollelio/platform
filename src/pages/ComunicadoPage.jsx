@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { comporFolha } from "../lib/comunicados";
 import {
   linkWhatsAppCasa,
+  NUMERO_WHATSAPP_CASA,
   EMPRESA,
   LINHA_ACTIVIDADE,
   ASSINATURA_FOLHA,
@@ -46,12 +47,15 @@ import {
 // folha de estilos; aqui é o papel que tem de ganhar. A .sangria (a
 // imagem da oferta, que no ecrã fura as margens do cartão) volta a
 // caber na coluna: o A4 não tem sangria — sem esta regra a imagem
-// saía do papel.
+// saía do papel. A .so-print é o inverso da .no-print: o que só
+// existe no papel (o número da casa no rodapé — a frase impressa tem
+// de funcionar sem toque).
 const ESTILO_IMPRESSAO = `
 @page { size: A4; margin: 13mm 15mm 12mm; }
 @media print {
   body { background: #FFFFFF !important; }
   .no-print { display: none !important; }
+  .so-print { display: inline !important; }
   #pagina-comunicado { padding: 0 !important; }
   #marca-comunicado { padding-top: 0 !important; }
   #folha-comunicado { border: none !important; box-shadow: none !important; border-radius: 0 !important; max-width: none !important; padding: 14px 2px 0 !important; margin-top: 8px !important; }
@@ -64,6 +68,11 @@ const ESTILO_IMPRESSAO = `
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 `;
+
+// O número da casa como se escreve — só o papel o mostra: a frase
+// impressa tem de funcionar sem toque, e ao toque a ligação já
+// funciona. Deriva da constante para nunca desencontrar do wa.me.
+const NUMERO_LEGIVEL = `+${NUMERO_WHATSAPP_CASA.slice(0, 3)} ${NUMERO_WHATSAPP_CASA.slice(3, 6)} ${NUMERO_WHATSAPP_CASA.slice(6, 9)} ${NUMERO_WHATSAPP_CASA.slice(9)}`;
 
 // ---------- Peças locais ----------
 // Nenhuma outra página as usa; ficam aqui.
@@ -228,7 +237,10 @@ function Esq({ w = "100%", h = 12, r = 8, style }) {
 // diferentes. As palavras do terminado NUNCA dizem «já»: servem
 // igualmente quem recebeu um endereço retirado e quem nunca teve
 // ligação nenhuma — não se confirma nem se desmente que existiu.
-function Cortina({ titulo, corpo, aoRepetir }) {
+// A saída (o WhatsApp da casa + o domínio) está nas DUAS cortinas —
+// quem cai aqui é quem pior conhece a casa; só o erro soma o botão
+// de repetir, primeiro.
+function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
   const ligacao = {
     color: "#A07830",
     textDecorationColor: "#E8D5A3",
@@ -289,35 +301,33 @@ function Cortina({ titulo, corpo, aoRepetir }) {
         {corpo}
       </p>
 
-      {aoRepetir ? (
+      {aoRepetir && (
         <div style={{ marginTop: "32px" }}>
           <Capsula onClick={aoRepetir} style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}>
             Tentar novamente
           </Capsula>
         </div>
-      ) : (
-        <>
-          {/* O meio de contacto é o WhatsApp da casa (correcção do
-              dono) — nada de mailto em lado nenhum desta página. O
-              texto pré-escrito conta a situação de quem está na
-              cortina: um endereço que não abre. */}
-          <div style={{ marginTop: "32px" }}>
-            <Capsula
-              href={linkWhatsAppCasa("Olá! Recebi um endereço de uma folha da Do Luxo à Mesa, mas não abre.")}
-              style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4.5 11A5 5 0 1 1 6.3 12.2L2.8 13.6Z" />
-              </svg>
-              Falar pelo WhatsApp
-            </Capsula>
-          </div>
-          <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
-            E se procura a Do Luxo à Mesa, está em{" "}
-            <a href={SITE_URL} style={ligacao}>{DOMINIO_CASA}</a>.
-          </p>
-        </>
       )}
+
+      {/* O meio de contacto é o WhatsApp da casa (correcção do dono)
+          — nada de mailto em lado nenhum desta página. O texto
+          pré-escrito é de cada estado: conta o que a leitora viu, com
+          a voz dela. */}
+      <div style={{ marginTop: aoRepetir ? "16px" : "32px" }}>
+        <Capsula
+          href={linkWhatsAppCasa(mensagemWhatsApp)}
+          style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4.5 11A5 5 0 1 1 6.3 12.2L2.8 13.6Z" />
+          </svg>
+          Falar pelo WhatsApp
+        </Capsula>
+      </div>
+      <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
+        E se procura a Do Luxo à Mesa, está em{" "}
+        <a href={SITE_URL} style={ligacao}>{DOMINIO_CASA}</a>.
+      </p>
     </div>
   );
 }
@@ -417,10 +427,12 @@ function Peca({ peca, oferta }) {
         {peca.legenda}
       </p>
     ) : null;
+    // alt vazio de propósito: quando há legenda, ela é visível e é a
+    // única voz da imagem — o leitor de ecrã não lê o mesmo duas vezes.
     const imagem = (
       <img
         src={peca.url}
-        alt={peca.legenda || ""}
+        alt=""
         style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
       />
     );
@@ -764,7 +776,10 @@ function Folha({ dados }) {
         {/* «esta folha», e não «estas orientações»: o desenho falava do
             exemplo; a pergunta tem de servir qualquer assunto. E a
             resposta é o WhatsApp da casa (correcção do dono) — o email
-            saiu de todas as folhas: é pelo WhatsApp que a casa fala. */}
+            saiu de todas as folhas: é pelo WhatsApp que a casa fala.
+            O pré-escrito leva o título quando a folha o tem — com
+            várias folhas no ar, a Nádia não tem de perguntar «qual?»;
+            e no papel a frase ganha o número à vista (.so-print). */}
         <div
           className="bloco"
           style={{ marginTop: "28px", borderTop: "1px solid #F5ECD7", paddingTop: "14px", textAlign: "center" }}
@@ -772,11 +787,16 @@ function Folha({ dados }) {
           <p style={{ margin: 0, fontSize: "11.5px", lineHeight: 1.6, color: "#6B6B6B" }}>
             Alguma questão sobre esta folha?{" "}
             <a
-              href={linkWhatsAppCasa("Olá! Escrevo sobre uma folha da Do Luxo à Mesa.")}
+              href={linkWhatsAppCasa(
+                dados.titulo
+                  ? `Olá! Escrevo sobre a folha «${dados.titulo}» da Do Luxo à Mesa.`
+                  : "Olá! Escrevo sobre uma folha da Do Luxo à Mesa."
+              )}
               style={{ color: "#A07830", textDecorationColor: "#E8D5A3", textUnderlineOffset: "3px" }}
             >
               Fale connosco pelo WhatsApp
             </a>
+            <span className="so-print" style={{ display: "none" }}>: {NUMERO_LEGIVEL}</span>
             .
           </p>
         </div>
@@ -886,8 +906,9 @@ export default function ComunicadoPage() {
   if (resultado.estado === "erro") {
     return (
       <Cortina
-        titulo="Não foi possível abrir a folha."
-        corpo="Verifique a ligação à internet e tente novamente. O endereço que recebeu continua válido."
+        titulo="Não foi possível abrir o comunicado."
+        corpo="Verifique a ligação à internet."
+        mensagemWhatsApp="Olá! Tentei abrir um comunicado da Do Luxo à Mesa e não consegui."
         aoRepetir={() => {
           setResultado(null);
           setTentativa((t) => t + 1);
@@ -901,6 +922,7 @@ export default function ComunicadoPage() {
       <Cortina
         titulo="Não há nenhum comunicado neste endereço."
         corpo="Se este endereço lhe foi enviado numa conversa, peça um novo a quem o enviou."
+        mensagemWhatsApp="Olá! Abri o endereço que me enviaram e diz que não há nenhum comunicado da Do Luxo à Mesa."
       />
     );
   }

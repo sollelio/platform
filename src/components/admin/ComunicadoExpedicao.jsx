@@ -681,7 +681,7 @@ function OFim({
                 const [tipoParte, dataParte] = (c.ancora || "").split(" · ");
                 const t = (tipoParte || "evento").trim();
                 return {
-                  cabeca: `Entrou ${tipoFeminino(t) ? "uma" : "um"} ${t.toLowerCase()} depois de esta lista ter sido fechada: `,
+                  cabeca: `Entrou ${tipoFeminino(t) ? "uma" : "um"} ${t.toLowerCase()} depois de a lista fechar: `,
                   quando:
                     dataParte && dataParte !== "sem data marcada"
                       ? `, ${dataParte}`
@@ -689,7 +689,7 @@ function OFim({
                 };
               })()
             : {
-                cabeca: "Entrou um contacto depois de esta lista ter sido fechada: ",
+                cabeca: "Entrou um contacto depois de a lista fechar: ",
                 quando: "",
               };
         const estaArmado = armado === i;
@@ -704,9 +704,6 @@ function OFim({
                   {entrada.quando}. Pela regra deste comunicado
                   {rotuloMin ? ` — ${rotuloMin} — ` : " "}
                   teria recebido.
-                </div>
-                <div style={{ fontSize: "11.5px", lineHeight: 1.6, color: "var(--gray-mid)", marginTop: "7px" }}>
-                  A lista está fechada e assim fica, a não ser que decida o contrário.
                 </div>
               </div>
             </div>
@@ -757,13 +754,12 @@ function OFim({
                   textWrap: "pretty",
                 }}
               >
-                Entra uma linha só, e o envio continua a ser seu: a lista passa a ter{" "}
-                {extensoM(linhas.length + 1)} nomes,{" "}
+                A lista passa a ter {extensoM(linhas.length + 1)} nomes,{" "}
                 {n === 0
-                  ? "nenhum deles ainda enviado"
+                  ? "nenhum ainda enviado"
                   : n === 1
-                    ? "um deles já enviado"
-                    : `${extensoM(n)} deles já enviados`}
+                    ? "um já enviado"
+                    : `${extensoM(n)} já enviados`}
                 .
               </p>
             )}
@@ -795,9 +791,8 @@ function OFim({
             textWrap: "pretty",
           }}
         >
-          No total, sem nomes: a folha é pública e reencaminhável, e «enviado» diz
-          que a mensagem saiu — não que foi recebida ou lida. Mais leituras do que
-          envios é bom sinal: alguém partilhou.
+          Contam-se no total, nunca por pessoa. Mais leituras do que envios:
+          alguém partilhou.
         </p>
       </div>
 
@@ -806,7 +801,7 @@ function OFim({
       {mostrarConvite && convite === "inicial" && (
         <div style={{ ...CARTAO, borderRadius: "14px", marginTop: "16px", padding: "15px 16px" }}>
           <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
-            Isto vai repetir-se em cada casamento novo. Quer guardar como modelo de comunicado?
+            Este envio vai repetir-se? Guarde como modelo de comunicado.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginTop: "12px" }}>
             <button
@@ -836,8 +831,7 @@ function OFim({
       )}
       {mostrarConvite && convite === "adiado" && (
         <p style={{ margin: "16px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)", textWrap: "pretty" }}>
-          Fica como está. Pode guardar como modelo a partir do próprio comunicado,
-          quando quiser.{" "}
+          Pode guardar como modelo mais tarde, a partir do comunicado.{" "}
           <button
             onClick={() => setGaveta(true)}
             className="ligacao"
@@ -1115,7 +1109,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
       await recarregar();
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível guardar a mensagem desta pessoa.");
+      setErro("Não foi possível guardar a mensagem desta pessoa. Tente outra vez.");
     } finally {
       setOcupado(false);
     }
@@ -1235,7 +1229,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
           </div>
           <p style={{ margin: "7px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
             Escreve-se uma vez e sai em todas as conversas, com o nome de cada
-            pessoa. Sem ela, a folha chegava como um endereço sozinho.
+            pessoa.
           </p>
           <button
             onClick={onMensagem}
@@ -1489,9 +1483,6 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   )}
                 </div>
               ))}
-              <p style={{ margin: "8px 0 0", fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-                Ficam na lista, contados — a mensagem copia-se e segue por onde houver caminho.
-              </p>
             </>
           )}
 
@@ -1555,7 +1546,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 className="ligacao"
                 style={{ fontSize: "12px", color: "var(--gray-mid)" }}
               >
-                Muitas pessoas de uma vez? Há a lista de difusão
+                Todos de uma vez? Lista de difusão
               </button>
             </div>
           )}
@@ -1570,9 +1561,9 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
               textWrap: "pretty",
             }}
           >
-            «Enviado» quer dizer: a conversa abriu-se e a mensagem saiu. Não diz
-            que foi recebida, nem que foi lida. E as leituras da folha contam-se
-            no total, nunca por pessoa — a folha é pública e reencaminhável.
+            «Enviado» quer dizer: a conversa abriu-se e a mensagem saiu — não
+            que foi recebida ou lida. As leituras contam-se no total, nunca por
+            pessoa.
           </p>
         </>
       )}
@@ -1650,8 +1641,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
             }}
           >
             A difusão só entrega a quem tem o número da casa guardado nos
-            contactos. Quem não tiver, não recebe — e não há aviso: na dúvida,
-            essa pessoa vai melhor uma a uma.
+            contactos — e não avisa quem ficou de fora. Na dúvida, envie uma a
+            uma.
           </p>
 
           <div style={{ ...OVERLINE, marginTop: "18px" }}>QUEM ENTRA · {porEnviar.length}</div>
@@ -1783,7 +1774,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
             }}
           />
           <p style={{ margin: "9px 0 0", fontSize: "11px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-            A conversa abre com esta mensagem já escrita — falta só, lá, o toque de enviar.
+            A conversa abre com esta mensagem já escrita.
           </p>
           {/* A MESMA caixa do portal da linha — mesmo estado, mesmo
               toque; a gaveta não tem versão própria da escolha. */}

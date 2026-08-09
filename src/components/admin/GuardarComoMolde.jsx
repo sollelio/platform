@@ -368,8 +368,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               textWrap: "pretty",
             }}
           >
-            Cada comunicado que nascer daqui é novo: conta os nomes outra vez e
-            ganha endereço próprio. Alterações só valem para envios novos.
+            Alterações só valem para envios novos.
           </p>
 
           <label htmlFor="dlm-nome-molde" style={{ display: "block", marginTop: "20px", ...OVERLINE }}>
@@ -395,7 +394,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             }}
           />
           <div style={{ fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)", marginTop: "7px" }}>
-            Só o vê a casa. As clientes vêem o título da folha.
+            Só a casa o vê — as clientes vêem o título da folha.
           </div>
 
           {/* O QUE ENVELHECE — a pergunta que o desenho não fazia

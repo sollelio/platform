@@ -1094,8 +1094,79 @@ método; aqui ficam as decisões aprovadas fase a fase).
 - **Migração 085** escrita e aprovada (5 partes) — correr PERTO do
   deploy do código da Fase C (janela curta em que a folha pública
   compõe sem saudação entre uma coisa e outra).
-- Fases D (passe de Content UX) e E (a folha pública) do briefing:
-  por fazer, cada uma com aprovação própria.
+- **Fase D ✓ (09/08/2026) — o passe de Content UX:** 368 strings da
+  interface julgadas pelos 9 princípios do briefing; 302 ficaram, 14
+  cortaram-se, 52 reescreveram-se — zero texto acrescentado. A tabela
+  aprovada (o pré-acordo, linha a linha) vive em
+  **docs/comunicados-fase-d-strings.md**. A voz única fixada: folha ·
+  endereço · fechar a lista · envios · quem recebe · **escolha** (nunca
+  «recorte» nem «filtros» em ecrã) · «a mensagem que ACOMPANHA o
+  endereço» · e o par canónico do medo, «Cria o endereço. Ainda não
+  envia nada.» com o espelho no fechar da lista. Decisões do Hélio:
+  placeholder da saudação «Queridas clientes,»; os cortes apoiados na
+  pré-visualização aplicam-se (a Nádia trabalha em ecrã largo); a intro
+  permanente da lista encolheu (a definição completa vive no estado
+  vazio). Notas: os throw de guarda de programador na lib mantêm
+  «recorte» (nunca chegam ao ecrã); comunicadoTempo.js ficou intocado
+  (as 4 linhas eram «=»); a ComunicadoPage é da Fase E.
+- **Fase E — decidido (09/08/2026): briefing próprio.** O Hélio pediu
+  para seguir a recomendação, e a recomendação é esta: a folha pública
+  não se revê com a régua da Fase D, porque muda o leitor — a Fase D
+  falava à Nádia (operadora, ecrã largo, treinada pelo percurso); a
+  folha pública fala às clientes dela, que a leem uma vez, sem
+  contexto, provavelmente no telemóvel, e é a cara da casa. Os 9
+  princípios foram afinados para carga cognitiva de operador; virados
+  a fora, o registo é outro (hospitalidade, estética dourada) e há
+  acoplamento com a migração 085 (saudação explícita, janela de
+  deploy). Rascunho do briefing em
+  **docs/comunicados-fase-e-briefing.md** — aguarda aprovação do
+  Hélio antes de qualquer aplicação.
+- **Fase E — as quatro decisões reservadas ✓ (09/08/2026, palavra do
+  Hélio):** (1) mantém-se **«endereço»** — uma palavra, um trabalho:
+  «endereço» é o da folha, «ligação» é a da internet; (2) coabitação
+  **comunicado/folha** — fora da folha aberta (cortinas e o
+  pré-escrito da cortina) diz-se «comunicado»; dentro da folha aberta
+  (rodapé e o seu pré-escrito) pode dizer-se «esta folha»; (3) o corpo
+  do erro **corta a repetição do botão** — «Verifique a ligação à
+  internet. O endereço que recebeu continua válido.»; (4) o **`alt` da
+  legenda entra no passe** — `alt=""` quando a legenda visível existe.
+  A régua fecha-se com a aprovação do Hélio ao rascunho revisto pela
+  crítica; depois a tabela, só depois o código.
+- **Fase E — régua aprovada ✓ (09/08/2026) e crítica integrada.** O
+  painel de três críticos (fidelidade · completude · leitora) correu
+  DEPOIS da aprovação; as emendas estão integradas no briefing e
+  listadas lá em «O que a crítica mudou» — as maiores: a **lei
+  lusófona** (identidade-visual §6) entrou no princípio 3 e no
+  varrimento final; o princípio 4 **autoriza expressamente a saída na
+  cortina de erro** (hoje é um beco: só o botão, sem WhatsApp nem
+  domínio); o 7 alargou-se ao papel (frase impressa funciona sem
+  toque); o 9 deixou de ser absoluto (só se acrescenta o que outro
+  princípio exigir, marcado como ACRESCENTA); nasceram o **10.º
+  princípio** (a folha prova quem é e nunca pede nada) e a **regra dos
+  pré-escritos** (a única voz que é da leitora: soar a pessoa,
+  identificar a folha, descrever o que viu). A tabela vive em
+  **docs/comunicados-fase-e-strings.md** — 25 linhas: 18 «=», 5
+  reescritas, 2 ACRESCENTA (P4 e P7, com mockup antes), 0 cortes —
+  aguarda aprovação linha a linha. Três linhas pedem a palavra do
+  Hélio em especial: P:890 (a crítica propõe cortar também «continua
+  válido» — a promessa pode desmentir-se na cortina seguinte; revê a
+  2.ª frase da decisão 3) e os dois ACRESCENTA.
+- **Fase E ✓ (09/08/2026) — tabela aprovada e aplicada.** O Hélio
+  aprovou a tabela por inteiro, incluindo as três ★ (o corpo do erro
+  fica só «Verifique a ligação à internet.» — a revisão da decisão 3
+  aceite; a cortina de erro ganhou a mesma saída da cortina morta,
+  com pré-escrito próprio; o rodapé impresso ganhou o número da casa
+  à vista, `.so-print`, derivado de `NUMERO_WHATSAPP_CASA` para nunca
+  desencontrar do wa.me). Verificador independente antes da
+  aplicação: 23/23 ANTES palavra por palavra, contagens certas, cinco
+  emendas suas integradas na tabela. Aplicação verificada palavra a
+  palavra (7 DEPOIS presentes, ANTES todos retirados, fallback do
+  pré-escrito sem título mantido) e varrimento limpo (lista negra
+  pública + lei lusófona). Portão: esbuild ✓ eslint ✓ build ✓. Por
+  commitar — o git é do Hélio. **O briefing dos comunicados está
+  completo: Fases A, B, C (código em obra), D e E fechadas**; pendências
+  fora de fase: migração 085 (correr perto do deploy da Fase C) e as
+  notas «fora da fase» do briefing E (contagem de leituras, cartão OG).
 
 ## Validação — regra da casa
 

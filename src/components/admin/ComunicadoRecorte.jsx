@@ -60,7 +60,7 @@ const eventosDe = (n, nomeTipo) =>
 
 const fraseEventos = (nomeTipo, jan, pv, pa) => {
   const tot = pv + pa;
-  if (tot === 0) return `Ainda não há eventos de ${nomeTipo}. A contagem responde quando houver.`;
+  if (tot === 0) return `Ainda não há eventos de ${nomeTipo} — experimente outro tipo ou janela.`;
   if (jan === "porvir")
     return `${eventosDe(pv, nomeTipo)} por vir · ${pa} já ${pa === 1 ? "passou" : "passaram"}, fora da janela.`;
   if (jan === "passados") return `Só o que já aconteceu: ${eventosDe(pa, nomeTipo)}.`;
@@ -84,11 +84,11 @@ const fraseDedup = (c) => {
 const fraseFora = (c, origem) => {
   const n = c.semNumero.length;
   if (n === 0) {
-    if (c.pessoas === 0) return "Ninguém — não há ninguém no recorte.";
+    if (c.pessoas === 0) return "Ninguém.";
     if (origem === "eventos")
-      return `Ninguém: ${c.pessoas === 1 ? "1 pessoa tem" : `${c.pessoas} pessoas têm`} número utilizável — na ficha ou nas respostas do evento.`;
+      return `Ninguém: ${c.pessoas === 1 ? "1 pessoa tem" : `${c.pessoas} pessoas têm`} número utilizável.`;
     return c.pessoas === 1
-      ? "Ninguém: a única pessoa do recorte tem número utilizável."
+      ? "Ninguém: a única pessoa tem número utilizável."
       : `Ninguém: os ${c.pessoas} têm número utilizável.`;
   }
   return `Fica${n === 1 ? "" : "m"} de fora ${n}: ${c.semNumero
@@ -99,7 +99,7 @@ const fraseFora = (c, origem) => {
 const frasePromocoes = (c) => {
   const n = c.excluidasPromocoes.length;
   if (n === 0)
-    return "Ninguém pediu, até hoje, para não receber promoções — quando alguém pedir, sai daqui sozinho.";
+    return "Ninguém pediu para não receber promoções.";
   return n === 1
     ? `Fora, a pedido: ${c.excluidasPromocoes[0]} pediu para não receber promoções.`
     : `Fora, a pedido: ${c.excluidasPromocoes.join(", ")} pediram para não receber promoções.`;
@@ -270,7 +270,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
       // As mensagens da camada de dados já falam a língua da casa;
       // qualquer outra (rede, permissões) leva a genérica.
       setErro(
-        /fechad|recorte/i.test(e?.message || "")
+        /fechad|recorte|escolha/i.test(e?.message || "")
           ? e.message
           : "Não foi possível fechar a lista. Tente outra vez.",
       );
@@ -292,7 +292,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
       setErro(
         /envio|fecho/i.test(e?.message || "")
           ? e.message
-          : "Não foi possível desfazer o fecho da lista.",
+          : "Não foi possível desfazer o fecho da lista. Tente outra vez.",
       );
     } finally {
       setOcupado(false);
@@ -332,7 +332,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
         Quem recebe
       </h1>
       <p style={{ margin: "6px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
-        A regra que diz quem recebe. A lista só fica fixa quando a fechar.
+        A lista só fica fixa quando a fechar.
       </p>
 
       {/* A pastilha das origens — o indicador branco desliza (180ms,
@@ -425,13 +425,13 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 ))}
               {tipos !== null && tipos.length === 0 && !erroTipos && (
                 <p style={{ margin: 0, fontSize: "12.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
-                  Ainda não há tipos de evento.
+                  Ainda não há tipos de evento — criam-se em Modelos de Evento.
                 </p>
               )}
             </div>
             {erroTipos && (
               <p role="alert" style={{ margin: "10px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
-                Não foi possível carregar os tipos de evento.
+                Não foi possível carregar os tipos de evento. Recarregue a página.
               </p>
             )}
             <div style={{ ...OVERLINE, marginTop: "20px" }}>JANELA</div>
@@ -453,9 +453,6 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 </Chip>
               ))}
             </div>
-            <p style={{ margin: "14px 0 0", fontSize: "11.5px", fontStyle: "italic", lineHeight: 1.6, color: "var(--gray-mid)" }}>
-              Não há evento nenhum no meio: é a base de contactos, tal como está.
-            </p>
           </>
         )}
       </div>
@@ -482,7 +479,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
         )}
         {falhou && (
           <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "#DC2626" }}>
-            Não foi possível contar o recorte.{" "}
+            Não foi possível contar.{" "}
             <button
               onClick={() => setTick((t) => t + 1)}
               className="ligacao"
@@ -562,8 +559,8 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
             </button>
             <p style={{ margin: "9px 0 0", textAlign: "center", fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)" }}>
               {podeCongelar
-                ? "Fixa estes nomes agora — o envio trabalha sobre eles, sem surpresas."
-                : "Ajuste o recorte até a contagem responder."}
+                ? "Fixa estes nomes. Ainda não envia nada."
+                : "Ajuste a escolha até a contagem responder."}
             </p>
           </>
         ) : (

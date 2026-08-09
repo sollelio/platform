@@ -215,9 +215,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
           maxWidth: "480px",
         }}
       >
-        O que se guarda de um comunicado para voltar a usar: a folha, a
-        mensagem e a regra de quem recebe. Como os modelos de evento, mas para o
-        que se diz a muita gente ao mesmo tempo.
+        A folha, a mensagem e a regra de quem recebe — guardadas para voltar a
+        usar.
       </p>
 
       {erro && (
@@ -274,8 +273,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "pretty",
             }}
           >
-            No fim de um envio, «Guardar como modelo» fica com três coisas
-            — e é o que verá aqui em cada linha:
+            No fim de um envio, «Guardar como modelo» fica com três coisas:
           </p>
           <div
             style={{
@@ -331,8 +329,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "pretty",
             }}
           >
-            Não guarda os nomes, nem o endereço, nem as leituras: cada
-            comunicado que nasce de um modelo é novo, e ganha endereço próprio.
+            Cada comunicado que nasce de um modelo é novo, com endereço próprio.
           </p>
           <button
             onClick={onIrAosFeitos}
@@ -555,19 +552,6 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               </div>
             );
           })}
-          <p
-            style={{
-              margin: "20px 0 0",
-              fontSize: "11.5px",
-              fontStyle: "italic",
-              lineHeight: 1.65,
-              color: "var(--gray-mid)",
-              textWrap: "pretty",
-            }}
-          >
-            Um modelo de comunicado guarda o que se diz e a quem — nunca os nomes, o endereço
-            ou as leituras. Esses nascem com cada comunicado.
-          </p>
         </>
       )}
     </div>

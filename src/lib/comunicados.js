@@ -434,7 +434,7 @@ export const contarRecorte = async ({ origem, eventTypeId, janela, quem } = {}) 
         // Distinguir «não há número» de «há, mas não serve» — são
         // conversas diferentes com a pessoa.
         porque: l.telefone
-          ? "o número registado não tem dígitos utilizáveis"
+          ? "o número registado não é utilizável"
           : origem === "eventos"
             ? "sem número na ficha nem nas respostas do evento"
             : "sem número na ficha nem em nenhum evento",
@@ -555,7 +555,7 @@ export const congelarLista = async (comunicadoId, regra = {}) => {
     });
   }
   if (registos.length === 0) {
-    throw new Error("O recorte não apanha ninguém — não há lista para fechar.");
+    throw new Error("A escolha não apanha ninguém — não há lista para fechar.");
   }
 
   const { data: inseridos, error: erroInserir } = await supabase
@@ -597,7 +597,7 @@ export const desfazerCongelamento = async (comunicadoId) => {
   if (erroMexidas) throw erroMexidas;
   if (mexidas && mexidas.length) {
     throw new Error(
-      "O envio já começou — há conversas abertas ou envios marcados. O fecho da lista já não se desfaz.",
+      "O envio já começou — o fecho da lista já não se desfaz.",
     );
   }
   const { error: erroApagar } = await supabase
@@ -905,7 +905,7 @@ export const apagarModelo = async (id) => {
 // todo à frente, não ao usar.
 export const guardarComoMolde = async (comunicado, nome, blocos) => {
   const n = (nome || "").trim();
-  if (!n) throw new Error("O modelo de comunicado precisa de um nome.");
+  if (!n) throw new Error("O modelo precisa de um nome.");
   const { data, error } = await supabase
     .from("comunicado_modelos")
     .insert([
