@@ -11,6 +11,7 @@ import {
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
 import { marcarPagamentoFinal, updateFase } from "../../lib/clientes";
 import { registarSinalComGuarda } from "../../lib/disputaDia";
+import AvisoSinalRecebido from "./AvisoSinalRecebido";
 import { Icone } from "./Navegacao";
 import { Convite, useContagemAnimada } from "./acabamento";
 import ContribuicaoColetiva from "./ContribuicaoColetiva";
@@ -650,6 +651,9 @@ export default function PagamentosEvento({
   const [aGerarPlano, setAGerarPlano] = useState(false);
   // O pagamento acabado de registar chega com brilho (ver .linha-nova)
   const [novoId, setNovoId] = useState(null);
+  // A oferta de aviso à cliente quando o SINAL entra (10/08) — o
+  // padrão do prazo aplicado ao desfecho; fecha-se e não volta.
+  const [avisoSinal, setAvisoSinal] = useState(false);
   const [erroPlano, setErroPlano] = useState(null);
   const [formularioAberto, setFormularioAberto] = useState(null); // id do previsto, "avulso", ou null
   const [pagamentoParaApagar, setPagamentoParaApagar] = useState(null);
@@ -851,6 +855,9 @@ export default function PagamentosEvento({
         console.warn("Sinal saldado; a fase fica para o banner:", e?.message || e);
       }
     }
+    // O elo que faltava (10/08): o sinal entrou — oferece-se o aviso à
+    // cliente, no tom da casa. Oferece-se: o envio é gesto dela.
+    if (registo.origem === "sinal") setAvisoSinal(true);
   };
 
   // No fluxo final (077) o sinal ANTES do contrato é o desenho, não a
@@ -1047,6 +1054,17 @@ export default function PagamentosEvento({
           />
         )}
       </div>
+
+      {/* A oferta de aviso — o sinal entrou, a cliente ainda não sabe.
+          A mensagem pré-escrita com a ligação do acompanhamento; o
+          envio é sempre um gesto dela. */}
+      {avisoSinal && (
+        <AvisoSinalRecebido
+          evento={submissao}
+          aoFechar={() => setAvisoSinal(false)}
+          style={{ marginBottom: "18px" }}
+        />
+      )}
 
       {/* A sugestão de avanço — o sinal está no banco, a fase é juízo
           dela. Desaparece sozinha quando a fase avança. */}

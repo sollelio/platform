@@ -13,6 +13,7 @@ import {
   saldoSinalPendente,
 } from "../../lib/pagamentos";
 import { estadoDoDia, registarSinalComGuarda } from "../../lib/disputaDia";
+import AvisoSinalRecebido from "./AvisoSinalRecebido";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import {
@@ -213,6 +214,9 @@ export default function FunilBoard({
   const [atualizando, setAtualizando] = useState(null); // id do evento
   const [novoInteressado, setNovoInteressado] = useState(false); // modal aberto
   const [avisoErro, setAvisoErro] = useState(null); // toast discreto (adeus alert)
+  // A oferta de aviso à cliente quando o SINAL entra por aqui (10/08)
+  // — o evento a avisar, ou null; fecha-se e não volta.
+  const [avisoSinalPago, setAvisoSinalPago] = useState(null);
 
   const carregar = async () => {
     setCarregando(true);
@@ -575,6 +579,10 @@ export default function FunilBoard({
               "A fase avançou, mas o sinal não ficou registado agora (sem plano utilizável ou já existia um pagamento do sinal) — confirma na ficha do evento.",
               6000,
             );
+          } else {
+            // O sinal entrou pelo caminho antigo — a oferta de aviso à
+            // cliente é a mesma (10/08).
+            setAvisoSinalPago(ev);
           }
         } catch (e2) {
           console.error("registarSinalDoFunil falhou:", e2);
@@ -598,6 +606,9 @@ export default function FunilBoard({
             6000,
           );
         }
+        // O elo que faltava (10/08): o sinal entrou — oferece-se o
+        // aviso à cliente. Oferece-se: o envio é gesto da Nádia.
+        setAvisoSinalPago(ev);
         if (onDadosMudaram) onDadosMudaram();
       } else if (
         ["ja_registado", "dia_tomado", "prazo_alheio"].includes(resposta.estado)
@@ -657,6 +668,9 @@ export default function FunilBoard({
             6000,
           );
         }
+        // O elo que faltava (10/08): o sinal entrou — oferece-se o
+        // aviso à cliente. Oferece-se: o envio é gesto da Nádia.
+        setAvisoSinalPago(ev);
         if (onDadosMudaram) onDadosMudaram();
       } else if (
         resposta &&
@@ -789,6 +803,16 @@ export default function FunilBoard({
         >
           {avisoErro}
         </p>
+      )}
+
+      {/* A oferta de aviso à cliente — o sinal entrou pelo funil e ela
+          ainda não sabe. O envio é sempre um gesto da Nádia. */}
+      {avisoSinalPago && (
+        <AvisoSinalRecebido
+          evento={avisoSinalPago}
+          aoFechar={() => setAvisoSinalPago(null)}
+          style={{ margin: "0 0 12px 0" }}
+        />
       )}
 
       {/* ===== AS TRÊS COLUNAS DA NÁDIA =====

@@ -319,3 +319,23 @@ export const prazoWhatsApp = (nome, dataEventoISO, prazoISO) => {
     `em aberto. Qualquer dúvida, é só responder por aqui.`
   );
 };
+
+// O texto pré-escrito quando o sinal ENTRA — o fecho do círculo que o
+// ecrã de espera do portal promete («assim que estiver connosco, a
+// data fica reservada em seu nome, e esta página acorda por inteiro»).
+// Vive ao lado do texto do prazo pela mesma razão que ele: o botão de
+// abrir e o de copiar dizem SEMPRE a mesma coisa. Sem ligação viva do
+// acompanhamento não se promete página nenhuma — a frase cala-se; e
+// quando há, a mensagem TERMINA no endereço, sem ponto a seguir, para
+// o WhatsApp ler a ligação limpa.
+export const sinalRecebidoWhatsApp = (nome, dataEventoISO, ligacao = null) => {
+  const saudacao = nome && String(nome).trim() ? `Olá ${String(nome).trim()}!` : "Olá!";
+  const dia = diaPorExtenso(dataEventoISO);
+  const reserva = dia
+    ? `${saudacao} Recebemos o seu sinal — o dia ${dia} fica reservado em seu nome.`
+    : `${saudacao} Recebemos o seu sinal — a sua data fica reservada em seu nome.`;
+  const fecho = "Qualquer dúvida, é só responder por aqui.";
+  return ligacao
+    ? `${reserva} ${fecho} A sua página acordou por inteiro: ${ligacao}`
+    : `${reserva} ${fecho}`;
+};

@@ -1233,6 +1233,33 @@ método; aqui ficam as decisões aprovadas fase a fase).
   seguem numa lista única (conteudo.js). O DestaqueAcompanhamento.jsx
   morreu — o pórtico é o herdeiro. Portão: esbuild ✓ eslint ✓ (0→0
   nos dois ficheiros tocados; o novo, limpo) build ✓.
+- **O aviso do sinal recebido ✓ (10/08/2026) — o elo que faltava no
+  funil.** Pergunta do Hélio: como fica a cliente a saber que a casa
+  confirmou o sinal? Diagnóstico: o portal é só *pull* (a página
+  responde quando ela olha; ninguém lhe dizia para olhar) e as duas
+  portas do registo (aba Pagamentos e «Sinal recebido →» do Funil)
+  terminavam em silêncio. A ideia do **código foi posta de lado com
+  razão dada**: o código de 6 dígitos autentica a cliente perante a
+  casa (véu dos valores, assinar); aqui o sentido é o inverso e o
+  desbloqueio já é automático no servidor — seria um ritual vazio.
+  Decisão: **o padrão do prazo aplicado ao desfecho** — quando o sinal
+  entra no livro (qualquer das portas, incluindo o registo forçado da
+  disputa), a folha oferece o WhatsApp pré-escrito
+  (`sinalRecebidoWhatsApp`, gémea da `prazoWhatsApp` em disputaDia.js):
+  «Olá {nome}! Recebemos o seu sinal — o dia {data} fica reservado em
+  seu nome. Qualquer dúvida, é só responder por aqui. A sua página
+  acordou por inteiro: {ligação}» — a mensagem termina no endereço,
+  sem ponto, para o WhatsApp a ler limpa; sem acompanhamento aberto a
+  frase da página cala-se; sem número da cliente fica só o copiar. A
+  oferta vive no componente **AvisoSinalRecebido.jsx** (cartão
+  dourado, «Avisá-la pelo WhatsApp» + «Copiar a mensagem» + «o envio é
+  sempre um gesto seu, nunca do sistema»), passageiro — fecha-se e não
+  volta. Reforço aprovado: a **reconferência do foco chegou à raiz do
+  portal** (só na jornada; a SinalVista já tinha a sua) — quem deixa a
+  página aberta e volta a ela encontra a verdade fresca. Realtime no
+  portal: posto de lado por agora (anon por token, cuidado com RLS,
+  caso raro). Portão: esbuild ✓ eslint zero erros novos (PagamentosEvento
+  3→3 e FunilBoard 7→7 pré-existentes; o componente novo, limpo) build ✓.
 
 ## Validação — regra da casa
 

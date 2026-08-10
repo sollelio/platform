@@ -316,6 +316,26 @@ export default function PortalPage() {
       });
   }, [token]);
 
+  // A reconferência do foco, também na raiz (10/08): quem deixa a
+  // jornada aberta e volta a ela — o gesto natural de quem espera a
+  // confirmação do sinal — encontra a verdade fresca sem recarregar.
+  // Só na jornada: a SinalVista já faz a sua reconferência, e as
+  // outras vistas têm circuito próprio; duplicar aqui era pedir duas
+  // leituras por cada foco.
+  useEffect(() => {
+    if (vista !== undefined) return undefined;
+    const reconferir = () => {
+      if (document.visibilityState === "hidden") return;
+      recarregarSilencioso();
+    };
+    window.addEventListener("focus", reconferir);
+    document.addEventListener("visibilitychange", reconferir);
+    return () => {
+      window.removeEventListener("focus", reconferir);
+      document.removeEventListener("visibilitychange", reconferir);
+    };
+  }, [vista, recarregarSilencioso]);
+
   // O título do separador fala à cliente na língua da casa — «Sistema DLM»
   // é vocabulário interno e fica no backoffice.
   useEffect(() => {
