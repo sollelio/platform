@@ -9,7 +9,9 @@ import { LINHAS_DO_SINAL } from "./conteudo";
 // O padrão é o do pórtico das condições (o mesmo escuro quase opaco,
 // sem blur — vê-se que a página existe, não se lê), mas com um papel
 // inverso: o pórtico tranca até se confirmar; este INFORMA e sai por
-// onde entrou. Abre por um gesto do cliente («Ver o que se abre»), por
+// onde entrou. Abre por um gesto do cliente («Ver melhor o que se
+// abre», na divisão da jornada — o teaser da SinalVista caiu por
+// redundante, correcção do dono de 10/08), por
 // isso — ao contrário do pórtico, que aparece de um golpe — entra em
 // fade; a saída dissolve como lá. Decisão de 08/08/2026: SEM código
 // novo — a ligação que a cliente tem nas mãos é a chave, o sinal

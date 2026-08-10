@@ -10,7 +10,6 @@ import {
 import {
   CapsulaCheia, CapsulaVazada, LigacaoDiscreta,
 } from "./documentos-pecas";
-import DestaqueAcompanhamento from "./DestaqueAcompanhamento";
 
 // ============================================================
 // SinalVista — o ecrã do sinal (/acompanhar/:token/sinal).
@@ -287,8 +286,6 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
   const [metodoIndicado, setMetodoIndicado] = useState(null);
   const [aEnviar, setAEnviar] = useState(false);
   const [erro, setErro] = useState(null);
-  // O destaque escuro do que o sinal abre (Bloco 3) — abre do teaser.
-  const [destaqueAberto, setDestaqueAberto] = useState(false);
 
   // O «copiado ✓» de dois segundos, uma linha de cada vez.
   const [copiado, setCopiado] = useState(null);
@@ -876,17 +873,17 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
           <p style={micro()}>mostra como pagar — nada fica pago ao tocar</p>
         </CartaoBranco>
 
-        {/* O teaser do que o sinal abre — acende o destaque escuro do
-            pórtico aqui mesmo, sem sair do ecrã. */}
+        {/* A promessa do que o sinal abre — duas linhas e mais nada: o
+            destaque escuro que aqui se abria dizia o que o acompanhamento
+            já conta em claro na divisão «O que o sinal abre», e o
+            «Voltar ao acompanhamento» lá em baixo chega (correcção do
+            dono, 10/08). */}
         {!guardado && (
           <div style={{ marginTop: "22px", paddingTop: "20px", borderTop: "1px solid #F0E6D0" }}>
             <p style={{ ...overline(), marginBottom: "4px" }}>Depois do sinal</p>
-            <p style={{ ...playfair, fontSize: "17px", margin: "0 0 10px", textWrap: "balance" }}>
+            <p style={{ ...playfair, fontSize: "17px", margin: 0, textWrap: "balance" }}>
               O seu evento, acompanhado em tempo real.
             </p>
-            <LigacaoDiscreta onClick={() => setDestaqueAberto(true)}>
-              Ver o que se abre
-            </LigacaoDiscreta>
           </div>
         )}
       </>
@@ -908,13 +905,6 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
       )}
 
       <Assinatura style={{ marginTop: "28px" }} />
-
-      {destaqueAberto && (
-        <DestaqueAcompanhamento
-          reduzir={reduzir}
-          aoFechar={() => setDestaqueAberto(false)}
-        />
-      )}
     </div>
   );
 }

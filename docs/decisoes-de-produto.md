@@ -1201,6 +1201,19 @@ método; aqui ficam as decisões aprovadas fase a fase).
   eslint com **zero erros novos** — nota à parte: a versão nova do
   plugin react-hooks acusa 88 erros pré-existentes no repo (3 neste
   ficheiro, já no HEAD); a limpeza é tarefa própria, por decidir.
+- **O «Ver o que se abre» da SinalVista caiu ✓ (10/08/2026, correcção
+  do Hélio).** No ecrã do sinal, o teaser «Ver o que se abre» acendia
+  o destaque escuro (DestaqueAcompanhamento) — mas esse escuro dizia
+  o que o acompanhamento já conta em claro na divisão «O que o sinal
+  abre», que aparece sempre entre o orçamento feito e o sinal. O link
+  não fazia nada a sério; o **«Voltar ao acompanhamento» é o
+  suficiente** e fica. A promessa de duas linhas («Depois do sinal —
+  O seu evento, acompanhado em tempo real.») mantém-se no ecrã do
+  sinal, agora sem link. O DestaqueAcompanhamento continua vivo na
+  divisão da jornada («Ver melhor o que se abre», decisão de 08/08) —
+  só perdeu a segunda porta. E o portão combinado não mudou: o
+  acompanhamento em tempo real desbloqueia com a confirmação do
+  sinal. Portão: esbuild ✓ eslint ✓ build ✓.
 
 ## Validação — regra da casa
 
