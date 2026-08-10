@@ -1337,6 +1337,26 @@ método; aqui ficam as decisões aprovadas fase a fase).
   endereços já entregues). Portão: esbuild ✓ eslint 0→0 nos sete
   ficheiros build ✓.
 
+## O pedido /interesse — convidados e a mesa do bolo (10/08/2026)
+
+- **O nº de convidados é obrigatório na porta pública ✓ (10/08/2026,
+  palavra do Hélio) — excepto quando o pedido é SÓ o cenário
+  fotografável.** O orçamento depende da lotação em tudo o que a casa
+  vende — menos no cenário, que não se vende ao convidado. A regra é
+  dinâmica: o campo nasce obrigatório (asterisco e barra dourada
+  contam com ele, o total passa de 5 a 6) e dispensa-se no momento em
+  que a única opção escolhida é «Cenário fotografável»; juntar
+  qualquer outro serviço volta a exigi-lo. Na porta INTERNA fica
+  livre: a Nádia transcreve leads de Instagram e nem sempre sabe já o
+  número — o mesmo racional da regra dos 9 dígitos do contacto
+  (rigidez pública, flexibilidade interna). Validação: vazio ou <1
+  acende «Indica o número de convidados.»
+- **«Mesa do bolo da noiva» passou a «Mesa do bolo» ✓ (10/08/2026,
+  palavra do Hélio).** Nem toda a mesa do bolo é de noiva. O mapa das
+  avaliações foi desenhado para renomes (066: várias cadeias por
+  eixo): a **migração 087** junta a cadeia nova ao eixo «bolo», a
+  antiga fica pelo histórico. Pendência: **correr a 087**.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

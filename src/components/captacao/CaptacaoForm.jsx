@@ -26,11 +26,15 @@ import AvisoDiaDisputado from "../AvisoDiaDisputado";
 // ============================================================
 
 const OPCOES_LOCAL = ["Ao domicílio", "Salão", "Quinta", "Exterior", "Outro"];
+// ⚠ Renomear um rótulo aqui pede migração no mapa das avaliações:
+// avaliacao_eixos aceita várias cadeias por eixo (desenho da 066), e a
+// cadeia nova junta-se ao eixo sem perder o histórico. «Mesa do bolo da
+// noiva» → «Mesa do bolo» foi a 087.
 const OPCOES_SERVICOS = [
   "Mesa posta",
   "Buffet",
   "Cenário fotografável",
-  "Mesa do bolo da noiva",
+  "Mesa do bolo",
   "Balcão",
 ];
 // Pacotes de buffet — escolha ÚNICA, aparecem ao selecionar "Buffet".
@@ -121,6 +125,18 @@ export default function CaptacaoForm({
   const irmaosDia =
     disputaDia && disputaDia.data === dataEvento ? disputaDia.irmaos : [];
 
+  // Nº de convidados: obrigatório na porta PÚBLICA — o orçamento
+  // depende da lotação — EXCEPTO quando o pedido é SÓ o cenário
+  // fotografável, o único serviço que não se vende ao convidado. Na
+  // porta interna fica livre: a Nádia transcreve leads de Instagram e
+  // nem sempre sabe já o número (o mesmo racional da regra dos 9
+  // dígitos do contacto).
+  const pedidoSoCenario =
+    !!localTipo &&
+    servicos.length === 1 &&
+    servicos[0] === "Cenário fotografável";
+  const convidadosObrigatorios = !modoInterno && !pedidoSoCenario;
+
   // Progresso dos campos obrigatórios — alimenta a barra dourada da
   // página pública. O total é dinâmico: serviços (e balcão) só contam
   // depois de escolhido o espaço, tal como no validar().
@@ -133,6 +149,12 @@ export default function CaptacaoForm({
       !!dataEvento,
       !!localTipo && (localTipo !== "Outro" || !!localOutro.trim()),
     ];
+    // O MESMO critério do validar() — barra cheia tem de significar
+    // validação a passar ("0" não pode encher a barra e morrer no toque)
+    if (convidadosObrigatorios)
+      requisitos.push(
+        !!numeroConvidados.trim() && Number(numeroConvidados) >= 1,
+      );
     if (localTipo) {
       requisitos.push(servicos.length > 0);
       if (servicos.includes("Buffet")) requisitos.push(!!buffet);
@@ -151,6 +173,8 @@ export default function CaptacaoForm({
     eventTypeId,
     tipoOutro,
     dataEvento,
+    numeroConvidados,
+    convidadosObrigatorios,
     localTipo,
     localOutro,
     servicos,
@@ -174,6 +198,9 @@ export default function CaptacaoForm({
       servicos: undefined,
       buffet: undefined,
       balcao: undefined,
+      // Mudar os serviços pode dispensar (ou voltar a exigir) o nº de
+      // convidados — o erro antigo não pode ficar a apontar para nada
+      convidados: undefined,
     }));
   };
 
@@ -221,6 +248,11 @@ export default function CaptacaoForm({
     if (!temTipo) e.tipo = "Escolhe o tipo de evento.";
     // Data do evento: obrigatória e exata (em todas as portas)
     if (!dataEvento) e.data = "Indica a data do evento.";
+    if (
+      convidadosObrigatorios &&
+      (!numeroConvidados.trim() || Number(numeroConvidados) < 1)
+    )
+      e.convidados = "Indica o número de convidados.";
     if (!localTipo) e.espaco = "Escolhe o espaço onde vai ser realizado.";
     if (localTipo === "Outro" && !localOutro.trim())
       e.localOutro = "Descreve o local.";
@@ -493,13 +525,22 @@ export default function CaptacaoForm({
             }}
           />
         </Campo>
-        <Campo label="Nº de convidados" flex={1}>
+        <Campo
+          label={
+            convidadosObrigatorios ? "Nº de convidados *" : "Nº de convidados"
+          }
+          erro={erros.convidados}
+          flex={1}
+        >
           <input
             type="number"
             min="1"
-            style={inputStyle()}
+            style={inputStyle(erros.convidados)}
             value={numeroConvidados}
-            onChange={(e) => setNumeroConvidados(e.target.value)}
+            onChange={(e) => {
+              setNumeroConvidados(e.target.value);
+              setErros((p) => ({ ...p, convidados: undefined }));
+            }}
             placeholder="ex: 25"
           />
         </Campo>
@@ -539,6 +580,9 @@ export default function CaptacaoForm({
               ...p,
               espaco: undefined,
               localOutro: undefined,
+              // O espaço revela os serviços — e com eles pode mudar a
+              // obrigatoriedade do nº de convidados
+              convidados: undefined,
             }));
           }}
         >

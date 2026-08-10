@@ -38,9 +38,10 @@ const EASE_LUXO = [0.22, 1, 0.36, 1];
 export default function CaptacaoPage() {
   const [enviado, setEnviado] = useState(false);
   // Progresso dos campos obrigatórios, reportado pelo CaptacaoForm
+  // (6 = os 5 base + o nº de convidados, obrigatório na porta pública)
   const [progresso, setProgresso] = useState({
     feitos: 0,
-    total: 5,
+    total: 6,
     completo: false,
     enviando: false,
   });
