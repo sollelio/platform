@@ -35,6 +35,7 @@ import QuestionarioVista from "../components/portal/QuestionarioVista";
 import AsFotografias from "../components/portal/AsFotografias";
 import AvaliacaoVista from "../components/portal/AvaliacaoVista";
 import SinalVista from "../components/portal/SinalVista";
+import PorticoDoSinal from "../components/portal/PorticoDoSinal";
 import {
   WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, diaMesAno, semanaEAno,
 } from "../components/portal/base";
@@ -577,6 +578,10 @@ export default function PortalPage() {
     (e) => e.etapa === "sinal" && e.estado !== ETAPA_POR_ACONTECER,
   );
 
+  // O ACEITE — a mesma leitura da SinalVista: a resposta ao orçamento
+  // com o acto «aceitou». É o que arma o pórtico do sinal, lá em baixo.
+  const aceite = dados?.resposta_orcamento?.acto === "aceitou";
+
   // A etapa ACTUAL é a última que já aconteceu. A seguinte é a que se
   // avizinha, e o resto encolhe para uma linha só.
   let iActual = 0;
@@ -619,6 +624,14 @@ export default function PortalPage() {
   // mentira do caducado, um dia mais cedo. Cala-se o mesmo; só a frase
   // «Esta data já passou» fica presa ao caducou verdadeiro.
   const caducaHoje = dias === 0 && !sinalFeito;
+
+  // O PÓRTICO DO SINAL (correcção do dono, 10/08/2026): entre o aceite
+  // do orçamento e o sinal confirmado pelo código, a raiz não se lê —
+  // quem volta cá (pelo botão, pelo gesto de voltar, pelo endereço)
+  // bate no escuro que diz o que o sinal abre, com uma única porta:
+  // pagá-lo. Caducado, ou a caducar hoje, não se empurra para pagamento
+  // nenhum — o pórtico cala-se com as outras promessas da página.
+  const portaoDoSinal = aceite && !sinalFeito && !caducou && !caducaHoje;
 
   // NO PRÓPRIO DIA a jornada fica presa em «A preparação»: a etapa 7 só
   // acende com a data JÁ passada (055), e bem — de manhã a festa ainda não
@@ -765,6 +778,16 @@ export default function PortalPage() {
       }}
     >
       <LogoDourado size={150} animar={!reduzir} />
+
+      {/* O pórtico do sinal — por cima de tudo enquanto durar a janela
+          entre o aceite e o sinal confirmado. A raiz continua a
+          pintar-se por baixo: vê-se que existe, não se lê. */}
+      {portaoDoSinal && (
+        <PorticoDoSinal
+          reduzir={reduzir}
+          aoPagar={() => navigate(`/acompanhar/${token}/sinal`)}
+        />
+      )}
 
       <main ref={focoRef} tabIndex={-1} style={{ width: "100%", maxWidth: "338px", outline: "none" }}>
         {/* Cabeçalho */}
@@ -1042,7 +1065,7 @@ export default function PortalPage() {
             Logo a seguir à jornada, antes das pendências: primeiro onde
             estamos, depois o que o sinal acorda, e só então o que falta
             de si. Só existe na janela entre o aceite e o sinal. */}
-        {mostrarOQueOSinalAbre && <OQueOSinalAbre reduzir={reduzir} />}
+        {mostrarOQueOSinalAbre && <OQueOSinalAbre />}
 
         {/* ── AS DIVISÕES DA FASE 2 ──────────────────────────────────
             A ordem é fixa (folha de decisões): o que falta de si · as

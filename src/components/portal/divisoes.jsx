@@ -8,8 +8,6 @@ import {
   FileteComLosango, FileteComRotulo, CartaoBranco, Medalhao, EngasteVazio,
   CabecalhoDivisao, CitacaoDela, ListaDaCasa, FraseDeFecho, Divisao,
 } from "./pecas";
-import { LigacaoDiscreta } from "./documentos-pecas";
-import DestaqueAcompanhamento from "./DestaqueAcompanhamento";
 import { LINHAS_DO_SINAL } from "./conteudo";
 
 // ============================================================
@@ -92,10 +90,9 @@ function LigacaoDeCartao({ to, rotulo, externa = false, novaAba = false }) {
 // Engastes apagados, de propósito: são coisas que ainda não aconteceram,
 // e antes do sinal nem ao meio-tom do engaste normal têm direito.
 // ------------------------------------------------------------
-export function OQueOSinalAbre({ reduzir }) {
+export function OQueOSinalAbre() {
   // As linhas vivem em conteudo.js e importam-se de lá — uma lista só,
-  // para a divisão e o destaque escuro nunca divergirem uma palavra.
-  const [destaqueAberto, setDestaqueAberto] = useState(false);
+  // para a divisão e o pórtico do sinal nunca divergirem uma palavra.
   const linhas = LINHAS_DO_SINAL;
   return (
     <Divisao>
@@ -116,19 +113,10 @@ export function OQueOSinalAbre({ reduzir }) {
         Com a data reservada, tudo isto acorda. Metade do valor guarda o dia
         — e o passo está à sua espera nesta página.
       </p>
-      {/* O teaser do destaque escuro — a versão expandida desta divisão,
-          no padrão do pórtico (decisão de 08/08). O gesto é da cliente. */}
-      <p style={{ textAlign: "center", margin: "16px 0 0" }}>
-        <LigacaoDiscreta onClick={() => setDestaqueAberto(true)}>
-          Ver melhor o que se abre
-        </LigacaoDiscreta>
-      </p>
-      {destaqueAberto && (
-        <DestaqueAcompanhamento
-          reduzir={reduzir}
-          aoFechar={() => setDestaqueAberto(false)}
-        />
-      )}
+      {/* O «Ver melhor o que se abre» morreu aqui (correcção do dono,
+          10/08): a versão escura destas linhas é agora o PÓRTICO da
+          raiz, que se impõe sozinho com o orçamento aceite — um link
+          para a espreitar não fazia nada a sério. */}
     </Divisao>
   );
 }

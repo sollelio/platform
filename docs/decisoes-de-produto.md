@@ -1214,6 +1214,25 @@ método; aqui ficam as decisões aprovadas fase a fase).
   só perdeu a segunda porta. E o portão combinado não mudou: o
   acompanhamento em tempo real desbloqueia com a confirmação do
   sinal. Portão: esbuild ✓ eslint ✓ build ✓.
+- **O pórtico do sinal ✓ (10/08/2026) — o escuro deixou de ser
+  espreitadela e passou a portão da raiz.** Correcção do Hélio, com o
+  print na mão: o «Ver melhor o que se abre» da divisão também caiu
+  (um link para espreitar o escuro não fazia nada a sério), e aquele
+  mesmo escuro — «Depois do sinal / O seu evento, em tempo real.», as
+  quatro linhas, «A ligação que tem nas mãos é a chave. O sinal
+  abre-a.» — é agora o **PorticoDoSinal.jsx**: impõe-se sozinho na
+  página raiz do acompanhamento na janela entre o **orçamento aceite**
+  (`resposta_orcamento.acto === "aceitou"`, a leitura da SinalVista) e
+  o **sinal confirmado** (a etapa da jornada), venha o contacto pelo
+  botão, pelo gesto de voltar ou pelo endereço. Sem Esc e sem
+  «Voltar»: a única porta é a cápsula **«Pagar o sinal»** (a cápsula
+  branca do escuro, o desenho do pórtico das condições) — é o funil
+  que desperta a vontade de pagar já. Guardas: caducado ou a caducar
+  hoje, o pórtico cala-se como as outras promessas. A divisão «O que o
+  sinal abre» continua em claro na janela pré-aceite; as quatro linhas
+  seguem numa lista única (conteudo.js). O DestaqueAcompanhamento.jsx
+  morreu — o pórtico é o herdeiro. Portão: esbuild ✓ eslint ✓ (0→0
+  nos dois ficheiros tocados; o novo, limpo) build ✓.
 
 ## Validação — regra da casa
 

@@ -10,8 +10,8 @@ import { diaEMes } from "./base";
 
 // ------------------------------------------------------------
 // As quatro linhas do que o sinal abre — UMA lista só, consumida pela
-// divisão «O que o sinal abre» (divisoes.jsx) e pelo destaque escuro
-// (DestaqueAcompanhamento.jsx), para as duas superfícies nunca
+// divisão «O que o sinal abre» (divisoes.jsx) e pelo pórtico do sinal
+// (PorticoDoSinal.jsx), para as duas superfícies nunca
 // divergirem uma palavra. Vive aqui porque é conteúdo, não desenho —
 // e porque o linter da casa não deixa constantes partilhadas em
 // ficheiros de componentes.
