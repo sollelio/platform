@@ -363,9 +363,9 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
   // ---------- A config da forma de pagamento ----------
   // A config vem CRUA do evento; os defaults da casa aplicam-se aqui, que
   // é quem os conhece (083): sem escolha → MB Way + IBAN com os dados da
-  // casa — e sem MB Way da casa registado, o default é só IBAN (decisão
-  // 8). EMPRESA.mbway ainda não existe em casa.js; o dia em que nascer,
-  // este ecrã passa a mostrá-lo sem mudar uma linha.
+  // casa — e sem MB Way da casa registado, o default seria só IBAN
+  // (decisão 8). EMPRESA.mbway nasceu a 10/08/2026 — este ecrã passou a
+  // mostrá-lo, como estava combinado.
   const config = sinal?.config || null;
   const metodoCfg = config?.metodo || "mbway_iban";
   const mbway = naoVazio(config?.mbway) ? config.mbway.trim()
@@ -489,6 +489,8 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
           <LinhaCopiavel
             nome="MB Way"
             dado={mbway}
+            // Como o IBAN: copia SEM espaços — pronto a colar na app.
+            dadoParaCopiar={String(mbway).replace(/\s+/g, "")}
             copiado={copiado === "MB Way"}
             onCopiar={copiar}
           />

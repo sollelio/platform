@@ -1236,7 +1236,7 @@ function Conteudo({ evento, onFechar }) {
                           type="text"
                           value={mbwaySinal}
                           onChange={(e) => setMbwaySinal(e.target.value)}
-                          placeholder="Vazio — a casa ainda não tem MB Way; fica só o IBAN"
+                          placeholder={`Vazio — usa o da casa (${EMPRESA.mbway})`}
                           style={{
                             width: "100%",
                             boxSizing: "border-box",
@@ -1374,8 +1374,8 @@ function Conteudo({ evento, onFechar }) {
                         margin: "8px 0 0",
                       }}
                     >
-                      Campos vazios usam os dados da casa — e sem MB Way da
-                      casa registado, o portal mostra só o IBAN.
+                      Campos vazios usam os dados da casa — o MB Way{" "}
+                      {EMPRESA.mbway} e o IBAN da Nádia.
                     </p>
                   )}
 

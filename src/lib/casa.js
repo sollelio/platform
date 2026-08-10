@@ -28,6 +28,11 @@ export const EMPRESA = {
   morada: "Rua dos Moinhos nº 31 - Ericeira",
   nif: "243705689",
   iban: "PT50 0193 0000 1050 1570 8076 8",
+  // O MB Way da casa (10/08/2026) — o mesmo número do WhatsApp, sem o
+  // indicativo. O ecrã do sinal e a folha do acompanhamento esperavam
+  // por ele: nasce aqui e aparece lá sem mais mudanças. Com espaços
+  // para ler; quem copia recebe-o sem eles.
+  mbway: "927 177 190",
   designacao: "Do Luxo à Mesa",
   foro: "comarca de Sintra",
 };

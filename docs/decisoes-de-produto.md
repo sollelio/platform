@@ -1452,6 +1452,17 @@ método; aqui ficam as decisões aprovadas fase a fase).
   registo). A assinatura do CLIENTE fica em itálico como estava, por
   pedido explícito («apenas para a assinatura da casa»).
 
+## O MB Way da casa (10/08/2026)
+
+- **`EMPRESA.mbway = 927 177 190` nasceu em casa.js ✓ (10/08/2026,
+  palavra do Hélio).** É o número do WhatsApp da casa sem o indicativo.
+  Fecha a ressalva da decisão 8 do ecrã do sinal (08/08: «sem MB Way da
+  casa registado, o default é só IBAN»): o ecrã do sinal já esperava
+  pelo campo e passou a mostrá-lo por defeito ao lado do IBAN, sem
+  outras mudanças — copia sem espaços, como o IBAN. Na folha do
+  acompanhamento, o placeholder do campo MB Way passou a mostrar o
+  número da casa, em espelho do IBAN.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**
