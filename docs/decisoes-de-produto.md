@@ -1185,6 +1185,22 @@ método; aqui ficam as decisões aprovadas fase a fase).
   (cerimónia própria), rótulos/overlines, legenda da imagem e nota da
   chamada (linhas curtas — se fizer falta, é chamar a mesma função
   lá; a pré-visualização mostra a fronteira ao vivo).
+- **Reordenar os cartões de Documentos na ficha ✓ (10/08/2026).**
+  Pedido do Hélio: a Nádia quer arrastar os cartões (Briefing,
+  Formulário, Orçamento, Projecto, Contrato) e pô-los na ordem dela —
+  a organização visual importa-lhe. Decisão dele: **ordem global,
+  guardada no navegador** (localStorage, chave
+  `dlm.documentosEvento.ordem`) — uma ordem só para todas as fichas,
+  sem migração; noutro computador volta à ordem de origem e
+  reordena-se uma vez. O gesto é o do editor de blocos, tal e qual:
+  punho ⠿ à esquerda do ícone, fantasma na mão, os cartões trocam ao
+  vivo debaixo do dedo. A ordem lida valida-se (só cartões
+  conhecidos, sem repetidos; um cartão novo da casa entra no fim). O
+  destaque dourado do «gesto a seguir» continua a ser da fase do
+  funil, esteja o cartão onde estiver. Portão: esbuild ✓ build ✓;
+  eslint com **zero erros novos** — nota à parte: a versão nova do
+  plugin react-hooks acusa 88 erros pré-existentes no repo (3 neste
+  ficheiro, já no HEAD); a limpeza é tarefa própria, por decidir.
 
 ## Validação — regra da casa
 

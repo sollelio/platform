@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { documentosDoEvento, marcarPassoDocumento } from "../../lib/documentos";
 import {
@@ -23,6 +23,11 @@ import { Esqueleto } from "./acabamento";
 // com data. "Gerado" deduz-se (a linha existe em `documentos`);
 // enviado e assinado são carimbos explícitos (migração 030) — a app
 // não tem como saber que ela carregou em enviar no WhatsApp dela.
+//
+// A ORDEM dos cartões é da Nádia: arrasta pelo punho ⠿ (o gesto do
+// editor de blocos) e a sequência guarda-se no navegador — uma ordem
+// só, para todas as fichas. O destaque dourado continua a ser da fase
+// do funil, esteja o cartão onde estiver.
 // ============================================================
 
 const TIPOS = {
@@ -36,6 +41,42 @@ const TIPOS = {
 // português não se conjuga por aritmética de sufixos, por isso o par
 // vem escrito.
 const POR_FAZER = { assinado: "assinar", aceite: "aceitar" };
+
+// A ordem dos cartões é da Nádia — global, uma para todas as fichas,
+// guardada no navegador dela. A BD não sabe de preferências visuais;
+// noutro computador volta a ordem de origem e reordena-se uma vez.
+const ORDEM_DE_ORIGEM = [
+  "briefing",
+  "formulario",
+  "orcamento",
+  "proposta",
+  "contrato",
+];
+const CHAVE_ORDEM = "dlm.documentosEvento.ordem";
+
+const lerOrdem = () => {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CHAVE_ORDEM));
+    if (!Array.isArray(guardada)) return ORDEM_DE_ORIGEM;
+    // Só cartões conhecidos e sem repetidos; um cartão novo da casa
+    // entra no fim — nunca desaparece por a ordem guardada ser antiga.
+    const ordem = guardada.filter(
+      (id, i) => ORDEM_DE_ORIGEM.includes(id) && guardada.indexOf(id) === i,
+    );
+    for (const id of ORDEM_DE_ORIGEM) if (!ordem.includes(id)) ordem.push(id);
+    return ordem;
+  } catch {
+    return ORDEM_DE_ORIGEM;
+  }
+};
+
+const guardarOrdem = (ordem) => {
+  try {
+    localStorage.setItem(CHAVE_ORDEM, JSON.stringify(ordem));
+  } catch {
+    // Sem localStorage (modo privado apertado), a ordem vive só na sessão.
+  }
+};
 
 // Que documento é o próximo gesto, a partir da fase do funil — o mesmo
 // eixo que a Jornada mostra, para as duas peças nunca discordarem.
@@ -163,7 +204,33 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
   );
 }
 
-function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom }) {
+// O punho do arrasto — o mesmo ⠿ do editor de blocos, o gesto que a
+// Nádia já conhece. Fica à esquerda do ícone, fora do miolo clicável.
+function Punho({ aoPegar }) {
+  return (
+    <div
+      onPointerDown={aoPegar}
+      role="button"
+      aria-label="Arrastar para reordenar"
+      title="Arrastar para reordenar"
+      style={{
+        cursor: "grab",
+        touchAction: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        color: "var(--gray-mid)",
+        fontSize: "14px",
+        lineHeight: 1,
+        padding: "6px 2px",
+        justifySelf: "center",
+      }}
+    >
+      ⠿
+    </div>
+  );
+}
+
+function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom, punho }) {
   const destaque = tom === "destaque";
   const adormecido = tom === "adormecido";
 
@@ -177,12 +244,15 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom }) {
         borderRadius: "14px",
         padding: "16px 20px",
         display: "grid",
-        gridTemplateColumns: "34px minmax(220px, 1fr) auto auto",
+        gridTemplateColumns: punho
+          ? "14px 34px minmax(220px, 1fr) auto auto"
+          : "34px minmax(220px, 1fr) auto auto",
         gap: "18px",
         alignItems: "center",
         boxShadow: destaque ? "0 4px 14px rgba(201,168,76,0.14)" : "none",
       }}
     >
+      {punho}
       <span style={{ color: adormecido ? "#DCD3C0" : "var(--gold)" }}>
         <Icone nome={icone} tamanho={22} />
       </span>
@@ -288,6 +358,101 @@ export default function DocumentosEvento({
   // caso normal: o próximo gesto é quase sempre criar o que falta).
   const [pulsando, setPulsando] = useState(null); // "orcamento"|"proposta"|"contrato"|"formulario"
   const linhaRefs = useRef({});
+
+  // --- A ordem e o arrasto (o molde do editor de blocos) ----------
+  const [ordem, setOrdem] = useState(lerOrdem);
+  useEffect(() => {
+    guardarOrdem(ordem);
+  }, [ordem]);
+
+  const [drag, setDrag] = useState(null); // {id, titulo, icone} do fantasma
+  const [fantasma, setFantasma] = useState({ x: 0, y: 0, w: 0 });
+  const dragRef = useRef(null); // {id, dx, dy}
+  const pendRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const aoMover = useCallback((e) => {
+    pendRef.current = { x: e.clientX, y: e.clientY };
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const p = pendRef.current;
+      const d = dragRef.current;
+      if (!p || !d) return;
+      // O alvo é o cartão por baixo do dedo — elementsFromPoint
+      // atravessa o fantasma (pointer-events: none) e encontra-o.
+      const alvo = document
+        .elementsFromPoint(p.x, p.y)
+        .find(
+          (el) => el.dataset && el.dataset.docId && el.dataset.docId !== d.id,
+        );
+      if (alvo) {
+        setOrdem((prev) => {
+          const de = prev.indexOf(d.id);
+          const para = prev.indexOf(alvo.dataset.docId);
+          if (de < 0 || para < 0 || de === para) return prev;
+          const seg = prev.slice();
+          seg.splice(para, 0, seg.splice(de, 1)[0]);
+          return seg;
+        });
+      }
+      setFantasma((g) => ({ ...g, x: p.x - d.dx, y: p.y - d.dy }));
+    });
+  }, []);
+
+  const aoLargar = useCallback(() => {
+    window.removeEventListener("pointermove", aoMover);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    dragRef.current = null;
+    setDrag(null);
+  }, [aoMover]);
+
+  // Um só handler para os cinco punhos: o cartão (e o seu id) lê-se do
+  // próprio DOM ao pegar — é o que deixa o handler ser estável.
+  const aoPegar = useCallback(
+    (e) => {
+      // Só o gesto principal pega — o botão direito tem outros ofícios.
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+      const cartao = e.currentTarget.closest("[data-doc-id]");
+      if (!cartao) return;
+      const id = cartao.dataset.docId;
+      const r = cartao.getBoundingClientRect();
+      dragRef.current = { id, dx: e.clientX - r.left, dy: e.clientY - r.top };
+      setDrag({
+        id,
+        titulo: TIPOS[id]
+          ? TIPOS[id].nome
+          : id === "briefing"
+            ? "Briefing"
+            : "Formulário",
+        icone: TIPOS[id]
+          ? TIPOS[id].icone
+          : id === "briefing"
+            ? "documentos"
+            : "formularios",
+      });
+      setFantasma({ x: r.left, y: r.top, w: r.width });
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+      window.addEventListener("pointermove", aoMover);
+      window.addEventListener("pointerup", aoLargar, { once: true });
+    },
+    [aoMover, aoLargar],
+  );
+
+  // A limpeza do desmonte: rAF, listeners e o corpo devolvido como estava.
+  useEffect(
+    () => () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("pointermove", aoMover);
+      window.removeEventListener("pointerup", aoLargar);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    },
+    [aoMover, aoLargar],
+  );
 
   const submissionId = submissao?.id;
 
@@ -423,27 +588,22 @@ export default function DocumentosEvento({
     );
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      {erro && (
-        <p
-          style={{
-            fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
-            borderRadius: "10px",
-            padding: "10px 14px",
-            margin: 0,
-          }}
-        >
-          {erro}
-        </p>
-      )}
-
-      {/* Briefing — sempre disponível, sem percurso: é a folha do
-          evento, não um documento que se gera e envia. */}
+  // Os dois cartões fora do molde dos tipos, cada um já desenhado —
+  // quem dita a sequência é a `ordem` da Nádia, no return.
+  const cartoes = {
+    // Briefing — sempre disponível, sem percurso: é a folha do
+    // evento, não um documento que se gera e envia.
+    briefing: (
+      <div
+        key="briefing"
+        data-doc-id="briefing"
+        style={{
+          borderRadius: "14px",
+          opacity: drag?.id === "briefing" ? 0.35 : 1,
+        }}
+      >
       <Linha
+        punho={<Punho aoPegar={aoPegar} />}
         icone="documentos"
         titulo="Briefing"
         descricao={`A folha do evento · ${
@@ -475,14 +635,23 @@ export default function DocumentosEvento({
           </button>
         }
       />
+      </div>
+    ),
 
-      {/* Formulário — o percurso vive nos convites, não em `documentos` */}
+    // Formulário — o percurso vive nos convites, não em `documentos`
+    formulario: (
       <div
+        key="formulario"
+        data-doc-id="formulario"
         ref={(el) => (linhaRefs.current.formulario = el)}
         className={pulsando === "formulario" ? "realce-pulso" : undefined}
-        style={{ borderRadius: "14px" }}
+        style={{
+          borderRadius: "14px",
+          opacity: drag?.id === "formulario" ? 0.35 : 1,
+        }}
       >
       <Linha
+        punho={<Punho aoPegar={aoPegar} />}
         icone="formularios"
         titulo="Formulário"
         descricao={
@@ -673,20 +842,29 @@ export default function DocumentosEvento({
         />
       )}
       </div>
+    ),
+  };
 
-      {Object.entries(TIPOS).map(([tipo, cfg]) => {
-        const doc = porTipo[tipo];
-        const eProximo = proximoDoc === tipo && !doc;
-        const tom = eProximo ? "destaque" : !doc ? "adormecido" : undefined;
+  // Os três documentos com percurso saem do mesmo molde.
+  const cartaoDoTipo = (tipo) => {
+    const cfg = TIPOS[tipo];
+    const doc = porTipo[tipo];
+    const eProximo = proximoDoc === tipo && !doc;
+    const tom = eProximo ? "destaque" : !doc ? "adormecido" : undefined;
 
-        return (
+    return (
           <div
             key={tipo}
+            data-doc-id={tipo}
             ref={(el) => (linhaRefs.current[tipo] = el)}
             className={pulsando === tipo ? "realce-pulso" : undefined}
-            style={{ borderRadius: "14px" }}
+            style={{
+              borderRadius: "14px",
+              opacity: drag?.id === tipo ? 0.35 : 1,
+            }}
           >
           <Linha
+            punho={<Punho aoPegar={aoPegar} />}
             icone={cfg.icone}
             titulo={cfg.nome}
             descricao={
@@ -762,8 +940,58 @@ export default function DocumentosEvento({
             }
           />
           </div>
-        );
-      })}
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      {erro && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#B91C1C",
+            backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            margin: 0,
+          }}
+        >
+          {erro}
+        </p>
+      )}
+
+      {ordem.map((id) => cartoes[id] || cartaoDoTipo(id))}
+
+      {/* ---- O cartão-fantasma do arrasto (o molde do editor de
+          blocos): diz o que vai na mão, e mais nada. ---- */}
+      {drag && (
+        <div
+          style={{
+            position: "fixed",
+            left: `${fantasma.x}px`,
+            top: `${fantasma.y}px`,
+            width: `${fantasma.w}px`,
+            zIndex: 90,
+            pointerEvents: "none",
+            backgroundColor: "white",
+            border: "1.5px solid var(--gold)",
+            borderRadius: "14px",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.16)",
+            padding: "14px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <span style={{ color: "var(--gold)" }}>
+            <Icone nome={drag.icone} tamanho={20} />
+          </span>
+          <span style={{ fontSize: "14px", color: "var(--charcoal)" }}>
+            {drag.titulo}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
