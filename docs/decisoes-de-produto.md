@@ -1357,6 +1357,101 @@ método; aqui ficam as decisões aprovadas fase a fase).
   eixo): a **migração 087** junta a cadeia nova ao eixo «bolo», a
   antiga fica pelo histórico. Pendência: **correr a 087**.
 
+## Portal — a saída do ecrã do acto (10/08/2026)
+
+- **«Voltar ao acompanhamento» passou a «Acompanhar evento em tempo
+  real» ✓ (10/08/2026, palavra do Hélio) — SÓ na cápsula vazada do
+  ecrã de confirmação do acto** (DocumentosVista: o ecrã que aparece
+  depois de aceitar/assinar, onde convive com «Tratar do sinal»).
+  Porquê: nesse momento o botão não é um regresso, é a promessa — o
+  evento passa a acompanhar-se em tempo real. As restantes portas
+  discretas de regresso (fim da lista de documentos, contrato em
+  repouso, questionário, sinal, avaliação) continuam «Voltar ao
+  acompanhamento»: aí são mesmo regresso.
+
+## A assinatura à vista — orçamento e contrato (10/08/2026)
+
+- **A Nádia demorou a perceber que devia assinar — e o código explica
+  porquê:** o pé do acto («A sua resposta» / «A assinatura») vive no
+  fim da folha, depois do corpo todo (no contrato, depois de TODAS as
+  cláusulas), e nada no primeiro ecrã anunciava que ele existia. A
+  lista tinha o chip «à sua espera»; o documento aberto, silêncio.
+- **Direção C escolhida ✓ (10/08/2026, escolha do Hélio sobre mockup
+  — `docs/mockup-assinatura-a-vista.html`, 3 direções):** as duas
+  peças, nenhuma tocando no acto («o acto vive no pé do documento» é
+  decisão registada que fica de pé).
+  - **A faixa da espera** (`FaixaEspera`, documentos-pecas): o espelho
+    da FaixaSelo no topo da folha — engaste vazio (o que ainda não
+    aconteceu) + «Por assinar»/«Por responder»/«Por aprovar» + a frase
+    do que se espera. Informa, não pede: sem botão. Ao assinar, dá
+    lugar à FaixaSelo — o mesmo engaste, agora com o visto.
+  - **A cápsula-guia**: o desenho da pílula dos opcionais da
+    /interesse — flutua no fundo enquanto o pé está fora do ecrã
+    («A assinatura está no fim da leitura ↓»), um toque leva lá
+    (scroll seco) e dissolve-se ao chegar. Branca, de guia — a única
+    cápsula cheia da página continua a ser a do acto.
+  - As duas só existem quando o pé do acto existe (`!velado &&
+    !respondeu && !versãoAntiga`), ficam fora do papel
+    (acomp-nao-imprime), por baixo dos pórticos (zIndex 40 < 60), e
+    com movimento reduzido nada transiciona. Medição em layout effect:
+    nada anima ao abrir.
+
+## O projecto — imagens de trabalho vs imagens do cliente (10/08/2026)
+
+- **As imagens que a Nádia põe no projecto são só dela ✓ (10/08/2026,
+  palavra do Hélio; solução escolhida por mim com o mandato «a de menor
+  custo»).** Ela imprime o projecto para trabalhar com as imagens dela;
+  ao cliente quer mostrar OUTRAS fotos. A folha é a mesma — só as
+  imagens divergem.
+- **Solução (zero migrações, zero mudanças no portal e nas RPCs):**
+  cada secção ganhou a chave `imagemCliente` no JSONB
+  (`documentos.dados.seccoes`). O editor (GerarProposta) tem dois
+  lugares por secção: «A tua imagem — só no PDF» e «Para o cliente —
+  acompanhamento». Ao publicar, a folha do portal
+  (PortalDoClienteSheet) usa o `p_extra` que o `dlm_portal_publicar`
+  já tinha (fusão rasa) para substituir `seccoes` pela versão do
+  cliente: `imagem` ← `imagemCliente`, e a chave `imagemCliente` é
+  despida. O instantâneo contém EXACTAMENTE o que a cliente vê — a
+  imagem de trabalho nunca sai de casa, nem escondida no JSON.
+- **Regra estrita, de propósito:** secção sem `imagemCliente`
+  publica-se SEM imagem (nunca há fallback para a de trabalho — o
+  esquecimento não pode virar fuga). O editor avisa na própria secção:
+  «Sem imagem para o cliente, esta secção publica-se sem imagem». ⚠
+  Consequência transitória: republicar uma proposta antiga sem
+  preencher as imagens do cliente publica as secções sem imagem — a
+  Nádia deve preencher «Para o cliente» antes de publicar versão nova.
+  As publicações JÁ feitas não mudam (instantâneos congelados).
+- **A revisão adversarial apanhou 4 defeitos reais na primeira versão,
+  todos curados:** (1) o ramo sem secções deixava os dados passar
+  verbatim pela fusão — o extra agora segue SEMPRE (`seccoes: []` no
+  mínimo); (2) dois uploads em simultâneo roubavam o indicador um ao
+  outro e o retry podia perder para o upload antigo — os lugares de
+  imagem ficam todos bloqueados enquanto um upload voa; (3) secção só
+  com imagem do cliente saía como página em branco no PDF dela — o
+  filtro do PDF ignora `imagemCliente`; (4) o instantâneo podia sair
+  «rasgado» (secções lidas no browser mais velhas que os dados que a
+  RPC congela) — a **migração 088** traz a troca para dentro do
+  `dlm_portal_publicar`, atómica sobre os dados frescos, sobrepondo o
+  que o backoffice enviar; o extra do backoffice fica como cinto de
+  segurança até a 088 correr. Pendência: **correr a 088** (depois da
+  087).
+
+## A letra da assinatura da casa (10/08/2026)
+
+- **Cochocib Script Latin Pro para a assinatura da casa ✓ (10/08/2026,
+  palavra do Hélio) — com a ressalva da licença.** A Cochocib é fonte
+  COMERCIAL (Saffatin.co / MyFonts) e não se embute sem comprar; os
+  «downloads grátis» são cópias sem licença e ficaram fora. A pilha
+  (`FONTE_ASSINATURA_CASA`, lib/casa.js) põe a Cochocib primeiro — no
+  dia em que a licença se comprar, junta-se o ficheiro + um @font-face
+  e a assinatura muda sozinha — e vale entretanto a **Great Vibes**
+  (Google Fonts, SIL), a caligráfica de casamento mais próxima.
+- **Onde:** SÓ a assinatura da casa — o nome da 2.ª contraente na folha
+  do contrato (GerarContrato, 22px) e o nome no registo «As
+  assinaturas» do portal (17px, só o nome; o resto da linha continua
+  registo). A assinatura do CLIENTE fica em itálico como estava, por
+  pedido explícito («apenas para a assinatura da casa»).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

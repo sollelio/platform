@@ -11,7 +11,14 @@ import { uploadImagemProposta } from "../../../lib/propostas";
 // ============================================================
 // GerarProposta — o documento que vende o sonho (passo 5 da jornada).
 // Capa (logo, PROPOSTA, cliente/tipo/data) + secções repetíveis, cada
-// uma com título, UMA imagem grande (da Nádia) e descrição por linhas.
+// uma com título, DUAS imagens e descrição por linhas:
+//   · `imagem`        — a de TRABALHO, só da Nádia: é a que sai no PDF
+//                       que ela imprime para trabalhar. Nunca se publica.
+//   · `imagemCliente` — a que a cliente vê no acompanhamento: ao
+//                       publicar, a folha do portal substitui `imagem`
+//                       por esta no instantâneo (PortalDoClienteSheet).
+//                       Sem ela, a secção publica-se SEM imagem — a de
+//                       trabalho nunca sai de casa.
 // No PDF: capa em página própria + UMA SECÇÃO POR PÁGINA, sem
 // cabeçalhos do browser (mesmo tratamento do orçamento).
 //
@@ -26,6 +33,7 @@ const novaSeccao = () => ({
   uid: `s_${Date.now()}_${seqSec++}`,
   titulo: "",
   imagem: "",
+  imagemCliente: "",
   descricao: "",
 });
 
@@ -41,11 +49,12 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
     "Decoração desenvolvida dentro da estética Do Luxo à Mesa.",
   );
   const [seccoes, setSeccoes] = useRascunho(`${rid}:seccoes`, [novaSeccao()]);
-  const [carregandoImg, setCarregandoImg] = useState(null); // uid da secção
+  const [carregandoImg, setCarregandoImg] = useState(null); // "uid|campo"
   // Falhas de upload falam aqui — a regra da casa proíbe alert()
   const [erroAcao, setErroAcao] = useState(null);
   const inputImagem = useRef(null);
-  const seccaoAlvo = useRef(null); // uid da secção que pediu upload
+  // A secção E o campo ("imagem" | "imagemCliente") que pediram upload
+  const seccaoAlvo = useRef(null);
 
   const referencias = prefill?.imagensReferencia || [];
 
@@ -57,21 +66,21 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
   const removerSeccao = (uid) =>
     setSeccoes((prev) => prev.filter((s) => s.uid !== uid));
 
-  const pedirImagem = (uid) => {
-    seccaoAlvo.current = uid;
+  const pedirImagem = (uid, campo) => {
+    seccaoAlvo.current = { uid, campo };
     inputImagem.current?.click();
   };
 
   const carregarImagem = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    const uid = seccaoAlvo.current;
-    if (!file || !uid) return;
+    const alvo = seccaoAlvo.current;
+    if (!file || !alvo) return;
     setErroAcao(null);
-    setCarregandoImg(uid);
+    setCarregandoImg(`${alvo.uid}|${alvo.campo}`);
     try {
       const url = await uploadImagemProposta(file);
-      atualizarSeccao(uid, { imagem: url });
+      atualizarSeccao(alvo.uid, { [alvo.campo]: url });
     } catch (err) {
       console.error(err);
       setErroAcao("Não foi possível carregar a imagem. Tenta novamente.");
@@ -79,7 +88,10 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
     setCarregandoImg(null);
   };
 
-  // Secções com algum conteúdo — só essas entram no documento
+  // Secções com algum conteúdo — só essas entram no PDF DELA. A
+  // imagemCliente NÃO conta: o PDF nunca a mostra, e contá-la punha
+  // páginas só com o cabeçalho. A publicação não passa por aqui — usa
+  // dados.seccoes por inteiro (PortalDoClienteSheet).
   const seccoesComConteudo = seccoes.filter(
     (s) => s.titulo.trim() || s.imagem || s.descricao.trim(),
   );
@@ -291,67 +303,49 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
                 placeholder="Título (ex: Mesa dos convidados)"
               />
 
-              {/* Imagem da secção */}
-              <div style={{ marginBottom: "8px" }}>
-                {s.imagem ? (
-                  <div style={{ position: "relative", display: "inline-block" }}>
-                    <img
-                      src={s.imagem}
-                      alt={s.titulo || `Secção ${idx + 1}`}
-                      style={{
-                        width: "120px",
-                        height: "80px",
-                        objectFit: "cover",
-                        borderRadius: "10px",
-                        border: "1px solid var(--gold-light)",
-                        display: "block",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => atualizarSeccao(s.uid, { imagem: "" })}
-                      aria-label="Remover imagem"
-                      style={{
-                        position: "absolute",
-                        top: "-6px",
-                        right: "-6px",
-                        width: "18px",
-                        height: "18px",
-                        borderRadius: "50%",
-                        border: "none",
-                        backgroundColor: "var(--charcoal)",
-                        color: "white",
-                        fontSize: "10px",
-                        lineHeight: 1,
-                        cursor: "pointer",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => pedirImagem(s.uid)}
-                    disabled={carregandoImg === s.uid}
-                    style={{
-                      width: "120px",
-                      height: "80px",
-                      borderRadius: "10px",
-                      border: "1.5px dashed var(--gold)",
-                      backgroundColor: "white",
-                      color: "var(--gold)",
-                      fontSize: "12px",
-                      cursor:
-                        carregandoImg === s.uid ? "wait" : "pointer",
-                    }}
-                  >
-                    {carregandoImg === s.uid
-                      ? "A carregar..."
-                      : "+ Imagem"}
-                  </button>
-                )}
+              {/* As duas imagens da secção: a de trabalho (dela — sai
+                  no PDF) e a do cliente (a que se publica no
+                  acompanhamento, no lugar da de trabalho). */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "16px",
+                  flexWrap: "wrap",
+                  marginBottom: "8px",
+                }}
+              >
+                <SlotImagem
+                  rotulo="A tua imagem — só no PDF"
+                  url={s.imagem}
+                  aCarregar={carregandoImg === `${s.uid}|imagem`}
+                  bloqueado={!!carregandoImg}
+                  onPedir={() => pedirImagem(s.uid, "imagem")}
+                  onRemover={() => atualizarSeccao(s.uid, { imagem: "" })}
+                />
+                <SlotImagem
+                  rotulo="Para o cliente — acompanhamento"
+                  url={s.imagemCliente}
+                  aCarregar={carregandoImg === `${s.uid}|imagemCliente`}
+                  bloqueado={!!carregandoImg}
+                  onPedir={() => pedirImagem(s.uid, "imagemCliente")}
+                  onRemover={() =>
+                    atualizarSeccao(s.uid, { imagemCliente: "" })
+                  }
+                />
               </div>
+              {s.imagem && !s.imagemCliente && (
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--gray-mid)",
+                    margin: "0 0 8px 0",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Sem imagem para o cliente, esta secção publica-se sem
+                  imagem — a tua fica só contigo.
+                </p>
+              )}
 
               <textarea
                 style={{
@@ -637,6 +631,87 @@ const estiloPaginaEcra = {
   alignItems: "center",
   justifyContent: "center",
 };
+
+// Um lugar de imagem da secção: miniatura com ✕, ou o tracejado de
+// carregar. O mesmo desenho para os dois conjuntos — só o rótulo muda.
+// `bloqueado` desactiva TODOS os lugares enquanto um upload voa: o
+// input de ficheiro é partilhado e o estado de carga é um só — dois
+// uploads ao mesmo tempo roubavam o indicador um ao outro e o retry
+// podia perder para o upload antigo (last-write-wins).
+function SlotImagem({ rotulo, url, aCarregar, bloqueado, onPedir, onRemover }) {
+  return (
+    <div>
+      <p
+        style={{
+          fontSize: "10px",
+          fontWeight: "600",
+          color: "var(--gold-dark)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          margin: "0 0 6px 0",
+        }}
+      >
+        {rotulo}
+      </p>
+      {url ? (
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <img
+            src={url}
+            alt={rotulo}
+            style={{
+              width: "120px",
+              height: "80px",
+              objectFit: "cover",
+              borderRadius: "10px",
+              border: "1px solid var(--gold-light)",
+              display: "block",
+            }}
+          />
+          <button
+            type="button"
+            onClick={onRemover}
+            aria-label={`Remover imagem — ${rotulo}`}
+            style={{
+              position: "absolute",
+              top: "-6px",
+              right: "-6px",
+              width: "18px",
+              height: "18px",
+              borderRadius: "50%",
+              border: "none",
+              backgroundColor: "var(--charcoal)",
+              color: "white",
+              fontSize: "10px",
+              lineHeight: 1,
+              cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onPedir}
+          disabled={bloqueado}
+          style={{
+            width: "120px",
+            height: "80px",
+            borderRadius: "10px",
+            border: "1.5px dashed var(--gold)",
+            backgroundColor: "white",
+            color: "var(--gold)",
+            fontSize: "12px",
+            opacity: bloqueado && !aCarregar ? 0.5 : 1,
+            cursor: aCarregar ? "wait" : bloqueado ? "default" : "pointer",
+          }}
+        >
+          {aCarregar ? "A carregar..." : "+ Imagem"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ---- helpers de estilo (padrão da casa) ----
 function Campo({ label, children, flex }) {

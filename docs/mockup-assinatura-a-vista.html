@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A assinatura à vista — mockup</title>
+<style>
+  /* ── Tokens da casa (index.css) ─────────────────────────────── */
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --gold-dark: #a07830;
+    --cream: #fafaf8;
+    --charcoal: #1a1a1a;
+    --gray-mid: #6b6b6b;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--cream);
+    color: var(--charcoal);
+    font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 40px 20px 80px;
+  }
+  .serif { font-family: "Playfair Display", Georgia, "Times New Roman", serif; font-weight: 400; }
+
+  /* ── Moldura do documento de estudo ─────────────────────────── */
+  .miolo { max-width: 1180px; margin: 0 auto; }
+  .cab { text-align: center; max-width: 640px; margin: 0 auto 14px; }
+  .overline {
+    font: 700 9.5px Inter, sans-serif; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--gold-dark);
+  }
+  .cab h1 { font-size: 30px; line-height: 1.2; margin-top: 12px; font-weight: 400; }
+  .cab p.lede { font-size: 13.5px; line-height: 1.75; color: var(--gray-mid); margin-top: 14px; text-wrap: pretty; }
+  .filete { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 22px auto 0; }
+  .filete .linha { height: 1px; width: 70px; }
+  .filete .linha.esq { background: linear-gradient(90deg, rgba(232,213,163,0), #E8D5A3); }
+  .filete .linha.dir { background: linear-gradient(90deg, #E8D5A3, rgba(232,213,163,0)); }
+  .filete .losango { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); }
+
+  section.direcao { margin-top: 64px; }
+  .dir-cab { text-align: center; max-width: 620px; margin: 0 auto 26px; }
+  .dir-cab h2 { font-size: 22px; font-weight: 400; margin-top: 10px; }
+  .dir-cab p { font-size: 12.5px; line-height: 1.75; color: var(--gray-mid); margin-top: 10px; text-wrap: pretty; }
+  .recomendada {
+    display: inline-block; font-size: 10.5px; color: var(--gold-dark);
+    background: #FEF9EC; border: 1px solid var(--gold-light);
+    border-radius: 999px; padding: 4px 11px; margin-top: 10px;
+  }
+
+  .palco { display: flex; flex-wrap: wrap; gap: 34px; justify-content: center; align-items: flex-start; }
+  .posto { width: 344px; }
+  .posto .legenda { text-align: center; margin-bottom: 12px; }
+  .posto .legenda .t { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+  .posto .legenda .s { font-size: 11px; color: var(--gray-mid); margin-top: 3px; line-height: 1.6; }
+
+  /* O telemóvel: moldura com scroll REAL lá dentro — role para sentir */
+  .fone {
+    position: relative; height: 600px; border-radius: 26px; overflow: hidden;
+    border: 1px solid #E8DCC0; background: var(--cream);
+    box-shadow: 0 1px 0 #F6EFE0, 0 22px 44px -20px rgba(45,33,10,0.3);
+  }
+  .ecra { position: absolute; inset: 0; overflow-y: auto; padding: 22px 16px 26px; scrollbar-width: thin; }
+
+  /* ── Peças do portal, fiéis (documentos-pecas.jsx) ──────────── */
+  .folha {
+    background: white; border: 1px solid #F0E6D0;
+    box-shadow: 0 1px 0 #F6EFE0, 0 12px 30px -16px rgba(45,33,10,0.26);
+  }
+  .timbre { text-align: center; padding: 24px 22px 18px; border-bottom: 1px solid #F3EBDA; }
+  .timbre .logo { font-family: "Playfair Display", Georgia, serif; font-size: 15px; letter-spacing: 0.14em; color: var(--gold-dark); }
+  .timbre .logo small { display: block; font-family: Inter, sans-serif; font-size: 7px; letter-spacing: 0.3em; color: #B8A671; margin-top: 3px; text-transform: uppercase; }
+  .timbre .nome { margin-top: 12px; }
+  .selo-versao { font: 700 9px Inter, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: #9B9B9B; margin-top: 7px; }
+
+  .titulo-doc { padding: 20px 22px 0; }
+  .titulo-doc .t { font-size: 19px; line-height: 1.3; }
+  .titulo-doc .s { font-size: 11.5px; color: var(--gray-mid); margin-top: 5px; }
+
+  .resumo { margin: 18px 22px 0; background: #FDFBF5; border: 1px solid #F3EBDA; border-radius: 12px; padding: 16px 16px 14px; }
+  .resumo .ov { font: 700 9px Inter, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dark); }
+  .item { display: flex; gap: 11px; align-items: flex-start; margin-top: 11px; }
+  .item .d { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); flex: none; margin-top: 6px; }
+  .item p { font-size: 12px; line-height: 1.65; }
+  .resumo .nota { font-size: 10.5px; color: #9B9B9B; margin-top: 13px; line-height: 1.6; }
+
+  .clausula { padding: 18px 22px 0; display: grid; grid-template-columns: 30px 1fr; gap: 4px 10px; }
+  .clausula .n { font-family: "Playfair Display", Georgia, serif; font-size: 17px; color: var(--gold-dark); }
+  .clausula .t { font-size: 12.5px; font-weight: 600; align-self: center; }
+  .clausula .corpo { grid-column: 2; font-size: 11.5px; line-height: 1.7; color: var(--gray-mid); }
+
+  .linha-serv { display: flex; justify-content: space-between; gap: 12px; padding: 13px 22px 0; }
+  .linha-serv .n { font-size: 12.5px; line-height: 1.5; }
+  .linha-serv .d { font-size: 11px; color: var(--gray-mid); margin-top: 2px; line-height: 1.55; }
+  .linha-serv .v { font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .total { margin: 18px 22px 0; padding-top: 14px; border-top: 1px solid #F3EBDA; display: flex; justify-content: space-between; align-items: baseline; }
+  .total .r { font: 700 9px Inter, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dark); }
+  .total .v { font-family: "Playfair Display", Georgia, serif; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .condicoes { padding: 16px 22px 0; }
+  .condicoes p { font-size: 11px; line-height: 1.7; color: var(--gray-mid); }
+
+  /* O pé do acto — como está hoje (não muda) */
+  .pe { background: #FDFBF5; border-top: 1px solid #E8D5A3; padding: 22px; margin-top: 22px; }
+  .pe .ov { font: 700 9.5px Inter, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-dark); }
+  .pe .q { font-size: 19px; line-height: 1.32; margin-top: 10px; }
+  .pe .c { font-size: 12.5px; line-height: 1.7; color: var(--gray-mid); margin-top: 10px; }
+  .pauta { margin-top: 18px; border-bottom: 1.5px solid #E8DCC0; padding-bottom: 6px; text-align: center; }
+  .pauta span { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: 20px; color: #C6BEAE; }
+  .capsula-cheia {
+    display: block; width: 100%; margin-top: 20px; text-align: center;
+    font: 600 11px Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #FFFDF7; background: var(--gold-dark); border: 1px solid var(--gold-dark);
+    border-radius: 999px; padding: 14px 20px;
+  }
+  .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .dupla .a, .dupla .b {
+    text-align: center; font: 600 10.5px Inter, sans-serif; letter-spacing: 0.12em;
+    text-transform: uppercase; border-radius: 999px; padding: 14px 8px;
+  }
+  .dupla .a { color: #FFFDF7; background: var(--gold-dark); border: 1px solid var(--gold-dark); }
+  .dupla .b { color: var(--gold-dark); background: white; border: 1px solid var(--gold); }
+
+  /* ── DIREÇÃO A — a faixa da espera (espelho da FaixaSelo) ───── */
+  .faixa-espera {
+    display: flex; gap: 13px; align-items: center;
+    background: #FDFBF5; border-bottom: 1px solid #E8D5A3; padding: 15px 20px;
+  }
+  .faixa-espera .engaste {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: #FDFBF5; border: 1px solid #E8DCC0;
+  }
+  .faixa-espera .ov { font: 700 9.5px Inter, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-dark); }
+  .faixa-espera .l { font-size: 12px; line-height: 1.55; color: var(--charcoal); margin-top: 3px; text-wrap: pretty; }
+
+  /* A FaixaSelo de hoje (assinado) — para ver a simetria */
+  .faixa-selo { display: flex; gap: 13px; align-items: center; background: #FDFBF5; border-bottom: 1px solid #E8D5A3; padding: 17px 20px; }
+  .faixa-selo .engaste { width: 34px; height: 34px; border-radius: 50%; flex: none; background: #FEF9EC; border: 1px solid #E8D5A3; display: flex; align-items: center; justify-content: center; }
+  .faixa-selo .ov { font: 700 9.5px Inter, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-dark); }
+  .faixa-selo .l { font-size: 12px; color: var(--gray-mid); margin-top: 3px; }
+
+  /* ── DIREÇÃO B — a cápsula-guia fixa ────────────────────────── */
+  .guia {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    white-space: nowrap; cursor: pointer;
+    font: 600 12px Inter, sans-serif; letter-spacing: 0.02em; color: var(--gold-dark);
+    background: white; border: 1px solid var(--gold-light); border-radius: 999px;
+    padding: 9px 17px; box-shadow: 0 4px 14px rgba(201,168,76,0.25);
+    transition: opacity 0.45s ease, transform 0.45s ease; z-index: 5;
+  }
+  .guia.escondida { opacity: 0; transform: translateX(-50%) translateY(10px); pointer-events: none; }
+
+  /* ── Quadros de notas ───────────────────────────────────────── */
+  .notas { max-width: 760px; margin: 26px auto 0; background: white; border: 1.5px solid #F0E6D0; border-radius: 14px; padding: 20px 22px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .notas .ov { font: 700 9.5px Inter, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-dark); }
+  .notas table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .notas td { font-size: 11.5px; line-height: 1.65; padding: 8px 10px 8px 0; border-top: 1px solid #F6F0E2; vertical-align: top; }
+  .notas td:first-child { font-weight: 600; white-space: nowrap; padding-right: 18px; }
+  .notas tr:first-child td { border-top: none; }
+  .notas ul { margin: 12px 0 0; padding-left: 18px; }
+  .notas li { font-size: 11.5px; line-height: 1.75; color: var(--gray-mid); margin-top: 4px; }
+  .dica { text-align: center; font-size: 10.5px; color: #9B9B9B; margin-top: 10px; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+<div class="miolo">
+
+  <div class="cab">
+    <p class="overline">Mockup · antes de construir</p>
+    <h1 class="serif">A assinatura à vista</h1>
+    <p class="lede">
+      A Nádia demorou a perceber que devia assinar. O motivo está no código:
+      ao abrir um orçamento ou contrato por responder, o primeiro ecrã é o
+      timbre e o corpo — o pé do acto («A sua resposta» / «A assinatura»)
+      só aparece depois de todas as linhas e cláusulas, vários ecrãs abaixo,
+      e nada em cima anuncia que ele existe. Duas peças novas, ambas com
+      linguagem que a casa já fala. <strong>Os telemóveis rolam a sério —
+      role lá dentro.</strong>
+    </p>
+    <div class="filete"><span class="linha esq"></span><span class="losango"></span><span class="linha dir"></span></div>
+  </div>
+
+  <!-- ══════════════ DIREÇÃO A ══════════════ -->
+  <section class="direcao">
+    <div class="dir-cab">
+      <p class="overline">Direção A</p>
+      <h2 class="serif">A faixa da espera</h2>
+      <p>
+        O contrato assinado já tem uma faixa no topo da folha (a FaixaSelo:
+        engaste com visto + «Assinado»). A direção A dá-lhe o espelho: enquanto
+        falta o acto, a mesma faixa com o <em>engaste vazio</em> — o círculo que
+        na linguagem da casa significa «o que ainda não aconteceu». Quem abre o
+        documento lê primeiro o que se espera dele. Informa, não pede — sem botão.
+        Ao assinar, o engaste vazio dá lugar ao visto: a mesma faixa fecha-se.
+      </p>
+    </div>
+    <div class="palco">
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">O contrato, ao abrir</p>
+          <p class="s">a faixa é a primeira coisa da folha</p>
+        </div>
+        <div class="fone"><div class="ecra">
+          <div class="folha">
+            <div class="faixa-espera">
+              <span class="engaste"></span>
+              <span>
+                <span class="ov">Por assinar</span>
+                <p class="l">A sua assinatura fecha este contrato — espera por si no fim da leitura.</p>
+              </span>
+            </div>
+            <div class="timbre">
+              <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+              <p class="nome overline">Contrato</p>
+              <p class="selo-versao">Versão 1 · de 12 de agosto</p>
+            </div>
+            <div class="titulo-doc">
+              <p class="t serif">A decoração do seu casamento</p>
+              <p class="s">12 de setembro de 2026 · Quinta, Sintra</p>
+            </div>
+            <div class="resumo">
+              <p class="ov">Em resumo</p>
+              <div class="item"><span class="d"></span><p>A decoração para Casamento, a 12 de setembro de 2026.</p></div>
+              <div class="item"><span class="d"></span><p>O valor de 1 850 €, nas condições das cláusulas.</p></div>
+              <div class="item"><span class="d"></span><p>Depois de assinado, não muda mais — nem do seu lado nem do nosso.</p></div>
+              <p class="nota">O que obriga é o texto que se segue.</p>
+            </div>
+            <div class="clausula"><span class="n serif">1</span><span class="t">O objecto</span><p class="corpo">A Do Luxo à Mesa compromete-se a conceber, montar e recolher a decoração descrita…</p></div>
+            <div class="clausula"><span class="n serif">2</span><span class="t">O valor e o pagamento</span><p class="corpo">O valor total é de 1 850 €. O sinal, de metade, reserva a data…</p></div>
+            <div class="clausula"><span class="n serif">3</span><span class="t">A data e o lugar</span><p class="corpo">O serviço realiza-se a 12 de setembro de 2026, na morada combinada…</p></div>
+            <div class="clausula"><span class="n serif">4</span><span class="t">As alterações</span><p class="corpo">Qualquer alteração ao combinado faz-se por escrito, com nova versão…</p></div>
+            <div class="clausula"><span class="n serif">5</span><span class="t">O cancelamento</span><p class="corpo">Em caso de cancelamento pela cliente, o sinal cobre o trabalho de preparação…</p></div>
+            <div class="clausula" style="padding-bottom: 18px;"><span class="n serif">6</span><span class="t">A montagem e a recolha</span><p class="corpo">A equipa monta no próprio dia e recolhe no dia seguinte…</p></div>
+            <div class="pe">
+              <p class="ov">A assinatura</p>
+              <p class="q serif">O que fica assinado</p>
+              <p class="c">A decoração, o valor, a versão que acabou de ler — e que depois de assinado não muda mais.</p>
+              <div class="pauta"><span>o seu nome</span></div>
+              <span class="capsula-cheia">Assinar o contrato</span>
+            </div>
+          </div>
+        </div></div>
+        <p class="dica">↕ role dentro do telemóvel</p>
+      </div>
+
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">O orçamento, ao abrir</p>
+          <p class="s">a mesma faixa, com a palavra do orçamento</p>
+        </div>
+        <div class="fone"><div class="ecra">
+          <div class="folha">
+            <div class="faixa-espera">
+              <span class="engaste"></span>
+              <span>
+                <span class="ov">Por responder</span>
+                <p class="l">Este orçamento espera a sua resposta — no fim da folha, quando quiser.</p>
+              </span>
+            </div>
+            <div class="timbre">
+              <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+              <p class="nome overline">Orçamento</p>
+              <p class="selo-versao">Versão 2 · de 9 de agosto</p>
+            </div>
+            <div class="titulo-doc">
+              <p class="t serif">Os serviços e os valores da sua mesa</p>
+              <p class="s">Casamento · 12 de setembro de 2026</p>
+            </div>
+            <div class="linha-serv"><span><span class="n">Mesa posta completa</span><p class="d">para 80 convidados, cor champanhe</p></span><span class="v">950 €</span></div>
+            <div class="linha-serv"><span><span class="n">Cenário fotografável</span><p class="d">painel, flores e luz</p></span><span class="v">420 €</span></div>
+            <div class="linha-serv"><span><span class="n">Mesa do bolo</span><p class="d">com a estrutura dourada</p></span><span class="v">280 €</span></div>
+            <div class="linha-serv"><span><span class="n">Deslocação</span><p class="d">Sintra, ida e volta</p></span><span class="v">200 €</span></div>
+            <div class="total"><span class="r">Total</span><span class="v">1 850 €</span></div>
+            <div class="condicoes">
+              <p>O sinal, de metade do valor, reserva a sua data. O restante liquida-se até à véspera. Este orçamento vale 15 dias.</p>
+            </div>
+            <div class="pe">
+              <p class="ov">A sua resposta</p>
+              <p class="q serif">Está de acordo com este orçamento?</p>
+              <p class="c">Responde à versão 2 — a que tem aqui em cima. Se aceitar, o sinal reserva a sua data.</p>
+              <div class="pauta"><span>o seu nome</span></div>
+              <div class="dupla"><span class="a">Aceitar</span><span class="b">Pedir alteração</span></div>
+            </div>
+          </div>
+        </div></div>
+        <p class="dica">↕ role dentro do telemóvel</p>
+      </div>
+
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">A simetria — depois de assinar</p>
+          <p class="s">a FaixaSelo que já existe hoje: o engaste encheu-se</p>
+        </div>
+        <div class="fone" style="height: 240px;"><div class="ecra">
+          <div class="folha">
+            <div class="faixa-selo">
+              <span class="engaste"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.5 L5.5 10.5 L11.5 3.5" fill="none" stroke="#c9a84c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span>
+                <span class="ov">Assinado</span>
+                <p class="l">Por Ana Cruz, a 14 de agosto às 21h37.</p>
+              </span>
+            </div>
+            <div class="timbre">
+              <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+              <p class="nome overline">Contrato</p>
+              <p class="selo-versao">Versão 1 · de 12 de agosto</p>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ DIREÇÃO B ══════════════ -->
+  <section class="direcao">
+    <div class="dir-cab">
+      <p class="overline">Direção B</p>
+      <h2 class="serif">A cápsula-guia</h2>
+      <p>
+        Enquanto o pé do acto está fora do ecrã, uma cápsula discreta flutua no
+        fundo — o desenho da pílula «Ainda há detalhes opcionais em baixo ↓» da
+        página /interesse, que é da mesma família pública. Um toque leva ao pé
+        (scroll seco, como o portal manda); quando o pé entra no ecrã, a cápsula
+        dissolve-se sozinha. Nunca compete com a cápsula cheia do acto: é branca,
+        de guia — informa o caminho, não vincula nada.
+      </p>
+    </div>
+    <div class="palco">
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">O contrato, a meio da leitura</p>
+          <p class="s">a cápsula acompanha; ao chegar ao pé, desaparece</p>
+        </div>
+        <div class="fone">
+          <div class="ecra ecra-guiada">
+            <div class="folha">
+              <div class="timbre">
+                <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+                <p class="nome overline">Contrato</p>
+                <p class="selo-versao">Versão 1 · de 12 de agosto</p>
+              </div>
+              <div class="titulo-doc">
+                <p class="t serif">A decoração do seu casamento</p>
+                <p class="s">12 de setembro de 2026 · Quinta, Sintra</p>
+              </div>
+              <div class="resumo">
+                <p class="ov">Em resumo</p>
+                <div class="item"><span class="d"></span><p>A decoração para Casamento, a 12 de setembro de 2026.</p></div>
+                <div class="item"><span class="d"></span><p>O valor de 1 850 €, nas condições das cláusulas.</p></div>
+                <p class="nota">O que obriga é o texto que se segue.</p>
+              </div>
+              <div class="clausula"><span class="n serif">1</span><span class="t">O objecto</span><p class="corpo">A Do Luxo à Mesa compromete-se a conceber, montar e recolher a decoração descrita…</p></div>
+              <div class="clausula"><span class="n serif">2</span><span class="t">O valor e o pagamento</span><p class="corpo">O valor total é de 1 850 €. O sinal, de metade, reserva a data…</p></div>
+              <div class="clausula"><span class="n serif">3</span><span class="t">A data e o lugar</span><p class="corpo">O serviço realiza-se a 12 de setembro de 2026, na morada combinada…</p></div>
+              <div class="clausula"><span class="n serif">4</span><span class="t">As alterações</span><p class="corpo">Qualquer alteração ao combinado faz-se por escrito, com nova versão…</p></div>
+              <div class="clausula"><span class="n serif">5</span><span class="t">O cancelamento</span><p class="corpo">Em caso de cancelamento pela cliente, o sinal cobre o trabalho de preparação…</p></div>
+              <div class="clausula" style="padding-bottom: 18px;"><span class="n serif">6</span><span class="t">A montagem e a recolha</span><p class="corpo">A equipa monta no próprio dia e recolhe no dia seguinte…</p></div>
+              <div class="pe pe-alvo">
+                <p class="ov">A assinatura</p>
+                <p class="q serif">O que fica assinado</p>
+                <p class="c">A decoração, o valor, a versão que acabou de ler — e que depois de assinado não muda mais.</p>
+                <div class="pauta"><span>o seu nome</span></div>
+                <span class="capsula-cheia">Assinar o contrato</span>
+              </div>
+            </div>
+          </div>
+          <button class="guia" type="button">A assinatura está no fim da leitura ↓</button>
+        </div>
+        <p class="dica">↕ role — a cápsula dissolve-se ao chegar ao pé</p>
+      </div>
+
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">O orçamento</p>
+          <p class="s">a palavra muda com o documento</p>
+        </div>
+        <div class="fone">
+          <div class="ecra ecra-guiada">
+            <div class="folha">
+              <div class="timbre">
+                <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+                <p class="nome overline">Orçamento</p>
+                <p class="selo-versao">Versão 2 · de 9 de agosto</p>
+              </div>
+              <div class="titulo-doc">
+                <p class="t serif">Os serviços e os valores da sua mesa</p>
+                <p class="s">Casamento · 12 de setembro de 2026</p>
+              </div>
+              <div class="linha-serv"><span><span class="n">Mesa posta completa</span><p class="d">para 80 convidados, cor champanhe</p></span><span class="v">950 €</span></div>
+              <div class="linha-serv"><span><span class="n">Cenário fotografável</span><p class="d">painel, flores e luz</p></span><span class="v">420 €</span></div>
+              <div class="linha-serv"><span><span class="n">Mesa do bolo</span><p class="d">com a estrutura dourada</p></span><span class="v">280 €</span></div>
+              <div class="linha-serv"><span><span class="n">Deslocação</span><p class="d">Sintra, ida e volta</p></span><span class="v">200 €</span></div>
+              <div class="total"><span class="r">Total</span><span class="v">1 850 €</span></div>
+              <div class="condicoes">
+                <p>O sinal, de metade do valor, reserva a sua data. O restante liquida-se até à véspera. Este orçamento vale 15 dias.</p>
+              </div>
+              <div class="pe pe-alvo">
+                <p class="ov">A sua resposta</p>
+                <p class="q serif">Está de acordo com este orçamento?</p>
+                <p class="c">Responde à versão 2 — a que tem aqui em cima. Se aceitar, o sinal reserva a sua data.</p>
+                <div class="pauta"><span>o seu nome</span></div>
+                <div class="dupla"><span class="a">Aceitar</span><span class="b">Pedir alteração</span></div>
+              </div>
+            </div>
+          </div>
+          <button class="guia" type="button">A sua resposta está no fim da folha ↓</button>
+        </div>
+        <p class="dica">↕ role — a cápsula dissolve-se ao chegar ao pé</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ DIREÇÃO C ══════════════ -->
+  <section class="direcao">
+    <div class="dir-cab">
+      <p class="overline">Direção C</p>
+      <h2 class="serif">As duas juntas</h2>
+      <p class="recomendada">a recomendada</p>
+      <p>
+        A faixa diz <em>o que se espera</em> no primeiro segundo; a cápsula-guia
+        mantém <em>o caminho</em> à vista durante a leitura longa (o contrato tem
+        as cláusulas todas por extenso — o pé fica a vários ecrãs). Uma responde
+        à confusão da chegada, a outra à distância. São as duas discretas, e
+        nenhuma toca no acto em si: o pé fica exactamente como está, que é
+        decisão registada da casa («o acto vive no pé do documento»).
+      </p>
+    </div>
+    <div class="palco">
+      <div class="posto">
+        <div class="legenda">
+          <p class="t">O contrato completo, de cima a baixo</p>
+          <p class="s">faixa ao abrir + cápsula durante a leitura</p>
+        </div>
+        <div class="fone">
+          <div class="ecra ecra-guiada">
+            <div class="folha">
+              <div class="faixa-espera">
+                <span class="engaste"></span>
+                <span>
+                  <span class="ov">Por assinar</span>
+                  <p class="l">A sua assinatura fecha este contrato — espera por si no fim da leitura.</p>
+                </span>
+              </div>
+              <div class="timbre">
+                <p class="logo serif">Do Luxo à Mesa<small>luxury events</small></p>
+                <p class="nome overline">Contrato</p>
+                <p class="selo-versao">Versão 1 · de 12 de agosto</p>
+              </div>
+              <div class="titulo-doc">
+                <p class="t serif">A decoração do seu casamento</p>
+                <p class="s">12 de setembro de 2026 · Quinta, Sintra</p>
+              </div>
+              <div class="resumo">
+                <p class="ov">Em resumo</p>
+                <div class="item"><span class="d"></span><p>A decoração para Casamento, a 12 de setembro de 2026.</p></div>
+                <div class="item"><span class="d"></span><p>O valor de 1 850 €, nas condições das cláusulas.</p></div>
+                <div class="item"><span class="d"></span><p>Depois de assinado, não muda mais — nem do seu lado nem do nosso.</p></div>
+                <p class="nota">O que obriga é o texto que se segue.</p>
+              </div>
+              <div class="clausula"><span class="n serif">1</span><span class="t">O objecto</span><p class="corpo">A Do Luxo à Mesa compromete-se a conceber, montar e recolher a decoração descrita…</p></div>
+              <div class="clausula"><span class="n serif">2</span><span class="t">O valor e o pagamento</span><p class="corpo">O valor total é de 1 850 €. O sinal, de metade, reserva a data…</p></div>
+              <div class="clausula"><span class="n serif">3</span><span class="t">A data e o lugar</span><p class="corpo">O serviço realiza-se a 12 de setembro de 2026, na morada combinada…</p></div>
+              <div class="clausula"><span class="n serif">4</span><span class="t">As alterações</span><p class="corpo">Qualquer alteração ao combinado faz-se por escrito, com nova versão…</p></div>
+              <div class="clausula"><span class="n serif">5</span><span class="t">O cancelamento</span><p class="corpo">Em caso de cancelamento pela cliente, o sinal cobre o trabalho de preparação…</p></div>
+              <div class="clausula" style="padding-bottom: 18px;"><span class="n serif">6</span><span class="t">A montagem e a recolha</span><p class="corpo">A equipa monta no próprio dia e recolhe no dia seguinte…</p></div>
+              <div class="pe pe-alvo">
+                <p class="ov">A assinatura</p>
+                <p class="q serif">O que fica assinado</p>
+                <p class="c">A decoração, o valor, a versão que acabou de ler — e que depois de assinado não muda mais.</p>
+                <div class="pauta"><span>o seu nome</span></div>
+                <span class="capsula-cheia">Assinar o contrato</span>
+              </div>
+            </div>
+          </div>
+          <button class="guia" type="button">A assinatura está no fim da leitura ↓</button>
+        </div>
+        <p class="dica">↕ role de cima a baixo — é a experiência completa</p>
+      </div>
+
+      <div class="posto">
+        <div class="notas" style="margin-top: 34px;">
+          <p class="ov">Os estados difíceis — onde as peças NÃO aparecem</p>
+          <table>
+            <tr><td>Velado (código)</td><td>nem faixa nem cápsula — a acção é o código, e o corpo do orçamento já tem a linha «o caminho para os abrir está no fim da folha». Prometer uma assinatura que o véu ainda não deixa dar seria mentir.</td></tr>
+            <tr><td>Já respondeu</td><td>nada — o pé recolhe para uma linha com o visto, como hoje.</td></tr>
+            <tr><td>Versão antiga</td><td>nada — não há acto em versões antigas.</td></tr>
+            <tr><td>Impressão A4</td><td>nada — as duas peças levam a classe que as tira do papel, como o pé do acto hoje.</td></tr>
+            <tr><td>Pórtico das condições</td><td>fica por cima de tudo, como hoje — as peças esperam por baixo.</td></tr>
+            <tr><td>Projecto da mesa</td><td>mesmo tratamento («Por aprovar»), pela consistência — diz-se se preferires deixar de fora.</td></tr>
+          </table>
+          <p class="ov" style="margin-top: 20px;">O que não muda</p>
+          <ul>
+            <li>O pé do acto fica intocado — «o acto vive no pé do documento, com o fim dele à vista» é decisão registada no código.</li>
+            <li>Uma só cápsula cheia por página: a guia é branca, de caminho — não vincula.</li>
+            <li>Nada anima ao abrir (regra do portal); a cápsula só se dissolve em resposta ao gesto de rolar, e com movimento reduzido aparece/desaparece sem transição.</li>
+            <li>O toque na guia faz scroll seco (sem smooth), como todos os scrolls do portal.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script>
+  // A mecânica real da cápsula-guia, à escala do mockup: dissolve-se
+  // quando o pé do acto entra no ecrã do telemóvel; um toque leva lá.
+  document.querySelectorAll('.fone').forEach(function (fone) {
+    var ecra = fone.querySelector('.ecra-guiada');
+    var guia = fone.querySelector('.guia');
+    var pe = fone.querySelector('.pe-alvo');
+    if (!ecra || !guia || !pe) return;
+    var afinar = function () {
+      var visivel = pe.getBoundingClientRect().top < fone.getBoundingClientRect().bottom - 60;
+      guia.classList.toggle('escondida', visivel);
+    };
+    ecra.addEventListener('scroll', afinar, { passive: true });
+    afinar();
+    guia.addEventListener('click', function () {
+      ecra.scrollTo({ top: pe.offsetTop - 40 });
+    });
+  });
+</script>
+</body>
+</html>

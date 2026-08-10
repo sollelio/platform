@@ -19,7 +19,7 @@ import {
   ROTULO_DOCUMENTO,
 } from "../../lib/portal";
 import { supabase } from "../../lib/supabase";
-import { documentosDoEvento } from "../../lib/documentos";
+import { documentosDoEvento, obterDocumento } from "../../lib/documentos";
 import { comunicadosDoEvento } from "../../lib/comunicados";
 import {
   confirmacaoViva,
@@ -414,7 +414,32 @@ function Conteudo({ evento, onFechar }) {
     setATrabalhar(true);
     setErro(null);
     try {
-      await publicarDocumento(eventoId, tipo, EXTRA_POR_TIPO[tipo] || null);
+      // A proposta publica-se com as imagens DO CLIENTE no lugar das de
+      // trabalho: as da Nádia são só dela (o PDF que imprime), e o
+      // instantâneo deve conter exactamente o que a cliente vê — a
+      // imagem de trabalho nunca sai de casa, nem escondida no JSON.
+      // O p_extra substitui `seccoes` por inteiro (a fusão do
+      // dlm_portal_publicar é rasa); secção sem imagemCliente
+      // publica-se sem imagem, de propósito. O extra segue SEMPRE —
+      // mesmo sem secções na BD, `seccoes: []` garante que o verbatim
+      // dos dados nunca escapa pela fusão. A 088 (quando correr) faz a
+      // mesma troca DENTRO da RPC, atómica sobre os dados frescos; este
+      // extra fica como cinto de segurança até lá — e depois dela, a
+      // RPC sobrepõe-no com a versão fresca, o que é o desejado.
+      let extra = EXTRA_POR_TIPO[tipo] || null;
+      if (tipo === "proposta") {
+        const docProposta = await obterDocumento("proposta", eventoId);
+        const seccoesDoc = docProposta?.dados?.seccoes;
+        extra = {
+          seccoes: Array.isArray(seccoesDoc)
+            ? seccoesDoc.map(({ imagemCliente, ...s }) => ({
+                ...s,
+                imagem: imagemCliente || "",
+              }))
+            : [],
+        };
+      }
+      await publicarDocumento(eventoId, tipo, extra);
       setRecarga((r) => r + 1);
     } catch (e) {
       console.error(e);

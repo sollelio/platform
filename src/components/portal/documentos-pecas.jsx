@@ -434,6 +434,31 @@ export function FaixaSelo({ visto, quem, quando }) {
   );
 }
 
+// ---------- Faixa da espera ----------
+// O espelho da FaixaSelo, para o documento POR responder: o engaste
+// vazio no lugar onde o visto vai ficar, e a frase do que se espera.
+// É a primeira coisa da folha — a Nádia demorou a perceber que devia
+// assinar porque o acto vive no pé, vários ecrãs abaixo, e nada em
+// cima o anunciava. Informa, não pede: sem botão — o acto continua no
+// pé, com o fim da leitura à vista. Ao assinar, esta faixa dá lugar à
+// FaixaSelo: o mesmo engaste, agora com o visto.
+export function FaixaEspera({ rotulo, frase }) {
+  return (
+    <div
+      className="acomp-nao-imprime"
+      style={{ display: "flex", alignItems: "center", gap: "13px", backgroundColor: "#FDFBF5", borderBottom: "1px solid #E8D5A3", padding: "15px 20px" }}
+    >
+      <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "#FDFBF5", border: "1px solid #E8DCC0", flex: "none" }} />
+      <div>
+        <p style={overline()}>{rotulo}</p>
+        <p style={{ fontSize: "12px", lineHeight: 1.55, color: "var(--charcoal)", margin: "5px 0 0", textWrap: "pretty" }}>
+          {frase}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Campo de assinatura ----------
 // Escrever o nome É assinar. Pauta, não input; o filete dourado atravessa
 // em 2 500 ms e só então a cápsula acende — tempo para reler, sem contagem.

@@ -32,6 +32,19 @@ export const EMPRESA = {
   foro: "comarca de Sintra",
 };
 
+// ---------- A letra da assinatura da casa ----------
+// Só para a ASSINATURA DA CASA (a folha do contrato no backoffice e o
+// registo «As assinaturas» no portal) — nunca para a do cliente, nem
+// para texto corrido. A Cochocib Script Latin Pro é a escolhida pelo
+// Hélio (10/08/2026), mas é fonte COMERCIAL (Saffatin.co/MyFonts) e
+// não se embute sem licença: fica primeira na pilha, à espera — no dia
+// em que a licença se comprar, basta juntar o ficheiro e um @font-face
+// com este nome exacto, e a assinatura muda sozinha. Até lá vale a
+// Great Vibes (Google Fonts, licença SIL), a caligráfica de casamento
+// mais próxima: traço fino inclinado, laços grandes, ar de assinatura.
+export const FONTE_ASSINATURA_CASA =
+  '"Cochocib Script Latin Pro", "Great Vibes", cursive';
+
 // ---------- Onde a casa mora na internet ----------
 // O domínio à parte do endereço: as folhas escrevem «doluxoamesa.pt»
 // como morada legível; o endereço completo é o que se clica.

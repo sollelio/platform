@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LOGO_CASA as logoUrl, EMPRESA } from "../../lib/casa";
+import {
+  LOGO_CASA as logoUrl,
+  EMPRESA,
+  FONTE_ASSINATURA_CASA,
+} from "../../lib/casa";
 import { Esqueleto } from "../admin/acabamento";
 import {
   overline, playfair, diaMesAno, diaEMes, horaCurta, formatarEuroPT,
@@ -13,7 +17,7 @@ import {
 import {
   SeloVersao, Folha, Timbre, LinhaServico, TotalOrcamento, CapsulaCheia,
   TiraContexto, Dupla, CapsulaVazada, LigacaoDiscreta, CelulasCodigo,
-  BlocoRecusa, BlocoRegisto, FaixaSelo, CampoAssinatura, CampoRecado,
+  BlocoRecusa, BlocoRegisto, FaixaSelo, FaixaEspera, CampoAssinatura, CampoRecado,
   EngasteTirar, TituloDocumento, VeuValor, EstiloImpressao,
 } from "./documentos-pecas";
 import {
@@ -444,7 +448,13 @@ function AssinaturasDaFolha({ doc }) {
         </p>
       )}
       <p style={{ fontSize: "12px", lineHeight: 1.7, color: "var(--charcoal)", margin: dela ? "6px 0 0" : "10px 0 0", textWrap: "pretty" }}>
-        Pela Do Luxo à Mesa: {casa.nome}, a {dataPorExtenso(diaLocalISO(casa.quando))}
+        {/* Só o NOME leva a letra caligráfica da casa — o resto da
+            linha continua registo, não cerimónia. */}
+        Pela Do Luxo à Mesa:{" "}
+        <span style={{ fontFamily: FONTE_ASSINATURA_CASA, fontSize: "17px" }}>
+          {casa.nome}
+        </span>
+        , a {dataPorExtenso(diaLocalISO(casa.quando))}
       </p>
     </div>
   );
@@ -1499,6 +1509,34 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
     document.getElementById("acomp-passo-titulo")?.focus({ preventScroll: true });
   }, [passo, tipo, versaoAntiga]);
 
+  // A cápsula-guia: enquanto o pé do acto está fora do ecrã, uma cápsula
+  // discreta no fundo aponta-lhe o caminho — e dissolve-se quando o pé
+  // aparece. O alvo é o ref do pé; sem pé montado (velado, respondido,
+  // versão antiga, outros passos) a guia esconde-se. Layout effect SEM
+  // dependências de propósito: mede antes de cada pintura e qualquer
+  // mudança de ramo volta a medir; os listeners são baratos de repor.
+  // Num documento curto a guia nunca chega a aparecer; num longo pode
+  // nascer com o próprio fade dos 450ms (a medição força o reflow que
+  // fixa o estilo de partida) — o mesmo desenho do dissolve, nunca um
+  // estado errado. Com movimento reduzido, sem transição nenhuma.
+  const peActoRef = useRef(null);
+  const [guiaSumida, setGuiaSumida] = useState(true);
+  useLayoutEffect(() => {
+    const afinar = () => {
+      const pe = peActoRef.current;
+      setGuiaSumida(
+        !pe || pe.getBoundingClientRect().top < window.innerHeight - 72,
+      );
+    };
+    afinar();
+    window.addEventListener("scroll", afinar, { passive: true });
+    window.addEventListener("resize", afinar);
+    return () => {
+      window.removeEventListener("scroll", afinar);
+      window.removeEventListener("resize", afinar);
+    };
+  });
+
   // Mudou de documento: o que era de um não fala pelo outro — a linha do
   // «já tinha resposta», o formulário do pedido e o regresso ao pedido.
   // Reset DURANTE o render (padrão do react.dev para estado preso a uma
@@ -1928,7 +1966,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             onClick={irAoAcompanhamento}
             style={{ width: "auto", display: "inline-block", padding: "13px 26px" }}
           >
-            Voltar ao acompanhamento
+            Acompanhar evento em tempo real
           </CapsulaVazada>
         </div>
 
@@ -2027,6 +2065,27 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
     !condicoesConfirmadas &&
     condicoesDoc.length > 0;
 
+  // O pé do acto existe? É a condição das duas peças que o anunciam: a
+  // faixa da espera (topo da folha) e a cápsula-guia (fundo do ecrã).
+  const peDoActo = !veiado && !jaRespondeu && !versaoAntiga;
+  const faixaEspera =
+    tipo === "contrato"
+      ? {
+          rotulo: "Por assinar",
+          frase:
+            "A sua assinatura fecha este contrato — espera por si no fim da leitura.",
+        }
+      : tipo === "proposta"
+        ? {
+            rotulo: "Por aprovar",
+            frase: "A mesa desenhada espera a sua aprovação — no fim da folha.",
+          }
+        : {
+            rotulo: "Por responder",
+            frase:
+              "Este orçamento espera a sua resposta — no fim da folha, quando quiser.",
+          };
+
   return (
     <div className="acomp-imprimivel" style={{ padding: "22px 16px 26px" }}>
       {/* Primeiro no DOM de propósito: com o véu em cima, a primeira
@@ -2042,6 +2101,11 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
         />
       )}
       <Folha>
+        {/* A faixa da espera — o espelho da FaixaSelo, antes do timbre:
+            quem abre lê primeiro o que se espera de si. */}
+        {peDoActo && (
+          <FaixaEspera rotulo={faixaEspera.rotulo} frase={faixaEspera.frase} />
+        )}
         {tipo === "orcamento" && <CorpoOrcamento doc={doc} />}
         {tipo === "proposta" && <CorpoProjecto doc={doc} />}
         {tipo === "contrato" && (
@@ -2164,7 +2228,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
 
         {/* ── O PÉ DO ACTO ── */}
         {!veiado && !jaRespondeu && !versaoAntiga && tipo !== "contrato" && (
-          <div className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
+          <div ref={peActoRef} tabIndex={-1} className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px", outline: "none" }}>
             <p style={overline()}>A sua resposta</p>
             <p style={{ ...playfair, fontSize: "19px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
               {tipo === "proposta" ? "É esta a mesa que imaginou?" : "Está de acordo com este orçamento?"}
@@ -2228,7 +2292,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
 
         {/* ── A ASSINATURA DO CONTRATO ── */}
         {!veiado && !jaRespondeu && !versaoAntiga && tipo === "contrato" && (
-          <div className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px" }}>
+          <div ref={peActoRef} tabIndex={-1} className="acomp-nao-imprime" style={{ backgroundColor: "#FDFBF5", borderTop: "1px solid #E8D5A3", padding: "22px", outline: "none" }}>
             <p style={overline()}>A assinatura</p>
             <p style={{ ...playfair, fontSize: "20px", lineHeight: 1.32, marginTop: "10px", textWrap: "balance" }}>
               O que fica assinado
@@ -2320,6 +2384,63 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           </div>
         )}
       </Folha>
+
+      {/* A cápsula-guia: o desenho da pílula dos opcionais da /interesse,
+          ao serviço do acto — enquanto o pé está fora do ecrã, aponta o
+          caminho; um toque leva lá (scroll seco, como o portal manda) e,
+          chegado o pé, dissolve-se. Nunca compete com a cápsula cheia do
+          acto: é branca, de guia — não vincula. Fica por baixo dos
+          pórticos (zIndex 60) e fora do papel. */}
+      {peDoActo && !porticoAberto && (
+        <button
+          type="button"
+          className="acomp-nao-imprime foco"
+          tabIndex={guiaSumida ? -1 : 0}
+          aria-hidden={guiaSumida || undefined}
+          onClick={() => {
+            const pe = peActoRef.current;
+            if (!pe) return;
+            window.scrollTo(
+              0,
+              pe.getBoundingClientRect().top + window.scrollY - 12,
+            );
+            // O foco vai com o scroll: o botão está prestes a ficar
+            // aria-hidden, e um elemento escondido não pode reter o
+            // foco — sem isto, o Tab seguinte saltava por cima do pé.
+            pe.focus({ preventScroll: true });
+          }}
+          style={{
+            position: "fixed",
+            bottom: "calc(16px + env(safe-area-inset-bottom))",
+            left: "50%",
+            transform: guiaSumida
+              ? "translateX(-50%) translateY(10px)"
+              : "translateX(-50%)",
+            opacity: guiaSumida ? 0 : 1,
+            pointerEvents: guiaSumida ? "none" : "auto",
+            transition: reduzir
+              ? "none"
+              : "opacity 450ms ease, transform 450ms ease",
+            whiteSpace: "nowrap",
+            fontFamily: "Inter, sans-serif",
+            fontSize: "12px",
+            fontWeight: 600,
+            letterSpacing: "0.02em",
+            color: "var(--gold-dark)",
+            backgroundColor: "white",
+            border: "1px solid var(--gold-light)",
+            borderRadius: "999px",
+            padding: "9px 17px",
+            cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(201,168,76,0.25)",
+            zIndex: 40,
+          }}
+        >
+          {tipo === "contrato"
+            ? "A assinatura está no fim da leitura ↓"
+            : "A sua resposta está no fim da folha ↓"}
+        </button>
+      )}
 
       <div className="acomp-nao-imprime" style={{ marginTop: "16px", textAlign: "center", display: "flex", justifyContent: "center", gap: "20px" }}>
         <LigacaoDiscreta onClick={() => window.print()} apagada>

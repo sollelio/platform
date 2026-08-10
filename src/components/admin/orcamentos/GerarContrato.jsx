@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
 import { obterDocumento, assinarPelaCasa } from "../../../lib/documentos";
 import { getPublicacoes } from "../../../lib/portal";
-import { LOGO_CASA as logoUrl } from "../../../lib/casa";
+import { LOGO_CASA as logoUrl, FONTE_ASSINATURA_CASA } from "../../../lib/casa";
 import {
   EMPRESA,
   CONTRATO_INTRO,
@@ -896,8 +896,12 @@ function ContratoDocumento({
         </div>
         <div style={{ flex: 1, textAlign: "center" }}>
           <div style={{ height: "28px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "5px", boxSizing: "border-box" }}>
+            {/* A letra caligráfica é SÓ da assinatura da casa (a do
+                cliente fica em itálico, como está). Os ascendentes
+                podem passar da faixa — uma assinatura real também
+                passa; a altura fixa continua a nivelar as linhas. */}
             {assinaturaCasa && (
-              <p style={{ margin: 0, fontStyle: "italic", lineHeight: 1 }}>
+              <p style={{ margin: 0, fontFamily: FONTE_ASSINATURA_CASA, fontSize: "22px", lineHeight: 1 }}>
                 {assinaturaCasa.nome}
               </p>
             )}
