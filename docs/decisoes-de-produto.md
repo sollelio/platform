@@ -1260,6 +1260,18 @@ método; aqui ficam as decisões aprovadas fase a fase).
   portal: posto de lado por agora (anon por token, cuidado com RLS,
   caso raro). Portão: esbuild ✓ eslint zero erros novos (PagamentosEvento
   3→3 e FunilBoard 7→7 pré-existentes; o componente novo, limpo) build ✓.
+- **Bug do «Abrir ficha completa» ✓ (10/08/2026) — a lista que
+  divergiu.** Sintoma (Hélio): o botão da Caixa de Entrada umas vezes
+  abria a ficha, outras caía na lista de contactos. Causa: a lista dos
+  avisos «cuja casa é a folha do Acompanhamento» existia em TRÊS
+  cópias — AdminPage, EventoPage/Caixa e EventoPage/toast — e a 083 só
+  acrescentou o «sinal_confirmado» à primeira; visto de dentro de uma
+  ficha, esse aviso caía no apanha-tudo (`caminhoDoSeparador("clientes")`).
+  Cura pela regra da casa (uma lista só): **TIPOS_DO_ACOMPANHAMENTO**
+  exportada de `lib/notificacoes.js` (com o porquê de cada tipo, 072 e
+  083 incluídos) e importada pelos três sítios — o drift deixa de ser
+  possível. Portão: esbuild ✓ eslint zero erros novos (AdminPage 9→9 e
+  EventoPage 4→4 pré-existentes) build ✓.
 
 ## Validação — regra da casa
 

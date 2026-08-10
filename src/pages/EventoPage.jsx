@@ -39,7 +39,7 @@ import { linkWhatsApp } from "../lib/mensagens";
 import PortalDoClienteSheet from "../components/admin/PortalDoClienteSheet";
 import PainelNotificacoes, { ToastNotificacao } from "../components/admin/CentroNotificacoes";
 import { documentosDoEvento } from "../lib/documentos";
-import { useNotificacoes } from "../lib/notificacoes";
+import { useNotificacoes, TIPOS_DO_ACOMPANHAMENTO } from "../lib/notificacoes";
 import { FASE_LABEL, FASES_POS_SINAL } from "../components/admin/faseConfig";
 import { SidebarNav } from "../components/admin/Navegacao";
 import { Esqueleto } from "../components/admin/acabamento";
@@ -1135,15 +1135,10 @@ export default function EventoPage() {
   // DESTE evento abrem a folha aqui mesmo, sem viagem.
   const abrirAvisoDaCaixa = (submissionId, tipo) => {
     if (!submissionId) return;
-    const doAcompanhamento = [
-      "codigo_pedido",
-      "pedido_alteracao",
-      "contrato_papel",
-      "questionario_pedido",
-      "orcamento_aceite",
-      "projecto_aprovado",
-      "contrato_assinado",
-    ].includes(tipo);
+    // A lista única de notificacoes.js — a cópia à mão desta lista já
+    // deixou o «sinal_confirmado» para trás e o botão caía nos
+    // Contactos (o bug de 10/08).
+    const doAcompanhamento = TIPOS_DO_ACOMPANHAMENTO.includes(tipo);
     setCaixaAberta(false);
     if (doAcompanhamento) {
       if (submissionId === id) setPedidoAcompanhamento(true);
@@ -1168,15 +1163,7 @@ export default function EventoPage() {
   // Abrir do toast leva ao sítio que o próprio aviso promete.
   const abrirDeToast = (n) => {
     notificacoes.limparNova();
-    const doAcompanhamento = [
-      "codigo_pedido",
-      "pedido_alteracao",
-      "contrato_papel",
-      "questionario_pedido",
-      "orcamento_aceite",
-      "projecto_aprovado",
-      "contrato_assinado",
-    ].includes(n.tipo);
+    const doAcompanhamento = TIPOS_DO_ACOMPANHAMENTO.includes(n.tipo);
     const mesmoEvento = n.submission_id === id;
     if (doAcompanhamento) {
       // Deste evento: abre a folha aqui mesmo, pela porta guardada de

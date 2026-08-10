@@ -64,7 +64,7 @@ import {
 import PainelNotificacoes, {
   ToastNotificacao,
 } from "../components/admin/CentroNotificacoes";
-import { useNotificacoes } from "../lib/notificacoes";
+import { useNotificacoes, TIPOS_DO_ACOMPANHAMENTO } from "../lib/notificacoes";
 import { getReservas } from "../lib/reservas";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -233,24 +233,9 @@ export default function AdminPage() {
 
   const handleAbrirEventoDeNotificacao = async (submissionId, tipo) => {
     if (!submissionId) return;
-    // Estes quatro tratam-se na folha do Acompanhamento — a página do
-    // evento abre-a por state, consumido uma vez (padrão do realce).
-    if (
-      [
-        "codigo_pedido",
-        "pedido_alteracao",
-        "contrato_papel",
-        "questionario_pedido",
-        // 072 · as respostas dela lêem-se na folha do Acompanhamento —
-        // é lá que vive o «Aceite por … a …» e o publicar da versão nova.
-        "orcamento_aceite",
-        "projecto_aprovado",
-        "contrato_assinado",
-        // 083 · a confirmação do sinal trata-se na folha (a confirmação
-        // viva e o limpar) e o registo fica a um separador — Pagamentos.
-        "sinal_confirmado",
-      ].includes(tipo)
-    ) {
+    // Os avisos cuja casa é a folha do Acompanhamento — a lista única
+    // vive em notificacoes.js, com o porquê de cada tipo.
+    if (TIPOS_DO_ACOMPANHAMENTO.includes(tipo)) {
       setNotifAberto(false);
       navigate(`/evento/${submissionId}`, {
         state: { abrirAcompanhamento: true },

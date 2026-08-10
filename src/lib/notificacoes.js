@@ -13,6 +13,29 @@ import { TITULO_BACKOFFICE } from "./casa";
 // continua a funcionar como antes (mesmo padrão do rpc.js).
 // ============================================================
 
+// Os avisos cuja casa é a folha do ACOMPANHAMENTO da ficha — a página
+// do evento abre-a por state, consumido uma vez (padrão do realce).
+// UMA lista só, importada pelo AdminPage e pelas duas portas da
+// EventoPage (Caixa e toast): a cópia à mão já custou um bug — o
+// «sinal_confirmado» da 083 entrou numa cópia e não nas outras, e o
+// «Abrir ficha completa» caía na lista de contactos quando visto de
+// uma ficha (10/08/2026).
+// · os quatro primeiros: pedidos que se emitem/tratam na folha;
+// · 072 — as respostas dela lêem-se na folha (o «Aceite por … a …» e
+//   o publicar da versão nova);
+// · 083 — a confirmação do sinal trata-se na folha (a confirmação
+//   viva e o limpar); o registo fica a um separador, Pagamentos.
+export const TIPOS_DO_ACOMPANHAMENTO = [
+  "codigo_pedido",
+  "pedido_alteracao",
+  "contrato_papel",
+  "questionario_pedido",
+  "orcamento_aceite",
+  "projecto_aprovado",
+  "contrato_assinado",
+  "sinal_confirmado",
+];
+
 // O PostgREST responde 42P01/PGRST205 quando a tabela não existe.
 const ehTabelaEmFalta = (erro) =>
   erro?.code === "42P01" ||
