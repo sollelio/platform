@@ -147,7 +147,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
       await onUsar(m);
     } catch (e) {
       console.error(e);
-      setErroCartao({ id: m.id, texto: "Não foi possível criar um comunicado deste modelo. Tente outra vez." });
+      setErroCartao({ id: m.id, texto: "Não foi possível criar uma folha deste modelo. Tente outra vez." });
     } finally {
       setOcupadoId(null);
     }
@@ -203,7 +203,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
           lineHeight: 1.3,
         }}
       >
-        Modelos de comunicado
+        Modelos de folha
       </h1>
       <p
         style={{
@@ -262,7 +262,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "balance",
             }}
           >
-            O primeiro modelo nasce de um comunicado que já saiu.
+            O primeiro modelo nasce de uma folha que já saiu.
           </div>
           <p
             style={{
@@ -329,7 +329,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               textWrap: "pretty",
             }}
           >
-            Cada comunicado que nasce de um modelo é novo, com endereço próprio.
+            Cada folha que nasce de um modelo é nova, com endereço próprio.
           </p>
           <button
             onClick={onIrAosFeitos}
@@ -342,7 +342,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               fontWeight: "600",
             }}
           >
-            Ir ao comunicado que já saiu
+            Ir à folha que já saiu
           </button>
         </div>
       )}
@@ -457,7 +457,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                     >
                       {/* A verdade dita ANTES de confirmar: apagar o modelo
                           não leva atrás os comunicados que dele nasceram. */}
-                      Confirmar? Os comunicados feitos ficam.
+                      Confirmar? As folhas feitas ficam.
                     </button>
                   ) : (
                     <button
@@ -532,7 +532,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       <div style={{ fontSize: "12.5px", lineHeight: 1.6, marginTop: "4px", color: "var(--gray-mid)" }}>
                         {rotulo
                           ? `${rotulo} — os nomes contam-se de novo de cada vez.`
-                          : "Ainda sem regra — escolhe-se em cada comunicado que nascer daqui."}
+                          : "Ainda sem regra — escolhe-se em cada folha que nascer daqui."}
                       </div>
                     </div>
                     {/* A linha de doutrina: o modelo de comunicado é

@@ -500,12 +500,25 @@ de máquina, que não vale o risco de mexer:
 
 | Não dizer | Dizer |
 |---|---|
-| molde | **modelo de comunicado** |
+| molde | **modelo de folha** |
 | congelar (a lista) | **fechar a lista** |
 | expedição | **enviar** (o gesto) · **Envios** (a família, o separador) |
 | registo (da folha) | **aspecto** (Sóbrio / Convidativo) |
 | público (a audiência) | **quem recebe** |
-| Feitos (o sub-separador) | **Envios** (a lista) · **Modelos** (os modelos de comunicado) |
+| Feitos (o sub-separador) | **Envios** (a lista) · **Modelos** (os modelos de folha) |
+
+E o renomeado de 10/08/2026 (palavra do Hélio — os nomes têm de abranger
+comunicados, ofertas e campanhas):
+
+| Não dizer | Dizer |
+|---|---|
+| comunicado (a coisa, no backoffice) | **folha** — «a folha», «Nova folha», «modelo de folha»; os géneros (comunicado, oferta, campanha) dizem-se UMA vez, na definição do estado vazio |
+
+A palavra «comunicado» fica onde é pública e certa: na overline da folha
+pública (ComunicadoPage e o seu espelho na pré-visualização do editor) e
+nos nomes de máquina (`comunicados`, `/comunicado/:token`, RPCs), que
+não vale o risco de mexer — mudar a rota partia os endereços já
+entregues.
 
 ---
 

@@ -929,6 +929,26 @@ export default function EventoPage() {
   // fim da página, e a Caixa de Entrada da sidebar abre o mesmo painel
   // que no resto do backoffice.
   const notificacoes = useNotificacoes();
+
+  // O cartão de Documentos relê quando alguém carimba a tabela por
+  // fora dele (10/08): a folha do Acompanhamento publica (enviado_em,
+  // RPC dlm_portal_publicar desde a 057) e os actos do portal assinam
+  // (assinado_em, dlm_portal_acto/confirmar_papel) — sem este laço, o
+  // «enviar» só virava «enviado» ao recarregar a página. A chave é
+  // derivação pura: o contador salta ao fechar a folha, e o aviso
+  // realtime de um carimbo deste evento entra na chave pelo id (quando
+  // o toast se limpa, a chave recua — mais um refresco silencioso,
+  // nunca um estado por sincronizar).
+  const [docsRefrescamEm, setDocsRefrescamEm] = useState(0);
+  const avisoDeCarimbo =
+    notificacoes.nova &&
+    notificacoes.nova.submission_id === id &&
+    ["contrato_assinado", "orcamento_aceite", "projecto_aprovado"].includes(
+      notificacoes.nova.tipo,
+    )
+      ? notificacoes.nova.id
+      : "";
+  const chaveDocsRefresco = `${docsRefrescamEm}·${avisoDeCarimbo}`;
   const [caixaAberta, setCaixaAberta] = useState(false);
   const [caixaDestaque, setCaixaDestaque] = useState(null);
 
@@ -1349,6 +1369,7 @@ export default function EventoPage() {
             <Painel visivel={activeAba === "documentos"}>
               <DocumentosEvento
                 submissao={submissao}
+                refrescarEm={chaveDocsRefresco}
                 invites={invites}
                 eventTypes={eventTypes}
                 onConviteCriado={(convite) =>
@@ -1545,7 +1566,12 @@ export default function EventoPage() {
       <PortalDoClienteSheet
         evento={submissao}
         aberto={portalAberto}
-        onFechar={() => setPortalAberto(false)}
+        onFechar={() => {
+          setPortalAberto(false);
+          // A folha pode ter publicado (enviado_em carimbado no
+          // servidor) — o cartão de Documentos relê ao fechar.
+          setDocsRefrescamEm((x) => x + 1);
+        }}
       />
 
       {/* A Caixa de Entrada — o mesmo painel do resto do backoffice. */}

@@ -644,7 +644,7 @@ function PercursoComunicado({
         ← Envios
       </button>
 
-      <div style={OVERLINE}>COMUNICADO</div>
+      <div style={OVERLINE}>FOLHA</div>
       <h1
         style={{
           margin: "8px 0 0",
@@ -1225,7 +1225,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
       })
       .catch((e) => {
         console.error(e);
-        setErroLista("Não foi possível carregar os comunicados.");
+        setErroLista("Não foi possível carregar as folhas.");
         setLista((prev) => prev || []);
       });
 
@@ -1437,7 +1437,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
               deslizante: são vistas irmãs, não um filtro. */}
           <div style={{ maxWidth: "640px" }}>
             <div style={{ fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.15em", color: "var(--gold-dark)" }}>
-              COMUNICADOS
+              ENVIOS
             </div>
             <div
               role="tablist"
@@ -1525,7 +1525,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                     fontWeight: "600",
                   }}
                 >
-                  + Novo comunicado
+                  + Nova folha
                 </button>
               </div>
 
@@ -1560,7 +1560,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                 <div style={{ maxWidth: "640px" }}>
                   <Convite
                     titulo="Nenhuma folha, por enquanto."
-                    texto="Um comunicado é uma folha pública com endereço próprio — escreve-se uma vez, publica-se, e o endereço passa de mão em mão até chegar a quem precisa de o ler."
+                    texto="Uma folha é uma página pública com endereço próprio — um comunicado, uma oferta, uma campanha. Escreve-se uma vez, publica-se, e o endereço passa de mão em mão até chegar a quem precisa de a ler."
                     accao="Escrever a primeira folha"
                     onAccao={novo}
                   />
@@ -1797,7 +1797,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
               boxShadow: "0 8px 48px rgba(0,0,0,0.15)",
             }}
           >
-            <div style={{ ...OVERLINE, marginBottom: "14px" }}>Novo comunicado</div>
+            <div style={{ ...OVERLINE, marginBottom: "14px" }}>Nova folha</div>
 
             {/* Via 1: começar de um modelo */}
             <div

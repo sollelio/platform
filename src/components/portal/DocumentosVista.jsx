@@ -432,11 +432,14 @@ function AssinaturasDaFolha({ doc }) {
         <p style={{ fontSize: "12px", lineHeight: 1.7, color: "var(--charcoal)", margin: "10px 0 0", textWrap: "pretty" }}>
           {dela.nome}, a {dataPorExtenso(diaLocalISO(dela.quando))}
           <span style={{ color: "#9B9B9B" }}>
-            {/* A prova diz-se pela natureza dela (074): o papel não teve
-                código, teve a casa a confirmar a folha. */}
+            {/* A prova diz-se pela natureza dela (074/086): o papel teve
+                a casa a confirmar a folha; o código, quando o houve,
+                diz-se; e desde a 086 a ligação privada chega. */}
             {dela.prova === "papel"
               ? " · assinatura em papel, confirmada pela casa"
-              : " · código verificado"}
+              : dela.prova === "codigo"
+                ? " · código verificado"
+                : " · pela ligação privada de acompanhamento"}
           </span>
         </p>
       )}
@@ -1859,11 +1862,12 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                 ...(feito.nome ? [["Assinado por", feito.nome]] : []),
                 ["Versão", `Versão ${doc.versao}, de ${diaEMes(diaLocalISO(doc.publicado_em))}`],
                 ["Data e hora", `${diaMesAno(diaLocalISO(feito.quando))}, às ${horaCurta(feito.quando)}`],
-                // Só a assinatura exige código (083): o aceite prova-se
-                // pela posse da ligação privada — e é isso que se regista.
+                // 086 · também a assinatura se serve da ligação privada;
+                // o código só se afirma quando foi mesmo ele (havia
+                // sessão viva no gesto — o caminho de antes da 086).
                 [
                   "Verificação",
-                  ehAssinatura
+                  ehAssinatura && sessao
                     ? "Com o código que a Do Luxo à Mesa lhe enviou"
                     : "Pela sua ligação privada de acompanhamento",
                 ],
@@ -2252,7 +2256,9 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                 <VistoDourado />
               </div>
               <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: 0, fontVariantNumeric: "tabular-nums", textWrap: "pretty" }}>
-                {sessao ? "Sessão verificada com o código que a Do Luxo à Mesa lhe enviou." : "A assinatura pede o código que a Do Luxo à Mesa lhe envia."}
+                {sessao
+                  ? "Sessão verificada com o código que a Do Luxo à Mesa lhe enviou."
+                  : "A assinatura regista-se pela sua ligação privada — o nome, a data e a hora ficam no registo."}
               </p>
             </div>
 

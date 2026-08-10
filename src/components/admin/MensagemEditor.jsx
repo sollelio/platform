@@ -160,7 +160,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="A mensagem do comunicado"
+      aria-label="A mensagem da folha"
       style={{
         position: "fixed",
         inset: 0,
@@ -205,7 +205,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
               textOverflow: "ellipsis",
             }}
           >
-            {tituloFolha ? `COMUNICADO · ${tituloFolha.toUpperCase()}` : "COMUNICADO"}
+            {tituloFolha ? `FOLHA · ${tituloFolha.toUpperCase()}` : "FOLHA"}
           </div>
           <div
             style={{
@@ -368,7 +368,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {tituloFolha ? `Comunicado — ${tituloFolha}` : "Comunicado"}
+                    {tituloFolha ? `Folha — ${tituloFolha}` : "Folha"}
                   </div>
                   <div
                     style={{

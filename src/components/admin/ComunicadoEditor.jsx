@@ -986,7 +986,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Editar a folha do comunicado"
+      aria-label="Editar a folha"
       style={{
         position: "fixed",
         inset: 0,
@@ -1041,7 +1041,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ ...OVERLINE, fontSize: "9px" }}>COMUNICADO</div>
+          <div style={{ ...OVERLINE, fontSize: "9px" }}>ENVIOS</div>
           <div
             style={{
               fontFamily: "'Playfair Display', serif",

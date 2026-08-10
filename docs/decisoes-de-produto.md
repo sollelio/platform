@@ -1272,6 +1272,70 @@ método; aqui ficam as decisões aprovadas fase a fase).
   083 incluídos) e importada pelos três sítios — o drift deixa de ser
   possível. Portão: esbuild ✓ eslint zero erros novos (AdminPage 9→9 e
   EventoPage 4→4 pré-existentes) build ✓.
+- **O contrato à vista + os carimbos do cartão ✓ (10/08/2026).**
+  Pedido do Hélio em três partes; a investigação mudou o desenho de
+  duas. **(1) O véu do contrato morre — migração 086** (escrita,
+  pendente de o Hélio correr no SQL editor): `dlm_portal_ver_documento`
+  e `dlm_portal_documentos` reescritas da 083 com um delta cada — o
+  contrato sai sempre inteiro (velado=false) e `precisa_codigo` passa a
+  false; custo assumido e registado na própria migração: NIF, morada,
+  contacto e contraentes passam a estar à vista de quem tem a ligação
+  (a régua da 083: «a posse da ligação é a prova»). **O código FICA na
+  assinatura** — `dlm_portal_acto` intocada («o código prova que é
+  ela»); o pedido falava em revelar informação, não em assinar — se o
+  Hélio quiser o assinar sem código, é decisão nova. A folha do portal
+  não precisa de mudanças: obedece a `velado`/`precisa_codigo` do
+  servidor, e os ramos velados ficam como degradação graciosa até a 086
+  correr (o padrão da 085). **(2+3) Os carimbos já existiam no
+  servidor** — publicar carimba `enviado_em` desde a 057 (em vigor na
+  075) e o assinar do portal (e o papel confirmado) carimba
+  `assinado_em`+`trancado_em` (083/077). O que faltava era o CARTÃO
+  ficar a saber: o separador Documentos só lia a tabela ao montar.
+  Cura: `refrescarEm` no DocumentosEvento — a EventoPage muda a chave
+  ao fechar a folha do Acompanhamento (pode ter publicado) e quando
+  chega por realtime um aviso de carimbo deste evento
+  (contrato_assinado, orcamento_aceite, projecto_aprovado); a chave é
+  derivação pura em render (o linter novo da casa não deixa setState em
+  efeitos — a primeira versão caiu aí e foi reescrita). Portão:
+  esbuild ✓ eslint zero erros novos (EventoPage 4→4, DocumentosEvento
+  3→3) build ✓. Pendência: **correr a 086** (depois da 083; a
+  verificação vem no fim do ficheiro).
+- **Assinar sem código ✓ (10/08/2026, palavra do Hélio) — a 086 cresceu
+  duas peças.** A decisão que ficara em aberto fechou: «não é
+  necessário código para assinar o contrato». A migração 086 (ainda
+  por correr) ganhou: peça 3 — o CHECK `portal_actos_tem_prova` morre
+  (com o assinar servido pela ligação, a excepção cobriria os três
+  actos e o CHECK ficava vazio de sentido — morre às claras); peça 4 —
+  `dlm_portal_acto` reescrita da 083 com um delta: o bloco que devolvia
+  `precisa_codigo` ao 'assinou' desapareceu; a sessão, quando existir,
+  regista-se na mesma. A prova do acto ganhou o terceiro nome na
+  projecção: **'papel'** (confirmado_por) · **'codigo'** (sessão de
+  antes) · **'ligacao'** (a nova — nome escrito, IP, user-agent, data).
+  No portal: o registo pós-acto e a linha «As assinaturas» dizem a
+  prova verdadeira (código só quando o houve), e o pé da assinatura
+  promete a ligação, não o código. O FluxoCodigo fica como degradação
+  graciosa até a 086 correr (o servidor de hoje ainda pede código); as
+  RPCs do código ficam de pé, sem chamador obrigatório. O caminho do
+  papel não muda. Portão: esbuild ✓ eslint 0→0 build ✓.
+- **«Folha» é a palavra dos Envios ✓ (10/08/2026).** O Hélio apontou:
+  em Envios ainda se lia «comunicado» (o botão «+ Novo comunicado» e
+  mais), mas a coisa criada abrange comunicados, ofertas, campanhas. O
+  varrimento apanhou 32 strings de ecrã; a regra fixada (no glossário,
+  secção dos renomeados): **a coisa é «a folha»** — «+ Nova folha»,
+  «Modelos de folha», «modelo de folha», «← A folha», overlines
+  «FOLHA»; a overline-mãe da lista e a do editor dizem «ENVIOS»; os
+  géneros dizem-se UMA vez, na definição do estado vazio («Uma folha é
+  uma página pública com endereço próprio — um comunicado, uma oferta,
+  uma campanha.»). Duas emendas de desambiguação: «O comunicado e as
+  leituras» (fecho da expedição) virou «O percurso e as leituras» (ao
+  lado de «Ver a folha», falar de duas folhas era ambíguo); o aria do
+  editor virou «Editar a folha» (a troca literal dava «a folha da
+  folha»). FICA «comunicado» onde é público e certo: a overline da
+  ComunicadoPage e o seu espelho na pré-visualização (mexer aí é
+  decisão da folha pública, sinalizada ao Hélio), e os nomes de máquina
+  (tabelas, RPCs, a rota `/comunicado/:token` — mudá-la partia os
+  endereços já entregues). Portão: esbuild ✓ eslint 0→0 nos sete
+  ficheiros build ✓.
 
 ## Validação — regra da casa
 

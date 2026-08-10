@@ -701,7 +701,7 @@ function OFim({
                 <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
                   {entrada.cabeca}
                   <span style={{ fontWeight: "600" }}>{c.nome}</span>
-                  {entrada.quando}. Pela regra deste comunicado
+                  {entrada.quando}. Pela regra desta folha
                   {rotuloMin ? ` — ${rotuloMin} — ` : " "}
                   teria recebido.
                 </div>
@@ -801,7 +801,7 @@ function OFim({
       {mostrarConvite && convite === "inicial" && (
         <div style={{ ...CARTAO, borderRadius: "14px", marginTop: "16px", padding: "15px 16px" }}>
           <div style={{ fontSize: "13px", lineHeight: 1.65, textWrap: "pretty" }}>
-            Este envio vai repetir-se? Guarde como modelo de comunicado.
+            Este envio vai repetir-se? Guarde como modelo de folha.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginTop: "12px" }}>
             <button
@@ -831,7 +831,7 @@ function OFim({
       )}
       {mostrarConvite && convite === "adiado" && (
         <p style={{ margin: "16px 0 0", fontSize: "12px", lineHeight: 1.6, color: "var(--gray-mid)", textWrap: "pretty" }}>
-          Pode guardar como modelo mais tarde, a partir do comunicado.{" "}
+          Pode guardar como modelo mais tarde, a partir da folha.{" "}
           <button
             onClick={() => setGaveta(true)}
             className="ligacao"
@@ -891,7 +891,7 @@ function OFim({
           className="acao acao--ouro"
           style={{ padding: "11px 16px", borderRadius: "10px", fontSize: "12.5px", fontWeight: "600" }}
         >
-          O comunicado e as leituras
+          O percurso e as leituras
         </button>
       </div>
 
@@ -1178,7 +1178,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         className="ligacao"
         style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}
       >
-        ← O comunicado
+        ← A folha
       </button>
 
       <div style={{ ...OVERLINE, marginTop: "14px" }}>ENVIAR</div>

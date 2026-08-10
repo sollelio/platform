@@ -324,6 +324,10 @@ const medidaBotao = (variante) => ({
 
 export default function DocumentosEvento({
   submissao,
+  // Uma chave opaca que a página muda quando os carimbos podem ter
+  // mudado por fora (a folha do Acompanhamento publicou; um acto do
+  // portal assinou) — cada mudança relê `documentos` em silêncio.
+  refrescarEm = "",
   invites = [],
   // O painel de criação precisa dos modelos: é deles que saem os campos
   // para escolher. A página tem-nos e não os passava.
@@ -503,7 +507,10 @@ export default function DocumentosEvento({
     return () => {
       cancelado = true;
     };
-  }, [submissionId]);
+    // refrescarEm: o salto vem de fora (publicação, assinatura) e o
+    // refresco é silencioso — `carregado` já é true, o esqueleto não
+    // volta a piscar.
+  }, [submissionId, refrescarEm]);
 
   const porTipo = useMemo(() => {
     const mapa = {};

@@ -314,11 +314,11 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
         className="ligacao"
         style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}
       >
-        ← O comunicado
+        ← A folha
       </button>
 
       <div style={{ ...OVERLINE, marginTop: "14px", textTransform: "uppercase" }}>
-        COMUNICADO{comunicado.titulo?.trim() ? ` · ${comunicado.titulo.trim()}` : ""}
+        FOLHA{comunicado.titulo?.trim() ? ` · ${comunicado.titulo.trim()}` : ""}
       </div>
       <h1
         style={{

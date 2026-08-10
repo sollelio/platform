@@ -210,16 +210,16 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
       nome: "Quem recebe",
       nota: regra
         ? `«${regra}» — a regra, não os nomes.`
-        : "Ainda sem regra escolhida — fica por dizer em cada comunicado novo.",
+        : "Ainda sem regra escolhida — fica por dizer em cada folha nova.",
     },
   ];
 
   const naoFica = [
     { nome: rotuloNomes(nomesLista), nota: "Contam-se de novo, de cada vez que usar o modelo." },
-    { nome: "O endereço da folha", nota: "Cada comunicado nasce sem endereço e ganha o seu ao publicar." },
+    { nome: "O endereço da folha", nota: "Cada folha nasce sem endereço e ganha o seu ao publicar." },
     {
       nome: rotuloLeituras(leituras),
-      nota: noAr ? "Ficam com este comunicado, que continua no ar." : "Ficam com este comunicado.",
+      nota: noAr ? "Ficam com esta folha, que continua no ar." : "Ficam com esta folha.",
     },
   ];
 
