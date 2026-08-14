@@ -1463,6 +1463,18 @@ método; aqui ficam as decisões aprovadas fase a fase).
   acompanhamento, o placeholder do campo MB Way passou a mostrar o
   número da casa, em espelho do IBAN.
 
+## Fim dos portões de reconhecimento (14/08/2026)
+
+- **14/08/2026 — Os avisos bloqueantes morreram todos.** O sistema
+  `AvisosBloqueantes` + registo `avisosAtualizacao.js` foi removido por
+  inteiro (pedido directo do Hélio): nenhuma página do admin volta a
+  ficar desfocada e sem cliques até a Nádia reconhecer uma
+  actualização. Porquê: um portão que impede o trabalho para anunciar
+  melhorias é fricção desproporcionada — a razão da decisão de 30/07
+  («avisos bloqueantes ensinam a dispensar avisos») passa de excepção a
+  regra. Os avisos contextuais que não bloqueiam (AvisoDataDoEvento,
+  AvisoMoradaDoEvento, AvisoSinalRecebido) ficam.
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

@@ -9,7 +9,6 @@ import ErrosFormulario from "./ErrosFormulario";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
 import ConsultaData from "./ConsultaData";
 import { Icone } from "./Navegacao";
-import AvisosBloqueantes from "./AvisosBloqueantes";
 
 // ============================================================
 // InicioTab — a porta de entrada da app (bloco 12b).
@@ -315,7 +314,6 @@ export default function InicioTab({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      <AvisosBloqueantes pagina="inicio">
       {/* Saudação */}
       <h2
         style={{
@@ -1001,7 +999,6 @@ export default function InicioTab({
           </div>
         </div>
       )}
-      </AvisosBloqueantes>
     </motion.div>
   );
 }

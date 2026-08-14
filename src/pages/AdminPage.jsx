@@ -39,7 +39,6 @@ import PainelNovoFormulario from "../components/admin/PainelNovoFormulario";
 import FormulariosOrfaos from "../components/admin/FormulariosOrfaos";
 import LacunasFormulario from "../components/admin/LacunasFormulario";
 import { ehLacunaDeFormulario } from "../components/admin/faseConfig";
-import AvisosBloqueantes from "../components/admin/AvisosBloqueantes";
 import DeleteInviteModal from "../components/admin/DeleteInviteModal";
 import ShareSheet from "../components/admin/ShareSheet";
 import CalendarioTab from "../components/admin/CalendarioTab";
@@ -1026,26 +1025,22 @@ export default function AdminPage() {
              mesma secção do menu — por isso o item «Clientes» continua
              aceso nos dois casos. */}
         {activeTab === "clientes" && p1 && (
-          <AvisosBloqueantes pagina="clientes">
-            <ClienteVista
-              key={p1}
-              eventTypes={eventTypes}
-              onDadosMudaram={fetchSubmissions}
-              refrescarEm={funilVersao}
-            />
-          </AvisosBloqueantes>
+          <ClienteVista
+            key={p1}
+            eventTypes={eventTypes}
+            onDadosMudaram={fetchSubmissions}
+            refrescarEm={funilVersao}
+          />
         )}
         {activeTab === "clientes" && !p1 && (
-          <AvisosBloqueantes pagina="clientes">
-            <ClientesLista
-              eventTypes={eventTypes}
-              onAbrirEvento={(ev) => setSelected(ev)}
-              onDadosMudaram={fetchSubmissions}
-              refrescarEm={funilVersao}
-              verPerdidos={pedidoVerPerdidos}
-              aoConsumirVerPerdidos={() => setPedidoVerPerdidos(null)}
-            />
-          </AvisosBloqueantes>
+          <ClientesLista
+            eventTypes={eventTypes}
+            onAbrirEvento={(ev) => setSelected(ev)}
+            onDadosMudaram={fetchSubmissions}
+            refrescarEm={funilVersao}
+            verPerdidos={pedidoVerPerdidos}
+            aoConsumirVerPerdidos={() => setPedidoVerPerdidos(null)}
+          />
         )}
 
         {/* ---- TAB CONVITES (label Formulários) ---- */}
@@ -1107,11 +1102,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Botão novo Formulário — agora com a linha que diz onde é
-                o resto. Sem aviso bloqueante (decisão do Hélio): o botão
-                mudou de nome e traz a explicação ao lado, o que basta.
-                Um portão que ela tem de reconhecer para uma mudança que
-                se explica numa linha era desproporcionado. */}
+            {/* Botão novo Formulário — com a linha que diz onde é o
+                resto: o botão mudou de nome e traz a explicação ao
+                lado, o que basta. */}
             <div
               style={{
                 display: "flex",
