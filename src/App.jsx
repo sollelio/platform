@@ -16,13 +16,11 @@ import ContribuirPage from "./pages/ContribuirPage";
 import PortalPage from "./pages/PortalPage";
 import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
-import MaintenancePage from "./pages/MaintenancePage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
 import AvisoDataDoEvento from "./components/admin/AvisoDataDoEvento";
 
 // Lê as variáveis de ambiente
-const isLocked = import.meta.env.VITE_SITE_LOCKED === "true";
 // Lista explícita, e não `!== "production"`: se PROD um dia se esquecer da
 // variável, a cliente NÃO pode ver uma moldura vermelha. O ambiente de
 // ensaio da casa chama-se «test» — era «development» aqui e a faixa nunca
@@ -52,12 +50,6 @@ function DestinoDesconhecido() {
 }
 
 function App() {
-  // Se o site estiver trancado, mostra SÓ a página de manutenção —
-  // o formulário e o admin ficam completamente inacessíveis.
-  if (isLocked) {
-    return <MaintenancePage />;
-  }
-
   return (
     <BrowserRouter>
       {/* prefers-reduced-motion respeitado por TODAS as animações
