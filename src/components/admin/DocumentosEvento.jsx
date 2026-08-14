@@ -835,7 +835,7 @@ export default function DocumentosEvento({
         )}
 
       {/* A BANCADA DA PONTE — sobreposição de ecrã inteiro, não um
-          painel indentado: compor um questionário com o pedido à vista
+          painel indentado: compor um formulário com o pedido à vista
           precisa da largura toda, e a aba continua a ler-se como cinco
           linhas calmas porque o composer não vive entre elas. O alvo é
           ESTE evento, fixo — é o que faz a bancada ser curta. */}

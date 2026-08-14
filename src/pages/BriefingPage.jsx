@@ -927,8 +927,8 @@ export default function BriefingPage() {
                   padding: "24px 0",
                 }}
               >
-                Ainda não há respostas do questionário — o briefing enche-se
-                quando o questionário do evento for preenchido.
+                Ainda não há respostas do formulário — o briefing enche-se
+                quando o formulário do evento for preenchido.
               </p>
             )}
           </div>

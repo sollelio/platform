@@ -24,9 +24,9 @@ import { LINHAS_DO_SINAL } from "./conteudo";
 // boa que vale a pena dar.
 //
 // O CASO COMUM é só o pedido respondido: 8 de 13 eventos não têm
-// questionário. As quatro últimas divisões faltam nesses.
+// formulário. As quatro últimas divisões faltam nesses.
 //
-// Nenhuma destas peças conhece um `id` de campo. O que vem do questionário
+// Nenhuma destas peças conhece um `id` de campo. O que vem do formulário
 // chega já resolvido pela RPC (054), com o rótulo do próprio modelo — porque
 // os ids divergem entre modelos para o mesmo conceito.
 // ============================================================
@@ -574,7 +574,7 @@ export function ASuaVisao({ visao = [], entregueEm }) {
         rotulo="A sua visão, nas suas palavras"
         frase={
           entregueEm
-            ? "Escreveu isto quando respondeu ao questionário."
+            ? "Escreveu isto quando respondeu ao formulário."
             : "Escreveu isto quando nos contou como imagina o dia."
         }
       />

@@ -1820,8 +1820,8 @@ function Conteudo({ evento, onFechar }) {
             >
               <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
                 {pedidosQ.length === 1
-                  ? "Pedido de alteração ao questionário"
-                  : `${pedidosQ.length} pedidos de alteração ao questionário`}
+                  ? "Pedido de alteração ao formulário"
+                  : `${pedidosQ.length} pedidos de alteração ao formulário`}
               </p>
               {pedidosQ.map((p) => {
                 const dadosMorada = moradaDoPedido(p);

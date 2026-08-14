@@ -712,7 +712,7 @@ export default function AdminPage() {
     const url = `${window.location.origin}/?codigo=${invite.code}`;
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     const emoji = tipo?.icone === "couple" ? "💍" : "✨";
-    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso questionário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`;
+    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`;
   };
 
   // `silencioso`: os refetches do realtime não mostram esqueletos — o

@@ -1,7 +1,9 @@
 import { supabase } from "./supabase";
 
 // ============================================================
-// questionarioPortal.js — o questionário visto do lado da cliente.
+// questionarioPortal.js — o formulário visto do lado da cliente.
+// (Desde 14/08/2026 chama-se «formulário» dos dois lados; o nome do
+// ficheiro e os identificadores mantêm o histórico «questionario».)
 //
 // Ficheiro à parte do `portal.js` de propósito: aquele trata do evento e
 // dos documentos, este trata das respostas. São duas conversas diferentes
@@ -20,7 +22,7 @@ import { supabase } from "./supabase";
 // Tudo o que o ecrã precisa: os passos do modelo, as respostas actuais, a
 // autoria de cada uma, o prazo de cada grupo e os pedidos em aberto.
 //
-// `mostrar: false` quer dizer que este modelo não tem questionário que
+// `mostrar: false` quer dizer que este modelo não tem formulário que
 // chegue (menos de 5 campos) — e aí o portal não fala do assunto de todo.
 export const verQuestionario = async (token) => {
   const { data, error } = await supabase.rpc("dlm_portal_questionario", {
@@ -51,7 +53,7 @@ export const responder = async (token, campoId, valor) => {
 // nunca foi chamada por ecrã nenhum — resultado: a cliente respondia a tudo
 // e a pendência continuava a pedir, para sempre.
 //
-// Agora é o próprio `responder` que fecha o questionário quando não falta
+// Agora é o próprio `responder` que fecha o formulário quando não falta
 // nada obrigatório (069). Sem botão de submeter, porque o desenho fez de
 // responder e rever o mesmo ecrã.
 

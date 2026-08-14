@@ -11,8 +11,8 @@ criar o ficheiro; se alguma estiver mal reconstruída, corrige-se aqui.
 *decisões*; o glossário guarda *como se chamam as coisas*. Se divergirem,
 o glossário ganha e corrige-se aqui. (Vocabulário atualizado a 29/07/2026:
 «clientes» como base de pessoas passou a **contactos**; «captação» passou a
-**pedido**; o formulário longo é **formulário** do lado da Nádia e
-**questionário** do lado de quem o preenche.)
+**pedido**. E a 14/08/2026: o formulário longo chama-se **formulário** dos
+DOIS lados — a dupla «formulário/questionário» morreu.)
 
 ---
 
@@ -1513,6 +1513,20 @@ método; aqui ficam as decisões aprovadas fase a fase).
   A decoração das páginas públicas era o maior peso do primeiro
   carregamento; 900px a q85 com transparência intacta cobre o dobro da
   densidade do maior tamanho a que alguma vez se mostra (380px CSS).
+
+## «Formulário», não «questionário» (14/08/2026)
+
+- **14/08/2026 — O formulário chama-se «formulário» dos dois lados, palavra
+  da Nádia.** Porquê: «questionário» soa a inquérito opcional — não passa a
+  ideia de obrigatoriedade — e ela via as pessoas adiarem o preenchimento.
+  Inverte a doutrina dos dois nomes de 29/07 e a justificação antiga do
+  glossário («formulário é frio»); o glossário foi corrigido primeiro, como
+  manda a regra. Varridas as ~75 ocorrências visíveis no front (zero
+  restantes); os nomes de máquina (`questionario_*` em tabelas, RPCs, tipos
+  de notificação e o slug do portal) ficam quietos — mudá-los partia URLs e
+  código por uma palavra que o cliente não vê. Na base, a migração **089**
+  (por correr) põe as duas notificações compostas no servidor a dizer
+  «formulário» e corrige os títulos já guardados.
 
 ## Validação — regra da casa
 

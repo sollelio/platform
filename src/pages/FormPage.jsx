@@ -13,7 +13,7 @@ import { submeterFormulario } from "../lib/clientes";
 import { registarErroFormulario } from "../lib/errosForm";
 import { codigoErroRpc } from "../lib/rpc";
 
-// Tour curta, só com o essencial — é um questionário único, não queremos
+// Tour curta, só com o essencial — é um formulário único, não queremos
 // ser intrusivos
 const FORM_TOUR_STEPS = [
   {
@@ -491,7 +491,7 @@ export default function FormPage() {
             fontFamily: "Inter, sans-serif",
           }}
         >
-          A carregar o vosso questionário...
+          A carregar o vosso formulário...
         </p>
       </div>
     );
@@ -627,7 +627,7 @@ export default function FormPage() {
       // sem alarme — as respostas desse convite já estão connosco.
       if (codigoErroRpc(e) === "CONVITE_JA_USADO") {
         setSubmitError(
-          "Este questionário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
+          "Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
         );
         setSubmitting(false);
         return;
@@ -711,7 +711,7 @@ export default function FormPage() {
               margin: "12px 0 20px",
             }}
           >
-            O vosso questionário foi submetido com sucesso.
+            O vosso formulário foi submetido com sucesso.
             <br />
             Entraremos em contacto brevemente.
           </p>
@@ -865,7 +865,7 @@ export default function FormPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                Questionário de {invite.event_types.nome}
+                Formulário de {invite.event_types.nome}
               </p>
               <div
                 style={{

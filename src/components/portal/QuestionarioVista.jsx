@@ -17,12 +17,12 @@ import {
 import { PARTES_MORADA, moradaValida } from "../../lib/morada";
 
 // ============================================================
-// QuestionarioVista — o questionário no acompanhamento (fase 5).
+// QuestionarioVista — o formulário no acompanhamento (fase 5).
 //
 // /acompanhar/:token/questionario
 //
 // ESTE É O ECRÃ QUE MAIS VEZES VAI APARECER. Dos treze eventos, quatro têm
-// questionário respondido — os outros nunca lá tocaram. Por isso o estado
+// formulário respondido — os outros nunca lá tocaram. Por isso o estado
 // principal desta vista não é a revisão: é o CONVITE.
 //
 // E um convite não é uma cobrança. A pessoa não está atrasada, está no
@@ -30,7 +30,7 @@ import { PARTES_MORADA, moradaValida } from "../../lib/morada";
 // «em falta» em ecrã nenhum desta vista — contam-se partes e perguntas, e
 // diz-se quanto tempo leva.
 //
-// ⚠ Modelos com menos de 5 campos não têm questionário nenhum (063). A RPC
+// ⚠ Modelos com menos de 5 campos não têm formulário nenhum (063). A RPC
 // devolve `mostrar: false` e esta vista manda a pessoa de volta ao
 // acompanhamento — não há aqui um estado vazio a explicar-se, porque não
 // há nada para explicar: aquele modelo ainda não tem perguntas.
@@ -93,7 +93,7 @@ export default function QuestionarioVista({ token, sub }) {
   if (estado === "erro") {
     return (
       <div style={{ padding: "34px 26px 32px" }}>
-        <p style={overline()}>O questionário</p>
+        <p style={overline()}>O formulário</p>
         <p style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "11px", textWrap: "balance" }}>
           Não conseguimos abrir as perguntas agora.
         </p>
@@ -147,7 +147,7 @@ function Convite({ token, passos, navegar }) {
   return (
     <div style={{ padding: "34px 26px 32px" }}>
       <div style={{ textAlign: "center" }}>
-        <p style={overline()}>O questionário</p>
+        <p style={overline()}>O formulário</p>
         <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.28, marginTop: "12px", textWrap: "balance" }}>
           Conte-nos como imagina o dia.
         </p>
@@ -182,7 +182,7 @@ function Convite({ token, passos, navegar }) {
         onClick={() => navegar(`/acompanhar/${token}/questionario/responder`)}
         style={{ marginTop: "22px" }}
       >
-        Começar o questionário
+        Começar o formulário
       </CapsulaVazada>
 
       <p style={{ fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", margin: "15px 0 0", textAlign: "center", textWrap: "pretty" }}>
@@ -206,7 +206,7 @@ function Convite({ token, passos, navegar }) {
 // ---------- Ecrã 2 · A retoma ----------
 //
 // O título nomeia onde ela ficou — «Ficou nas cores» — em vez de dizer
-// «questionário incompleto». É a mesma informação e é outra coisa: uma
+// «formulário incompleto». É a mesma informação e é outra coisa: uma
 // nomeia o sítio, a outra nomeia uma falta.
 //
 // Não há aqui o overline «O que lhe vamos perguntar»: ela já sabe o que lhe
@@ -220,7 +220,7 @@ function ConviteAMeio({ token, passos, ondeFicou, navegar }) {
   return (
     <div style={{ padding: "34px 26px 32px" }}>
       <div style={{ textAlign: "center" }}>
-        <p style={overline()}>O questionário</p>
+        <p style={overline()}>O formulário</p>
         <p style={{ ...playfair, fontSize: "23px", lineHeight: 1.28, marginTop: "12px", textWrap: "balance" }}>
           {sitio ? `Ficou ${sitio}. Continuamos daí?` : "Continuamos de onde ficou?"}
         </p>
@@ -368,7 +368,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
   }, []);
 
   // Enquanto o pedido está aberto, o «voltar» do telefone fecha O PEDIDO,
-  // não o questionário inteiro: o abrir empurra uma entrada ao histórico e
+  // não o formulário inteiro: o abrir empurra uma entrada ao histórico e
   // este listener consome-a. Comportamento de folha, sem rota nova.
   useEffect(() => {
     if (!pedido) return undefined;
@@ -430,7 +430,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
         return;
       }
       if (r?.estado === "terminado") {
-        // O questionário terminou entretanto: a raiz volta a pedir o portal
+        // O formulário terminou entretanto: a raiz volta a pedir o portal
         // e a Cortina diz a frase certa — não um «tente outra vez» inútil.
         navigate(`/acompanhar/${token}`);
         return;
@@ -488,7 +488,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
         return;
       }
       // Consome a entrada que o abrir do pedido empurrou ao histórico — o
-      // «voltar» do telefone volta a sair do questionário, como antes.
+      // «voltar» do telefone volta a sair do formulário, como antes.
       window.history.back();
       setPedidoFeito({
         campo: pedido.campo,
@@ -535,7 +535,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
 
   return (
     <div style={{ padding: "34px 26px 32px" }}>
-      <p style={overline()}>O questionário</p>
+      <p style={overline()}>O formulário</p>
       <p style={{ ...playfair, fontSize: "22px", lineHeight: 1.3, marginTop: "11px", textWrap: "balance" }}>
         As suas respostas.
       </p>
@@ -579,7 +579,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
             const abrirPedido = () => {
               setErro(null);
               // Uma entrada no histórico, para o «voltar» do telefone
-              // fechar o pedido — não o questionário inteiro.
+              // fechar o pedido — não o formulário inteiro.
               window.history.pushState({ dlmPedido: true }, "");
               setPedido({ campo, passo });
             };
@@ -832,7 +832,7 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro,
         }}
       >
         <span style={{ font: "700 9px Inter, sans-serif", letterSpacing: "0.18em", textTransform: "uppercase", color: "#9B9B9B" }}>
-          Questionário · {passo.titulo}
+          Formulário · {passo.titulo}
         </span>
         <LigacaoDiscreta onClick={aoVoltar} style={{ padding: "12px 10px 3px", margin: "-12px -10px 0" }}>
           voltar às respostas

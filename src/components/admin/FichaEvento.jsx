@@ -16,7 +16,7 @@ import SeletorPaleta, {
 } from "./SeletorPaleta";
 
 // Título legível de uma submissão — usa a lógica genérica (papéis),
-// consistente com Clientes e Questionários.
+// consistente com Clientes e Formulários.
 function tituloSubmissao(s, eventTypes) {
   return getResumoSubmissao(s, eventTypes).titulo;
 }

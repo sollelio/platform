@@ -341,7 +341,7 @@ export default function PortalPage() {
   useEffect(() => {
     const porVista = {
       documentos: "Os seus documentos",
-      questionario: "O questionário",
+      questionario: "O formulário",
       avaliar: "A avaliação",
       sinal: "O sinal",
     };
@@ -424,7 +424,7 @@ export default function PortalPage() {
   const dados = desteToken ? resultado.dados : null;
 
   if (estado === "a-carregar") {
-    // Dentro de uma área (documentos, questionário, avaliação) o esqueleto
+    // Dentro de uma área (documentos, formulário, avaliação) o esqueleto
     // tem a forma da área — sem o logo grande da jornada, que aparecia e
     // desaparecia num piscar ao recarregar um URL fundo.
     if (vista) {
@@ -509,7 +509,7 @@ export default function PortalPage() {
     );
   }
 
-  // ---------- O questionário (fase 5) ----------
+  // ---------- O formulário (fase 5) ----------
   // Vista à parte, com cabeçalho próprio como a dos documentos. A própria
   // vista decide entre o convite, a retoma e a revisão — e manda de volta
   // para aqui se este modelo não tiver perguntas que cheguem.

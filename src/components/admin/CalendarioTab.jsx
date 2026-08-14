@@ -176,9 +176,9 @@ export default function CalendarioTab({
     setModalReserva(null);
   };
 
-  // Conversão em cliente: fecha o modal e abre a criação do questionário
+  // Conversão em cliente: fecha o modal e abre a criação do formulário
   // já pré-preenchido e carimbado com esta reserva (tratado no AdminPage).
-  // Quando o questionário for submetido, a reserva converte-se sozinha.
+  // Quando o formulário for submetido, a reserva converte-se sozinha.
   const handleConverter = (reserva) => {
     setModalReserva(null);
     if (onCriarQuestionario) onCriarQuestionario(reserva);

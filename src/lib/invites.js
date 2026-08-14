@@ -123,7 +123,7 @@ export const validateCode = async (code) => {
     return {
       valid: false,
       reason:
-        "Este questionário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
+        "Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
     };
   }
   return { valid: true, invite: data };

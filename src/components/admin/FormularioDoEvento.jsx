@@ -16,7 +16,7 @@ import {
 } from "../../lib/pontePedido";
 
 // ============================================================
-// FormularioDoEvento — a bancada da ponte: compor o questionário de UM
+// FormularioDoEvento — a bancada da ponte: compor o formulário de UM
 // evento, com o pedido à vista e o transporte feito pelo código.
 //
 // Substitui o painel inline que nascia debaixo da linha «Formulário» —
@@ -324,7 +324,7 @@ export default function FormularioDoEvento({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Compor o questionário do evento"
+      aria-label="Compor o formulário do evento"
       style={{
         position: "fixed",
         inset: 0,
@@ -386,7 +386,7 @@ export default function FormularioDoEvento({
               lineHeight: 1.2,
             }}
           >
-            Compor o questionário
+            Compor o formulário
           </div>
         </div>
         <button
@@ -754,7 +754,7 @@ export default function FormularioDoEvento({
                     margin: "14px 4px 0",
                   }}
                 >
-                  O que tinha lugar no questionário já entrou nos campos —
+                  O que tinha lugar no formulário já entrou nos campos —
                   está marcado a dourado. O resto fica aqui, à vista.
                 </p>
               </>

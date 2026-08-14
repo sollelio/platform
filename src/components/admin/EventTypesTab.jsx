@@ -111,7 +111,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
           }}
         >
           Cada tipo de evento define as perguntas que o organizador vê no
-          questionário.
+          formulário.
         </p>
         <button
           id="tour-criar-tipo-evento"

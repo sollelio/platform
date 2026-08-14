@@ -30,10 +30,10 @@ produz um documento. Ver isto torna tudo fácil de explicar.
 | Momento | A pessoa envia (formulário) | A Nádia produz (documento) |
 |---|---|---|
 | **No início** (ainda a decidir) | **pedido** | **orçamento** |
-| **Depois de fechar** (evento confirmado) | **questionário** | **briefing** |
+| **Depois de fechar** (evento confirmado) | **formulário** (do evento) | **briefing** |
 
 > A Nádia recebe sempre um **formulário** e responde com um **documento**.
-> Pedido → orçamento no início. Questionário → briefing depois.
+> Pedido → orçamento no início. Formulário → briefing depois.
 
 ---
 
@@ -46,7 +46,7 @@ preenche não nasce do nada — atravessa **três níveis**, cada um com o seu n
 |---|---|---|---|
 | 1 · o molde | A estrutura de um tipo de evento: os passos e os campos. "Casamento = 5 passos, 44 campos." Feito uma vez, reutilizável. | Nádia (raramente) | **modelo de evento** |
 | 2 · a instância | Um formulário concreto para um evento, feito a partir do molde. "O formulário da Marta, baseado no molde Festinhas." | Nádia (por evento) | **formulário** |
-| 3 · a cara pública | O mesmo formulário, do lado de quem o preenche. As perguntas que o organizador vê e responde. | Organizador | **questionário** |
+| 3 · a cara pública | O mesmo formulário, do lado de quem o preenche. As perguntas que o organizador vê e responde. | Organizador | **formulário** (o mesmo nome, desde 14/08/2026) |
 
 > **Sobre "molde":** é a *metáfora* que explica o conceito (a estrutura a partir da qual se
 > faz cada formulário), não o nome. O separador chama-se **"Modelos de Evento"** — "modelo" é
@@ -54,39 +54,27 @@ preenche não nasce do nada — atravessa **três níveis**, cada um com o seu n
 > modelo de email), enquanto "molde" é físico de mais para uma estrutura de dados. A metáfora
 > ajuda a entender; o nome tem de ser reconhecível.
 
-O nível 2 e o nível 3 são **o mesmo objecto visto de dois lados**:
+O nível 2 e o nível 3 são **o mesmo objecto visto de dois lados** — e, desde 14/08/2026,
+com **o mesmo nome**:
 
-> Do lado da Nádia é um **formulário** — ela monta-o, escolhe os campos, gere uma lista deles.
-> Do lado do organizador é um **questionário** — recebe um código e responde às perguntas.
+> **Chama-se «formulário» dos dois lados.** Decisão da Nádia: «questionário» soava a
+> opcional — um inquérito que se responde se apetecer — e travava o preenchimento.
+> «Formulário» carrega a obrigatoriedade de um passo que faz parte do processo.
 
-É a mesma dupla-face de sempre (como `slug ↔ id`): uma coisa, duas leituras conforme quem
-olha. O separador da Nádia chama-se **"Formulários"** (é o trabalho dela) e a página
-pública fala em **"questionário"** (é o que o organizador faz). Não competem — encaixam.
+Até essa data vigorou a doutrina dos dois nomes (formulário do lado dela, questionário do
+lado de quem preenche) com uma regra de desempate própria. Morreu inteira: já não há duas
+palavras, logo não há desempate. A dupla-face `slug ↔ id` continua a valer para os nomes de
+máquina — o código, as tabelas e as rotas dizem `questionario` sem acento e ficam quietos
+(ver «os nomes que a máquina usa» abaixo).
 
-### Qual das duas palavras usar (a regra de desempate)
-
-Nem sempre é óbvio, porque há frases *no ecrã da Nádia* que falam do que o **organizador**
-faz. A regra:
-
-> **A palavra segue de quem é a acção que a frase descreve — não de quem está a ler o ecrã.**
-
-Exemplo real: no briefing (que a Nádia lê) havia a frase *"as respostas do questionário…
-quando o formulário for preenchido"* — duas palavras para a mesma coisa, na mesma frase.
-Como ambas as metades falam do que o **organizador faz** (responder, preencher), a palavra é
-**questionário** nas duas. Se a frase falasse do que a Nádia faz ("cria o formulário", "envia
-o formulário"), seria **formulário**.
-
-Corolário: duas palavras diferentes para o mesmo objecto na **mesma frase** lê-se sempre como
-erro, seja qual for o lado. Se acontecer, escolhe uma segundo a regra acima.
-
-> **Modelo de evento** (o molde) → **formulário** (a instância que a Nádia cria) →
-> **questionário** (o que o organizador responde).
+> **Modelo de evento** (o molde) → **formulário** (a instância que a Nádia cria e que o
+> organizador responde).
 
 ---
 
 ## Quem preenche: o organizador (não "casal/família")
 
-Quem preenche um formulário — o pedido ou o questionário — nem sempre é íntimo do evento.
+Quem preenche um formulário — o pedido ou o formulário do evento — nem sempre é íntimo do evento.
 Pode ser uma noiva, uma mãe, a assistente de uma empresa que dá um jantar de Natal, o
 responsável de um grupo de amigos que celebra a amizade. O que têm em comum não é a *relação*
 com o evento — é **tratarem dele**.
@@ -106,12 +94,12 @@ mesmo noivos), mas não como o nome genérico de quem trata do evento.
 
 ---
 
-## Pedido e questionário: material de entrada vs peça de trabalho
+## Pedido e formulário: material de entrada vs peça de trabalho
 
 Os dois são formulários que alguém preenche — partilham a **forma**. Mas fazem papéis
 diferentes no fluxo, e isso explica porque vivem em sítios diferentes.
 
-| | O pedido | O questionário |
+| | O pedido | O formulário |
 |---|---|---|
 | O que é | o **material de entrada**: o que a pessoa envia ao bater à porta | a **peça de trabalho** que a Nádia acompanha |
 | Campos | fixos, sempre os mesmos (nome, contacto, data, local, serviços, notas, imagens) | dependem do modelo de evento (um Casamento tem 44, uma Festinha tem 3) |
@@ -125,11 +113,11 @@ chamada **"O pedido"**. Não se derrete nem desaparece: a Nádia volta a ele qua
 evento. Não fica em "Formulários" porque não é uma peça que ela *gere* — é material que
 *entrou*, e a casa dele é o evento a que pertence.
 
-O **questionário** é a peça de trabalho com vida própria: cria-se, envia-se, preenche-se, e a
+O **formulário** é a peça de trabalho com vida própria: cria-se, envia-se, preenche-se, e a
 Nádia acompanha o seu estado.
 
 > A diferença não é "um dura e o outro não" — **ambos duram**. É de papel: o pedido é o que
-> *entra* (fica na aba "O pedido"), o questionário é o que a Nádia *trabalha* (fica em
+> *entra* (fica na aba "O pedido"), o formulário é o que a Nádia *trabalha* (fica em
 > "Formulários"). Por isso o pedido nunca aparece na lista de "Formulários".
 
 ---
@@ -205,8 +193,8 @@ Primeiro o que está solto, depois o que falta, por fim o que já existe.
 
 **O critério das lacunas:** `FASES_POS_SINAL` (cliente · projecto · contrato) — a mesma lista
 canónica da conferência da Logística, **não uma lista nova**. Fecha com este glossário: o
-questionário existe para preparar a montagem de um evento **confirmado**; um interessado precisa
-de orçamento, não de questionário.
+formulário existe para preparar a montagem de um evento **confirmado**; um interessado precisa
+de orçamento, não de formulário.
 
 **Nota de desenho:** as linhas "sem formulário" **não levam botão de criar** — a acção honesta é
 *abrir o evento*. Senão a página volta a ser sítio de criação para coisas que têm evento, e a
@@ -226,10 +214,10 @@ regra desfaz-se.
 | O separador dos moldes | — | **Modelos de Evento** | — |
 | A instância que a Nádia monta | — | **formulário** | — |
 | O separador onde ela os gere | — | **Formulários** | — |
-| A mesma coisa, do lado de quem preenche | **questionário do evento** | **questionário** | — |
+| A mesma coisa, do lado de quem preenche | **formulário do evento** | **formulário** | `questionario_*` (fica) |
 | Quem trata do evento (preenche) | — | **organizador** | — |
 | A pessoa de contacto na montagem | — | **responsável no dia** | — |
-| A folha de trabalho que sai do questionário | — | **briefing** | `briefing` (fica) |
+| A folha de trabalho que sai do formulário | — | **briefing** | `briefing` (fica) |
 | A casa do material de entrada, no evento | — | aba **"O pedido"** | — |
 | Fase — mostrou interesse | — | **Interessado** | `interessado` |
 | Fase — recebeu orçamento, a decidir | — | **Orçamento** | `orcamento` |
@@ -295,16 +283,17 @@ Em ambos, acontece exactamente o mesmo: uma pessoa conta à casa o que quer, e a
 poder responder. Por isso tem **um nome só** — dois nomes fragmentariam uma coisa que é uma.
 O que muda entre as portas não é *o quê*, é *quem preenche*.
 
-### Questionário / briefing — o par de atelier
-Depois de fechar, o cliente recebe um **código de acesso** e preenche o **questionário do
+### Formulário / briefing — o par de atelier
+Depois de fechar, o cliente recebe um **código de acesso** e preenche o **formulário do
 evento** — as perguntas detalhadas sobre a montagem, o estilo, os convidados. Dele sai o
 **briefing**: a folha imprimível com que a Nádia trabalha no dia.
 
-**"Questionário"** e não "formulário" porque para quem preenche "formulário" é frio e não diz
-nada; "questionário" diz o que é — um conjunto de perguntas sobre o evento dela. E forma um
-par de ofício com o resultado: *questionário (as perguntas que se fazem) → briefing (a folha
-com que se trabalha)*. Isto é vocabulário de atelier, que é o registo certo — não jargão de
-software.
+**Nota histórica (invertida a 14/08/2026):** este par chamou-se «questionário → briefing»,
+com o argumento de que "formulário" era frio para quem preenche. A Nádia decidiu o
+contrário, pela experiência real: «questionário» soa a inquérito **opcional** e as pessoas
+adiavam o preenchimento; «formulário» diz que é um passo do processo, que **se preenche**.
+O par de ofício mantém a forma: *formulário (as perguntas que se fazem) → briefing (a folha
+com que se trabalha)*.
 
 ### Funil
 A pipeline por onde um contacto caminha: **Interessado → Orçamento → Cliente**. Fica "funil"
@@ -340,7 +329,7 @@ quando é o passo seguinte. **Este ficheiro manda; o `portal.js` segue.**
 
 ---
 
-### A pauta (o questionário no acompanhamento)
+### A pauta (o formulário no acompanhamento)
 
 O traço dourado por baixo de uma resposta. **Com pauta, muda-se ali; sem pauta,
 passa por nós.** É o único sinal que distingue os dois estados nas quarenta
@@ -354,7 +343,7 @@ Não é castigo — é que aquilo já foi comprado.
 ### Grupo de prazo
 
 O momento em que um conjunto de respostas deixa de se poder mudar sozinho. **O
-prazo não é do questionário: é de cada grupo**, porque o que trava a mudança é o
+prazo não é do formulário: é de cada grupo**, porque o que trava a mudança é o
 mundo — o que já foi encomendado, impresso ou entregue à equipa.
 
 | Chave | O que a Nádia lê | Fecha | Porquê |
@@ -442,7 +431,7 @@ o registo público da Vitrina. Na base ficam `aviso`/`oferta`, quietos — a reg
 produziu: se entrar um evento novo no recorte, a lista **não muda** — não se mexe debaixo dos
 pés de quem está a meio de enviar. Fechar guarda instantâneos (nome, âncora, número), não
 referências. «Congelar» era jargão de sistema. Cuidado assumido: «fechar» passa a três
-trabalhos na casa (fechar negócio, fechar um passo do questionário, fechar a lista) — nos
+trabalhos na casa (fechar negócio, fechar um passo do formulário, fechar a lista) — nos
 botões e rótulos, sempre com o complemento.
 
 **Enviar** é o acto de fazer o comunicado chegar à lista fechada, conversa a conversa — o
@@ -491,9 +480,9 @@ no código, que não vale o risco de mexer).
 | Não dizer | Dizer |
 |---|---|
 | captação, capturar, lead | **pedido** (o gesto), **contacto** (a pessoa) |
-| onboarding | **questionário** (é o que a pessoa faz depois de fechar) |
+| onboarding | **formulário** (é o que a pessoa preenche depois de fechar) |
 | "formulário de interesse" | **pedido de orçamento** |
-| "formulário" (para quem preenche) | **questionário** (o longo) ou **pedido** (o curto) |
+| "questionário" | **formulário** (o longo) ou **pedido** (o curto) — invertido a 14/08/2026: «questionário» soava a opcional |
 
 E os renomeados de 09/08/2026 (a razão vive nas secções datadas acima) — ficam só nos nomes
 de máquina, que não vale o risco de mexer:
@@ -526,8 +515,9 @@ entregues.
 
 Sítios onde a app diz nomes diferentes para a mesma coisa. Corrigir para o glossário alinhar:
 
-1. **Mensagem de WhatsApp** diz *"o vosso formulário está pronto"* → a página onde a pessoa
-   aterra diz *"questionário"*. Alinhar a mensagem para **"questionário"**.
+1. **✅ Resolvida a 14/08/2026, pelo lado contrário** — a mensagem de WhatsApp dizia
+   *"formulário"* e a página dizia *"questionário"*. Em vez de alinhar a mensagem à página,
+   foi a página (e a app inteira) que passou a dizer **"formulário"**, por decisão da Nádia.
 2. **Página-guia** (dlm-jornada) diz *"Preencher o formulário de interesse"* → o site diz
    *"Pedir o meu orçamento"*. Alinhar a página-guia para **"Pedir orçamento"** / **"Preencher
    o pedido de orçamento"**, para condizer com o destino.
@@ -545,7 +535,7 @@ Sítios onde a app diz nomes diferentes para a mesma coisa. Corrigir para o glos
 Nem tudo aqui tem o mesmo peso. Por ordem de esforço:
 
 **Só nomes (strings — leve):** "Clientes" → "Contactos"; "casal/família" → "organizador" na
-descrição dos modelos; alinhar a mensagem de WhatsApp em "questionário".
+descrição dos modelos; a palavra do formulário unificou-se em "formulário" (14/08/2026).
 
 **Arquitectura de navegação (médio) — ✅ FEITO a 30/07/2026:** a criação de formulários mudou-se
 para dentro do evento; "Formulários" passou a supervisão (mais o "cliente novo" e os órfãos, que

@@ -387,7 +387,7 @@ function CorpoProjecto({ doc }) {
   return (
     <>
       <Timbre logoUrl={logoUrl} nome="Projecto" versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} />
-      <TituloDocumento meta="A partir do que nos contou no questionário.">
+      <TituloDocumento meta="A partir do que nos contou no formulário.">
         {naoVazia(inst.subtitulo) ? inst.subtitulo : "A mesa que lhe desenhámos"}
       </TituloDocumento>
 
@@ -1941,7 +1941,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           {!ehAssinatura && !ehAlteracao && tipo !== "proposta" && (
             <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "10px 0 0", textWrap: "pretty" }}>
               E é com o sinal que se abre o acompanhamento completo do seu
-              evento — o questionário, o projecto da mesa, as fotografias
+              evento — o formulário, o projecto da mesa, as fotografias
               do dia. Tudo aqui, nesta mesma página.
             </p>
           )}

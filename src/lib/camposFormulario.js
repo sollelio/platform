@@ -115,7 +115,7 @@ export function dataDoRascunho(newInvite, eventTypes) {
 
 // ============================================================
 // abrirQuestionarioComoCliente — «Preencher»: a Nádia abre o
-// questionário e responde ela própria, como se fosse a organizadora.
+// formulário e responde ela própria, como se fosse a organizadora.
 //
 // Estava na AdminPage e passou a ter dois chamadores (a lista de
 // supervisão e a linha do Formulário dentro do evento). O trabalho dele
@@ -146,11 +146,11 @@ export function abrirQuestionarioComoCliente(
     );
     return false;
   }
-  // Um modelo sem passos partia o questionário da cliente (ecrã em
+  // Um modelo sem passos partia o formulário da cliente (ecrã em
   // branco) — diz-se aqui, onde há quem leia, e não lá.
   if (!Array.isArray(tipo.steps) || tipo.steps.length === 0) {
     avisar(
-      `O modelo "${tipo.nome}" não tem passos — o questionário abriria em branco. Abre o editor de Modelos de Evento e compõe os passos desse modelo antes de o partilhar.`,
+      `O modelo "${tipo.nome}" não tem passos — o formulário abriria em branco. Abre o editor de Modelos de Evento e compõe os passos desse modelo antes de o partilhar.`,
     );
     return false;
   }

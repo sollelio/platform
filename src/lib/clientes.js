@@ -159,7 +159,7 @@ export const createEventoParaCliente = async (clienteId, dados = {}) => {
 };
 
 // ============================================================
-// Submissão do questionário público (Cenário A: cliente novo).
+// Submissão do formulário público (Cenário A: cliente novo).
 // Cria o CLIENTE (extraindo os dados de pessoa das respostas) e a
 // SUBMISSÃO (o evento) já ligada — nasce tudo junto, como decidido.
 //
@@ -195,7 +195,7 @@ export const extrairDadosCliente = (respostas = {}) => {
   };
 };
 
-// Submete o questionário: cria cliente + submissão ligados.
+// Submete o formulário: cria cliente + submissão ligados.
 // payload = o objeto que o FormPage montava (event_type_id, data_evento,
 // numero_convidados, respostas). Devolve a submissão criada.
 const submeterQuestionario = async (payload) => {
@@ -209,7 +209,7 @@ const submeterQuestionario = async (payload) => {
   if (erroCliente) throw erroCliente;
 
   // 2. Criar a submissão (o evento) já ligada ao cliente.
-  //    O questionário só se preenche DEPOIS de a venda fechar (é
+  //    O formulário só se preenche DEPOIS de a venda fechar (é
   //    onboarding, não captação) — por isso o evento nasce na fase
   //    "cliente" (funil comercial concluído; o operacional começa no
   //    status "Recebido" que o sistema já atribui).
@@ -290,7 +290,7 @@ const atualizarEventoComQuestionario = async (
 };
 
 // ============================================================
-// submeterFormulario — o ponto ÚNICO de submissão do questionário
+// submeterFormulario — o ponto ÚNICO de submissão do formulário
 // público. Caminho novo: RPC formulario_submeter (migração 020), que
 // faz TUDO numa transação no Postgres (validar o convite, gravar as
 // respostas, marcar o convite, converter a reserva) — sem estados

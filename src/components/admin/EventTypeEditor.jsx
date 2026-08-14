@@ -1472,7 +1472,7 @@ export default function EventTypeEditor({
               }}
             >
               ⚠ Este é o tipo de evento predefinido — alterações aqui afectam o
-              questionário do Casamento já em uso.
+              formulário do Casamento já em uso.
             </p>
           )}
           <div style={{ marginBottom: "24px" }}>

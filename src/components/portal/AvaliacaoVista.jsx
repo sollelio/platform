@@ -93,7 +93,7 @@ export default function AvaliacaoVista({ token }) {
   }
 
   // Uma falha de rede não é falta de convite: tem ecrã próprio e o gesto de
-  // tentar de novo — o padrão do questionário. O redirect fica só para quem
+  // tentar de novo — o padrão do formulário. O redirect fica só para quem
   // não foi mesmo convidada.
   if (estado === "erro") {
     return (

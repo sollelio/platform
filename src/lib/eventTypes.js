@@ -33,7 +33,7 @@ export const deleteEventType = async (id) => {
   if (error) throw error;
 };
 
-// Os grupos de prazo do questionário (062). Vêm da base e não do código
+// Os grupos de prazo do formulário (062). Vêm da base e não do código
 // porque o prazo é do negócio, não do programa: quando o fornecedor de
 // flores mudar de antecedência, a Nádia muda o número e mais nada.
 //

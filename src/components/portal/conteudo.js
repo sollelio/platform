@@ -17,7 +17,7 @@ import { diaEMes } from "./base";
 // ficheiros de componentes.
 // ------------------------------------------------------------
 export const LINHAS_DO_SINAL = [
-  "O questionário da sua mesa",
+  "O formulário da sua mesa",
   "O projecto, desenhado para si",
   "A preparação, passo a passo",
   "As fotografias do dia",
@@ -197,16 +197,16 @@ export function comporPendencias(dados, caducou = false) {
   const etapaFeita = (id) =>
     jornada.some((e) => e.etapa === id && e.estado !== "por_acontecer");
 
-  // O questionário só se pede depois de haver negócio fechado — antes
+  // O formulário só se pede depois de haver negócio fechado — antes
   // disso, o que falta é o orçamento, e esse é trabalho nosso.
   // `tem_perguntas` é a guarda que faltava (069): abaixo de cinco campos o
-  // modelo não tem questionário nenhum, e sem isto a pendência convidava a
+  // modelo não tem formulário nenhum, e sem isto a pendência convidava a
   // responder — em quatro dos seis modelos — com uma ligação que devolvia a
   // pessoa ao princípio. Um convite que não leva a lado nenhum.
   if (q.tem_perguntas && !q.entregue_em && etapaFeita("sinal")) {
     pendencias.push({
       chave: "questionario",
-      titulo: "O questionário",
+      titulo: "O formulário",
       corpo:
         "São as perguntas que nos dizem como imagina a mesa: as cores, as horas, o que vai estar escrito à entrada. Pode responder aos poucos — fica tudo guardado.",
     });

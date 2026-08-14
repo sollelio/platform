@@ -108,7 +108,7 @@ export const STATUS_COLORS = {
 // encontro da lista, e não o contrário.
 //
 // O CRITÉRIO: trabalho a sério (pós-sinal), ainda por acontecer, sem
-// formulário. Um interessado precisa de orçamento, não de questionário;
+// formulário. Um interessado precisa de orçamento, não de formulário;
 // um evento que já aconteceu não tem lacuna, tem história. Sem data
 // ENTRA — não se pode afirmar que passou, e entre esconder e mostrar a
 // mais, mostra-se.

@@ -129,7 +129,7 @@ const SELO_ESTADOS = {
       </svg>
     ),
   },
-  // O questionário respondido pelo portal — mesmas respostas, outra
+  // O formulário respondido pelo portal — mesmas respostas, outra
   // porta. O visto é o mesmo do preenchido; as palavras dizem o caminho.
   "respondido-portal": {
     texto: "Respondido no acompanhamento",

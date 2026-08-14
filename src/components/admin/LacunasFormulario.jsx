@@ -12,9 +12,9 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 // O CRITÉRIO reutiliza FASES_POS_SINAL (cliente · projecto), a
 // mesma lista canónica que a conferência da Logística usa. O registo de
 // decisões é explícito para este caso: «não uma lista nova». E faz
-// sentido de negócio — o questionário existe para preparar a montagem de
+// sentido de negócio — o formulário existe para preparar a montagem de
 // um evento CONFIRMADO; um interessado precisa de orçamento, não de
-// questionário. Sem este filtro, esta secção passaria a ser a lista de
+// formulário. Sem este filtro, esta secção passaria a ser a lista de
 // leads, porque cada pedido e cada reserva nascem como evento em fase
 // «interessado».
 //

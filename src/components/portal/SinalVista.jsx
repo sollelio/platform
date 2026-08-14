@@ -539,7 +539,7 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
         </p>
         <FileteComLosango margem="18px auto 20px" />
         <p style={corpo({ maxWidth: "290px", margin: "0 auto 20px" })}>
-          Recebemos o sinal. O acompanhamento acordou — o questionário, o
+          Recebemos o sinal. O acompanhamento acordou — o formulário, o
           projecto, a preparação e as fotografias seguem agora consigo,
           nesta página.
         </p>

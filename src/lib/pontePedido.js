@@ -5,14 +5,14 @@ import { getAllFields } from "./camposFormulario";
 //
 // O pedido de orçamento (captação ou reserva) escreve chaves CANÓNICAS
 // no respostas do evento (nomeDoCliente, localEvento, numeroConvidados…
-// ver captacao.js e reservas.js). O questionário de um tipo de evento
+// ver captacao.js e reservas.js). O formulário de um tipo de evento
 // tem campos com ids DERIVADOS DOS RÓTULOS dos modelos («Nº de
 // Convidados» → nDeConvidados, ver EventTypeEditor). Os dois mundos
 // quase nunca coincidem por id — e era a Nádia quem fazia de ponte, a
 // copiar valor a valor com os botões «Copiar».
 //
 // Esta função é o código a assumir esse trabalho: dado o evento e um
-// tipo, devolve o que ATERRA nos campos do questionário (valores +
+// tipo, devolve o que ATERRA nos campos do formulário (valores +
 // proveniência) e o que fica de fora (referencia — os pares do cartão
 // «O PEDIDO», sempre à vista, nunca perdidos).
 //
@@ -220,7 +220,7 @@ export function pontePedidoFormulario(submissao, eventType) {
 
   // ---- O QUE NUNCA ATERRA — referência directa ---------------------
   // O tipo escrito à mão, as notas da conversa e as imagens não têm
-  // campo no questionário — nem devem ter: são o contexto da conversa,
+  // campo no formulário — nem devem ter: são o contexto da conversa,
   // não perguntas à cliente.
   if (!vazio(r.tipoEventoOutro)) {
     referencia.push({ rotulo: "Tipo de evento (outro)", valor: r.tipoEventoOutro });

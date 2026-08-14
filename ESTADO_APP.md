@@ -51,7 +51,7 @@ Do lado do alojamento, o *fallback* de SPA é `public/_redirects` (conteúdo lit
 | `/evento/:id/:aba?` | `src/pages/EventoPage.jsx` | **autenticada** | `src/App.jsx:96-103`, envolvida em `<ProtectedRoute>`. |
 | `/briefing/:id` | `src/pages/BriefingPage.jsx` | pública | `src/App.jsx:104`. **Sem `ProtectedRoute`** e sem token: lê por `id` (uuid) via `supabase.rpc("formulario_briefing", { p_id: id })` (`src/pages/BriefingPage.jsx:472`) e `supabase.rpc("briefing_materiais", { p_id: id })` (`src/pages/BriefingPage.jsx:503`). Ambas as RPC são `SECURITY DEFINER` com `grant execute … to anon, authenticated` (`docs/migracoes/020_rpcs_formularios_publicos.sql:358`; `docs/migracoes/031_briefing_materiais.sql:55`). |
 | `/contribuir/:token` | `src/pages/ContribuirPage.jsx` | pública | `src/App.jsx:107`. Ver secção 6. |
-| `/acompanhar/:token/:vista?/:sub?` | `src/pages/PortalPage.jsx` | pública | `src/App.jsx:118`. Ver secção 6. Valores literais de `:vista` tratados em `src/pages/PortalPage.jsx`: `"avaliar"` (:502), `"questionario"` (:516), `"sinal"` (:537), `"documentos"` (:556); sem `:vista` desenha a jornada. `:sub` chega aos filhos: na área dos documentos vai como `tipo={sub}` (`src/pages/PortalPage.jsx:568`) e vale `orcamento` / `contrato` / `proposta` (`src/components/portal/DocumentosVista.jsx:803`, `["orcamento", "contrato", "proposta"].map(...)`; assinatura em `DocumentosVista.jsx:1390`); no questionário vale `"responder"` ou `"respostas"` (`src/components/portal/QuestionarioVista.jsx:122`). |
+| `/acompanhar/:token/:vista?/:sub?` | `src/pages/PortalPage.jsx` | pública | `src/App.jsx:118`. Ver secção 6. Valores literais de `:vista` tratados em `src/pages/PortalPage.jsx`: `"avaliar"` (:502), `"questionario"` (:516), `"sinal"` (:537), `"documentos"` (:556); sem `:vista` desenha a jornada. `:sub` chega aos filhos: na área dos documentos vai como `tipo={sub}` (`src/pages/PortalPage.jsx:568`) e vale `orcamento` / `contrato` / `proposta` (`src/components/portal/DocumentosVista.jsx:803`, `["orcamento", "contrato", "proposta"].map(...)`; assinatura em `DocumentosVista.jsx:1390`); na área do formulário (slug `questionario`) vale `"responder"` ou `"respostas"` (`src/components/portal/QuestionarioVista.jsx:122`). |
 | `/comunicado/:token` | `src/pages/ComunicadoPage.jsx` | pública | `src/App.jsx:123`. Ver secção 6. |
 | `*` | `DestinoDesconhecido`, definida em `src/App.jsx:44-49` | pública | Fallback/404. |
 
@@ -118,7 +118,7 @@ Escrita (não faz leitura própria — recebe `submissao` por props; zero `.from
 - fallback pré-038: `.from("submissions").select("respostas")` em `src/lib/briefingEdicao.js:112` e `.from("submissions").update(...)` em `src/lib/briefingEdicao.js:120`
 
 #### 2 · "Documentos" (`documentos`) — `src/components/admin/DocumentosEvento.jsx`
-Cinco cartões-linha reordenáveis por arrasto (ordem global guardada em `localStorage`, `const CHAVE_ORDEM = "dlm.documentosEvento.ordem"`, `:55`): `ORDEM_DE_ORIGEM = ["briefing", "formulario", "orcamento", "proposta", "contrato"]` (`:48-54`). Nomes visíveis: `"Briefing"` e `"Formulário"` são títulos literais das linhas (`titulo="Briefing"`, `:615`; `titulo="Formulário"`, `:663`); os outros três saem de `TIPOS` (`:33-37`), que tem só três entradas — `orcamento: { nome: "Orçamento" }`, `proposta: { nome: "Projecto" }`, `contrato: { nome: "Contrato" }` — usadas em `titulo={cfg.nome}` (`:876`). Cada documento mostra o percurso gerar → enviar → assinar/aceitar com data (`POR_FAZER = { assinado: "assinar", aceite: "aceitar" }`, `:43`); o próximo gesto acende a dourado segundo `DOC_DA_FASE` (`:86-93`: `interessado`/`orcamento`/`sinal` → `orcamento`, `contrato` → `contrato`, `cliente`/`projecto` → `proposta`). Inclui o aviso de formulários órfãos adoptáveis (`:742`) e o *composer* `FormularioDoEvento` de ecrã inteiro (`:842-843`). A linha do Formulário conhece o caso do questionário respondido pelo Portal (`respondidoPortal`, via `submissao.questionario_entregue_em`) e nesse caso não cobra o passo «criado».
+Cinco cartões-linha reordenáveis por arrasto (ordem global guardada em `localStorage`, `const CHAVE_ORDEM = "dlm.documentosEvento.ordem"`, `:55`): `ORDEM_DE_ORIGEM = ["briefing", "formulario", "orcamento", "proposta", "contrato"]` (`:48-54`). Nomes visíveis: `"Briefing"` e `"Formulário"` são títulos literais das linhas (`titulo="Briefing"`, `:615`; `titulo="Formulário"`, `:663`); os outros três saem de `TIPOS` (`:33-37`), que tem só três entradas — `orcamento: { nome: "Orçamento" }`, `proposta: { nome: "Projecto" }`, `contrato: { nome: "Contrato" }` — usadas em `titulo={cfg.nome}` (`:876`). Cada documento mostra o percurso gerar → enviar → assinar/aceitar com data (`POR_FAZER = { assinado: "assinar", aceite: "aceitar" }`, `:43`); o próximo gesto acende a dourado segundo `DOC_DA_FASE` (`:86-93`: `interessado`/`orcamento`/`sinal` → `orcamento`, `contrato` → `contrato`, `cliente`/`projecto` → `proposta`). Inclui o aviso de formulários órfãos adoptáveis (`:742`) e o *composer* `FormularioDoEvento` de ecrã inteiro (`:842-843`). A linha do Formulário conhece o caso do formulário respondido pelo Portal (`respondidoPortal`, via `submissao.questionario_entregue_em`) e nesse caso não cobra o passo «criado».
 
 - leitura: `documentosDoEvento(submissionId)` — `src/components/admin/DocumentosEvento.jsx:494` → `.from("documentos")` em `src/lib/documentos.js:92` (selecciona `id, tipo, created_at, updated_at, enviado_em, assinado_em, trancado_em, assinado_casa_em, assinado_casa_por`)
 - escrita: `marcarPassoDocumento(...)` — `:568` → `.from("documentos").update(...)` em `src/lib/documentos.js:125` (colunas `enviado_em` / `assinado_em`; passos travados quando `doc.trancado_em`)
@@ -224,6 +224,11 @@ Leituras adicionais da página que não pertencem a nenhuma aba em particular: `
 **Ficheiro:** `docs/glossario.md` (35.411 bytes, 614 linhas — 613 quebras de linha, a última linha não termina em `\n`; última alteração 10/08/2026). Título: «Glossário — a linguagem da casa». Não existe `GLOSSARIO.md` na raiz nem outro ficheiro de glossário no repositório (`find . -iname "*glossar*"` fora de `node_modules` devolve só este).
 
 ### 3.1 · Conteúdo integral
+
+> ⚠ **Nota de 14/08/2026:** esta secção reproduz o glossário **como ele era**. Nesse dia a
+> doutrina dos dois nomes foi invertida por decisão da Nádia — o «questionário» passou a
+> chamar-se **formulário** em toda a linguagem visível («questionário» soava a opcional). O
+> glossário já está corrigido; a reprodução abaixo fica como retrato do estado anterior.
 
 > **Nota de reprodução:** todos os termos e todas as regras estão abaixo. Abreviei apenas o *desenvolvimento retórico* de cinco justificações longas (Contactos, Pedido/orçamento, Questionário/briefing, Vitrina, Modelo de comunicado) — a definição operativa de cada uma está integral. Nada foi omitido do «quadro dos nomes», das «palavras a abandonar», das «incoerências» nem das «pendências».
 
@@ -364,7 +369,7 @@ L. 517-521: «comunicado» **fica** na overline da folha pública (ComunicadoPag
 
 **Incoerências a corrigir (l. 525-539):** 1) mensagem de WhatsApp diz «formulário», a página diz «questionário»; 2) página-guia (dlm-jornada) diz «formulário de interesse»; 3) separador «Clientes» → «Contactos»; 4) o bloco «DADOS DA CAPTAÇÃO (9)» com botões «Copiar» — **não é renomear; é remover**.
 
-> **Estado real destas quatro:** **#1 já está resolvida** — a mensagem de partilha (`src/pages/AdminPage.jsx:716`) diz «*O vosso questionário \*Do Luxo à Mesa\* está pronto.*»; a expressão «vosso formulário» **não existe** em `src/`. **#2 não é verificável aqui** — a página-guia `dlm-jornada` **não existe neste repositório** (é outro repo). **#3 está feita no separador principal** (`Navegacao.jsx:19`) mas não no irmão «Importar clientes» (`Navegacao.jsx:34`). **#4 continua aberta** em `PainelNovoFormulario.jsx:94,140`, embora a ponte que a devia matar já exista na ficha do evento.
+> **Estado real destas quatro:** **#1 resolvida — e a 14/08/2026 invertida**: a app inteira (mensagem de partilha incluída) passou a dizer «formulário», por decisão da Nádia. **#2 não é verificável aqui** — a página-guia `dlm-jornada` **não existe neste repositório** (é outro repo). **#3 está feita no separador principal** (`Navegacao.jsx:19`) mas não no irmão «Importar clientes» (`Navegacao.jsx:34`). **#4 continua aberta** em `PainelNovoFormulario.jsx:94,140`, embora a ponte que a devia matar já exista na ficha do evento.
 
 **O que muda por camadas (l. 543-558):** só nomes (leve) · arquitectura de navegação (✅ 30/07/2026) · arquitectura de dados (aba «O pedido» + ponte pedido→formulário — projeto próprio). *(A metade «ponte» desta terceira camada já está feita; a aba «O pedido» não.)*
 
@@ -395,7 +400,7 @@ Legenda da última coluna: **[a]** copy visível · **[b]** identificador de có
 | **orçamento** (documento) | — | Sim — `documentos.js:13` `tipo — 'orcamento' \| 'contrato' \| 'proposta'`; `src/components/admin/orcamentos/GerarOrcamento.jsx` | — | [c] |
 | **modelo de evento** | tipo de evento | Sim — `Navegacao.jsx:33` `label: "Modelos de Evento"`; slug `modelos-evento` (`rotasAdmin.js:39`) | `EventTypeEditor.jsx:1431` "Editar/Novo Tipo de Evento"; `:1479` "Nome do Tipo de Evento *"; `:1649` "Guardar Tipo de Evento"; `:188`; `:1474`; `EventTypesTab.jsx:115,136,488`; `camposFormulario.js:145` | [a] antigo persiste |
 | **formulário** (instância) | convite | Sim — `Navegacao.jsx:25` `label: "Formulários"`; slug `formularios` (`rotasAdmin.js:34`) | `invites.js:119` "Este convite não tem um tipo de evento"; `RemoverEventoModal.jsx:99`; `:276-277`; `InvitesList.jsx:209` `title="Remover convite"`; `DocumentosEvento.jsx:674`; `AdminPage.jsx:611` | [a] antigo persiste |
-| **questionário** | formulário (p/ quem preenche), onboarding | Sim — `FormEntryPage.jsx:231` "Questionário do Evento"; `FormPage.jsx:714` "O vosso questionário foi submetido com sucesso."; `AdminPage.jsx:716` "O vosso questionário *Do Luxo à Mesa* está pronto."; `invites.js:126` "Este questionário já foi submetido…" | `FormPage.jsx:612` `origem: "onboarding:markInviteUsed"`, `:639` `origem: "onboarding"` | [a] + [c] |
+| **formulário** (antes «questionário») | questionário, onboarding | Sim — a 14/08/2026 TODA a linguagem visível passou a «formulário» (decisão da Nádia: «questionário» soava a opcional); zero ocorrências acentuadas de «questionário» restam em `src/`. Identificadores `questionario_*` (tabelas, RPCs, tipos, slug do portal) ficam, como nomes de máquina | `FormPage.jsx` `origem: "onboarding:markInviteUsed"` / `origem: "onboarding"` (comentários/identificadores) | [a] concluído + [c] |
 | **organizador** | casal, família, noivos | Sim — `EventTypesTab.jsx:115`; `EventTypeEditor.jsx:80` (comentário); a `MaintenancePage.jsx`, que também usava o termo, foi removida a 14/08/2026 | Só em campos de casamento (`clientes.js`, `submissionFields.js:6-7`) — uso legítimo; `exports.js` foi removido a 14/08/2026 (código morto) | [a] alinhado |
 | **responsável no dia** | — | Sim — `FaixaOperacional.jsx:131` `rotulo="Responsável no dia"` (`formSteps.js` e `exports.js`, que também o usavam, foram removidos a 14/08/2026 como código morto) | — | [a] |
 | **briefing** | — | Sim — `VisaoGeralEvento.jsx:758,764`; rota `/briefing/:id` (`App.jsx:104`); RPCs `formulario_briefing` e `briefing_materiais` (`BriefingPage.jsx:472,503`) | — | [a]+[c] |
@@ -555,7 +560,7 @@ Origem: **anterior às migrações**; colunas acrescentadas por 030, 057, 074. R
 
 ---
 
-### 4.4 `public.invites` — convites do questionário **[eventos]**
+### 4.4 `public.invites` — convites do formulário **[eventos]**
 
 Origem: **anterior às migrações**; `preenchido_em` de 048. Reconstrução de `src/lib/invites.js:44-58`, `020:83-84,236-238`, `044:163-171`, `037:19-32`.
 
@@ -1224,8 +1229,8 @@ Não existe nenhuma outra view nem materialized view no repo.
 | `dlm_portal_registar_assinado_papel(p_token text, p_caminho text)` | jsonb | 057:755, 058:338, **060**:52 | regista o carregamento da fotografia do contrato assinado e avisa |
 | `dlm_portal_confirmar_papel(...)` | jsonb | **059**:57 com assinatura `(p_submission_id uuid, p_nome text, p_caminho text)`, substituída em **060**:126 por `(p_notificacao_id uuid, p_nome text)`, 075:296, 077:276 | a Nádia confirma o papel: grava o acto, carimba `assinado_em` e TRANCA. `security invoker` |
 | `dlm_portal_condicoes_lidas(p_token text)` | jsonb | 078:88 | regista a leitura das condições (anon, pré-código) |
-| `dlm_portal_questionario(p_token text)` | jsonb | 063:74, **064**:131 | o questionário do portal, com os grupos de prazo e a autoria dos dois lados |
-| `dlm_portal_responder(p_token text, p_campo text, p_valor jsonb)` | jsonb | 063:223, **069**:43 | grava uma resposta do cliente e, se completo, entrega o questionário |
+| `dlm_portal_questionario(p_token text)` | jsonb | 063:74, **064**:131 | o formulário do portal, com os grupos de prazo e a autoria dos dois lados |
+| `dlm_portal_responder(p_token text, p_campo text, p_valor jsonb)` | jsonb | 063:223, **069**:43, **089** | grava uma resposta do cliente e, se completo, entrega o formulário |
 | `dlm_portal_pedir_alteracao_campo(p_token text, p_campo text, p_pedido text, p_dados jsonb default null)` | jsonb | 063:397, **074**:123 | cria um `questionario_pedidos` quando o prazo do grupo já passou |
 | `dlm_portal_entregar_questionario(p_token text)` | jsonb | 063:348 | carimba `submissions.questionario_entregue_em` |
 | `dlm_portal_avaliacao(p_token text)` | jsonb | 067:37, **068**:61 | os eixos aplicáveis e as fotografias para a avaliação |
@@ -1451,7 +1456,7 @@ A correcção da 056 é um `do $$` dinâmico (`056:44-74`): apaga toda a políti
 
 2. **`using (true)` é a regra, não a excepção, para `authenticated`.** 30 das 32 tabelas com política têm `"admin acesso total"`/`*_equipa` · ALL · `authenticated` · `using (true) with check (true)`. Consequência factual: qualquer sessão autenticada no projecto Supabase lê e escreve tudo — não há segmentação por utilizador dentro do papel `authenticated`. As únicas tabelas onde `authenticated` **não** tem acesso total são `portal_condicoes_lidas` (só SELECT) e `portal_sinal_confirmacoes` (SELECT + UPDATE).
 
-3. **`event_types` é legível pelo `anon` sem qualquer filtro** — `"publico le tipos de evento"` · SELECT · anon · `using (true)` (`021:71-72`). Isto expõe as colunas `nome`, `steps`, `icone` e todas as outras da tabela, incluindo o conteúdo integral de `steps` (o modelo do questionário).
+3. **`event_types` é legível pelo `anon` sem qualquer filtro** — `"publico le tipos de evento"` · SELECT · anon · `using (true)` (`021:71-72`). Isto expõe as colunas `nome`, `steps`, `icone` e todas as outras da tabela, incluindo o conteúdo integral de `steps` (o modelo do formulário).
 
 4. **`form_errors` — conflito por resolver entre dois ficheiros.** `form_errors.sql` (sem número, data `Jul 19 03:28`, igual à da 020/021) cria três políticas que dão ao `anon` **SELECT e DELETE** sobre a tabela inteira (`form_errors.sql:30-36`) e um `grant select, insert, delete ... to anon, authenticated` (`form_errors.sql:40`). O próprio comentário assume-o (`form_errors.sql:23-25`): «o admin usa a mesma chave anon, por isso leitura e limpeza também ficam abertas — alinhado com as restantes tabelas do projeto». A 021 apaga todas as políticas de `form_errors` (`021:56-62`) e recria só `"admin acesso total"` + `"publico regista erros"` (INSERT). **Não confirmado**: qual das duas correu por último na base de dados real — o repo não tem ordenação para o ficheiro sem número e a 021 declara explicitamente que não mexe em grants (`021:23`), pelo que o `grant ... to anon` de `form_errors.sql:40` sobrevive em qualquer cenário. Se as políticas da `form_errors.sql` estiverem em vigor, o `anon` lê e apaga o conteúdo de `form_errors` — que, por desenho, contém `respostas jsonb` («o formData no momento da falha (recuperação!)», `form_errors.sql:18`), `contexto jsonb` («convite, event_type, passo, url, user agent», `form_errors.sql:17`) e `detalhe jsonb` («erro completo (code, details, hint do PostgREST)», `form_errors.sql:16`).
 
@@ -1788,17 +1793,17 @@ Sem dia, sem ligação:
 
 Nota do próprio código (`disputaDia.js:329-330`): «quando há [ligação], a mensagem TERMINA no endereço, **sem ponto a seguir**, para o WhatsApp ler a ligação limpa». Usada em `src/components/admin/AvisoSinalRecebido.jsx:60`.
 
-**3. `getShareMessage(invite)`** — `src/pages/AdminPage.jsx:712-717`. *A partilha do convite/questionário com o cliente.*
+**3. `getShareMessage(invite)`** — `src/pages/AdminPage.jsx:712-717`. *A partilha do convite/formulário com o cliente.*
 
 ```js
-`Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso questionário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`
+`Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`
 ```
 
 Renderizado:
 ```
 Olá {título do convite}! 💍
 
-O vosso questionário *Do Luxo à Mesa* está pronto.
+O vosso formulário *Do Luxo à Mesa* está pronto.
 
 É só clicar aqui para começar: {origin}/?codigo={code}
 
@@ -2203,7 +2208,7 @@ Não existe nenhuma tabela de equipa, staff, colaboradores, funcionários, forne
 
 - A palavra `equipa` em **nomes de políticas RLS**, onde significa «qualquer utilizador autenticado»: `comunicados_equipa` (`079_comunicados_fase1.sql:81-82`), `comunicado_destinatarios_equipa` (`080:111-112`), `comunicado_modelos_equipa` (`081:79-80`), `comunicados_img_equipa_escreve` (`080:188-189`), e as três políticas de storage `"equipa carrega fotografias"` / `"equipa ve fotografias"` / `"equipa apaga fotografias"` (`065_fotografias_do_dia.sql:47-58`). São todas `to authenticated`, sem distinção de pessoa.
 - A palavra `equipa` como **valor de enum a designar um LADO, não uma pessoa**: `respostas_autoria.autor text not null check (autor in ('cliente', 'equipa'))` (`062_questionario_grupos_e_autoria.sql:91`). O comentário da tabela é explícito: «`autor` é o LADO (cliente ou equipa), não a pessoa» (`062:103`).
-- **`por_equipa`** — chave booleana da projecção JSON das RPCs do questionário, derivada desse enum: `'por_equipa', coalesce(v_autoria.autor = 'equipa', false)` (`063_questionario_rpcs_do_portal.sql:173`, `064_questionario_autoria_dos_dois_lados.sql:230`), lida em `QuestionarioVista.jsx:620`, `:626`, `:673`. Continua a ser o LADO: nunca identifica quem.
+- **`por_equipa`** — chave booleana da projecção JSON das RPCs do formulário, derivada desse enum: `'por_equipa', coalesce(v_autoria.autor = 'equipa', false)` (`063_questionario_rpcs_do_portal.sql:173`, `064_questionario_autoria_dos_dois_lados.sql:230`), lida em `QuestionarioVista.jsx:620`, `:626`, `:673`. Continua a ser o LADO: nunca identifica quem.
 - **Um eixo de avaliação chamado `'A equipa em serviço'`** (`066_avaliacao_estrutura_e_eixos.sql:96`, ligado a `array['Balcão']`, com as pontas «fizeram o que era preciso» / «nem se deram por eles»). Avalia a equipa **no colectivo** — não há linha por pessoa nem sequer um campo para a nomear.
 - A palavra `fornecedor` só em **texto**: o comentário de negócio em `062:51` («quando o fornecedor de flores mudar de antecedência») e o corpo da folha de condições semeada em `semear-comunicado-condicoes.sql:41`.
 
@@ -2267,7 +2272,7 @@ A doutrina está escrita na migração das notas: «RLS — mesmo padrão da mig
 
 | # | Ficheiro:linha | Texto exacto | Divergência |
 |---|---|---|---|
-| 1 | `src/lib/invites.js:119` | `"Este convite não tem um tipo de evento associado. Contacta Do Luxo à Mesa."` | «convite» está na lista de abandonar para quem preenche (glossário l. 496). A **mesma função**, sete linhas abaixo (`invites.js:126`), diz `"Este questionário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa."` — duas palavras para o mesmo objecto no mesmo ecrã de erro. Viola o corolário (l. 79-80) |
+| 1 | `src/lib/invites.js:119` | `"Este convite não tem um tipo de evento associado. Contacta Do Luxo à Mesa."` | «convite» está na lista de abandonar para quem preenche (glossário l. 496). A **mesma função**, sete linhas abaixo (`invites.js:126`), diz `"Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa."` — duas palavras para o mesmo objecto no mesmo ecrã de erro. Viola o corolário (l. 79-80) |
 | 2 | `src/components/portal/DocumentosVista.jsx:93` | `"A folha completa está a seguir — isto é só o resumo."` | «folha» a significar o **orçamento/contrato**. No mesmo portal, `divisoes.jsx:310` («As folhas da casa») e `:335` («Ler a folha») usam «folha» no sentido canónico (a página do comunicado). Uma palavra, dois trabalhos — precisamente o que o glossário existe para evitar (l. 15) |
 | 3 | `src/components/portal/DocumentosVista.jsx:95` | `"Os valores não aparecem aqui sem o código — se algum mudou, este resumo não o mostra. A folha completa está a seguir."` | idem #2 |
 | 4 | `src/components/portal/DocumentosVista.jsx:1811` | `"Assine na última folha"` | idem #2 (aqui «folha» = página de papel — terceiro sentido; ver também `:1850` "a data que conta é a que escrever na folha") |

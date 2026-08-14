@@ -104,7 +104,7 @@ export const horaCurta = (iso) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-// ---------- A pauta do questionário ----------
+// ---------- A pauta do formulário ----------
 // O único sinal que distingue uma resposta que se pode mudar de uma que já
 // fechou. Em repouso é um traço de 1px; em edição o MESMO traço engrossa e
 // escurece — é ele a acordar, não outro elemento a aparecer.

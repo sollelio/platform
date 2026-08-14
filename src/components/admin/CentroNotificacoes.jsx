@@ -161,14 +161,14 @@ const TIPOS_DO_PORTAL = {
     citar: (d) => d?.mensagem || null,
   },
   questionario_entregue: {
-    resumo: "Respondeu ao questionário",
+    resumo: "Respondeu ao formulário",
     corpo:
       "As respostas estão na ficha do evento, e é delas que sai o " +
       "briefing da montagem. A partir daqui ela ainda pode corrigir o que " +
       "estiver aberto — o que já fechou passa a chegar como pedido.",
   },
   questionario_pedido: {
-    resumo: "Pediu uma alteração ao questionário",
+    resumo: "Pediu uma alteração ao formulário",
     corpo:
       "A resposta que ela quer mudar já tinha fechado. Nada mudou " +
       "sozinho — trate o pedido na folha do Acompanhamento, onde pode " +

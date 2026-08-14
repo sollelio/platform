@@ -353,7 +353,7 @@ export const confirmarContratoPapel = async (notificacaoId, nome) => {
   return data;
 };
 
-// ---------- Fase 5 · os pedidos de alteração ao questionário ----------
+// ---------- Fase 5 · os pedidos de alteração ao formulário ----------
 //
 // A lição do contrato em papel, aplicada antes de doer: um aviso que chega
 // à Caixa de Entrada tem de ter um ecrã que o atenda. Sem isto,

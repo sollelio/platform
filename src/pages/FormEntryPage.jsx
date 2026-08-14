@@ -228,7 +228,7 @@ export default function FormEntryPage() {
                 whiteSpace: "nowrap",
               }}
             >
-              Questionário do Evento
+              Formulário do Evento
             </p>
             <div
               style={{
@@ -299,7 +299,7 @@ export default function FormEntryPage() {
                   lineHeight: "1.6",
                 }}
               >
-                Para aceder ao vosso questionário, introduz o código de acesso
+                Para aceder ao vosso formulário, introduz o código de acesso
                 que recebeste.
               </p>
             </div>

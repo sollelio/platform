@@ -3,7 +3,7 @@ import { playfair, overline, diaMesAno, ehCodigoDeCor, HACHURA } from "./base";
 import { VistoDourado, Losango } from "./pecas";
 
 // ============================================================
-// questionario-pecas.jsx — as peças do questionário no acompanhamento.
+// questionario-pecas.jsx — as peças do formulário no acompanhamento.
 //
 // Estilos INLINE, como o resto. Ficheiro `.jsx` porque só tem componentes;
 // as funções puras vivem em `lib/questionarioPortal.js`
