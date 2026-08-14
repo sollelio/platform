@@ -44,7 +44,7 @@ const ehTabelaEmFalta = (erro) =>
     erro?.message || "",
   );
 
-export const getNotificacoes = async (limite = 60) => {
+const getNotificacoes = async (limite = 60) => {
   try {
     const { data, error } = await supabase
       .from("notificacoes")
@@ -63,7 +63,7 @@ export const getNotificacoes = async (limite = 60) => {
   }
 };
 
-export const marcarNotificacaoLida = async (id) => {
+const marcarNotificacaoLida = async (id) => {
   try {
     await supabase
       .from("notificacoes")
@@ -75,7 +75,7 @@ export const marcarNotificacaoLida = async (id) => {
   }
 };
 
-export const marcarTodasNotificacoesLidas = async () => {
+const marcarTodasNotificacoesLidas = async () => {
   try {
     await supabase
       .from("notificacoes")
@@ -96,7 +96,7 @@ export const marcarTodasNotificacoesLidas = async () => {
 // fazia a secção «Contrato assinado em papel» desaparecer da folha do
 // Acompanhamento para sempre. Quem filtra é o apagarVarias do hook, que
 // tem os tipos em mão; marcar como lida continua livre (migração 060).
-export const apagarNotificacoes = async (ids) => {
+const apagarNotificacoes = async (ids) => {
   if (!Array.isArray(ids) || ids.length === 0) return;
   try {
     await supabase.from("notificacoes").delete().in("id", ids);
@@ -111,7 +111,7 @@ export const apagarNotificacoes = async (ids) => {
 // AdminPage) — sem isto, um canal preso em CHANNEL_ERROR/CLOSED que
 // nunca chega a SUBSCRIBED falha em total silêncio: as notificações
 // param de chegar e não fica rasto nenhum para perceber porquê.
-export const subscreverNotificacoes = (onNova) => {
+const subscreverNotificacoes = (onNova) => {
   const canal = supabase
     .channel("notificacoes-changes")
     .on(

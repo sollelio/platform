@@ -25,7 +25,7 @@
 export const SEPARADOR_POR_OMISSAO = "inicio";
 
 // id interno (o que o código usa) -> slug (o que o URL mostra)
-export const SLUG_POR_ID = {
+const SLUG_POR_ID = {
   inicio: "inicio",
   clientes: "contactos",
   calendario: "agenda",
@@ -41,7 +41,7 @@ export const SLUG_POR_ID = {
 };
 
 // slug -> id interno (derivado, para nunca haver duas listas a divergir)
-export const ID_POR_SLUG = Object.fromEntries(
+const ID_POR_SLUG = Object.fromEntries(
   Object.entries(SLUG_POR_ID).map(([id, slug]) => [slug, id]),
 );
 
@@ -73,7 +73,7 @@ export const caminhoDoContacto = (id) =>
 // Não é dívida: é a única forma de um nome poder mudar sem custo. Quando
 // deixar de haver quem use o antigo, apaga-se a linha.
 // ------------------------------------------------------------
-export const SLUG_ANTIGO = {
+const SLUG_ANTIGO = {
   clientes: "contactos", // renomeado a 29/07/2026 (ver docs/glossario.md)
   comunicados: "envios", // renomeado a 09/08/2026 (ver docs/glossario.md)
 };

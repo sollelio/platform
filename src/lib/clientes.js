@@ -77,23 +77,6 @@ export const getEventoCompleto = async (id) => {
   return { ...normalizeSubmission(submissao), cliente: cliente || null };
 };
 
-// Atualiza os dados da pessoa (nome, contacto, email, nif, morada, notas).
-export const updateCliente = async (id, dados) => {
-  const permitidos = ["nome", "contacto", "email", "nif", "morada", "notas"];
-  const limpos = {};
-  for (const k of permitidos) {
-    if (k in dados) limpos[k] = dados[k];
-  }
-  const { data, error } = await supabase
-    .from("clientes")
-    .update(limpos)
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-};
-
 // O que este evento arrasta consigo ao ser removido — para a Nádia
 // decidir com informação, ANTES de confirmar. Confirmado nas FKs reais
 // da BD (submissions):
@@ -215,7 +198,7 @@ export const extrairDadosCliente = (respostas = {}) => {
 // Submete o questionário: cria cliente + submissão ligados.
 // payload = o objeto que o FormPage montava (event_type_id, data_evento,
 // numero_convidados, respostas). Devolve a submissão criada.
-export const submeterQuestionario = async (payload) => {
+const submeterQuestionario = async (payload) => {
   // 1. Criar o cliente com os dados de pessoa extraídos das respostas
   const dadosCliente = extrairDadosCliente(payload.respostas);
   const { data: cliente, error: erroCliente } = await supabase
@@ -255,7 +238,7 @@ export const submeterQuestionario = async (payload) => {
 //     via FIELD_MAP_INVERSO — o mesmo padrão do drawer ao guardar)
 //   • a fase NÃO é tocada (é a Nádia que a gere no funil)
 // ============================================================
-export const atualizarEventoComQuestionario = async (
+const atualizarEventoComQuestionario = async (
   submissionId,
   payload,
 ) => {

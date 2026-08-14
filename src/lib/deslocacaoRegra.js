@@ -10,18 +10,18 @@
 //   custo        = isento ? 0 : excedente_km * euroPorKm
 // ============================================================
 
-export const KM_INCLUIDOS = 5;
-export const EURO_POR_KM_BASE = 0.5;
+const KM_INCLUIDOS = 5;
+const EURO_POR_KM_BASE = 0.5;
 export const TROCOS_PADRAO = 2;
 
 // Arredonda a cêntimos — evita ruído de vírgula flutuante (ex:
 // 14.999999999999998 em vez de 15), o mesmo cuidado de orcamentoConfig.js.
 const arredondar = (v) => Math.round(v * 100) / 100;
 
-export const calcularExcedenteKm = (distanciaKm) =>
+const calcularExcedenteKm = (distanciaKm) =>
   Math.max(0, (Number(distanciaKm) || 0) - KM_INCLUIDOS);
 
-export const calcularEuroPorKm = (nTrocos = TROCOS_PADRAO) =>
+const calcularEuroPorKm = (nTrocos = TROCOS_PADRAO) =>
   EURO_POR_KM_BASE * (Number(nTrocos) || TROCOS_PADRAO);
 
 // Devolve tudo o que o painel precisa para se desenhar (régua, pastilhas

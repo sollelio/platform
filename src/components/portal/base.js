@@ -14,7 +14,7 @@ import { linkWhatsAppCasa } from "../../lib/casa";
 // Meses e dias escritos à mão, em vez de toLocaleDateString: a casa usa
 // grafia pré-acordo e nessa grafia os meses levam maiúscula, que o locale do
 // browser não dá. De caminho, tira-se qualquer dependência do fuso.
-export const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio",
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio",
   "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 export const SEMANA = ["domingo", "segunda-feira", "terça-feira",
   "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];

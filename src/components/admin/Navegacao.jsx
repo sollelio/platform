@@ -13,14 +13,14 @@ import { caminhoDoSeparador } from "../../lib/rotasAdmin";
 // Os ids dos separadores NUNCA mudam (regra de ouro).
 // ============================================================
 
-export const NAV_PRINCIPAL = [
+const NAV_PRINCIPAL = [
   { id: "inicio", label: "Início", icone: "inicio" },
   { id: "clientes", label: "Contactos", icone: "contactos" },
   { id: "calendario", label: "Agenda", icone: "agenda" },
   { id: "orcamentos", label: "Documentos", icone: "documentos" },
 ];
 
-export const NAV_GESTAO = [
+const NAV_GESTAO = [
   { id: "operacional", label: "Logística", icone: "logistica" },
   { id: "convites", label: "Formulários", icone: "formularios" },
   { id: "mensagens", label: "Mensagens", icone: "mensagens" },
@@ -29,12 +29,12 @@ export const NAV_GESTAO = [
   { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
 ];
 
-export const NAV_CONFIG = [
+const NAV_CONFIG = [
   { id: "tiposEvento", label: "Modelos de Evento", icone: "modelos" },
   { id: "importar", label: "Importar clientes", icone: "importar" },
 ];
 
-export const IDS_NO_MAIS = [...NAV_GESTAO, ...NAV_CONFIG].map((n) => n.id);
+const IDS_NO_MAIS = [...NAV_GESTAO, ...NAV_CONFIG].map((n) => n.id);
 
 // ------------------------------------------------------------
 // Ícones de linha fina (herdam a cor do texto via currentColor)

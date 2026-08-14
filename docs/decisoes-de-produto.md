@@ -1475,6 +1475,45 @@ método; aqui ficam as decisões aprovadas fase a fase).
   regra. Os avisos contextuais que não bloqueiam (AvisoDataDoEvento,
   AvisoMoradaDoEvento, AvisoSinalRecebido) ficam.
 
+## A grande limpeza de código morto (14/08/2026)
+
+- **14/08/2026 — Código morto sai, sempre; o git é o arquivo.** Varredura
+  completa (knip + grafo de imports + verificação adversarial símbolo a
+  símbolo): caíram 5 ficheiros inteiros, ~360 linhas de símbolos sem
+  uso, 6 classes CSS órfãs, 3 imagens nunca referidas e 3 dependências
+  npm. Porquê: o Hélio pediu — o peso morto estava a custar manutenção
+  e desempenho. Tudo recuperável do histórico git.
+- **14/08/2026 — A exportação Excel/PDF morreu de vez (por agora).**
+  `src/lib/exports.js` estava desligado do AdminPage desde 15/06/2026 e
+  nunca foi religado; foi removido com as dependências `xlsx`, `jspdf` e
+  `jspdf-autotable`. Porquê: uma funcionalidade desligada há dois meses
+  é peso morto; se a exportação voltar ao desenho, recupera-se do git
+  (commit 046403c) e repensam-se as bibliotecas nessa altura.
+- **14/08/2026 — Morreram também os dois cartões pedagógicos órfãos**
+  (`AvisoDataDoEvento`, `AvisoMoradaDoEvento`) e a rota pública de
+  pré-visualização `/__preview_aviso` que mantinha o primeiro vivo.
+  Porquê: eram o resto do sistema de avisos bloqueantes removido nesta
+  mesma data; uma rota pública sem protecção para pré-visualizar
+  backoffice era, além de morta, uma fresta desnecessária.
+
+## O mecanismo único de imagens (14/08/2026)
+
+- **14/08/2026 — Toda a imagem que sobe passa por `imagemOtimizada.js`.**
+  Um mecanismo só (redimensiona ao lado máximo do sítio + WebP com
+  qualidade alta; JPEG/PNG onde não houver WebP; SVG, GIF e PDF passam
+  intactos; nunca piora — se o resultado ficar maior, vai o original)
+  substituiu os três compressores artesanais (captacao, materiais,
+  fotografias) e tapou o único buraco: o contrato assinado no portal
+  subia a foto CRUA do telemóvel (3-5 MB) e passou a subir otimizada a
+  2200px/q0.9 — o texto do papel continua legível ao ampliar. Porquê:
+  espaço e largura de banda pagam-se, e a qualidade visual fixa-se por
+  sítio (600 vinheta de material, 1200 referências/propostas, 1600
+  folha, 1000/1800 fotografias, 2200 papel), não por adivinhação.
+- **14/08/2026 — `flores.png` (2,8 MB) passou a `flores.webp` (291 KB).**
+  A decoração das páginas públicas era o maior peso do primeiro
+  carregamento; 900px a q85 com transparência intacta cobre o dobro da
+  densidade do maior tamanho a que alguma vez se mostra (380px CSS).
+
 ## Validação — regra da casa
 
 - **30/07/2026 — O portão é esbuild + eslint + build, sempre os três.**

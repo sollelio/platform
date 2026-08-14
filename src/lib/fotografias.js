@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { comprimirFotoParaJpeg } from "./captacao";
+import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
 // fotografias.js — as fotografias do dia (fase 6).
@@ -9,7 +9,7 @@ import { comprimirFotoParaJpeg } from "./captacao";
 // muda de sentido: passa a ser memória.
 //
 // ⚠ O NOME DO FICHEIRO NÃO LEVA O ID DO EVENTO, nem nada derivável dele —
-// `foto_{carimbo}_{aleatório}.jpg`, como as imagens de referência. A razão
+// `foto_{carimbo}_{aleatório}.{ext}`, como as imagens de referência. A razão
 // está escrita na migração 054: organizar os caminhos «por evento» é que
 // exporia o id na página pública.
 //
@@ -31,7 +31,7 @@ const LADO_PEQUENA = 1000;
 const LADO_GRANDE = 1800;
 
 // A BASE é UMA por fotografia, e as duas versões partilham-na
-// (`{base}_p.jpg` / `{base}_g.jpg`). É o que permite apagar a grande a
+// (`{base}_p.*` / `{base}_g.*`). É o que permite apagar a grande a
 // partir da pequena — com bases sorteadas à parte, o caminho derivado
 // não existia e a versão grande ficava órfã no balde para sempre.
 const nomeBase = () =>
@@ -47,10 +47,10 @@ export const momentoPorOmissao = (dataEvento) => {
   return hojeISO > String(dataEvento).slice(0, 10) ? "evento" : "montagem";
 };
 
-const enviar = async (blob, caminho) => {
+const enviar = async ({ blob, tipo }, caminho) => {
   const { error } = await supabase.storage
     .from(BALDE)
-    .upload(caminho, blob, { contentType: "image/jpeg", upsert: false });
+    .upload(caminho, blob, { contentType: tipo, upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from(BALDE).getPublicUrl(caminho);
   return { caminho, url: data.publicUrl };
@@ -60,13 +60,13 @@ const enviar = async (blob, caminho) => {
 // Devolve a linha criada.
 export const carregarFotografia = async (eventoId, ficheiro, { momento, ordem = 0 } = {}) => {
   const [pequena, grande] = await Promise.all([
-    comprimirFotoParaJpeg(ficheiro, LADO_PEQUENA),
-    comprimirFotoParaJpeg(ficheiro, LADO_GRANDE),
+    otimizarImagem(ficheiro, { ladoMax: LADO_PEQUENA }),
+    otimizarImagem(ficheiro, { ladoMax: LADO_GRANDE }),
   ]);
   const base = nomeBase();
   const [p, g] = await Promise.all([
-    enviar(pequena, `${base}_p.jpg`),
-    enviar(grande, `${base}_g.jpg`),
+    enviar(pequena, `${base}_p.${pequena.extensao}`),
+    enviar(grande, `${base}_g.${grande.extensao}`),
   ]);
 
   const { data: sessao } = await supabase.auth.getUser();
@@ -126,7 +126,7 @@ export const apagarFotografia = async (foto) => {
   })();
   const caminhos = [
     foto.caminho,
-    grandeDaUrl || String(foto.caminho || "").replace(/_p\.jpg$/, "_g.jpg"),
+    grandeDaUrl || String(foto.caminho || "").replace(/_p\.(jpg|webp|png)$/, "_g.$1"),
   ].filter(Boolean);
   // A linha já saiu — um erro no ecrã diria que falhou o que a Nádia viu
   // desaparecer. Mas engolir em silêncio absoluto também não: fica rasto.

@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { destinoDepoisDoLogin, useSessao } from "../lib/sessao";
 import { motion, AnimatePresence } from "framer-motion";
-import flores from "../assets/flores.png";
+import flores from "../assets/flores.webp";
 import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {

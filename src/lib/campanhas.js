@@ -25,7 +25,7 @@ import { ehFuncaoRpcEmFalta, codigoErroRpc } from "./rpc";
 
 const arredondar = (n) => Math.round(n * 100) / 100;
 
-export const gerarToken = () => {
+const gerarToken = () => {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -196,7 +196,7 @@ const marcarIntencao = async (id, campos, deEstado = "pendente") => {
   return data;
 };
 
-export const marcarIntencaoConfirmada = (id) =>
+const marcarIntencaoConfirmada = (id) =>
   marcarIntencao(id, {
     estado: "confirmada",
     confirmada_em: new Date().toISOString(),

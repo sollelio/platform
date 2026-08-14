@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateCode } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
-import flores from "../assets/flores.png";
+import flores from "../assets/flores.webp";
 import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {

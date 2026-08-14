@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { FASES_POS_SINAL } from "./fases";
-import { comprimirFotoParaJpeg } from "./captacao";
+import { otimizarImagem } from "./imagemOtimizada";
 import { resolverMensagem } from "./mensagens";
 
 // ============================================================
@@ -181,7 +181,7 @@ export const idDeBloco = () =>
 // nos dois renders.
 // ------------------------------------------------------------
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
-export const romano = (n) => ROMANOS[n - 1] || String(n);
+const romano = (n) => ROMANOS[n - 1] || String(n);
 
 // Os tipos declarados que o editor pode marcar num bloco. Qualquer outro
 // valor (ou nenhum) cai na derivação — retrocompatível com as folhas da
@@ -745,9 +745,10 @@ export const comunicadosDoEvento = async (submissionId) => {
 
 const BUCKET_COMUNICADOS = "comunicados";
 
-// A compressão é OBRIGATÓRIA e é a de captacao.js (canvas → JPEG 0.82),
-// com o lado maior a 1600px: a folha mostra a imagem à largura da
-// página, maior do que as vinhetas de referência (1200) pedem.
+// A otimização é OBRIGATÓRIA e é a do mecanismo único
+// (imagemOtimizada.js), com o lado maior a 1600px: a folha mostra a
+// imagem à largura da página, maior do que as vinhetas de referência
+// (1200) pedem.
 // O caminho não leva o id de NADA — o balde é público por URL mas não
 // enumerável (080, §5), e um nome adivinhável seria uma porta.
 export const subirImagemFolha = async (file) => {
@@ -755,11 +756,11 @@ export const subirImagemFolha = async (file) => {
   if (!file.type.startsWith("image/")) {
     throw new Error("O ficheiro tem de ser uma imagem.");
   }
-  const blob = await comprimirFotoParaJpeg(file, 1600);
-  const caminho = `folha_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const { blob, tipo, extensao } = await otimizarImagem(file, { ladoMax: 1600 });
+  const caminho = `folha_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
   const { error } = await supabase.storage
     .from(BUCKET_COMUNICADOS)
-    .upload(caminho, blob, { contentType: "image/jpeg", upsert: false });
+    .upload(caminho, blob, { contentType: tipo, upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET_COMUNICADOS).getPublicUrl(caminho);
   return data.publicUrl;
@@ -866,27 +867,6 @@ export const historiaDoModelo = (usos, ultimoUso) => {
   return quando
     ? `Usado ${usos} vezes · o último em ${quando}`
     : `Usado ${usos} vezes`;
-};
-
-// Actualiza um modelo de comunicado (whitelist — a mesma lição do
-// guardarComunicado).
-export const guardarModelo = async (id, campos) => {
-  const permitidos = ["nome", "registo", "titulo", "subtitulo", "saudacao", "blocos", "mensagem", "publico"];
-  const patch = {};
-  for (const k of permitidos) {
-    if (k in campos) patch[k] = campos[k];
-  }
-  if (Object.keys(patch).length === 0) throw new Error("Nada para actualizar.");
-  patch.actualizado_em = new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from("comunicado_modelos")
-    .update(patch)
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
 };
 
 // Apagar é a sério — a UI já confirmou em duas fases. Os comunicados

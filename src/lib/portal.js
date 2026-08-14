@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
 // portal.js — a camada de dados do Portal do Cliente (migrações 049–052).
@@ -91,7 +92,6 @@ export const FRASE_DE_CERIMONIA_SEM_DATA =
 // porque metade dos carimbos é marcada à mão pela Nádia, e a ausência de
 // uma marcação nunca prova a ausência do facto.
 export const ETAPA_POR_ACONTECER = "por_acontecer";
-export const ETAPA_FEITA_SEM_DATA = "feito_sem_data";
 export const ETAPA_FEITA_DATADA = "feito_datado";
 
 // ---------- A leitura pública ----------
@@ -265,12 +265,19 @@ export const confirmarCondicoes = async (token) => {
 // O caminho do papel: sobe a fotografia do contrato assinado para o balde
 // PRIVADO e regista o carregamento (que avisa a Caixa de Entrada). O nome
 // do ficheiro é aleatório, como o das referências — nunca um id.
+// A fotografia é otimizada ANTES de subir (era o único upload que ia em
+// bruto: uma foto de telemóvel são 3-5 MB). 2200px no lado maior e
+// qualidade 0.9: o texto do papel tem de continuar legível quando a
+// Nádia ampliar para conferir a assinatura. Um PDF passa intacto.
 export const enviarContratoAssinado = async (token, ficheiro) => {
-  const extensao = (ficheiro.name.split(".").pop() || "jpg").toLowerCase();
+  const { blob, tipo, extensao } = await otimizarImagem(ficheiro, {
+    ladoMax: 2200,
+    qualidade: 0.9,
+  });
   const caminho = `papel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
   const { error: errUp } = await supabase.storage
     .from("contratos-assinados")
-    .upload(caminho, ficheiro, { upsert: false });
+    .upload(caminho, blob, { contentType: tipo, upsert: false });
   if (errUp) throw errUp;
   const { data, error } = await supabase.rpc("dlm_portal_registar_assinado_papel", {
     p_token: token,

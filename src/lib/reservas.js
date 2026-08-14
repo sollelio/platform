@@ -235,17 +235,6 @@ export const cancelarReserva = async (id) => {
   return reserva;
 };
 
-// Converte uma reserva num cliente fechado: liga-a à submissão criada
-// e marca como convertida. A reserva não é apagada — fica como o
-// registo de onde este cliente começou.
-export const converterReserva = async (id, submissionId) => {
-  if (!submissionId) throw new Error("submissionId em falta na conversão.");
-  return updateReserva(id, {
-    estado: ESTADOS_RESERVA.CONVERTIDA,
-    submissionId,
-  });
-};
-
 // Agrupa reservas por dia (chave 'YYYY-MM-DD') — útil para o calendário
 // juntar reservas e eventos reais no mesmo dia.
 export const agruparReservasPorDia = (reservas) => {

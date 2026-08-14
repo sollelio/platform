@@ -46,7 +46,7 @@ export const GRUPOS_PALETA = [
 ];
 
 // Lista plana de todas as cores (para procuras rápidas).
-export const TODAS_AS_CORES = GRUPOS_PALETA.flatMap((g) => g.cores);
+const TODAS_AS_CORES = GRUPOS_PALETA.flatMap((g) => g.cores);
 
 // Dado um nome de cor, devolve o hex (ou null se não existir no catálogo).
 // Útil para mostrar a amostra de valores antigos guardados só como nome.
@@ -103,22 +103,4 @@ export function coresDeTexto(texto) {
       }
       return { nome: parte, hex: hexDaCor(parte) || COR_NEUTRA };
     });
-}
-
-export function textoDeCores(cores) {
-  return (cores || [])
-    .filter((c) => c && c.nome)
-    .map(({ nome, hex }) => {
-      // A vírgula é o separador: num nome partiria a cor em duas na
-      // leitura seguinte.
-      const limpo = String(nome).replace(/,/g, " ").replace(/\s+/g, " ").trim();
-      // Sem hex para acrescentar: está no catálogo (o hex procura-se
-      // lá), o nome já É o hex, ou não se sabe a cor — e o cinzento de
-      // recurso não é uma cor, é a falta dela. Escrevê-lo transformava
-      // «não sei» em «é cinzenta», e estragava o que lá estava de antes.
-      if (!hex || hex === COR_NEUTRA || limpo === hex || hexDaCor(limpo))
-        return limpo;
-      return `${limpo} ${hex}`;
-    })
-    .join(", ");
 }

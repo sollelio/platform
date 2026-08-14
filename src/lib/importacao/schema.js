@@ -27,8 +27,6 @@ export const FASES_VALIDAS = [
   "perdido",
 ];
 
-export const TIPOS_DOCUMENTO = ["orcamento", "contrato", "proposta"];
-
 export const CHAVES_CLIENTE = [
   "nome",
   "contacto",

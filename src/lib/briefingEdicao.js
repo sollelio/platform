@@ -22,7 +22,7 @@ export const vazio = (v) =>
 // O que vai para a base de dados: o vazio é NULL e não "". As colunas
 // antigas equivalentes são `time`, `date` e `integer` — uma string vazia
 // rebenta com elas, e no respostas um null lê-se igual a ausente.
-export const paraGuardar = (v) => (v === "" || v === undefined ? null : v);
+const paraGuardar = (v) => (v === "" || v === undefined ? null : v);
 
 // O valor guardado de um campo, tal como o rascunho o recebe.
 export const valorGuardado = (submissao, campo) => {
@@ -46,7 +46,7 @@ const chaveDeComparacao = (v) => {
   return vazio(v) ? "null" : JSON.stringify(v);
 };
 
-export const mudou = (antes, agora) =>
+const mudou = (antes, agora) =>
   chaveDeComparacao(antes) !== chaveDeComparacao(agora);
 
 // O que está por guardar: os campos cujo rascunho difere do que está na

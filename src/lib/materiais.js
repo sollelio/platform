@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
 // materiais.js — Fase B (Ficha Operacional)
@@ -268,48 +269,6 @@ export const removeEventoMaterial = async (id) => {
   if (error) throw error;
 };
 
-// Repõe os defaults de lista de UMA linha a partir do catálogo.
-// Útil para um botão "repor listas" na UI.
-export const resetListasDefaults = async (eventoMaterial) => {
-  const m = eventoMaterial.material;
-  if (!m) throw new Error("Linha sem material associado.");
-  return updateEventoMaterial(eventoMaterial.id, {
-    lista_carga: m.def_carga ?? true,
-    lista_montagem: m.def_montagem ?? true,
-    lista_higienizacao: m.def_higienizacao ?? false,
-  });
-};
-
-// ---------- GERAÇÃO DE LISTAS ----------
-
-// A partir das linhas de evento_materiais, produz as 3 listas filtradas
-// e agrupadas por categoria. Alimenta a UI e o PDF.
-// Devolve { carga, montagem, higienizacao }, cada uma [{ categoria, itens }].
-export const gerarListas = (eventoMateriais) => {
-  const comMaterial = eventoMateriais.filter((em) => em.material);
-
-  const construir = (flag) => {
-    const filtrados = comMaterial
-      .filter((em) => em[flag])
-      .map((em) => ({
-        nome: em.material.nome,
-        categoria: em.material.categoria,
-        unidade: em.material.unidade,
-        quantidade: em.quantidade,
-        cores: em.cores,
-        observacoes: em.observacoes,
-        ordem: em.material.ordem,
-      }));
-    return agruparPorCategoria(filtrados);
-  };
-
-  return {
-    carga: construir("lista_carga"),
-    montagem: construir("lista_montagem"),
-    higienizacao: construir("lista_higienizacao"),
-  };
-};
-
 // ============================================================
 // Upload de imagens de material para o Supabase Storage.
 // Bucket "materiais" (público). Comprime no browser antes de enviar,
@@ -317,46 +276,6 @@ export const gerarListas = (eventoMateriais) => {
 // ============================================================
 
 const BUCKET_MATERIAIS = "materiais";
-
-// Comprime/redimensiona uma imagem no browser: máx 600px no lado maior.
-// Exporta PNG para PRESERVAR TRANSPARÊNCIA (o JPEG pintaria de preto as
-// zonas transparentes — bug clássico do canvas). PNG é maior que JPEG,
-// mas mantém o fundo transparente das imagens recortadas.
-const comprimirImagem = (file, maxLado = 600) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width > height && width > maxLado) {
-        height = Math.round((height * maxLado) / width);
-        width = maxLado;
-      } else if (height > maxLado) {
-        width = Math.round((width * maxLado) / height);
-        height = maxLado;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      // NÃO pintar fundo — deixa transparente onde a imagem for transparente
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Falha ao comprimir a imagem."));
-        },
-        "image/png", // PNG preserva transparência
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Não foi possível ler a imagem."));
-    };
-    img.src = url;
-  });
 
 // Faz upload da imagem de um material e devolve a URL pública.
 // Usa o código do material (ou o id) como nome do ficheiro, para ser
@@ -367,16 +286,21 @@ export const uploadImagemMaterial = async (material, file) => {
   if (!file.type.startsWith("image/"))
     throw new Error("O ficheiro tem de ser uma imagem.");
 
-  const blob = await comprimirImagem(file);
+  // 600px chega para a vinheta do inventário; transparencia preserva o
+  // alfa das imagens recortadas (WebP com alfa; PNG onde não houver WebP).
+  const { blob, tipo, extensao } = await otimizarImagem(file, {
+    ladoMax: 600,
+    transparencia: true,
+  });
   const base = (material?.codigo || material?.id || "material")
     .toString()
     .replace(/[^a-zA-Z0-9_-]/g, "");
-  const caminho = `${base}_${Date.now()}.png`;
+  const caminho = `${base}_${Date.now()}.${extensao}`;
 
   const { error: errUpload } = await supabase.storage
     .from(BUCKET_MATERIAIS)
     .upload(caminho, blob, {
-      contentType: "image/png",
+      contentType: tipo,
       upsert: true,
     });
   if (errUpload) throw errUpload;

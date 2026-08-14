@@ -41,11 +41,6 @@ export function tourJaVista(tourKey) {
   return localStorage.getItem(`dlm_tour_${tourKey}`) === "vista";
 }
 
-export function marcarTourVista(tourKey) {
+function marcarTourVista(tourKey) {
   localStorage.setItem(`dlm_tour_${tourKey}`, "vista");
-}
-
-// Útil para um botão de "Ver tour outra vez"
-export function esquecerTour(tourKey) {
-  localStorage.removeItem(`dlm_tour_${tourKey}`);
 }

@@ -70,26 +70,13 @@ export const getAvaliacoes = async () => {
   return data || [];
 };
 
-export const getAvaliacaoDoEvento = async (eventoId) => {
-  const { data, error } = await supabase
-    .from("avaliacoes")
-    .select(
-      "id, frase, eixos, publicacao_autorizada, nome_como, criada_em, publicada_em, " +
-        "evento_fotografias(url_pequena, url_grande, assunto, publicavel)",
-    )
-    .eq("submission_id", eventoId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-};
-
 // Em que estado está a fotografia para efeitos de site. Decisão DA CASA —
 // só quem lá esteve sabe se há convidados reconhecíveis, e a anfitriã não
 // pode consentir por eles.
 //
 // TRÊS estados e não dois: «por rever» não é «com convidados». Dizer que é
 // punha a página a afirmar à cliente uma coisa que ninguém verificou.
-export const ESTADOS_FOTO = ["por_rever", "sem_convidados", "com_convidados"];
+const ESTADOS_FOTO = ["por_rever", "sem_convidados", "com_convidados"];
 
 export const marcarEstadoDaFoto = async (fotografiaId, estado) => {
   if (!ESTADOS_FOTO.includes(estado)) throw new Error("Estado desconhecido");

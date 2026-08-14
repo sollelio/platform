@@ -123,7 +123,7 @@ export const formatarDataISO = (v) => {
       });
 };
 
-export function formatarValor(v) {
+function formatarValor(v) {
   if (Array.isArray(v)) return v.join(", ");
   if (v && typeof v === "object") return formatarMorada(v);
   const data = formatarDataISO(v);

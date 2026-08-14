@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { markInviteUsed } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
 import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
-import flores from "../assets/flores.png";
+import flores from "../assets/flores.webp";
 import { iniciarTour, tourJaVista } from "../lib/tour";
 import { submeterFormulario } from "../lib/clientes";
 import { registarErroFormulario } from "../lib/errosForm";
@@ -497,8 +497,8 @@ export default function FormPage() {
     );
   }
 
-  // Os passos do formulário vêm agora do tipo de evento do convite,
-  // em vez do ficheiro formSteps.js estático
+  // Os passos do formulário vêm do tipo de evento do convite (BD),
+  // não de um ficheiro estático
   const steps = invite.event_types.steps;
   const totalSteps = steps.length;
   const step = steps[currentStep - 1];

@@ -87,10 +87,6 @@ export const LINHA_BY_LUXURY = "by Luxury Events";
 export const SLOGAN_CASA =
   "Planeamos cada detalhe. Criamos memórias inesquecíveis.";
 
-// A tagline do PDF de exportação (hoje só o exportador antigo a usa).
-export const TAGLINE_EXPORTS =
-  "Planeamento · Personalização · Organização · Detalhes";
-
 // ---------- As assinaturas e os rodapés ----------
 // A assinatura fixa da folha de comunicado: despedida + designação.
 export const ASSINATURA_FOLHA = {

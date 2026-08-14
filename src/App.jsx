@@ -18,7 +18,6 @@ import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
-import AvisoDataDoEvento from "./components/admin/AvisoDataDoEvento";
 
 // Lê as variáveis de ambiente
 // Lista explícita, e não `!== "production"`: se PROD um dia se esquecer da
@@ -70,15 +69,7 @@ function App() {
             Segmento estático, portanto ganha sempre a /admin/:separador
             no ranking do react-router. */}
         <Route path="/admin/login" element={<LoginPage />} />
-        <Route
-          path="/__preview_aviso"
-          element={
-            <div style={{ padding: "40px", maxWidth: "900px", margin: "0 auto", background: "#faf7f0", minHeight: "100vh" }}>
-              <AvisoDataDoEvento />
-            </div>
-          }
-        />
-        {/* /admin nu não é ecrã nenhum — é o atalho para o Início.
+{/* /admin nu não é ecrã nenhum — é o atalho para o Início.
             Replace de propósito: não deve ficar no histórico. */}
         <Route path="/admin" element={<Navigate to="/admin/inicio" replace />} />
         {/* O backoffice inteiro numa SÓ rota, com o separador no URL.

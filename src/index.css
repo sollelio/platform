@@ -77,9 +77,6 @@ h3 {
   .step-ornament {
     justify-content: center !important;
   }
-  .page-title {
-    letter-spacing: 0.06em !important;
-  }
   .stepper-wrap {
     display: none !important;
   }
@@ -120,24 +117,16 @@ h3 {
 }
 
 /* ===== Admin: listas com scroll próprio (≈4 visíveis) ===== */
-.clients-list,
 .invites-list {
   overflow-y: auto;
   padding: 4px 4px 4px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--gold-light) transparent;
-}
-.clients-list {
-  max-height: 340px;
-}
-.invites-list {
   max-height: 460px;
 }
-.clients-list::-webkit-scrollbar,
 .invites-list::-webkit-scrollbar {
   width: 6px;
 }
-.clients-list::-webkit-scrollbar-thumb,
 .invites-list::-webkit-scrollbar-thumb {
   background: var(--gold-light);
   border-radius: 999px;
@@ -147,9 +136,6 @@ h3 {
    até perto do fundo do ecrã, revelando mais cards. Mobile mantém as
    alturas compactas fixas acima. ===== */
 @media (min-width: 768px) {
-  .clients-list {
-    max-height: calc(100vh - 380px);
-  }
   .invites-list {
     max-height: calc(100vh - 220px);
   }
@@ -176,16 +162,6 @@ h3 {
   }
 }
 
-/* ===== Admin: barra de tabs — linha única, centra quando cabe, rola quando não ===== */
-.admin-tabs {
-  justify-content: flex-start;
-}
-@media (min-width: 900px) {
-  .admin-tabs {
-    justify-content: center;
-  }
-}
-
 /* ============================================================
    Camada de interacção — nenhum elemento accionável sem hover, foco
    e toque resolvidos. As variantes carregam a identidade (cor, borda,
@@ -198,12 +174,10 @@ h3 {
 .ligacao,
 .icone-botao,
 .pastilha-escolha,
-.alternador,
 .separador-aba,
 .indice-item,
 .campo-editavel,
 .caixa-texto,
-.caixa-fantasma,
 .cartao-escrita {
   transition:
     background-color 140ms ease,
@@ -220,7 +194,6 @@ h3 {
 .ligacao,
 .icone-botao,
 .pastilha-escolha,
-.alternador,
 .separador-aba,
 .indice-item,
 .campo-editavel {
@@ -231,7 +204,6 @@ h3 {
 .ligacao,
 .icone-botao,
 .pastilha-escolha,
-.alternador,
 .separador-aba,
 .indice-item {
   font-family: inherit;
@@ -242,7 +214,6 @@ h3 {
 .ligacao:focus-visible,
 .icone-botao:focus-visible,
 .pastilha-escolha:focus-visible,
-.alternador:focus-visible,
 .separador-aba:focus-visible,
 .indice-item:focus-visible,
 .campo-editavel:focus-visible,
@@ -253,7 +224,6 @@ h3 {
 
 .acao:active:not(:disabled),
 .pastilha-escolha:active,
-.alternador:active,
 .separador-aba:active {
   transform: scale(0.98);
 }
@@ -371,23 +341,6 @@ h3 {
   color: #fff;
 }
 
-/* --- Os três alternadores C/M/H da ficha de materiais --- */
-.alternador {
-  border: 1px solid #f0e6d0;
-  background-color: #fff;
-  color: #c0b79f;
-}
-.alternador:hover:not(.alternador--activo) {
-  border-color: var(--gold-light);
-  background-color: #fcfbf7;
-  color: var(--gold-dark);
-}
-.alternador--activo {
-  border: 1px solid var(--gold);
-  background-color: var(--gold);
-  color: #fff;
-}
-
 /* --- Os separadores da página de evento --- */
 .separador-aba {
   border: none;
@@ -429,20 +382,6 @@ h3 {
 .caixa-texto:focus {
   outline: none;
   box-shadow: 0 0 0 2.5px rgba(201, 168, 76, 0.28);
-}
-
-/* A caixa invisível até se lhe tocar (observações da ficha) */
-.caixa-fantasma {
-  background-color: transparent;
-  border: 1.5px solid transparent;
-}
-.caixa-fantasma:hover {
-  border-color: #f0e6d0;
-}
-.caixa-fantasma:focus {
-  outline: none;
-  border-color: var(--gold-light);
-  background-color: #fff;
 }
 
 /* O cartão que acorda inteiro quando se escreve lá dentro (Notas) */
@@ -640,12 +579,10 @@ h3 {
   .ligacao,
   .icone-botao,
   .pastilha-escolha,
-  .alternador,
   .separador-aba,
   .indice-item,
   .campo-editavel,
   .caixa-texto,
-  .caixa-fantasma,
   .cartao-escrita {
     transition: none;
   }

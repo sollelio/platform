@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { ehFuncaoRpcEmFalta } from "./rpc";
+import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
 // captacao.js — a porta de entrada do funil.
@@ -21,63 +22,21 @@ const limpar = (v) => {
   return s === "" ? null : s;
 };
 
-// Comprime uma FOTO no browser: máx 1200px no lado maior, JPEG a 82%.
-// Ao contrário das imagens de materiais (PNG para preservar
-// transparência), fotos de inspiração/portefólio ficam 5-10x mais
-// leves em JPEG. O fundo é pintado de BRANCO antes de desenhar, para
-// um PNG transparente nunca ficar preto (bug clássico do canvas).
-// Exportado: usado aqui (referências do cliente) e em propostas.js
-// (imagens da Nádia).
-export const comprimirFotoParaJpeg = (file, maxLado = 1200) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width > height && width > maxLado) {
-        height = Math.round((height * maxLado) / width);
-        width = maxLado;
-      } else if (height > maxLado) {
-        width = Math.round((width * maxLado) / height);
-        height = maxLado;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#FFFFFF"; // fundo branco: transparência nunca vira preto
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Falha ao comprimir a imagem."));
-        },
-        "image/jpeg",
-        0.82,
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Não foi possível ler a imagem."));
-    };
-    img.src = url;
-  });
-
 // Faz upload de uma imagem de referência e devolve a URL pública.
+// A otimização é a do mecanismo único (imagemOtimizada.js): 1200px no
+// lado maior chega de sobra para as vinhetas de inspiração.
 export const uploadImagemReferencia = async (file) => {
   if (!file) throw new Error("Nenhum ficheiro selecionado.");
   if (!file.type.startsWith("image/"))
     throw new Error("O ficheiro tem de ser uma imagem.");
 
-  const blob = await comprimirFotoParaJpeg(file);
-  const caminho = `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const { blob, tipo, extensao } = await otimizarImagem(file, { ladoMax: 1200 });
+  const caminho = `ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
 
   const { error: errUpload } = await supabase.storage
     .from(BUCKET_REFERENCIAS)
     .upload(caminho, blob, {
-      contentType: "image/jpeg",
+      contentType: tipo,
       upsert: false,
     });
   if (errUpload) throw errUpload;

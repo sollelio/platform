@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { comprimirFotoParaJpeg } from "./captacao";
+import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
 // propostas.js — upload das imagens da PROPOSTA (as da Nádia:
@@ -15,13 +15,13 @@ export const uploadImagemProposta = async (file) => {
   if (!file.type.startsWith("image/"))
     throw new Error("O ficheiro tem de ser uma imagem.");
 
-  const blob = await comprimirFotoParaJpeg(file);
-  const caminho = `prop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const { blob, tipo, extensao } = await otimizarImagem(file, { ladoMax: 1200 });
+  const caminho = `prop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
 
   const { error: errUpload } = await supabase.storage
     .from(BUCKET_PROPOSTAS)
     .upload(caminho, blob, {
-      contentType: "image/jpeg",
+      contentType: tipo,
       upsert: false,
     });
   if (errUpload) throw errUpload;
