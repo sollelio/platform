@@ -615,7 +615,7 @@ export default function DocumentosEvento({
         titulo="Briefing"
         descricao={`A folha do evento · ${
           desdeQuando(submissao?.updated_at) || "sempre a par do evento"
-        } · /briefing/:id em favoritos`}
+        } · /briefing/:id em favoritos. A folha abre desde que tenha sessão. Se abrir com a sessão expirada, vai para o login em vez da folha.`}
         passos={
           <span
             style={{
