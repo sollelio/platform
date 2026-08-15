@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { ehFuncaoRpcEmFalta, codigoErroRpc } from "./rpc";
+import { codigoErroRpc } from "./rpc";
 
 // ============================================================
 // campanhas.js — a contribuição coletiva de um evento (migração 033).
@@ -169,12 +169,6 @@ export const getIntencoesPendentes = async (campanhaId) => {
 // promessa já resolvida vê isto, e nada é escrito.
 export const INTENCAO_JA_RESOLVIDA = "INTENCAO_JA_RESOLVIDA";
 
-// Só no fallback pré-039 (sem transação): o claim carimbou a promessa
-// mas o INSERT do dinheiro falhou — meio-estado que a UI tem de
-// explicar com todas as letras.
-export const INTENCAO_CARIMBADA_SEM_DINHEIRO =
-  "INTENCAO_CARIMBADA_SEM_DINHEIRO";
-
 // A guarda vive no SERVIDOR: o update só toca a intenção se ela ainda
 // estiver no estado esperado (.eq("estado", ...)). Antes, um segundo
 // separador podia confirmar por cima de confirmada (duplicando o
@@ -196,12 +190,11 @@ const marcarIntencao = async (id, campos, deEstado = "pendente") => {
   return data;
 };
 
-const marcarIntencaoConfirmada = (id) =>
-  marcarIntencao(id, {
-    estado: "confirmada",
-    confirmada_em: new Date().toISOString(),
-  });
-
+// A confirmação da promessa NÃO tem gémea aqui: quem a carimba é a
+// própria contribuicao_registar, dentro da transação que insere o
+// dinheiro (039). Havia um marcarIntencaoConfirmada para o fallback
+// pré-039 carimbar à parte — e era isso que abria o meio-estado
+// «promessa carimbada, dinheiro por registar». Saiu com ele (104).
 export const anularIntencao = (id) =>
   marcarIntencao(id, {
     estado: "anulada",
@@ -215,12 +208,16 @@ export const anularIntencao = (id) =>
 // com o retrato do browser) e insere as linhas — tudo ou nada.
 // Devolve as linhas inseridas (1..N), todas com o MESMO created_at.
 //
-// Os `previstos`/`pagamentos` recebidos só servem o FALLBACK pré-039
-// (a conta antiga, no browser) — com a RPC na BD são ignorados.
+// 104 · A imputação faz-se toda no SERVIDOR. Havia aqui dois fallbacks
+// — a assinatura de 7 argumentos da 039 e a conta antiga no browser —
+// e com eles os parâmetros `previstos`/`pagamentos`, que só serviam a
+// conta antiga. Saíram os três: depois da RLS por casa (091) o ramo não
+// dava «função em falta», dava erro de política ou zero linhas, e o
+// dinheiro parecia registado sem estar. Saiu também o
+// INTENCAO_CARIMBADA_SEM_DINHEIRO — era o meio-estado de uma escrita
+// sem transação, e a RPC não o consegue produzir.
 export const registarContribuicao = async (
   submissionId,
-  previstos,
-  pagamentos,
   { valor, contribuinte = null, metodo, data, notas = null },
   intencaoId = null,
   campanhaId = null,
@@ -263,82 +260,8 @@ export const registarContribuicao = async (
     return erro;
   };
 
-  if (!rpc.error) return rpc.data || [];
-  if (!ehFuncaoRpcEmFalta(rpc.error)) throw traduzir(rpc.error);
-
-  // A assinatura de 8 argumentos não existe — pode ser uma BD com a
-  // 039 mas SEM a 042: re-tenta a RPC ANTIGA (7 argumentos). Mantém a
-  // transação e o cadeado; só o campanha_id fica por gravar nessa
-  // janela (o backfill da 042 apanha-o depois, e o filtro da taça
-  // tolera órfãos até lá).
-  console.warn(
-    "contribuicao_registar sem p_campanha_id — a tentar a assinatura da 039 (corre a 042).",
-  );
-  const rpc039 = await supabase.rpc("contribuicao_registar", {
-    p_submission_id: submissionId,
-    p_valor: v,
-    p_metodo: metodo,
-    p_data: data,
-    p_contribuinte: contribuinte || null,
-    p_notas: notas || null,
-    p_intencao_id: intencaoId || null,
-  });
-  if (!rpc039.error) return rpc039.data || [];
-  if (!ehFuncaoRpcEmFalta(rpc039.error)) throw traduzir(rpc039.error);
-
-  // BD ainda sem a 039: a conta antiga, no browser. Reclama-se a
-  // promessa PRIMEIRO (a ordem decidida pelo Hélio: só se insere o
-  // dinheiro se o claim afetou uma linha) — sem transação, se o INSERT
-  // falhar depois do claim fica promessa carimbada sem dinheiro, e
-  // isso é dito com todas as letras a quem está a olhar.
-  console.warn("contribuicao_registar em falta — a usar o fallback pré-039.");
-  if (intencaoId) await marcarIntencaoConfirmada(intencaoId);
-
-  const partes = [];
-  let resto = v;
-  const ordenados = [...(previstos || [])].sort((a, b) => a.ordem - b.ordem);
-  for (const previsto of ordenados) {
-    if (resto <= 0) break;
-    const pago = (pagamentos || [])
-      .filter((p) => p.previsto_id === previsto.id)
-      .reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
-    const faltaAqui = arredondar(Number(previsto.valor) - pago);
-    if (faltaAqui <= 0) continue;
-    const parte = arredondar(Math.min(resto, faltaAqui));
-    partes.push({ previsto_id: previsto.id, valor: parte });
-    resto = arredondar(resto - parte);
-  }
-  // excedente: para lá do plano inteiro fica sem previsto — o resumo
-  // soma-o na mesma ("pago a mais" é a UI a dizer a verdade)
-  if (resto > 0) partes.push({ previsto_id: null, valor: resto });
-
-  const { data: inseridos, error } = await supabase
-    .from("pagamentos")
-    .insert(
-      partes.map((parte) => ({
-        submission_id: submissionId,
-        previsto_id: parte.previsto_id,
-        valor: parte.valor,
-        data,
-        metodo,
-        origem: "contribuicao",
-        contribuinte: contribuinte || null,
-        notas: notas || null,
-        reconstituido: false,
-      })),
-    )
-    .select();
-  if (error) {
-    if (intencaoId) {
-      // A causa original fica na consola para diagnóstico; o código
-      // próprio deixa o componente tirar a promessa da lista e
-      // explicar o meio-estado.
-      console.error("Fallback pré-039: claim gravado, INSERT falhou:", error);
-      throw new Error(INTENCAO_CARIMBADA_SEM_DINHEIRO);
-    }
-    throw error;
-  }
-  return inseridos;
+  if (rpc.error) throw traduzir(rpc.error);
+  return rpc.data || [];
 };
 
 // Apagar uma contribuição é apagar TODAS as linhas dela (a dividida

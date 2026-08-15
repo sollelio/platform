@@ -1827,3 +1827,64 @@ frontend; o resto está em `docs/prompt-100-casa-desconhecida.md`.
   continuam a servir conteúdo sem marca. A correcção é no SERVIDOR e não
   no frontend — as RPCs passam a devolver `estado: terminado` quando a
   casa não está activa. Fica para a **migração 103**.
+
+## Os fallbacks que a RLS nega (104 · 15/08/2026)
+
+O padrão «se a RPC não existir, faz por passos» serviu para publicar o
+frontend antes de as migrações correrem. Depois da RLS por casa (091)
+deixou de fazer o que promete, e a 099 já o tinha tirado da captação e
+do briefing. Ficavam quatro; saem dois, e os outros dois têm outro
+problema por baixo.
+
+- **15/08/2026 — Um ramo que testa «função em falta» não apanha «política
+  nega».** Provado contra a base: `submissao_fundir_respostas` chamada
+  sem sessão responde **42501 permission denied**, não PGRST202. O
+  `ehFuncaoRpcEmFalta` devolve falso e o erro sobe — mas onde o caminho
+  antigo era um SELECT, a resposta é pior: zero linhas, sem erro, e a
+  página pinta-se vazia a dizer que não há nada.
+- **15/08/2026 — Removidos os dois fallbacks de caminho autenticado.**
+  `briefingEdicao.fundirCampos` (o pré-038: reler, fundir no browser e
+  gravar) e `campanhas.registarContribuicao` (a assinatura de 7
+  argumentos da 039 e a conta antiga no browser). O erro passa a ser
+  lançado em vez de degradar.
+- **15/08/2026 — Um fallback arrasta andaimes, e os andaimes também
+  saem.** Com a conta antiga foram-se os parâmetros `previstos` e
+  `pagamentos` do `registarContribuicao` (só a serviam), o
+  `marcarIntencaoConfirmada` e o erro
+  `INTENCAO_CARIMBADA_SEM_DINHEIRO` — que descrevia um meio-estado
+  «promessa carimbada, dinheiro por registar» que só existia porque a
+  escrita não era transaccional. Com a RPC não é produzível. Deixá-los
+  seria deixar uma armadilha: quem lesse a assinatura julgaria que
+  aqueles números ainda contam.
+
+### Pendências desta decisão
+
+- **16/08/2026 — Removidos também os dois de caminho PÚBLICO, e eram os
+  piores.** `invites.validateCode` e `clientes.submeterFormulario` liam e
+  escreviam as tabelas em nome do `anon` — `invites`, `clientes`,
+  `submissions` —, o que a 091 fechou. O do `validateCode` não dava sequer
+  erro: o SELECT devolvia zero linhas e a função respondia «Código
+  inválido» a quem tinha um código bom.
+- **16/08/2026 — Remover a `markInviteUsed` FECHA um risco, não o abre.**
+  Confirmado campo a campo antes de sair: fazia dois updates — o convite
+  («Preenchido» + submission_id) e a reserva de origem («Convertida» +
+  submission_id) — e nada mais. A `formulario_submeter` faz os mesmos
+  dois, nas linhas 233 e 238 da 036, dentro da MESMA transação. O que se
+  perde é o modo de falhar: soltos no browser, o segundo update podia
+  falhar e deixar a reserva por converter na agenda, com o erro engolido
+  de propósito para não mandar a cliente resubmeter. O sintoma aparecia
+  semanas depois. Regra que fica: antes de apagar uma escrita porque «o
+  servidor já a faz», comparar campo a campo — o que ela faz A MAIS é o
+  que desaparece em silêncio.
+- **16/08/2026 — Os andaimes do lado de cá também caem.** Com o fallback
+  do `submeterFormulario` foram-se a bandeira `conviteMarcado` (existia
+  só para dizer a quem chamava se faltava marcar o convite à parte), o
+  bloco da FormPage que a lia, e as duas funções que só ela usava —
+  `submeterQuestionario` e `atualizarEventoComQuestionario`, 94 linhas
+  que reimplementavam no browser o que a RPC faz numa transação.
+- **16/08/2026 — O `ehFuncaoRpcEmFalta` saiu; o `rpc.js` fica.** O
+  `codigoErroRpc` tem consumidores vivos (campanhas, FormPage,
+  VisaoGeralEvento, SubmissionDrawer) e é outra coisa: lê os códigos de
+  negócio que as funções sinalizam de propósito, em vez de adivinhar
+  migrações por correr. O cabeçalho do ficheiro foi reescrito — descrevia
+  o padrão inteiro, e o padrão já não existe.

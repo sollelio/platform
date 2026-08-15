@@ -4,7 +4,6 @@ import { supabase } from "../lib/supabase";
 import { validateStep } from "../lib/validation";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { markInviteUsed } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
 import CasaProvider, { useCasa } from "../components/CasaProvider";
 import { casaPorCodigo } from "../lib/identidadeCasa";
@@ -617,37 +616,21 @@ function FormConteudo() {
       respostas: formData,
     };
     try {
-      // Dois caminhos (migração 013), agora atrás de submeterFormulario:
+      // Dois caminhos (migração 013), ambos dentro da RPC:
       //   • Convite com EVENTO-ALVO (onboarding pós-sinal): as respostas
       //     ATUALIZAM o evento existente — nada de clientes duplicados.
-      //   • Convite sem alvo (caminho antigo): cria CLIENTE + SUBMISSÃO
-      //     ligados, como sempre.
-      // No caminho novo (RPC) tudo acontece numa transação, incluindo
-      // marcar o convite; no antigo o markInviteUsed é um passo à parte.
-      const { submission, conviteMarcado } = await submeterFormulario(
-        invite,
-        payload,
-      );
+      //   • Convite sem alvo: cria CLIENTE + SUBMISSÃO ligados.
+      // Tudo numa transação, incluindo marcar o convite e converter a
+      // reserva de origem.
+      //
+      // 104 · Havia aqui um segundo passo — o markInviteUsed, para o
+      // caminho antigo que marcava o convite à parte. Saiu com ele. Era
+      // ele o ponto onde a reserva podia ficar por converter: dois
+      // updates soltos no browser, e o erro engolido de propósito para
+      // não mandar o cliente resubmeter. Dentro da transação isso deixa
+      // de ser possível.
+      await submeterFormulario(invite, payload);
 
-      // As respostas JÁ ESTÃO gravadas: uma falha a marcar o convite
-      // não pode mostrar erro ao cliente (levaria a resubmeter e, no
-      // caminho sem alvo, a duplicar cliente + evento). Regista-se
-      // para a equipa e o cliente vê o sucesso que de facto teve.
-      if (!conviteMarcado) {
-        try {
-          await markInviteUsed(invite.id, submission.id);
-        } catch (e) {
-          registarErroFormulario({
-            origem: "onboarding:markInviteUsed",
-            erro: e,
-            contexto: {
-              inviteId: invite.id,
-              inviteCode: invite.code,
-              submissionId: submission.id,
-            },
-          });
-        }
-      }
       sessionStorage.removeItem("dlm_invite");
       setSubmitted(true);
     } catch (e) {

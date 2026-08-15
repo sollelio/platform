@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { ehFuncaoRpcEmFalta } from "./rpc";
 import { comOmissao, nomeDaCasa } from "./casa";
 
 // Gera um código legível e único — ex: DLM-X7K9-2025
@@ -90,29 +89,20 @@ export const getEventTypes = async () => {
 // por hook — isto não é componente — nem se adivinha pelo prefixo do
 // código; quem chama é a porta de entrada, que já tem o Provider. Sem
 // argumento cai na omissão, como tudo o resto.
+//
+// 104 · Uma porta só. Havia um caminho antigo — ler a tabela `invites`
+// directamente — para o código poder ir para o ar antes da migração
+// 020. Depois da RLS por casa (091) esse SELECT não dá erro nenhum ao
+// anónimo: dá ZERO LINHAS, e o `data` a null faz esta função responder
+// «Código inválido» a quem tem um código bom. Era a pior forma de
+// falhar que este ficheiro podia ter.
 export const validateCode = async (code, casaCrua) => {
   const casa = comOmissao(casaCrua);
-  let data = null;
-  let error = null;
 
-  const rpc = await supabase.rpc("formulario_validar_convite", {
+  const { data, error } = await supabase.rpc("formulario_validar_convite", {
     p_codigo: code,
   });
-  if (!rpc.error) {
-    data = rpc.data; // null quando o código não existe
-  } else if (ehFuncaoRpcEmFalta(rpc.error)) {
-    // Caminho antigo (BD ainda sem a migração 020)
-    const antigo = await supabase
-      .from("invites")
-      .select("*, event_types(nome, steps, icone)")
-      .eq("code", code.toUpperCase().trim())
-      .single();
-    data = antigo.data;
-    error = antigo.error;
-  } else {
-    error = rpc.error;
-  }
-
+  // `data` a null é resposta legítima: o código não existe.
   if (error || !data) {
     return {
       valid: false,
@@ -202,38 +192,20 @@ export const apontarConviteAoEvento = async (inviteId, submissionId) => {
   return data;
 };
 
-// Marca o convite como preenchido e liga à submissão.
-// Se o convite nasceu de uma reserva (reserva_id), converte também
-// essa reserva: liga-a à submissão e marca-a como "Convertida".
-// Assim, quando o cliente submete o formulário, a reserva provisória
-// deixa de aparecer na agenda e passa a evento real automaticamente.
-export const markInviteUsed = async (inviteId, submissionId) => {
-  // buscar o convite para saber se tem reserva associada
-  const { data: invite } = await supabase
-    .from("invites")
-    .select("reserva_id")
-    .eq("id", inviteId)
-    .single();
+// 104 · A markInviteUsed saiu daqui.
+//
+// Marcava o convite («Preenchido» + submission_id) e convertia a
+// reserva de origem («Convertida» + submission_id) — exactamente os
+// dois updates que a formulario_submeter já faz, dentro da MESMA
+// transação (036, linhas 233 e 238). Verificado campo a campo antes de
+// sair: não fazia mais nada.
+//
+// O que se perde é o modo de falhar: dois updates soltos no browser
+// deixavam o convite marcado e a reserva por converter se o segundo
+// falhasse — e o chamador engolia o erro de propósito, para não mandar
+// o cliente resubmeter. O sintoma aparecia semanas depois, numa reserva
+// que ficou na agenda.
 
-  // Estes updates falhavam em silêncio (sem verificação do erro): o
-  // convite ficava "Pendente" apesar da submissão gravada, e a reserva
-  // nunca convertia. Agora propagam — quem chama decide o que fazer
-  // (o FormPage regista e não incomoda o cliente).
-  const { error: erroInvite } = await supabase
-    .from("invites")
-    .update({ status: "Preenchido", submission_id: submissionId })
-    .eq("id", inviteId);
-  if (erroInvite) throw erroInvite;
-
-  // converter a reserva de origem, se existir
-  if (invite?.reserva_id) {
-    const { error: erroReserva } = await supabase
-      .from("reservas")
-      .update({ estado: "Convertida", submission_id: submissionId })
-      .eq("id", invite.reserva_id);
-    if (erroReserva) throw erroReserva;
-  }
-};
 
 // ============================================================
 // OS FORMULÁRIOS ÓRFÃOS — a definição num sítio só.

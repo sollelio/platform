@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { ehFuncaoRpcEmFalta } from "./rpc";
 import { getValorAtual, FIELD_MAP_INVERSO } from "./submissionFields";
 
 // ============================================================
@@ -78,52 +77,28 @@ export const contarAlteracoes = (submissao, seccoes, rascunhos) =>
 //
 // As colunas antigas (dupla fonte) viajam no MESMO update, dentro da
 // RPC (p_colunas, cada uma só tocada se a chave vier) — as duas fontes
-// não podem divergir por uma falha a meio. Se a BD ainda não tiver a
-// 038, cai-se na releitura imediatamente antes de gravar (o padrão do
-// atualizarEventoComQuestionario): a janela encolhe de horas para
-// milissegundos.
+// não podem divergir por uma falha a meio.
+//
+// 104 · UM caminho, e só um. Havia aqui um fallback pré-038 — reler,
+// fundir no browser e gravar — para o código poder ir para o ar antes
+// da migração. Depois da RLS por casa (091) esse ramo deixou de dar
+// «função em falta»: dava erro de política, ou zero linhas em silêncio,
+// e a folha ficava a dizer que gravou o que não gravou. O erro passa a
+// ser lançado.
 export async function fundirCampos(submissaoId, patch, colunas = {}) {
   const temPatch = Object.keys(patch || {}).length > 0;
   const temColunas = Object.keys(colunas || {}).length > 0;
   if (!temPatch && !temColunas) return null;
 
   // Uma ida só: o merge do respostas E as colunas antigas no mesmo
-  // UPDATE, dentro da RPC — as duas fontes nunca divergem por uma
-  // falha a meio.
+  // UPDATE, dentro da RPC.
   const rpc = await supabase.rpc("submissao_fundir_respostas", {
     p_id: submissaoId,
     p_patch: patch || {},
     p_colunas: colunas || {},
   });
-  if (!rpc.error) return rpc.data;
-  if (!ehFuncaoRpcEmFalta(rpc.error)) throw rpc.error;
-
-  // BD ainda sem a 038 (ou schema cache do PostgREST frio): relê e
-  // funde imediatamente antes de gravar, tudo num único update — a
-  // janela encolhe de horas para milissegundos, mas só a RPC a fecha
-  // de vez. O aviso na consola existe para a migração em falta não
-  // ficar esquecida num ambiente.
-  console.warn(
-    "submissao_fundir_respostas em falta — a usar o fallback pré-038.",
-  );
-  const update = { ...(colunas || {}) };
-  if (temPatch) {
-    const { data: atual, error: erroLeitura } = await supabase
-      .from("submissions")
-      .select("respostas")
-      .eq("id", submissaoId)
-      .single();
-    if (erroLeitura) throw erroLeitura;
-    update.respostas = { ...(atual?.respostas || {}), ...patch };
-  }
-  const { data, error } = await supabase
-    .from("submissions")
-    .update(update)
-    .eq("id", submissaoId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  if (rpc.error) throw rpc.error;
+  return rpc.data;
 }
 
 // A escrita do briefing, uma alteração ou vinte: sempre nas DUAS fontes

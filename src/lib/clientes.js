@@ -1,11 +1,9 @@
 import { supabase } from "./supabase";
 import { FASE_LABEL, FASES_POS_SINAL } from "./fases";
-import { ehFuncaoRpcEmFalta } from "./rpc";
 import {
   getValorAtual,
   getResumoSubmissao,
   normalizeSubmission,
-  FIELD_MAP_INVERSO,
 } from "./submissionFields";
 import { sincronizarPrevistos } from "./pagamentos";
 
@@ -195,132 +193,27 @@ export const extrairDadosCliente = (respostas = {}) => {
   };
 };
 
-// Submete o formulário: cria cliente + submissão ligados.
-// payload = o objeto que o FormPage montava (event_type_id, data_evento,
-// numero_convidados, respostas). Devolve a submissão criada.
-const submeterQuestionario = async (payload) => {
-  // 1. Criar o cliente com os dados de pessoa extraídos das respostas
-  const dadosCliente = extrairDadosCliente(payload.respostas);
-  const { data: cliente, error: erroCliente } = await supabase
-    .from("clientes")
-    .insert(dadosCliente)
-    .select()
-    .single();
-  if (erroCliente) throw erroCliente;
-
-  // 2. Criar a submissão (o evento) já ligada ao cliente.
-  //    O formulário só se preenche DEPOIS de a venda fechar (é
-  //    onboarding, não captação) — por isso o evento nasce na fase
-  //    "cliente" (funil comercial concluído; o operacional começa no
-  //    status "Recebido" que o sistema já atribui).
-  const { data: submission, error: erroSub } = await supabase
-    .from("submissions")
-    .insert([{ ...payload, cliente_id: cliente.id, fase: "cliente" }])
-    .select()
-    .single();
-  if (erroSub) {
-    // Não deixar um cliente órfão se a submissão falhar
-    await supabase.from("clientes").delete().eq("id", cliente.id);
-    throw erroSub;
-  }
-
-  return submission;
-};
-
-// ============================================================
-// atualizarEventoComQuestionario — o caminho do ONBOARDING: o convite
-// do formulário grande foi apontado a um evento existente
-// (submission_alvo_id, migração 013). Em vez de criar cliente + evento
-// novos, as respostas ATUALIZAM esse evento:
-//   • merge no respostas (o que já lá vive — imagensReferencia da
-//     captação, pretende, mensagemInicial — NUNCA se perde)
-//   • escrita também nas colunas antigas equivalentes (dupla fonte,
-//     via FIELD_MAP_INVERSO — o mesmo padrão do drawer ao guardar)
-//   • a fase NÃO é tocada (é a Nádia que a gere no funil)
-// ============================================================
-const atualizarEventoComQuestionario = async (
-  submissionId,
-  payload,
-) => {
-  if (!submissionId) throw new Error("submissionId em falta.");
-
-  // 1) respostas atuais do evento (para o merge não apagar nada)
-  const { data: atual, error: erroAtual } = await supabase
-    .from("submissions")
-    .select("respostas")
-    .eq("id", submissionId)
-    .single();
-  if (erroAtual) throw erroAtual;
-
-  const respostas = {
-    ...(atual?.respostas || {}),
-    ...(payload.respostas || {}),
-  };
-
-  // 2) montar o update: respostas + colunas fixas + colunas antigas
-  const update = { respostas };
-  if (payload.event_type_id) update.event_type_id = payload.event_type_id;
-  if (payload.data_evento) update.data_evento = payload.data_evento;
-  if (
-    payload.numero_convidados !== null &&
-    payload.numero_convidados !== undefined
-  ) {
-    update.numero_convidados = payload.numero_convidados;
-  }
-  for (const [campoId, valor] of Object.entries(payload.respostas || {})) {
-    const coluna = FIELD_MAP_INVERSO[campoId];
-    if (!coluna) continue;
-    // numero_convidados é integer e já foi definido acima com o valor
-    // parseado — não o sobrepor com a string crua das respostas.
-    if (coluna === "numero_convidados") continue;
-    // "" rebenta nas colunas tipadas (time, integer): um campo opcional
-    // deixado vazio pelo cliente falhava a submissão inteira com um
-    // erro genérico. Vazio grava null.
-    update[coluna] = valor === "" ? null : valor;
-  }
-
-  const { data, error } = await supabase
-    .from("submissions")
-    .update(update)
-    .eq("id", submissionId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-};
-
 // ============================================================
 // submeterFormulario — o ponto ÚNICO de submissão do formulário
-// público. Caminho novo: RPC formulario_submeter (migração 020), que
-// faz TUDO numa transação no Postgres (validar o convite, gravar as
-// respostas, marcar o convite, converter a reserva) — sem estados
-// intermédios possíveis. Enquanto a função não existir na BD, usa o
-// caminho antigo em passos separados.
+// público. A RPC formulario_submeter (020, afinada pela 036) faz TUDO
+// numa transação no Postgres: valida o convite, grava as respostas
+// (criando cliente + evento, ou actualizando o evento-alvo), marca o
+// convite e converte a reserva de origem. Sem estados intermédios.
 //
-// Devolve { submission, conviteMarcado }: no caminho novo o convite
-// já fica marcado; no antigo, quem chama trata do markInviteUsed.
+// 104 · O caminho antigo — os mesmos passos, soltos, a partir do
+// browser — saiu daqui. Depois da RLS por casa (091) não dava «função
+// em falta»: dava política negada a escrever `clientes` e `submissions`
+// em nome do anónimo, ou nada. E era ele que trazia a bandeira
+// `conviteMarcado`, que existia só para dizer a quem chamava se ainda
+// faltava marcar o convite à parte. Já não falta nunca.
 // ============================================================
 export const submeterFormulario = async (invite, payload) => {
   const { data, error } = await supabase.rpc("formulario_submeter", {
     p_codigo: invite.code,
     p_payload: payload,
   });
-  if (!error) {
-    return { submission: data, conviteMarcado: true };
-  }
-  if (!ehFuncaoRpcEmFalta(error)) throw error;
-
-  // Caminho antigo (BD ainda sem a migração 020)
-  let submission;
-  if (invite.submission_alvo_id) {
-    submission = await atualizarEventoComQuestionario(
-      invite.submission_alvo_id,
-      payload,
-    );
-  } else {
-    submission = await submeterQuestionario(payload);
-  }
-  return { submission, conviteMarcado: false };
+  if (error) throw error;
+  return { submission: data };
 };
 
 // Guarda o TOTAL do orçamento como valor acordado do evento — é

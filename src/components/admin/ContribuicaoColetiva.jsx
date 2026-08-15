@@ -16,7 +16,6 @@ import {
   getIntencoesPendentes,
   anularIntencao,
   INTENCAO_JA_RESOLVIDA,
-  INTENCAO_CARIMBADA_SEM_DINHEIRO,
 } from "../../lib/campanhas";
 import { METODOS_SUGERIDOS } from "../../lib/pagamentos";
 import { formatarEuros, formatarDataPT } from "./orcamentos/orcamentoConfig";
@@ -390,8 +389,6 @@ export default function ContribuicaoColetiva({
     try {
       const inseridos = await registarContribuicao(
         submissao.id,
-        previstos,
-        pagamentos,
         { valor, contribuinte: nome, metodo, data: dataContrib },
         null,
         campanha?.id || null,
@@ -437,8 +434,6 @@ export default function ContribuicaoColetiva({
     try {
       const inseridos = await registarContribuicao(
         submissao.id,
-        previstos,
-        pagamentos,
         {
           valor: valorConf,
           contribuinte: intencao.nome,
@@ -465,15 +460,6 @@ export default function ContribuicaoColetiva({
         setConfirmando(null);
         setErro(
           "Esta promessa já tinha sido confirmada ou anulada noutro separador — nada foi registado em dobro.",
-        );
-      } else if (e.message === INTENCAO_CARIMBADA_SEM_DINHEIRO) {
-        // Meio-estado do fallback pré-039: a promessa ficou carimbada,
-        // o dinheiro não — sai da lista (voltar a confirmar daria
-        // "já resolvida") e diz-se o que falta fazer.
-        setIntencoes((atuais) => atuais.filter((i) => i.id !== intencao.id));
-        setConfirmando(null);
-        setErro(
-          "A promessa ficou carimbada, mas o dinheiro NÃO ficou registado — regista esta contribuição manualmente em «Registar contribuição».",
         );
       } else {
         setErro(e.message || "Não foi possível confirmar. Tenta novamente.");
