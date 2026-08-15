@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { ehFuncaoRpcEmFalta } from "./rpc";
 import { otimizarImagem } from "./imagemOtimizada";
 
 // ============================================================
@@ -49,8 +48,20 @@ export const uploadImagemReferencia = async (file) => {
 
 // ============================================================
 // submeterCaptacao — cria cliente + evento em fase "interessado".
-// Gémea da submeterQuestionario (clientes.js), mas para a captação:
-// mesmo padrão de rollback (se a submissão falha, o cliente sai).
+// Gémea da submeterQuestionario (clientes.js), mas para a captação.
+//
+// A CASA vem de fora, e é obrigatória do lado público (093): o slug
+// chega pelo endereço (/interesse/:slug) e o Postgres resolve-o em
+// tenant_por_slug(). Nunca se envia um uuid de casa daqui — um uuid
+// vindo do browser é um pedido para escrever na casa alheia.
+//
+// tenantSlug null = modo interno: a Nádia cria o interessado a partir
+// do admin, tem sessão, e a função cai no tenant_actual().
+//
+// O rollback manual desapareceu com a 093: o insert do cliente e o do
+// evento passaram a viver na mesma transação dentro da função. Se o
+// segundo falha, o primeiro desfaz-se sozinho — que é o que uma
+// transação faz, e o que o código antigo imitava à mão.
 //
 // payload:
 //   nome*                    — a pessoa (contacto é OPCIONAL: nos
@@ -61,7 +72,7 @@ export const uploadImagemReferencia = async (file) => {
 //   servicosBalcao[],
 //   mensagem, ficheiros[]    — File[] de imagens de referência (máx 5)
 // ============================================================
-export const submeterCaptacao = async (payload) => {
+export const submeterCaptacao = async (payload, tenantSlug = null) => {
   const nome = limpar(payload.nome);
   const contacto = limpar(payload.contacto);
   if (!nome) throw new Error("O nome é obrigatório.");
@@ -117,9 +128,17 @@ export const submeterCaptacao = async (payload) => {
   if (mensagem) respostas.mensagemInicial = mensagem;
   if (imagens.length > 0) respostas.imagensReferencia = imagens;
 
-  // 3) Caminho novo: RPC captacao_submeter (migração 020) — dedupe,
-  //    pessoa e evento numa transação só no Postgres. Enquanto a
-  //    função não existir na BD, cai no caminho antigo por passos.
+  // 3) Dedupe, pessoa e evento numa transação só no Postgres.
+  //
+  //    O caminho antigo por passos (inserts directos em clientes e
+  //    submissions) MORREU na 093 e não volta como fallback: a RLS
+  //    por casa bloqueia-o, e um fallback que a política nega falha
+  //    em silêncio — o pior modo de falhar. Erro é para lançar.
+  //
+  //    A resposta é projecção explícita — { id, duplicado,
+  //    clienteReutilizado } — e não a linha inteira: a submissão tem
+  //    56 colunas, incluindo morada e contactos, e o anon não tem
+  //    nada que ver isso de volta.
   const rpc = await supabase.rpc("captacao_submeter", {
     p_payload: {
       nome,
@@ -130,113 +149,33 @@ export const submeterCaptacao = async (payload) => {
       eventTypeId: payload.eventTypeId || null,
       respostas,
     },
+    p_tenant_slug: tenantSlug,
   });
-  if (!rpc.error) return rpc.data;
-  if (!ehFuncaoRpcEmFalta(rpc.error)) throw rpc.error;
-
-  // ---- Caminho antigo (BD ainda sem a migração 020) ----
-
-  // 3a) DEDUPLICAÇÃO pelo telefone (WhatsApp + contacto principal),
-  //     via função no Postgres — o anónimo pergunta "já existe?" e
-  //     recebe só ids, nunca a lista de clientes (migração 019).
-  const whatsappDedupe = limpar(payload.whatsapp);
-  const dataDedupe = dataEvento || null;
-  let clienteExistenteId = null;
-  try {
-    // Cada número é verificado POR SI (a função lê os últimos 9
-    // dígitos do que recebe — concatenar os dois só verificava um).
-    const numeros = [...new Set([whatsappDedupe, contacto].filter(Boolean))];
-    for (const numero of numeros) {
-      const { data: dedupe, error: erroDedupe } = await supabase.rpc(
-        "captacao_dedupe",
-        { p_digitos: numero, p_data: dataDedupe },
-      );
-      if (erroDedupe) {
-        // O rpc() não LANÇA — devolve o erro; sem isto, um revoke ou
-        // migração em falta degradava para "cliente novo" sem rasto.
-        console.warn(
-          "captacao_dedupe falhou:",
-          erroDedupe.message || erroDedupe,
-        );
-        continue;
-      }
-      const hit = Array.isArray(dedupe) ? dedupe[0] : dedupe;
-      if (hit?.evento_id) {
-        // Mesmo telefone + mesma data com evento vivo: NÃO duplica —
-        // devolve o existente (mata o duplo clique e o reenvio).
-        return { id: hit.evento_id, duplicado: true };
-      }
-      if (hit?.cliente_id) {
-        clienteExistenteId = hit.cliente_id;
-        break; // primeira correspondência chega
-      }
-    }
-  } catch (e) {
-    // Se a função ainda não existir (migração por correr), a captação
-    // continua a funcionar como antes — sem dedupe, mas sem quebrar.
-    console.warn("captacao_dedupe indisponível:", e?.message || e);
-  }
-
-  // 3b) A PESSOA: reutiliza a existente (mesmo telefone) ou cria nova.
-  //     Mesma pessoa, data diferente = novo evento no MESMO cliente —
-  //     a separação cliente↔evento a fazer o seu trabalho.
-  let cliente;
-  if (clienteExistenteId) {
-    cliente = { id: clienteExistenteId };
-  } else {
-    const { data: novoCliente, error: erroCliente } = await supabase
-      .from("clientes")
-      .insert({ nome, contacto: contacto || null })
-      .select()
-      .single();
-    if (erroCliente) throw erroCliente;
-    cliente = novoCliente;
-  }
-
-  // 3c) Criar o EVENTO em fase "interessado"
-  const { data: submission, error: erroSub } = await supabase
-    .from("submissions")
-    .insert([
-      {
-        cliente_id: cliente.id,
-        fase: "interessado",
-        event_type_id: payload.eventTypeId || null,
-        data_evento: dataEvento || null,
-        numero_convidados: convidados ? Number(convidados) : null,
-        respostas,
-      },
-    ])
-    .select()
-    .single();
-  if (erroSub) {
-    // Não deixar uma pessoa órfã se o evento falhar — mas SÓ se fomos
-    // nós a criá-la: apagar um cliente REUTILIZADO levaria consigo uma
-    // pessoa real com histórico (bug apanhado no Lote 3A).
-    if (!clienteExistenteId) {
-      await supabase.from("clientes").delete().eq("id", cliente.id);
-    }
-    throw erroSub;
-  }
-
-  // A porta interna usa esta bandeira para avisar a Nádia de que o
-  // telefone já existia (a pública ignora-a — privacidade).
-  if (clienteExistenteId) return { ...submission, clienteReutilizado: true };
-  return submission;
+  if (rpc.error) throw rpc.error;
+  return rpc.data;
 };
 
-// Lê os tipos de evento para o select do formulário público. Se o
-// SELECT anon falhar (policy em falta), devolve [] e o formulário
-// degrada graciosamente para texto livre.
-export const getTiposParaCaptacao = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("event_types")
-      .select("id, nome")
-      .order("nome");
-    if (error) throw error;
-    return data || [];
-  } catch (e) {
-    console.error("Sem acesso aos tipos de evento (anon?):", e);
+// Lê os tipos de evento para o select do formulário público.
+//
+// Passou a RPC na 093. Antes era um SELECT anónimo directo à tabela,
+// que com mais do que uma casa mostrava os modelos de todas — e uma
+// política de RLS não tem como saber de que casa é o pedido, porque o
+// anon não traz identidade nenhuma. Só uma função sabe, porque recebe
+// o slug como argumento.
+//
+// A projecção é mínima: id e nome. Os `steps` NÃO saem — são o desenho
+// do formulário da casa, e escolher um tipo não precisa deles.
+//
+// Sem slug devolve [] e o formulário degrada para texto livre, tal
+// como degradava quando a política falhava.
+export const getTiposParaCaptacao = async (tenantSlug) => {
+  if (!tenantSlug) return [];
+  const { data, error } = await supabase.rpc("tipos_de_evento_publicos", {
+    p_tenant_slug: tenantSlug,
+  });
+  if (error) {
+    console.error("Sem tipos de evento para", tenantSlug, error);
     return [];
   }
+  return data || [];
 };

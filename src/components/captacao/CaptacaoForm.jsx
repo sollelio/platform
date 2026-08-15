@@ -53,6 +53,7 @@ const OPCOES_BALCAO = [
 ];
 
 export default function CaptacaoForm({
+  tenantSlug = null,
   onSubmetido,
   textoBotao = "Enviar pedido",
   dataInicial = "",
@@ -98,8 +99,8 @@ export default function CaptacaoForm({
   const inputImagens = useRef(null);
 
   useEffect(() => {
-    getTiposParaCaptacao().then(setTipos);
-  }, []);
+    getTiposParaCaptacao(tenantSlug).then(setTipos);
+  }, [tenantSlug]);
 
   // Consulta a disputa quando a data muda — com um debounce leve (o
   // input de data dispara a meio da escrita). Se a migração 083 ainda
@@ -284,25 +285,29 @@ export default function CaptacaoForm({
       // O pacote vai com a lotação por extenso ("Premium (até 20
       // pessoas)") — resposta autoexplicativa em qualquer ecrã do admin
       const pacoteBuffet = OPCOES_BUFFET.find((p) => p.nome === buffet);
-      const submission = await submeterCaptacao({
-        nome,
-        contacto,
-        whatsapp,
-        eventTypeId: tipoReal,
-        tipoOutro: tipoReal ? null : tipoOutro,
-        dataEvento,
-        numeroConvidados,
-        local,
-        tipoLocal: tipoLocalFinal,
-        servicos: localTipo ? servicos : [],
-        servicosBuffet:
-          localTipo && servicos.includes("Buffet") && pacoteBuffet
-            ? [`${pacoteBuffet.nome} (${pacoteBuffet.detalhe})`]
-            : [],
-        servicosBalcao: localTipo && servicos.includes("Balcão") ? balcao : [],
-        mensagem,
-        ficheiros,
-      });
+      const submission = await submeterCaptacao(
+        {
+          nome,
+          contacto,
+          whatsapp,
+          eventTypeId: tipoReal,
+          tipoOutro: tipoReal ? null : tipoOutro,
+          dataEvento,
+          numeroConvidados,
+          local,
+          tipoLocal: tipoLocalFinal,
+          servicos: localTipo ? servicos : [],
+          servicosBuffet:
+            localTipo && servicos.includes("Buffet") && pacoteBuffet
+              ? [`${pacoteBuffet.nome} (${pacoteBuffet.detalhe})`]
+              : [],
+          servicosBalcao:
+            localTipo && servicos.includes("Balcão") ? balcao : [],
+          mensagem,
+          ficheiros,
+        },
+        tenantSlug,
+      );
       if (
         modoInterno &&
         (submission.duplicado || submission.clienteReutilizado)

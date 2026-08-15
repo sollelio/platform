@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
@@ -36,6 +37,9 @@ import { ASSINATURA_TITULAR } from "../lib/casa";
 const EASE_LUXO = [0.22, 1, 0.36, 1];
 
 export default function CaptacaoPage() {
+  // A casa vem do endereço (/interesse/:slug). Sem ele, o formulário
+  // não sabe de quem são os tipos de evento nem onde criar o pedido.
+  const { slug } = useParams();
   const [enviado, setEnviado] = useState(false);
   // Progresso dos campos obrigatórios, reportado pelo CaptacaoForm
   // (6 = os 5 base + o nº de convidados, obrigatório na porta pública)
@@ -249,6 +253,7 @@ export default function CaptacaoPage() {
             </motion.div>
           ) : (
             <CaptacaoForm
+              tenantSlug={slug}
               onSubmetido={() => setEnviado(true)}
               ocultarBotao
               onProgresso={setProgresso}

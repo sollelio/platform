@@ -55,24 +55,33 @@ function App() {
           framer-motion de uma vez — a regra da identidade §3 deixa de
           depender de cada componente se lembrar dela. */}
       <MotionConfig reducedMotion="user">
-      {/* Faixa de ambiente (só em desenvolvimento e em TEST) */}
-      {isTest && <EnvBanner />}
-      <Routes>
-        <Route path="/" element={<FormEntryPage />} />
-        <Route path="/formulario" element={<FormPage />} />
-        {/* Porta pública do funil: o formulário de captação de
+        {/* Faixa de ambiente (só em desenvolvimento e em TEST) */}
+        {isTest && <EnvBanner />}
+        <Routes>
+          <Route path="/" element={<FormEntryPage />} />
+          <Route path="/formulario" element={<FormPage />} />
+          {/* Porta pública do funil: o formulário de captação de
             interessados (sem código de acesso, fricção zero) */}
-        <Route path="/interesse" element={<CaptacaoPage />} />
-        {/* O login é rota IRMÃ, nunca filha da protegida: uma rota de
+          {/* A casa no endereço (093). O redirect mantém vivos os links do
+    Instagram e do site; sai quando existir a segunda casa. */}
+          <Route path="/interesse/:slug" element={<CaptacaoPage />} />
+          <Route
+            path="/interesse"
+            element={<Navigate to="/interesse/doluxoamesa" replace />}
+          />
+          {/* O login é rota IRMÃ, nunca filha da protegida: uma rota de
             login atrás da porta que ela própria abre dá um ciclo
             infinito de redireccionamento a quem tem a sessão expirada.
             Segmento estático, portanto ganha sempre a /admin/:separador
             no ranking do react-router. */}
-        <Route path="/admin/login" element={<LoginPage />} />
-{/* /admin nu não é ecrã nenhum — é o atalho para o Início.
+          <Route path="/admin/login" element={<LoginPage />} />
+          {/* /admin nu não é ecrã nenhum — é o atalho para o Início.
             Replace de propósito: não deve ficar no histórico. */}
-        <Route path="/admin" element={<Navigate to="/admin/inicio" replace />} />
-        {/* O backoffice inteiro numa SÓ rota, com o separador no URL.
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/inicio" replace />}
+          />
+          {/* O backoffice inteiro numa SÓ rota, com o separador no URL.
             É deliberado que seja uma e não dez irmãs: trocar de
             separador muda o PARÂMETRO, não a rota, por isso a
             AdminPage nunca desmonta e tudo o que vive nela sobrevive
@@ -83,29 +92,29 @@ function App() {
             a seguir (/admin/contactos/:clienteId,
             /admin/documentos/:id/:tipo, /admin/logistica/:vista)
             entrarem sem mexer outra vez na árvore. */}
-        <Route
-          path="/admin/:separador/:p1?/:p2?"
-          element={
-            <ProtectedRoute>
-              <AdminPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* A casa própria do evento. A aba vai no URL para cada área
+          <Route
+            path="/admin/:separador/:p1?/:p2?"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* A casa própria do evento. A aba vai no URL para cada área
             ter link directo e posição de scroll própria. */}
-        <Route
-          path="/evento/:id/:aba?"
-          element={
-            <ProtectedRoute>
-              <EventoPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/briefing/:id" element={<BriefingPage />} />
-        {/* A página pública da contribuição coletiva — por token
+          <Route
+            path="/evento/:id/:aba?"
+            element={
+              <ProtectedRoute>
+                <EventoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/briefing/:id" element={<BriefingPage />} />
+          {/* A página pública da contribuição coletiva — por token
             aleatório e revogável, leitura via RPC (034), sem login. */}
-        <Route path="/contribuir/:token" element={<ContribuirPage />} />
-        {/* O Portal do Cliente — leitura via RPC (049, afinada pela 051
+          <Route path="/contribuir/:token" element={<ContribuirPage />} />
+          {/* O Portal do Cliente — leitura via RPC (049, afinada pela 051
             e 052), sem login, por token opaco e revogável.
             «acompanhar» e não «portal»: portal é a palavra que usamos
             entre nós, e a cortina fala à cliente em «o acompanhamento».
@@ -115,14 +124,17 @@ function App() {
             aleatórios, e a projecção da RPC não devolve o id. É a regra
             que a migração 049 existe para respeitar — um id que escape
             expõe o registo completo por outro RPC anónimo. */}
-        <Route path="/acompanhar/:token/:vista?/:sub?" element={<PortalPage />} />
-        {/* A folha de um comunicado — pública e REENCAMINHÁVEL, ao
+          <Route
+            path="/acompanhar/:token/:vista?/:sub?"
+            element={<PortalPage />}
+          />
+          {/* A folha de um comunicado — pública e REENCAMINHÁVEL, ao
             contrário do portal, que é pessoal. Leitura pela RPC
             dlm_comunicado_ver (079), concedida só ao anon; retirada,
             expirada e inexistente dão a mesma cortina, de propósito. */}
-        <Route path="/comunicado/:token" element={<ComunicadoPage />} />
-        <Route path="*" element={<DestinoDesconhecido />} />
-      </Routes>
+          <Route path="/comunicado/:token" element={<ComunicadoPage />} />
+          <Route path="*" element={<DestinoDesconhecido />} />
+        </Routes>
       </MotionConfig>
     </BrowserRouter>
   );
