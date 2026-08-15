@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 .env
+# dumps e schemas — contêm dados reais de clientes
+*.sql.bak
+backup-pre-migracao.sql
+dados-prod.sql
+schema-prod.sql
+schema-staging.sql
+funcoes-chave.sql
+funcoes-captacao.sql
+
+# supabase cli
+supabase/.temp/
+.env
