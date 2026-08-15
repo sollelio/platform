@@ -25,12 +25,10 @@ dist-ssr
 .env
 # dumps e schemas — contêm dados reais de clientes
 *.sql.bak
-backup-pre-migracao.sql
-dados-prod.sql
-schema-prod.sql
-schema-staging.sql
-funcoes-chave.sql
-funcoes-captacao.sql
+schema-*.sql
+dados-*.sql
+backup-*.sql
+funcoes-*.sql
 
 # supabase cli
 supabase/.temp/
