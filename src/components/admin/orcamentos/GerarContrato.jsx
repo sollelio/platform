@@ -750,11 +750,13 @@ function ContratoDocumento({
     >
       {/* Logo + título */}
       <div style={{ textAlign: "center", marginBottom: "24px" }}>
-        <img
-          src={logoDe(casa)}
-          alt={casa.nome}
-          style={{ width: "90px", height: "auto", margin: "0 auto 16px" }}
-        />
+        {logoDe(casa) && (
+          <img
+            src={logoDe(casa)}
+            alt={casa.nome}
+            style={{ width: "90px", height: "auto", margin: "0 auto 16px" }}
+          />
+        )}
         <h1
           style={{
             fontSize: "16px",

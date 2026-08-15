@@ -53,13 +53,49 @@ export const CASA_OMISSAO = {
 // de todo (null) cai inteira, que é o caso da rede em baixo.
 export const comOmissao = (casa) => ({ ...CASA_OMISSAO, ...(casa || {}) });
 
+// ---------- A casa que não há ----------
+// A 100 trouxe uma resposta que aqui não existia: «desconhecida». Não é
+// a omissão com campos por preencher — é a AUSÊNCIA de casa, e quer o
+// contrário do que a omissão faz. Todos os campos a null de propósito:
+// o spread do `comOmissao` deixa-os a null em vez de os ir buscar à
+// primeira casa, que é justamente o empréstimo que a 100 vem travar.
+//
+// Derivada das chaves da omissão, e não escrita à mão, porque um campo
+// novo lá em cima esquecido aqui em baixo voltaria a cair na casa
+// errada — em silêncio, que é o modo como estes erros viajam.
+export const SEM_CASA = Object.freeze(
+  Object.fromEntries(Object.keys(CASA_OMISSAO).map((campo) => [campo, null])),
+);
+
+// Há casa se ela tem NOME. É o campo que nenhum negócio dispensa, e é a
+// pergunta que as funções abaixo precisam de fazer e que um `logo_url`
+// nulo não responde: «esta casa não tem logótipo» e «não há casa
+// nenhuma» são coisas diferentes e desenham-se diferente.
+export const haCasa = (casa) => Boolean(comOmissao(casa).nome);
+
+// O nome dentro de uma FRASE. Sem casa cai em «casa» — que não é texto
+// novo: é a palavra que o portal já usa quando não a nomeia («pela
+// casa», «as condições da casa», «quem é da casa»).
+//
+// Existe para as frases corridas, não para os títulos: num `<h1>` o
+// nome ou está lá ou o elemento sai. Aqui não pode sair, porque levava
+// a frase com ele — e uma template string imprime `null` por extenso.
+export const nomeDaCasa = (casa) => comOmissao(casa).nome || "casa";
+
 // ---------- O logótipo ----------
 // A casa que tem logo no Storage usa-o; a que não tem cai no ficheiro
 // do repositório. O import continua a resolver-se no build, sem
 // código atrás — qualquer página, até as públicas, importa daqui sem
 // arrastar nada consigo.
+//
+// Sem casa devolve NULL, e quem desenha tem de o respeitar: o ficheiro
+// do repositório é o logótipo da PRIMEIRA casa, e emprestá-lo a um
+// endereço que não é de ninguém é exactamente o que a 100 proíbe. Um
+// `<img src={null}>` faz o browser pedir a própria página — não basta
+// passar o nulo adiante, o `<img>` não pode chegar a existir.
 export const LOGO_REPOSITORIO = logo;
-export const logoDe = (casa) => casa?.logo_url || LOGO_REPOSITORIO;
+export const logoDe = (casa) =>
+  haCasa(casa) ? casa?.logo_url || LOGO_REPOSITORIO : null;
 
 // ---------- A letra da assinatura ----------
 // NÃO é da casa: é sistema de desenho da Sollelio, e por isso ficou
@@ -71,15 +107,50 @@ export const logoDe = (casa) => casa?.logo_url || LOGO_REPOSITORIO;
 export const FONTE_ASSINATURA_CASA =
   '"Cochocib Script Latin Pro", "Great Vibes", cursive';
 
+// ---------- O nome do produto ----------
+// Não é da casa e não é da base: é de BUILD, como a fonte da
+// assinatura aqui acima e pela mesma razão — pertence à Sollelio, não
+// ao cliente. Vem de variável de ambiente e não cravado no código
+// porque ainda não está decidido: a marca «Celebra» já está registada
+// por outros em Portugal e no Brasil, e o dia em que mudar não pode ser
+// um dia de procurar a palavra por trinta ficheiros.
+//
+// Sem a variável fica vazio, e quem o desenha omite-o. É a regra da
+// 100 aplicada ao produto: nenhum nome é melhor do que o nome errado.
+export const NOME_PRODUTO = import.meta.env.VITE_NOME_PRODUTO || "";
+
 // ---------- O título do backoffice ----------
 // Diz o nome do PRODUTO visto por dentro, não o do cliente — por isso
 // também ficou fora da 097. Era «Sistema DLM», que nomeava a primeira
 // casa numa etiqueta que todas vão ver.
-export const TITULO_BACKOFFICE = (casa) =>
-  `Celebra — ${comOmissao(casa).nome}`;
+export const TITULO_BACKOFFICE = (casa) => {
+  const nome = comOmissao(casa).nome;
+  if (!NOME_PRODUTO) return nome || "";
+  return nome ? `${NOME_PRODUTO} — ${nome}` : NOME_PRODUTO;
+};
+
+// ============================================================
+// AS DERIVAÇÕES, e a regra que passaram a cumprir (100)
+//
+// Todas devolvem NULL quando lhes falta o campo de que precisam, em vez
+// de compor à mesma. Antes compunham, e o resultado era pior do que
+// nada: `https://null`, `wa.me/null`, um `.slice` de null a rebentar a
+// folha inteira.
+//
+// A guarda é sobre o CAMPO, não sobre «há casa»: assim uma regra só
+// serve os dois casos — o endereço que não é de ninguém (100) e a casa
+// real a que falta o MB Way ou o foro, que a 097 sempre admitiu.
+//
+// ⚠ Quem chama TEM de tratar o null. Um `href={null}` ainda navega para
+// a própria página, e um bloco de assinatura vazio é uma folha assinada
+// por ninguém — o nulo tem de apagar o ELEMENTO, não só o valor.
+// ============================================================
 
 // ---------- Onde a casa mora na internet ----------
-export const siteDe = (casa) => `https://${comOmissao(casa).dominio}`;
+export const siteDe = (casa) => {
+  const dominio = comOmissao(casa).dominio;
+  return dominio ? `https://${dominio}` : null;
+};
 
 // ---------- O WhatsApp ----------
 // NÃO reutiliza o linkWhatsApp de mensagens.js, de propósito: aquele
@@ -88,6 +159,7 @@ export const siteDe = (casa) => `https://${comOmissao(casa).dominio}`;
 // qualquer página o usa sem trazer o supabase atrás.
 export const linkWhatsAppCasa = (casa, texto = "") => {
   const numero = comOmissao(casa).whatsapp;
+  if (!numero) return null;
   return `https://wa.me/${numero}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 };
 
@@ -95,6 +167,7 @@ export const linkWhatsAppCasa = (casa, texto = "") => {
 // tem sinais (o wa.me exige-o assim); esta é a forma de o mostrar.
 export const numeroLegivel = (casa) => {
   const n = comOmissao(casa).whatsapp;
+  if (!n) return null;
   return `+${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6, 9)} ${n.slice(9)}`;
 };
 
@@ -103,27 +176,33 @@ export const numeroLegivel = (casa) => {
 // que muda é de onde vêm os pedaços.
 
 // A assinatura fixa da folha de comunicado: despedida + designação.
-export const assinaturaFolha = (casa) => ({
-  despedida: "Com carinho,",
-  nome: comOmissao(casa).nome,
-});
+// Sem nome não há assinatura nenhuma — «Com carinho,» sozinho é pior do
+// que o silêncio, porque promete um remetente que não vem.
+export const assinaturaFolha = (casa) => {
+  const nome = comOmissao(casa).nome;
+  return nome ? { despedida: "Com carinho,", nome } : null;
+};
 
 // O rodapé-assinatura das páginas públicas do portal.
 export const assinaturaPublica = (casa) => {
   const c = comOmissao(casa);
+  if (!c.nome) return null;
   return c.linha_by ? `${c.nome} · ${c.linha_by}` : c.nome;
 };
 
 // A assinatura com a titular — capa do projecto e página do pedido.
 export const assinaturaTitular = (casa) => {
   const c = comOmissao(casa);
+  if (!c.nome) return null;
   return c.titular ? `${c.nome} · by ${c.titular}` : c.nome;
 };
 
 // O rodapé da folha de orçamento. Os \u00A0 eram &nbsp; no JSX de
 // origem — mantêm-se byte a byte para a folha não mudar um pixel.
+// Precisa dos DOIS: sem titular saía «X | By undefined» no papel.
 export const rodapeMarcaOrcamento = (casa) => {
   const c = comOmissao(casa);
+  if (!c.nome || !c.titular) return null;
   return `${c.nome.toUpperCase()} \u00A0|\u00A0 By ${c.titular}`;
 };
 

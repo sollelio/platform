@@ -7,7 +7,7 @@
 // ============================================================
 
 import { diaEMes } from "./base";
-import { comOmissao } from "../../lib/casa";
+import { comOmissao, nomeDaCasa } from "../../lib/casa";
 
 // ------------------------------------------------------------
 // As quatro linhas do que o sinal abre — UMA lista só, consumida pela
@@ -146,7 +146,7 @@ export function comporNovidades(dados, casaCrua) {
     novidades.push({
       chave: "avaliacao",
       titulo: "Ficámos com as suas palavras",
-      corpo: `A ${casa.nome} lê tudo o que nos escrevem.`,
+      corpo: `A ${nomeDaCasa(casa)} lê tudo o que nos escrevem.`,
     });
   }
 

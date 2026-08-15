@@ -51,6 +51,10 @@ export default function LogoDourado({
   const casa = useCasa();
   const logoUrl = logoDe(casa);
   const textoAlt = alt ?? casa.nome;
+  // Sem casa não há logótipo — e o que este componente desenha à volta
+  // dele (halo, raio, poeira de ouro) é moldura de uma marca que ali
+  // não está. Sai tudo, não só a imagem (100).
+  if (!logoUrl) return null;
   const k = size / 200;
   const px = (n) => Math.round(n * k * 10) / 10;
 

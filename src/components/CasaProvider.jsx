@@ -21,7 +21,7 @@
 // ============================================================
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { comOmissao } from "../lib/casa";
+import { comOmissao, SEM_CASA } from "../lib/casa";
 
 const CasaContext = createContext(comOmissao(null));
 
@@ -39,11 +39,25 @@ export default function CasaProvider({ chave, carregar, children }) {
   useEffect(() => {
     if (!chave || !carregarRef.current) return undefined;
     let cancelado = false;
-    carregarRef.current().then((c) => {
-      // Um `null` mantém a identidade anterior de propósito: token
-      // morto ou rede em baixo não devem apagar o cabeçalho da
-      // página, e a cortina do estado terminado é outra coisa.
-      if (!cancelado && c) setCasa(comOmissao(c));
+    carregarRef.current().then((r) => {
+      if (cancelado) return;
+      // Três respostas, três destinos (100).
+      if (r?.estado === "conhecida") {
+        setCasa(comOmissao(r.casa));
+        return;
+      }
+      // A porta respondeu e não há casa: a moldura DESPE-SE. Nome,
+      // logótipo, domínio e contacto desaparecem em vez de serem
+      // emprestados à primeira casa — que é o que acontecia aqui até
+      // agora, em silêncio, e o silêncio era o problema.
+      if (r?.estado === "desconhecida") {
+        setCasa(SEM_CASA);
+        return;
+      }
+      // «sem-resposta» mantém a que lá está: é a de ontem, e a de ontem
+      // está certa. Uma folha com o cabeçalho de ontem é melhor do que
+      // uma folha sem cabeçalho — mas isso vale para a rede em baixo,
+      // nunca para um endereço que não é de ninguém.
     });
     return () => {
       cancelado = true;

@@ -55,9 +55,13 @@ export function Folha({ children, selada = false }) {
 // eram quatro sítios por onde ele podia vir errado.
 export function Timbre({ nome, versao, quando }) {
   const casa = useCasa();
+  const logoUrl = logoDe(casa);
   return (
     <div style={{ padding: "24px 22px 18px", textAlign: "center", borderBottom: "1px solid #F3EBDA" }}>
-      <img src={logoDe(casa)} alt={casa.nome} style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
+      {/* Sem casa não se timbra a folha com o logótipo de outra. */}
+      {logoUrl && (
+        <img src={logoUrl} alt={casa.nome} style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
+      )}
       <p style={{ ...overline(), marginTop: "16px" }}>{nome}</p>
       <SeloVersao versao={versao} quando={quando} comDe={false} style={{ marginTop: "8px" }} />
     </div>

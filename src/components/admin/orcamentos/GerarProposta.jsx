@@ -437,11 +437,13 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
         {/* CAPA */}
         <div className="pagina-prop" style={estiloPaginaEcra}>
           <div style={{ textAlign: "center" }}>
-            <img
-              src={logoDe(casa)}
-              alt={casa.nome}
-              style={{ width: "120px", height: "auto", margin: "0 auto 28px" }}
-            />
+            {logoDe(casa) && (
+              <img
+                src={logoDe(casa)}
+                alt={casa.nome}
+                style={{ width: "120px", height: "auto", margin: "0 auto 28px" }}
+              />
+            )}
             <h1
               style={{
                 fontFamily: "Playfair Display, serif",

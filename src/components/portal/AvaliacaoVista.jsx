@@ -4,6 +4,7 @@ import { Esqueleto } from "../admin/acabamento";
 import { overline, playfair, diaMesAno } from "./base";
 import { FileteComLosango, Medalhao } from "./pecas";
 import { useCasa } from "../CasaProvider";
+import { nomeDaCasa } from "../../lib/casa";
 import { CapsulaVazada, CapsulaCheia, LigacaoDiscreta } from "./documentos-pecas";
 import { verAvaliacao, enviarAvaliacao, eixosRespondidos } from "../../lib/avaliacao";
 
@@ -723,7 +724,7 @@ function Obrigado({ frase, autorizada, nomeComo, foto, quando, aoSair }) {
           Ficámos com as suas palavras.
         </p>
         <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0" }}>
-          A {casa.nome} lê tudo o que nos escrevem.
+          A {nomeDaCasa(casa)} lê tudo o que nos escrevem.
         </p>
       </div>
 

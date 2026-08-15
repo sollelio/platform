@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { logoDe, FONTE_ASSINATURA_CASA } from "../../lib/casa";
+import { logoDe, nomeDaCasa, FONTE_ASSINATURA_CASA } from "../../lib/casa";
 import { useCasa } from "../CasaProvider";
 import { Esqueleto } from "../admin/acabamento";
 import {
@@ -448,7 +448,7 @@ function AssinaturasDaFolha({ doc }) {
       <p style={{ fontSize: "12px", lineHeight: 1.7, color: "var(--charcoal)", margin: dela ? "6px 0 0" : "10px 0 0", textWrap: "pretty" }}>
         {/* Só o NOME leva a letra caligráfica da casa — o resto da
             linha continua registo, não cerimónia. */}
-        Pela {identidade.nome}:{" "}
+        Pela {nomeDaCasa(identidade)}:{" "}
         <span style={{ fontFamily: FONTE_ASSINATURA_CASA, fontSize: "17px" }}>
           {casa.nome}
         </span>
@@ -482,7 +482,8 @@ function CorpoContrato({ doc, resumoSo = false }) {
   return (
     <>
       <TituloDocumento
-        meta={contraentes.length > 0 ? `Entre ${casa.nome} e ${contraentes.join(" e ")}` : null}
+        // «Entre casa e Maria» não se escreve: sem nome, a linha sai toda.
+        meta={contraentes.length > 0 && casa.nome ? `Entre ${casa.nome} e ${contraentes.join(" e ")}` : null}
       >
         {inst.tipoEvento || "O seu contrato"}
       </TituloDocumento>
@@ -1021,7 +1022,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            Para responder, é preciso o código que a {casa.nome} lhe envia.
+            Para responder, é preciso o código que a {nomeDaCasa(casa)} lhe envia.
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "14px 0 0", textWrap: "pretty" }}>
             Ela envia-lho pela conversa que já tem consigo, no número que
@@ -1036,9 +1037,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
           )}
 
           <div style={{ marginTop: "18px" }}>
-            <LigacaoDiscreta href={urlWhatsApp} apagada>
-              Falar pelo WhatsApp
-            </LigacaoDiscreta>
+            {/* Sem casa não há para onde falar (100). */}
+            {urlWhatsApp && (
+              <LigacaoDiscreta href={urlWhatsApp} apagada>
+                Falar pelo WhatsApp
+              </LigacaoDiscreta>
+            )}
           </div>
         </div>
       )}
@@ -1057,7 +1061,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
 
           <p style={{ ...overline(), marginTop: "22px" }}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            O pedido ficou com a {casa.nome}.
+            O pedido ficou com a {nomeDaCasa(casa)}.
           </p>
           <FileteComLosango margem="20px 0" />
           <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: 0, textWrap: "pretty" }}>
@@ -1074,9 +1078,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
             <CapsulaVazada onClick={() => setModo("celulas")} style={{ width: "auto", padding: "15px 26px" }}>
               Já tenho o código
             </CapsulaVazada>
-            <LigacaoDiscreta href={urlWhatsApp} apagada>
-              Falar pelo WhatsApp
-            </LigacaoDiscreta>
+            {/* Sem casa não há para onde falar (100). */}
+            {urlWhatsApp && (
+              <LigacaoDiscreta href={urlWhatsApp} apagada>
+                Falar pelo WhatsApp
+              </LigacaoDiscreta>
+            )}
           </div>
 
           {esperaLonga && (
@@ -1092,7 +1099,7 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
         <div style={{ padding: "38px 26px 0", textAlign: "center" }}>
           <p style={overline()}>O código</p>
           <p id="acomp-passo-titulo" tabIndex={-1} style={{ ...playfair, fontSize: "21px", lineHeight: 1.32, marginTop: "12px", textWrap: "balance", outline: "none" }}>
-            Escreva os seis dígitos que a {casa.nome} lhe enviou.
+            Escreva os seis dígitos que a {nomeDaCasa(casa)} lhe enviou.
           </p>
 
           <div style={{ marginTop: "24px" }}>
@@ -1160,9 +1167,12 @@ function FluxoCodigo({ token, tipo, versao, meta, motivo, onVerificado, onVoltar
             </LigacaoDiscreta>
           </div>
           <div style={{ marginTop: "14px" }}>
-            <LigacaoDiscreta href={urlWhatsApp} apagada>
-              Falar pelo WhatsApp
-            </LigacaoDiscreta>
+            {/* Sem casa não há para onde falar (100). */}
+            {urlWhatsApp && (
+              <LigacaoDiscreta href={urlWhatsApp} apagada>
+                Falar pelo WhatsApp
+              </LigacaoDiscreta>
+            )}
           </div>
           <p style={{ marginTop: "26px", paddingTop: "18px", borderTop: "1px solid #F0E6D0", fontSize: "11px", lineHeight: 1.7, color: "#9B9B9B", textWrap: "pretty" }}>
             O {ROTULO_DOCUMENTO[tipo].toLowerCase()} fica onde está. Só os
@@ -1832,7 +1842,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             <p style={overline("#9B9B9B", "0.22em", "9px")}>Quando estiver assinado</p>
             {papelEnviado ? (
               <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
-                Chegou. A {casa.nome} confirma e o contrato fecha-se aqui — receberá
+                Chegou. A {nomeDaCasa(casa)} confirma e o contrato fecha-se aqui — receberá
                 um aviso.
               </p>
             ) : (
@@ -1909,7 +1919,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                 [
                   "Verificação",
                   ehAssinatura && sessao
-                    ? `Com o código que a ${casa.nome} lhe enviou`
+                    ? `Com o código que a ${nomeDaCasa(casa)} lhe enviou`
                     : "Pela sua ligação privada de acompanhamento",
                 ],
               ]}
@@ -1933,7 +1943,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
             {ehAssinatura
               ? "O projecto da sua mesa. A data já estava reservada pelo sinal; com o contrato fechado, desenhamos o cenário com o que nos contou — e chega-lhe aqui para aprovar."
               : ehAlteracao
-                ? `A ${casa.nome} lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui.`
+                ? `A ${nomeDaCasa(casa)} lê o seu pedido e responde pela conversa que já tem consigo — e o documento novo aparece aqui.`
                 : tipo === "proposta"
                   ? "A preparação. Fechamos as compras e as listas na semana antes do dia — e é aqui que lhe contamos."
                   : "O sinal — metade do valor reserva a sua data, e o passo está à sua espera nesta página. Depois, o contrato chega-lhe aqui para assinar."}
@@ -1994,7 +2004,10 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
           />
           <div style={{ padding: "22px 22px 24px" }}>
             <div style={{ textAlign: "center" }}>
-              <img src={logoDe(casa)} alt={casa.nome} style={{ width: "74px", height: "auto", display: "block", margin: "0 auto", opacity: 0.8 }} />
+              {/* Sem casa não se assina o rodapé com o logo de outra. */}
+              {logoDe(casa) && (
+                <img src={logoDe(casa)} alt={casa.nome} style={{ width: "74px", height: "auto", display: "block", margin: "0 auto", opacity: 0.8 }} />
+              )}
               <SeloVersao versao={doc.versao} quando={diaLocalISO(doc.publicado_em)} comDe={false} style={{ marginTop: "14px" }} />
             </div>
             {/* No papel sai o contrato completo (o bloco só-de-impressão a
@@ -2167,8 +2180,8 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                   {vEstado === "emitido"
                     ? `Está na ${conversaAlvo} — vale um dia inteiro, a contar do envio. Escreva-o, e os valores abrem-se.`
                     : vEstado === "pedido"
-                      ? `O pedido ficou feito${vPedidoEm ? ` às ${horaCurta(vPedidoEm)}` : ""}. Não é automático — assim que a ${casa.nome} o enviar, chega à ${conversaAlvo}.`
-                      : `Esta ligação pode passar por outras mãos. Para os abrir, a ${casa.nome} envia um código de seis dígitos — e só a quem é do evento.`}
+                      ? `O pedido ficou feito${vPedidoEm ? ` às ${horaCurta(vPedidoEm)}` : ""}. Não é automático — assim que a ${nomeDaCasa(casa)} o enviar, chega à ${conversaAlvo}.`
+                      : `Esta ligação pode passar por outras mãos. Para os abrir, a ${nomeDaCasa(casa)} envia um código de seis dígitos — e só a quem é do evento.`}
                 </p>
                 {!vEstado || vEstado === "nenhum" ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #F3EBDA" }}>
@@ -2190,9 +2203,11 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
                     </CapsulaVazada>
                     {vEstado === "pedido" && (
                       <p style={{ textAlign: "center", margin: "14px 0 0" }}>
-                        <LigacaoDiscreta href={urlWhatsApp} apagada>
-                          Se tiver pressa, fale pelo WhatsApp
-                        </LigacaoDiscreta>
+                        {urlWhatsApp && (
+                          <LigacaoDiscreta href={urlWhatsApp} apagada>
+                            Se tiver pressa, fale pelo WhatsApp
+                          </LigacaoDiscreta>
+                        )}
                       </p>
                     )}
                   </>
@@ -2324,7 +2339,7 @@ export default function DocumentosVista({ token, tipo, reduzir, titular }) {
               </div>
               <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#9B9B9B", margin: 0, fontVariantNumeric: "tabular-nums", textWrap: "pretty" }}>
                 {sessao
-                  ? `Sessão verificada com o código que a ${casa.nome} lhe enviou.`
+                  ? `Sessão verificada com o código que a ${nomeDaCasa(casa)} lhe enviou.`
                   : "A assinatura regista-se pela sua ligação privada — o nome, a data e a hora ficam no registo."}
               </p>
             </div>

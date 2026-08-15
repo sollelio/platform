@@ -450,18 +450,21 @@ function ContribuirConteudo() {
         )}
       </div>
 
-      <p
-        style={{
-          marginTop: "auto",
-          paddingTop: "40px",
-          fontSize: "11px",
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "#C0B79F",
-        }}
-      >
-        {casa.nome}
-      </p>
+      {/* Sem casa, o rodapé não assina por outra (100). */}
+      {casa.nome && (
+        <p
+          style={{
+            marginTop: "auto",
+            paddingTop: "40px",
+            fontSize: "11px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#C0B79F",
+          }}
+        >
+          {casa.nome}
+        </p>
+      )}
     </div>
   );
 }

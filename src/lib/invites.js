@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { ehFuncaoRpcEmFalta } from "./rpc";
-import { comOmissao } from "./casa";
+import { comOmissao, nomeDaCasa } from "./casa";
 
 // Gera um código legível e único — ex: DLM-X7K9-2025
 export const generateCode = () => {
@@ -124,14 +124,14 @@ export const validateCode = async (code, casaCrua) => {
     return {
       valid: false,
       reason:
-        `Este convite não tem um tipo de evento associado. Contacta ${casa.nome}.`,
+        `Este convite não tem um tipo de evento associado. Contacta a ${nomeDaCasa(casa)}.`,
     };
   }
   if (data.status === "Preenchido") {
     return {
       valid: false,
       reason:
-        `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta ${casa.nome}.`,
+        `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta a ${nomeDaCasa(casa)}.`,
     };
   }
   return { valid: true, invite: data };

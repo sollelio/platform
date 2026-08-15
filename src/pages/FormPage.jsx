@@ -656,7 +656,10 @@ function FormConteudo() {
       // sem alarme — as respostas desse convite já estão connosco.
       if (codigoErroRpc(e) === "CONVITE_JA_USADO") {
         setSubmitError(
-          `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta ${casa.nome}.`,
+          // `casa.nome` nulo escreveria «contacta null»: numa template
+          // string o null imprime-se. «a casa» é a palavra que o portal
+          // já usa quando não a nomeia.
+          `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta ${casa.nome || "a casa"}.`,
         );
         setSubmitting(false);
         return;
@@ -744,17 +747,19 @@ function FormConteudo() {
             <br />
             Entraremos em contacto brevemente.
           </p>
-          <p
-            style={{
-              fontSize: "10px",
-              color: "var(--gold-light)",
-              textTransform: "uppercase",
-              letterSpacing: "0.18em",
-              margin: 0,
-            }}
-          >
-            {casa.slogan}
-          </p>
+          {casa.slogan && (
+            <p
+              style={{
+                fontSize: "10px",
+                color: "var(--gold-light)",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+                margin: 0,
+              }}
+            >
+              {casa.slogan}
+            </p>
+          )}
         </motion.div>
       </div>
     );
@@ -841,31 +846,37 @@ function FormConteudo() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             style={{ textAlign: "center", marginBottom: "24px" }}
           >
-            <h1
-              style={{
-                fontSize: "clamp(24px, 6.5vw, 44px)",
-                color: "var(--gold)",
-                fontFamily: "Playfair Display, serif",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                margin: "0 0 6px 0",
-                lineHeight: 1.1,
-              }}
-            >
-              {casa.nome}
-            </h1>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "var(--gold)",
-                textTransform: "uppercase",
-                letterSpacing: "0.28em",
-                margin: "0 0 20px 0",
-                fontWeight: "400",
-              }}
-            >
-              {casa.linha_by}
-            </p>
+            {/* Sem casa não há cabeçalho — o formulário identifica-se
+                pelo tipo de evento, logo abaixo. */}
+            {casa.nome && (
+              <h1
+                style={{
+                  fontSize: "clamp(24px, 6.5vw, 44px)",
+                  color: "var(--gold)",
+                  fontFamily: "Playfair Display, serif",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  margin: "0 0 6px 0",
+                  lineHeight: 1.1,
+                }}
+              >
+                {casa.nome}
+              </h1>
+            )}
+            {casa.linha_by && (
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "var(--gold)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.28em",
+                  margin: "0 0 20px 0",
+                  fontWeight: "400",
+                }}
+              >
+                {casa.linha_by}
+              </p>
+            )}
             <div
               style={{
                 display: "flex",
@@ -1269,18 +1280,20 @@ function FormConteudo() {
 
           <div style={{ marginTop: "20px" }}>
             <Ornament />
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: "10px",
-                color: "var(--gold-light)",
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-                margin: "4px 0 0",
-              }}
-            >
-              {casa.slogan}
-            </p>
+            {casa.slogan && (
+              <p
+                style={{
+                  textAlign: "center",
+                  fontSize: "10px",
+                  color: "var(--gold-light)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.18em",
+                  margin: "4px 0 0",
+                }}
+              >
+                {casa.slogan}
+              </p>
+            )}
           </div>
         </div>
       </div>

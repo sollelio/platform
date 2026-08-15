@@ -594,11 +594,13 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
   const previa = (
     <>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
-        <img
-          src={logoDe(casa)}
-          alt={casa.nome}
-          style={{ height: "84px", width: "auto", display: "block" }}
-        />
+        {logoDe(casa) && (
+          <img
+            src={logoDe(casa)}
+            alt={casa.nome}
+            style={{ height: "84px", width: "auto", display: "block" }}
+          />
+        )}
         <div
           style={{
             fontSize: "8px",
@@ -973,10 +975,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               color: "var(--gold-dark)",
             }}
           >
-            {assinatura.despedida}
+            {assinatura?.despedida}
           </p>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "17px", marginTop: "2px" }}>
-            {assinatura.nome}
+            {assinatura?.nome}
           </div>
         </div>
       </div>

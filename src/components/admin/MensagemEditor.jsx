@@ -355,11 +355,13 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
                   padding: "8px 10px",
                 }}
               >
-                <img
-                  src={logoDe(casa)}
-                  alt={casa.nome}
-                  style={{ height: "34px", width: "auto", flex: "none" }}
-                />
+                {logoDe(casa) && (
+                  <img
+                    src={logoDe(casa)}
+                    alt={casa.nome}
+                    style={{ height: "34px", width: "auto", flex: "none" }}
+                  />
+                )}
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{

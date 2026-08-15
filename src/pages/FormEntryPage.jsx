@@ -198,30 +198,37 @@ function FormEntryConteudo() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           style={{ textAlign: "center", marginBottom: "32px" }}
         >
-          <h1
-            style={{
-              fontSize: "clamp(22px, 5vw, 36px)",
-              color: "var(--gold)",
-              fontFamily: "Playfair Display, serif",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              margin: "0 0 6px 0",
-              lineHeight: 1.1,
-            }}
-          >
-            {casa.nome}
-          </h1>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--gold)",
-              textTransform: "uppercase",
-              letterSpacing: "0.28em",
-              margin: "0 0 20px 0",
-            }}
-          >
-            {casa.linha_by}
-          </p>
+          {/* Sem casa não há cabeçalho. O que a página é diz-se logo
+              abaixo — «Formulário do Evento» — e um título vazio só
+              abriria um buraco no desenho. */}
+          {casa.nome && (
+            <h1
+              style={{
+                fontSize: "clamp(22px, 5vw, 36px)",
+                color: "var(--gold)",
+                fontFamily: "Playfair Display, serif",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                margin: "0 0 6px 0",
+                lineHeight: 1.1,
+              }}
+            >
+              {casa.nome}
+            </h1>
+          )}
+          {casa.linha_by && (
+            <p
+              style={{
+                fontSize: "11px",
+                color: "var(--gold)",
+                textTransform: "uppercase",
+                letterSpacing: "0.28em",
+                margin: "0 0 20px 0",
+              }}
+            >
+              {casa.linha_by}
+            </p>
+          )}
           <div
             style={{
               display: "flex",
@@ -449,18 +456,20 @@ function FormEntryConteudo() {
 
         <div style={{ marginTop: "20px" }}>
           <Ornament />
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "10px",
-              color: "var(--gold-light)",
-              textTransform: "uppercase",
-              letterSpacing: "0.18em",
-              margin: "4px 0 0",
-            }}
-          >
-            {casa.slogan}
-          </p>
+          {casa.slogan && (
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "10px",
+                color: "var(--gold-light)",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+                margin: "4px 0 0",
+              }}
+            >
+              {casa.slogan}
+            </p>
+          )}
         </div>
       </div>
     </div>

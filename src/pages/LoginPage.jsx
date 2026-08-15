@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.webp";
 import CasaProvider, { useCasa } from "../components/CasaProvider";
 import { casaDaSessao } from "../lib/identidadeCasa";
+import { NOME_PRODUTO } from "../lib/casa";
 
 function Ornament({ small = false }) {
   return (
@@ -144,6 +145,11 @@ export default function LoginPage() {
 }
 
 function LoginConteudo() {
+  // Sem sessão a RPC responde «desconhecida», e é isso que ela deve
+  // responder — de que casa é alguém não se sabe antes de a pessoa se
+  // identificar (093). Por isso este ecrã veste o PRODUTO no título e
+  // deixa cair a linha de marca e o slogan, que são da casa: emprestá-
+  // los ao produto seria a mesma mentira em sentido contrário.
   const casa = useCasa();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -294,19 +300,21 @@ function LoginConteudo() {
               lineHeight: 1.1,
             }}
           >
-            {casa.nome}
+            {casa.nome || NOME_PRODUTO}
           </h1>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--gold)",
-              textTransform: "uppercase",
-              letterSpacing: "0.28em",
-              margin: "0 0 20px 0",
-            }}
-          >
-            {casa.linha_by}
-          </p>
+          {casa.linha_by && (
+            <p
+              style={{
+                fontSize: "11px",
+                color: "var(--gold)",
+                textTransform: "uppercase",
+                letterSpacing: "0.28em",
+                margin: "0 0 20px 0",
+              }}
+            >
+              {casa.linha_by}
+            </p>
+          )}
           <div
             style={{
               display: "flex",
@@ -557,18 +565,20 @@ function LoginConteudo() {
         {/* Rodapé */}
         <div style={{ marginTop: "20px" }}>
           <Ornament />
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "10px",
-              color: "var(--gold-light)",
-              textTransform: "uppercase",
-              letterSpacing: "0.18em",
-              margin: "4px 0 0",
-            }}
-          >
-            {casa.slogan}
-          </p>
+          {casa.slogan && (
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "10px",
+                color: "var(--gold-light)",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+                margin: "4px 0 0",
+              }}
+            >
+              {casa.slogan}
+            </p>
+          )}
         </div>
       </div>
     </div>

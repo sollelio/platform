@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
-import { assinaturaTitular } from "../lib/casa";
+import { assinaturaTitular, haCasa } from "../lib/casa";
 import CasaProvider, { useCasa } from "../components/CasaProvider";
 import { casaPorSlug } from "../lib/identidadeCasa";
 
@@ -106,6 +106,73 @@ function CaptacaoConteudo() {
       behavior: "smooth",
     });
   };
+
+  // ---------- O endereço que não é de ninguém (100) ----------
+  // Aqui a moldura nua não chega: esta página não INFORMA, RECOLHE. Um
+  // /interesse/<slug-inventado> sem casa deixaria um formulário de
+  // angariação a pedir nome, telefone e data de casamento para lado
+  // nenhum — e a pessoa a acreditar que os entregou a alguém. O
+  // formulário não abre.
+  //
+  // Sem saída, pela regra da 100: não se sabe de que casa a pessoa
+  // andava à procura, e mandá-la à primeira era o erro que esta
+  // migração existe para travar.
+  if (!haCasa(casa)) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "var(--cream)",
+          fontFamily: "Inter, sans-serif",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "48px 26px",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            color: "var(--gold-dark)",
+            margin: 0,
+          }}
+        >
+          Pedido de orçamento
+        </p>
+        <h1
+          style={{
+            margin: "14px 0 0",
+            maxWidth: "340px",
+            fontFamily: "'Playfair Display', serif",
+            fontSize: "22px",
+            lineHeight: 1.42,
+            fontWeight: "400",
+            textWrap: "balance",
+            color: "var(--charcoal)",
+          }}
+        >
+          Este endereço não corresponde a nenhuma empresa.
+        </h1>
+        <p
+          style={{
+            margin: "16px 0 0",
+            maxWidth: "320px",
+            fontSize: "13px",
+            lineHeight: 1.7,
+            color: "var(--gray-mid)",
+            textWrap: "pretty",
+          }}
+        >
+          Confirme a ligação com quem lha enviou.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

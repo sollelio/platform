@@ -983,11 +983,13 @@ function OrcamentoDocumento({
         }}
       >
         <div style={{ flex: "0 0 auto" }}>
-          <img
-            src={logoDe(casa)}
-            alt={casa.nome}
-            style={{ width: "110px", height: "auto", display: "block" }}
-          />
+          {logoDe(casa) && (
+            <img
+              src={logoDe(casa)}
+              alt={casa.nome}
+              style={{ width: "110px", height: "auto", display: "block" }}
+            />
+          )}
         </div>
         <div
           style={{

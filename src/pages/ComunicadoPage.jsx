@@ -166,6 +166,7 @@ function FileteRotulado({ children, margem }) {
 // a folha partilham-no — é a mesma casa a falar.
 function Marca({ altura = 118 }) {
   const casa = useCasa();
+  const logoUrl = logoDe(casa);
   return (
     <header
       id="marca-comunicado"
@@ -192,26 +193,33 @@ function Marca({ altura = 118 }) {
           pointerEvents: "none",
         }}
       />
-      <img
-        src={logoDe(casa)}
-        alt={casa.nome}
-        style={{ position: "relative", height: `${altura}px`, width: "auto", display: "block" }}
-      />
-      <div
-        style={{
-          position: "relative",
-          fontSize: "9.5px",
-          fontWeight: 700,
-          letterSpacing: "0.22em",
-          color: "#A07830",
-          textTransform: "uppercase",
-          marginTop: "5px",
-          whiteSpace: "nowrap",
-          textAlign: "center",
-        }}
-      >
-        {casa.linha_actividade}
-      </div>
+      {/* Sem casa, a marca não se desenha — nem o logótipo do
+          repositório, que é o da primeira casa (100). O halo acima é
+          só luz e fica: não nomeia ninguém. */}
+      {logoUrl && (
+        <img
+          src={logoUrl}
+          alt={casa.nome}
+          style={{ position: "relative", height: `${altura}px`, width: "auto", display: "block" }}
+        />
+      )}
+      {casa.linha_actividade && (
+        <div
+          style={{
+            position: "relative",
+            fontSize: "9.5px",
+            fontWeight: 700,
+            letterSpacing: "0.22em",
+            color: "#A07830",
+            textTransform: "uppercase",
+            marginTop: "5px",
+            whiteSpace: "nowrap",
+            textAlign: "center",
+          }}
+        >
+          {casa.linha_actividade}
+        </div>
+      )}
     </header>
   );
 }
@@ -238,6 +246,8 @@ function Esq({ w = "100%", h = 12, r = 8, style }) {
 // de repetir, primeiro.
 function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
   const casa = useCasa();
+  const urlWhatsApp = linkWhatsAppCasa(casa, mensagemWhatsApp);
+  const site = siteDe(casa);
   const ligacao = {
     color: "#A07830",
     textDecorationColor: "#E8D5A3",
@@ -310,21 +320,28 @@ function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
           — nada de mailto em lado nenhum desta página. O texto
           pré-escrito é de cada estado: conta o que a leitora viu, com
           a voz dela. */}
-      <div style={{ marginTop: aoRepetir ? "16px" : "32px" }}>
-        <Capsula
-          href={linkWhatsAppCasa(casa, mensagemWhatsApp)}
-          style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
-        >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4.5 11A5 5 0 1 1 6.3 12.2L2.8 13.6Z" />
-          </svg>
-          Falar pelo WhatsApp
-        </Capsula>
-      </div>
-      <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
-        E se procura a {casa.nome}, está em{" "}
-        <a href={siteDe(casa)} style={ligacao}>{casa.dominio}</a>.
-      </p>
+      {/* Sem casa a cortina fica SEM SAÍDA, e é essa a decisão (100):
+          não se sabe de que casa a pessoa andava à procura, e mandá-la
+          à primeira é o erro que esta migração existe para travar. */}
+      {urlWhatsApp && (
+        <div style={{ marginTop: aoRepetir ? "16px" : "32px" }}>
+          <Capsula
+            href={urlWhatsApp}
+            style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4.5 11A5 5 0 1 1 6.3 12.2L2.8 13.6Z" />
+            </svg>
+            Falar pelo WhatsApp
+          </Capsula>
+        </div>
+      )}
+      {site && casa.nome && (
+        <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
+          E se procura a {casa.nome}, está em{" "}
+          <a href={site} style={ligacao}>{casa.dominio}</a>.
+        </p>
+      )}
     </div>
   );
 }
@@ -564,6 +581,12 @@ function Folha({ dados }) {
   const casa = useCasa();
   const itens = estruturar(comporFolha(dados.blocos));
   const assinatura = assinaturaFolha(casa);
+  const urlWhatsAppDaFolha = linkWhatsAppCasa(
+    casa,
+    dados.titulo
+      ? `Olá! Escrevo sobre a folha «${dados.titulo}» da ${casa.nome}.`
+      : `Olá! Escrevo sobre uma folha da ${casa.nome}.`,
+  );
 
   // O registo é temperamento, não outra página: 'oferta' centra, cresce
   // e enche; qualquer outro valor (ou nenhum — as folhas da fase 1)
@@ -582,7 +605,9 @@ function Folha({ dados }) {
   // do GerarOrcamento.
   const imprimir = () => {
     const anterior = document.title;
-    document.title = `${dados.titulo || "Comunicado"} — ${casa.nome}`;
+    document.title = casa.nome
+      ? `${dados.titulo || "Comunicado"} — ${casa.nome}`
+      : dados.titulo || "Comunicado";
     window.print();
     document.title = anterior;
   };
@@ -745,31 +770,40 @@ function Folha({ dados }) {
           <svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true">
             <rect x="1.75" y="1.75" width="4.5" height="4.5" transform="rotate(45 4 4)" fill="#C9A84C" />
           </svg>
-          <p
-            style={{
-              margin: "14px 0 0",
-              fontFamily: "'Playfair Display', serif",
-              fontStyle: "italic",
-              fontSize: "16px",
-              color: "#A07830",
-            }}
-          >
-            {assinatura.despedida}
-          </p>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "21px", marginTop: "4px" }}>
-            {assinatura.nome}
-          </div>
-          <div
-            style={{
-              fontSize: "8.5px",
-              fontWeight: 700,
-              letterSpacing: "0.22em",
-              color: "#9B9B9B",
-              marginTop: "9px",
-            }}
-          >
-            {casa.dominio.toUpperCase()}
-          </div>
+          {/* Sem casa não há assinatura: «Com carinho,» sozinho promete
+              um remetente que não vem. O losango acima fica — é
+              ornamento, não identidade. */}
+          {assinatura && (
+            <>
+              <p
+                style={{
+                  margin: "14px 0 0",
+                  fontFamily: "'Playfair Display', serif",
+                  fontStyle: "italic",
+                  fontSize: "16px",
+                  color: "#A07830",
+                }}
+              >
+                {assinatura.despedida}
+              </p>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "21px", marginTop: "4px" }}>
+                {assinatura.nome}
+              </div>
+            </>
+          )}
+          {casa.dominio && (
+            <div
+              style={{
+                fontSize: "8.5px",
+                fontWeight: 700,
+                letterSpacing: "0.22em",
+                color: "#9B9B9B",
+                marginTop: "9px",
+              }}
+            >
+              {casa.dominio.toUpperCase()}
+            </div>
+          )}
         </div>
 
         {/* «esta folha», e não «estas orientações»: o desenho falava do
@@ -779,27 +813,27 @@ function Folha({ dados }) {
             O pré-escrito leva o título quando a folha o tem — com
             várias folhas no ar, a Nádia não tem de perguntar «qual?»;
             e no papel a frase ganha o número à vista (.so-print). */}
-        <div
-          className="bloco"
-          style={{ marginTop: "28px", borderTop: "1px solid #F5ECD7", paddingTop: "14px", textAlign: "center" }}
-        >
-          <p style={{ margin: 0, fontSize: "11.5px", lineHeight: 1.6, color: "#6B6B6B" }}>
-            Alguma questão sobre esta folha?{" "}
-            <a
-              href={linkWhatsAppCasa(
-                casa,
-                dados.titulo
-                  ? `Olá! Escrevo sobre a folha «${dados.titulo}» da ${casa.nome}.`
-                  : `Olá! Escrevo sobre uma folha da ${casa.nome}.`
-              )}
-              style={{ color: "#A07830", textDecorationColor: "#E8D5A3", textUnderlineOffset: "3px" }}
-            >
-              Fale connosco pelo WhatsApp
-            </a>
-            <span className="so-print" style={{ display: "none" }}>: {numeroLegivel(casa)}</span>
-            .
-          </p>
-        </div>
+        {/* A pergunta só se faz se houver quem a responda: sem WhatsApp
+            da casa, o bloco inteiro sai. «Alguma questão?» sem destino é
+            uma promessa vazia impressa em papel. */}
+        {urlWhatsAppDaFolha && (
+          <div
+            className="bloco"
+            style={{ marginTop: "28px", borderTop: "1px solid #F5ECD7", paddingTop: "14px", textAlign: "center" }}
+          >
+            <p style={{ margin: 0, fontSize: "11.5px", lineHeight: 1.6, color: "#6B6B6B" }}>
+              Alguma questão sobre esta folha?{" "}
+              <a
+                href={urlWhatsAppDaFolha}
+                style={{ color: "#A07830", textDecorationColor: "#E8D5A3", textUnderlineOffset: "3px" }}
+              >
+                Fale connosco pelo WhatsApp
+              </a>
+              <span className="so-print" style={{ display: "none" }}>: {numeroLegivel(casa)}</span>
+              .
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -908,10 +942,13 @@ function ComunicadoConteudo() {
   // se alguém imprimir sem passar pelo botão. Fora da folha fica o
   // neutro do index.html, que a pré-visualização das conversas usa.
   useEffect(() => {
+    // Sem casa fica só o assunto — «— » pendurado no separador seria a
+    // marca de alguém a faltar.
+    const titulo = resultado?.dados?.titulo || "Comunicado";
     if (resultado?.estado === "activo") {
-      document.title = `${resultado.dados.titulo || "Comunicado"} — ${casa.nome}`;
+      document.title = casa.nome ? `${titulo} — ${casa.nome}` : titulo;
     } else {
-      document.title = casa.nome;
+      document.title = casa.nome || "Comunicado";
     }
   }, [resultado, casa.nome]);
 

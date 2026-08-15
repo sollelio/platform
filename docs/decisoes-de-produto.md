@@ -1690,12 +1690,11 @@ lado de cá. Trinta e três ficheiros liam-na de constantes em JavaScript.
 
 ### Pendências desta decisão
 
-- **100 · O token morto veste a casa de omissão.** Um token revogado faz
-  a RPC devolver null, e o Provider mantém a identidade anterior de
-  propósito (uma folha com o cabeçalho de ontem é melhor do que uma sem
-  cabeçalho). Com uma casa só são a mesma coisa; com duas, um link morto
-  da casa B mostra a marca da casa A. Não se resolve no Provider — pede
-  que a porta distinga «não sei» de «não existe».
+- **100 · O token morto veste a casa de omissão.** ~~Um token revogado
+  faz a RPC devolver null, e o Provider mantém a identidade anterior.~~
+  **Fechada pela 100** — e não como estava previsto aqui: a porta passou
+  a resolver a casa do token morto em vez de lhe apagar a marca. Ver a
+  secção abaixo.
 - **O texto dos documentos ainda é de UMA casa.** A lista completa está
   na 099: `orcamentoConfig.js` (nota de rodapé, condições, catálogo de
   serviços, os 25 € entre as duas moradas dela), `contratoConfig.js` (as
@@ -1724,3 +1723,107 @@ lado de cá. Trinta e três ficheiros liam-na de constantes em JavaScript.
   Hélio na Do Luxo à Mesa, e o isolamento testa-se a sério — com um
   tenant só, nenhum teste distingue «filtra pela casa certa» de «não
   filtra».
+- **15/08/2026 — A 099 não tem ficheiro em `docs/migracoes/`, e é de
+  propósito.** Foi migração de FRONTEND: o `casa.js` deixou de conter a
+  identidade e passou a compô-la, o `CasaProvider` entrou, e 33
+  ficheiros trocaram as constantes pelo hook. Zero SQL. A pasta das
+  migrações é para o que corre na base; pôr lá um número sem ficheiro
+  seria mentir sobre o que há para correr. O salto de 098 para 100 na
+  pasta explica-se aqui, e o trabalho vive no histórico do git.
+## A casa desconhecida não empresta marca (100 · 15/08/2026)
+
+A pendência 100 da 099. O SQL correu em test e em produção antes do
+frontend; o resto está em `docs/prompt-100-casa-desconhecida.md`.
+
+- **15/08/2026 — Um token morto continua a ter dono, e fica com a marca
+  dele.** A 100 TIROU os filtros de validade de dentro do
+  `identidade_por_token`: revogado, expirado ou retirado, o token está na
+  base e sabe-se de quem é. Um prazo terminado é o acesso que acabou, não
+  a casa que desapareceu — e a página que diz «isto terminou» é mais
+  humana com o nome deles do que sem. Foi assim que a pendência se
+  fechou: não apagando marca, mas resolvendo a casa certa.
+- **15/08/2026 — A moldura nua é o caso RARO, não o comum.** Fica para
+  dois casos só: o endereço que nunca existiu, e a casa `suspenso` ou
+  `encerrado`. O segundo é o que ninguém ia testar — uma casa que deixa
+  de pagar não ficava às escuras, ficava **com a cara de outra**, porque
+  todos os tokens dela continuavam a abrir com a identidade de omissão.
+  Suspender é cortar a presença, não só o acesso.
+- **15/08/2026 — Sem casa não se veste a de outra, nem a nossa.** A
+  correcção óbvia era trocar os valores da omissão pelos da Sollelio. Não
+  chega: quem abre um endereço que não é de ninguém não tem nada que
+  aprender sobre a Sollelio, e pôr-lhe a marca do produto à frente é usar
+  o desapontamento dela como montra. A cortina diz o que tem a dizer e
+  **não oferece saída nenhuma** — uma saída para o sítio errado é pior do
+  que nenhuma. A Sollelio é o nome que se vê por dentro, não à porta.
+- **15/08/2026 — A migração correu à frente do frontend, e a app ignorou
+  a identidade da base durante essa janela.** As RPCs passaram a devolver
+  `{estado, casa}`; o `pedir()` continuou a entregar o envelope inteiro e
+  o `comOmissao()` espalhou-o — `{...CASA_OMISSAO, casa, estado}` — pelo
+  que TODOS os campos caíram na omissão. O logótipo do Storage não era
+  usado, o IBAN vinha da constante, e nada disto dava erro: com uma casa
+  só, a omissão e a verdade são iguais ao pixel. Regra que fica: **uma
+  migração que muda a FORMA da resposta não pode correr antes de o
+  frontend a saber ler** — não parte nada, só mente. Ficou também um
+  `SEM_CASA` chamado sem estar definido, que o eslint apanhou como
+  `no-undef` e teria sido um `ReferenceError` à primeira resposta
+  `desconhecida`.
+- **15/08/2026 — A guarda das funções derivadas é sobre o CAMPO, não
+  sobre «há casa».** Uma regra só serve os dois casos: o endereço que não
+  é de ninguém e a casa real a que falta o MB Way ou o foro — que a 097
+  sempre admitiu e que até aqui punha `undefined` no papel do orçamento.
+  Excepção única: o `logoDe`, porque `logo_url` nulo quer dizer «esta
+  casa não carregou logótipo», não «não há casa».
+- **15/08/2026 — O nulo apaga o ELEMENTO, não só o valor.** Um
+  `href={null}` navega para a própria página e um `<img src={null}>`
+  faz o browser pedi-la. Esconder identidade é não desenhar a etiqueta,
+  nunca desenhá-la vazia.
+
+- **15/08/2026 — O nome do produto sai do código para uma variável de
+  ambiente.** `VITE_NOME_PRODUTO`, hoje «Celebra». Não é da casa e não é
+  da base: é de build, como a fonte da assinatura. E em variável porque o
+  nome ainda não está decidido — a marca «Celebra» já está registada por
+  outros em Portugal e no Brasil, e o dia em que mudar não pode ser um dia
+  de procurar a palavra por trinta ficheiros. Sem a variável fica vazio, e
+  quem o desenha omite-o: nenhum nome é melhor do que o nome errado.
+- **15/08/2026 — A `LoginPage` veste o PRODUTO, e nada mais.** Sem sessão
+  a RPC responde `desconhecida` — em todos os carregamentos. O título usa
+  o nome do produto; a linha de marca e o slogan são da CASA e caem.
+  Emprestá-los ao produto seria a mesma mentira em sentido contrário.
+- **15/08/2026 — A `CaptacaoPage` com slug inventado não abre o
+  formulário.** É a única página pública que não INFORMA, RECOLHE: despir
+  a moldura deixava-a a pedir nome, telefone e data de casamento para lado
+  nenhum, com a pessoa a acreditar que os entregou a alguém. Cortina sem
+  saída. Onde a página só informa (comunicado, portal, formulário), basta
+  despir; onde recolhe, fecha-se.
+- **15/08/2026 — Num título o nome desaparece com o elemento; numa frase
+  cai em «casa».** Um `<h1>` vazio abre um buraco no desenho e sai
+  inteiro. Uma frase não pode sair — e numa template string o `null`
+  imprime-se por extenso («Avisar a null»). O `nomeDaCasa()` devolve
+  «casa», que não é palavra nova: é a que o portal já usa quando não a
+  nomeia («pela casa», «as condições da casa», «quem é da casa»).
+
+### Pendências desta decisão
+- **⚠ `identidade_da_casa` e `identidade_conhecida` respondem ao `anon`.**
+  As duas migrações fazem `revoke all ... from public` e não concedem
+  nada ao `anon`, e o comentário da 097 é explícito: «Não se concede ao
+  anon: recebe um uuid, e um uuid vindo de fora não se aceita.» Na
+  prática devolvem HTTP 200 ao anon (verificado em test). A causa
+  provável é o `alter default privileges` que o Supabase aplica ao
+  esquema `public` — o `revoke from public` não apaga o grant explícito
+  ao `anon`. Impacto baixo (a identidade não é segredo, e é preciso saber
+  o uuid da casa), mas o padrão do `revoke` está a dar falsa segurança em
+  TODAS estas migrações e vale a pena confirmar quantas mais afecta.
+- **15/08/2026 — O «connosco» dispensa o nome.** A frase da data passada
+  na `SinalVista` nomeava a casa a meio e, sem casa, lia «a casa no seu
+  evento». Reescrita para «Se ainda quiser contar connosco no seu evento»
+  — a primeira pessoa do plural resolve o que a substituição não
+  resolvia. Fica como padrão para as frases que precisam de se referir à
+  casa dentro do texto corrido: preferir a voz à etiqueta.
+  A linha «Entre X e Maria» do contrato mantém-se como ficou: sem nome
+  sai inteira, porque ali o nome é uma das PARTES e não há como a
+  substituir.
+- **O portal de uma casa SUSPENSA deve FECHAR, não abrir despido.** A
+  `CaptacaoPage` já não abre; o portal, o comunicado e o formulário
+  continuam a servir conteúdo sem marca. A correcção é no SERVIDOR e não
+  no frontend — as RPCs passam a devolver `estado: terminado` quando a
+  casa não está activa. Fica para a **migração 103**.

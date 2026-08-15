@@ -209,6 +209,9 @@ export function FraseDeFecho({ frase, corpo }) {
 // O rodapé-assinatura da casa, nas páginas públicas.
 export function Assinatura({ style }) {
   const casa = useCasa();
+  const texto = assinaturaPublica(casa);
+  // Um rodapé-assinatura vazio é uma página assinada por ninguém: some.
+  if (!texto) return null;
   return (
     <p
       style={{
@@ -222,7 +225,7 @@ export function Assinatura({ style }) {
         ...style,
       }}
     >
-      {assinaturaPublica(casa)}
+      {texto}
     </p>
   );
 }

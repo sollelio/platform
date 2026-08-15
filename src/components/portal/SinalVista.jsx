@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { linkWhatsAppCasa } from "../../lib/casa";
+import { linkWhatsAppCasa, nomeDaCasa } from "../../lib/casa";
 import { useCasa } from "../CasaProvider";
 import {
   overline, playfair, diaEMes, partesDaData, SEMANA, formatarEuroPT, naoVazio,
@@ -383,7 +383,8 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
   // A conversa — mensagem neutra de género, com a data quando a há.
   const mensagemConversa = `Olá! Escrevo para tratar do sinal do meu evento${quandoDia ? ` de ${quandoDia}` : ""}.`;
   const urlConversa = linkWhatsAppCasa(casa, mensagemConversa);
-  const abrirConversa = () => window.open(urlConversa, "_blank", "noopener,noreferrer");
+  const abrirConversa = () =>
+    urlConversa && window.open(urlConversa, "_blank", "noopener,noreferrer");
 
   // ---------- Copiar ----------
   const copiar = async (chave, texto, elemento) => {
@@ -515,14 +516,16 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
 
   // A cápsula da conversa em modo saída — os ecrãs fechados (E/G/G′/H/H′)
   // acabam todos na mesma porta.
-  const capsulaConversa = (
+  // Sem casa não há conversa para onde mandar ninguém (100): a cápsula
+  // não se desenha, em vez de abrir uma janela para lado nenhum.
+  const capsulaConversa = urlConversa ? (
     <CapsulaVazada
       onClick={abrirConversa}
       style={{ width: "auto", display: "inline-block", padding: "15px 26px" }}
     >
       Falar connosco na conversa
     </CapsulaVazada>
-  );
+  ) : null;
 
   // ---------- O ecrã que toca a este momento ----------
   let conteudo;
@@ -565,10 +568,14 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
           já passou.
         </p>
         <FileteComLosango margem="18px auto 20px" />
+        {/* Sem nome de casa nenhum, de propósito: o «connosco» dispensa-o
+            (decisão do dono, 15/08). A frase que aqui estava nomeava a
+            casa a meio — e sem casa ficava «a casa no seu evento», que
+            não é português que esta página queira dizer. */}
         <p style={corpo({ maxWidth: "290px", margin: "0 auto 20px" })}>
           A data chegou sem o sinal, e o calendário seguiu. Se ainda quiser
-          a {casa.nome} no seu evento, fale connosco — encontramos uma
-          nova data juntos.
+          contar connosco no seu evento, diga-nos — encontramos uma
+          solução.
         </p>
         {capsulaConversa}
       </>
@@ -785,7 +792,7 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
             {/* A cápsula da casa: dorme inerte, acende com a caixa —
                 visível para se saber o que vem, intocável até lá. */}
             <CapsulaCheia inerte={!marcado} aTrabalhar={aEnviar} onClick={avisar}>
-              {aEnviar ? "A guardar…" : `Avisar a ${casa.nome}`}
+              {aEnviar ? "A guardar…" : `Avisar a ${nomeDaCasa(casa)}`}
             </CapsulaCheia>
 
             {erro && (

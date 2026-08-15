@@ -133,6 +133,7 @@ function CampoPorDefinir({ campo, ajuda }) {
 function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) {
   const casa = useCasa();
   const urlWhatsApp = urlWhatsAppDoPortal(casa);
+  const site = siteDe(casa);
   return (
     <div
       style={{
@@ -213,25 +214,30 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
                 Falar pelo WhatsApp
               </a>
             )}
-            <a
-              href={siteDe(casa)}
-              style={{
-                display: "inline-block",
-                padding: "10px 12px",
-                margin: "-10px -12px",
-                fontSize: "11.5px",
-                letterSpacing: "0.03em",
-                // #6B6B6B e não #9B9B9B: isto clica-se, e o cinzento
-                // apagado não chega ao contraste mínimo.
-                color: "var(--gray-mid)",
-                textDecoration: "none",
-                transition: "color 140ms ease",
-              }}
-            >
-              <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
-                {casa.dominio}
-              </span>
-            </a>
+            {/* Sem casa a cortina fica sem saída nenhuma (100): não se
+                sabe de quem era esta ligação, e o domínio da primeira
+                casa não é resposta. */}
+            {site && (
+              <a
+                href={site}
+                style={{
+                  display: "inline-block",
+                  padding: "10px 12px",
+                  margin: "-10px -12px",
+                  fontSize: "11.5px",
+                  letterSpacing: "0.03em",
+                  // #6B6B6B e não #9B9B9B: isto clica-se, e o cinzento
+                  // apagado não chega ao contraste mínimo.
+                  color: "var(--gray-mid)",
+                  textDecoration: "none",
+                  transition: "color 140ms ease",
+                }}
+              >
+                <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
+                  {casa.dominio}
+                </span>
+              </a>
+            )}
           </div>
         )}
       </div>
@@ -362,7 +368,8 @@ function PortalConteudo() {
       avaliar: "A avaliação",
       sinal: "O sinal",
     };
-    document.title = `${porVista[vista] || "O seu acompanhamento"} — ${casa.nome}`;
+    const vistaTitulo = porVista[vista] || "O seu acompanhamento";
+    document.title = casa.nome ? `${vistaTitulo} — ${casa.nome}` : vistaTitulo;
   }, [vista, casa.nome]);
 
   // Cada troca de vista entra pelo topo (seco, sem smooth); o regresso à
