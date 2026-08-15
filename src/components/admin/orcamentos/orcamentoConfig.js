@@ -4,11 +4,12 @@
 // recorrentes. Editável aqui num sítio só.
 // ============================================================
 
-// Dados fixos da 2.ª contraente (Do Luxo à Mesa) — aparecem nos contratos.
-// O objecto mudou-se para lib/casa.js (a costura da marca: a identidade
-// da casa lê-se de um sítio só); re-exporta-se daqui para quem sempre o
-// importou deste ficheiro continuar a receber exactamente o mesmo objecto.
-export { EMPRESA } from "../../../lib/casa";
+// A identidade da 2.ª contraente NÃO passa mais por aqui (099). Este
+// ficheiro re-exportava o EMPRESA do casa.js, e a cadeia de três saltos
+// — casa → orcamentoConfig → contratoConfig — escondia quem ainda vivia
+// da ponte. Hoje quem precisa dela lê-a do Provider; o único que ficou
+// para trás é o contratoConfig.js, e vai buscá-la ao casa.js à vista de
+// todos (ver a pendência do texto dos documentos).
 
 // Condições fixas que aparecem no rodapé do orçamento.
 // A primeira nomeia o sinal e a percentagem: «mediante confirmação» era

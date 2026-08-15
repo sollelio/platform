@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import {
-  LOGO_CASA as logoUrl,
-  EMPRESA,
-  LINHA_ACTIVIDADE,
-  ASSINATURA_FOLHA,
-} from "../../lib/casa";
+import { logoDe, assinaturaFolha } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 import {
   criarComunicado,
   guardarComunicado,
@@ -176,6 +172,11 @@ const marcaDe = (b) =>
 // memória — o nascer de um modelo sem escrever nada na base.
 export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuardado }) {
   const reduzido = useReducedMotion();
+  // A pré-visualização desenha a MESMA folha que a ComunicadoPage
+  // publica — leva a mesma identidade, ou o editor mostrava uma folha
+  // que não é a que sai.
+  const casa = useCasa();
+  const assinatura = assinaturaFolha(casa);
 
   // A fonte do arranque: o registo a editar, ou o preparado em memória
   // (nascer de modelo) quando não há registo nenhum.
@@ -594,8 +595,8 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
     <>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
         <img
-          src={logoUrl}
-          alt={EMPRESA.designacao}
+          src={logoDe(casa)}
+          alt={casa.nome}
           style={{ height: "84px", width: "auto", display: "block" }}
         />
         <div
@@ -609,7 +610,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
             textAlign: "center",
           }}
         >
-          {LINHA_ACTIVIDADE.toUpperCase()}
+          {(casa.linha_actividade || "").toUpperCase()}
         </div>
       </div>
       <div
@@ -972,10 +973,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               color: "var(--gold-dark)",
             }}
           >
-            {ASSINATURA_FOLHA.despedida}
+            {assinatura.despedida}
           </p>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "17px", marginTop: "2px" }}>
-            {ASSINATURA_FOLHA.nome}
+            {assinatura.nome}
           </div>
         </div>
       </div>

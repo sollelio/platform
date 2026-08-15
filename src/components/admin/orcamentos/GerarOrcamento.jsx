@@ -1,11 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
-import {
-  LOGO_CASA as logoUrl,
-  EMPRESA,
-  RODAPE_MARCA_ORCAMENTO,
-} from "../../../lib/casa";
+import { logoDe, rodapeMarcaOrcamento } from "../../../lib/casa";
+import { useCasa } from "../../CasaProvider";
 import { uploadImagemReferencia } from "../../../lib/captacao";
 import { guardarValorAcordado } from "../../../lib/clientes";
 import PainelDeslocacao from "./PainelDeslocacao";
@@ -99,6 +96,7 @@ export default function GerarOrcamento({
   ativo = true,
   onDadosMudaram,
 }) {
+  const casa = useCasa();
   // Rascunho persistente: cada documento (evento ou manual) tem o seu
   const rid = `orcamento:${prefill?.submissionId || "manual"}`;
   // Dados do cliente/evento — pré-preenchidos quando se chega de um
@@ -261,7 +259,7 @@ export default function GerarOrcamento({
   // no CSS elimina os cabeçalhos por completo — cinto e suspensórios).
   const imprimir = () => {
     const tituloAnterior = document.title;
-    document.title = `Orçamento — ${cliente || EMPRESA.designacao}`;
+    document.title = `Orçamento — ${cliente || casa.nome}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -917,6 +915,7 @@ function OrcamentoDocumento({
   total,
   dataEmissao,
 }) {
+  const casa = useCasa();
   // O que a folha MOSTRA por linha: o unitário com a parcela de
   // logística já dentro — nem sombra de «logística» no papel. Com
   // qtd > 1 o unitário ajustado (parcela/qtd) arredonda a cêntimos e o
@@ -985,8 +984,8 @@ function OrcamentoDocumento({
       >
         <div style={{ flex: "0 0 auto" }}>
           <img
-            src={logoUrl}
-            alt={EMPRESA.designacao}
+            src={logoDe(casa)}
+            alt={casa.nome}
             style={{ width: "110px", height: "auto", display: "block" }}
           />
         </div>
@@ -1213,7 +1212,7 @@ function OrcamentoDocumento({
           margin: 0,
         }}
       >
-        {RODAPE_MARCA_ORCAMENTO}
+        {rodapeMarcaOrcamento(casa)}
       </p>
     </div>
   );

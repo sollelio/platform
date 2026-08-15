@@ -16,7 +16,8 @@
 import {
   overline, playfair,
 } from "./base";
-import { ASSINATURA_PUBLICA } from "../../lib/casa";
+import { assinaturaPublica } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 
 // As datas e os estilos vivem em `base.js` — ficheiro `.js` porque o
 // linter da casa não deixa misturar funções puras com componentes.
@@ -207,6 +208,7 @@ export function FraseDeFecho({ frase, corpo }) {
 
 // O rodapé-assinatura da casa, nas páginas públicas.
 export function Assinatura({ style }) {
+  const casa = useCasa();
   return (
     <p
       style={{
@@ -220,7 +222,7 @@ export function Assinatura({ style }) {
         ...style,
       }}
     >
-      {ASSINATURA_PUBLICA}
+      {assinaturaPublica(casa)}
     </p>
   );
 }

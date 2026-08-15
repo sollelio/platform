@@ -7,6 +7,7 @@
 // ============================================================
 
 import { diaEMes } from "./base";
+import { comOmissao } from "../../lib/casa";
 
 // ------------------------------------------------------------
 // As quatro linhas do que o sinal abre — UMA lista só, consumida pela
@@ -29,7 +30,11 @@ export const LINHAS_DO_SINAL = [
 // Vive aqui, ao lado das divisões que a consomem, e não na página: é regra
 // de conteúdo, não de desenho.
 // ------------------------------------------------------------
-export function comporNovidades(dados) {
+// A CASA entra por argumento: este ficheiro compõe texto, não desenha —
+// não é componente e não tem hook. Quem chama é a PortalPage, que já a
+// tem do Provider.
+export function comporNovidades(dados, casaCrua) {
+  const casa = comOmissao(casaCrua);
   const desde = dados?.visita_anterior ? new Date(dados.visita_anterior).getTime() : null;
   const m = dados?.marcos_datados || {};
   const novo = (iso) => desde !== null && iso && new Date(iso).getTime() > desde;
@@ -141,7 +146,7 @@ export function comporNovidades(dados) {
     novidades.push({
       chave: "avaliacao",
       titulo: "Ficámos com as suas palavras",
-      corpo: "A Do Luxo à Mesa lê tudo o que nos escrevem.",
+      corpo: `A ${casa.nome} lê tudo o que nos escrevem.`,
     });
   }
 

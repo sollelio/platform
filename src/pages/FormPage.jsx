@@ -6,7 +6,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { markInviteUsed } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
-import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorCodigo } from "../lib/identidadeCasa";
 import flores from "../assets/flores.webp";
 import { iniciarTour, tourJaVista } from "../lib/tour";
 import { submeterFormulario } from "../lib/clientes";
@@ -382,7 +383,35 @@ function ProgressStepper({ currentStep, steps }) {
   );
 }
 
+// A casa vem do código do convite (098). O código está no
+// sessionStorage, onde a porta de entrada o pousou — lê-se aqui,
+// síncrono e antes de tudo, para o Provider arrancar já com a chave
+// certa em vez de esperar pelo efeito que carrega o convite.
+//
+// Ler a casa pelo CÓDIGO e não pelo prefixo dele é a regra da 098: o
+// prefixo é formato, e confiar no formato é adivinhar.
+const codigoDoConvite = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("dlm_invite") || "null")?.code || "";
+  } catch {
+    // Um sessionStorage estragado não é motivo para a página não abrir:
+    // sem código fica a identidade de omissão, e o efeito lá dentro já
+    // trata de mandar o visitante de volta à porta.
+    return "";
+  }
+};
+
 export default function FormPage() {
+  const codigo = codigoDoConvite();
+  return (
+    <CasaProvider chave={codigo} carregar={() => casaPorCodigo(codigo)}>
+      <FormConteudo />
+    </CasaProvider>
+  );
+}
+
+function FormConteudo() {
+  const casa = useCasa();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
@@ -627,7 +656,7 @@ export default function FormPage() {
       // sem alarme — as respostas desse convite já estão connosco.
       if (codigoErroRpc(e) === "CONVITE_JA_USADO") {
         setSubmitError(
-          "Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
+          `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta ${casa.nome}.`,
         );
         setSubmitting(false);
         return;
@@ -724,7 +753,7 @@ export default function FormPage() {
               margin: 0,
             }}
           >
-            {SLOGAN_CASA}
+            {casa.slogan}
           </p>
         </motion.div>
       </div>
@@ -823,7 +852,7 @@ export default function FormPage() {
                 lineHeight: 1.1,
               }}
             >
-              {EMPRESA.designacao}
+              {casa.nome}
             </h1>
             <p
               style={{
@@ -835,7 +864,7 @@ export default function FormPage() {
                 fontWeight: "400",
               }}
             >
-              {LINHA_BY_LUXURY}
+              {casa.linha_by}
             </p>
             <div
               style={{
@@ -1250,7 +1279,7 @@ export default function FormPage() {
                 margin: "4px 0 0",
               }}
             >
-              {SLOGAN_CASA}
+              {casa.slogan}
             </p>
           </div>
         </div>

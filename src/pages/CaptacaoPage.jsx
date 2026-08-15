@@ -3,7 +3,9 @@ import { useParams } from "react-router-dom";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
-import { ASSINATURA_TITULAR } from "../lib/casa";
+import { assinaturaTitular } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorSlug } from "../lib/identidadeCasa";
 
 // ============================================================
 // CaptacaoPage — a página pública /interesse: a porta do funil.
@@ -36,10 +38,24 @@ import { ASSINATURA_TITULAR } from "../lib/casa";
 // Easing da casa: começa decidido, assenta devagar. O luxo move-se devagar.
 const EASE_LUXO = [0.22, 1, 0.36, 1];
 
+// A casa vem do endereço (/interesse/:slug) — o slug é público por
+// desenho, está na barra e sozinho não abre nada. O Provider fica por
+// fora para o hero já pintar com o logo certo: é a PRIMEIRA coisa que
+// um interessado vê da casa, e não pode ser a de outra.
 export default function CaptacaoPage() {
-  // A casa vem do endereço (/interesse/:slug). Sem ele, o formulário
-  // não sabe de quem são os tipos de evento nem onde criar o pedido.
   const { slug } = useParams();
+  return (
+    <CasaProvider chave={slug} carregar={() => casaPorSlug(slug)}>
+      <CaptacaoConteudo />
+    </CasaProvider>
+  );
+}
+
+function CaptacaoConteudo() {
+  // O slug também serve o formulário: sem ele não se sabe de quem são
+  // os tipos de evento nem onde criar o pedido.
+  const { slug } = useParams();
+  const casa = useCasa();
   const [enviado, setEnviado] = useState(false);
   // Progresso dos campos obrigatórios, reportado pelo CaptacaoForm
   // (6 = os 5 base + o nº de convidados, obrigatório na porta pública)
@@ -274,7 +290,7 @@ export default function CaptacaoPage() {
             margin: "18px 0 0 0",
           }}
         >
-          {ASSINATURA_TITULAR}
+          {assinaturaTitular(casa)}
         </p>
       </div>
 

@@ -817,9 +817,11 @@ evento → formulário* :: *molde de comunicado → comunicado*.
 
 ## Comunicados — fase 4, a costura e os enxertos (04/08/2026)
 
+O nome Celebra mudou para Sollelio a 15/08
+
 A adenda (semear o primeiro comunicado) ficou fora da cadeia de
 migrações, de propósito: conteúdo de um negócio nunca vive no esquema que
-todos os negócios correm (Celebra). E semeia só a folha, por publicar —
+todos os negócios correm (Sollelio). E semeia só a folha, por publicar —
 os gestos são o produto.
 
 - **04/08/2026 — A migração 082 foi escrita com o corpo à frente** (a
@@ -1534,3 +1536,191 @@ método; aqui ficam as decisões aprovadas fase a fase).
   Porquê: duas vezes neste projeto o build passou com um erro que o eslint
   apanhou e que teria rebentado no ecrã da Nádia (uma importação em falta
   que viajou com um handler). O build sozinho não chega.
+
+## Multi-tenant — o gestor deixa de servir uma casa só (15/08/2026)
+
+Sete migrações (090-096) em dois dias. O pressuposto «há uma casa» estava
+enterrado em 32 tabelas, 35 políticas e 56 funções — sai todo. Cumpre-se a
+regra de 04/08 («conteúdo de um negócio nunca vive no esquema que todos os
+negócios correm»), agora com nome próprio.
+
+- **15/08/2026 — A empresa chama-se Sollelio; Sollelio fica como nome do
+  produto.** Sol (Solange) + Hélio — os dois nomes dizem sol, em português
+  e em grego. Porquê Sollelio morreu como nome de casa: é palavra comum do
+  idioma e, nas classes de festas e eventos, o INPI trata-a como
+  descritiva — registável só como marca mista, com protecção fraca; e
+  prendia a empresa ao nicho que ela quer ultrapassar. Como nome de
+  produto continua a servir.
+- **15/08/2026 — Uma base de dados para todas as casas, nunca uma por
+  casa.** Banco por cliente esgota a quota ao segundo, obriga a repetir
+  cada migração à mão, e produz o bug corrigido num sítio e esquecido no
+  outro. A casa passa a ser uma linha em `tenants`, não uma peça de
+  infraestrutura. Feito AGORA, com uma casa e zero dados de terceiros:
+  o backfill é uma constante. Com cinco casas seria arqueologia.
+- **15/08/2026 — Raízes têm coluna; folhas delegam.** Onze tabelas levam
+  `tenant_id`; as outras vinte e uma chegam à casa por ligação já
+  existente (quase sempre `submission_id`). Porquê: dar coluna própria a
+  uma folha cria uma segunda fonte de verdade para a mesma pergunta, e com
+  ela a hipótese de divergirem sem ninguém dar por isso.
+- **15/08/2026 — A casa DERIVA-SE, nunca se recebe do browser.** Um uuid
+  de casa vindo de fora é um pedido para escrever na casa alheia. O portal
+  resolve pelo token; o formulário pelo código do convite; o pedido
+  público pelo slug do endereço (`/interesse/:slug`), por uma porta única
+  (`tenant_por_slug`). O slug é público por desenho — está no endereço,
+  não é credencial, e sozinho não abre nada.
+- **15/08/2026 — Os seis modelos de evento são da Nádia; nenhum é modelo
+  de plataforma.** Estão todos em uso, moldados aos serviços que ela vende
+  («Brunch Elegante», «Cenário Decorativo» não são categorias universais).
+  Porquê não os oferecer como ponto de partida à segunda casa: seria o
+  trabalho dela a servir um concorrente. A coluna admite `tenant_id` nulo
+  para modelos genéricos escritos de raiz, se um dia fizerem falta.
+- **15/08/2026 — O developer vê tudo pela `service_role`, nunca por
+  super-utilizador nas políticas.** Um `or is_super_admin()` entraria nas
+  32 políticas, correria em cada consulta e ficaria lá para sempre — e o
+  isolamento passaria a depender de uma função que ninguém revê. O
+  dashboard já contorna RLS por definição. Ganha-se de caminho uma frase
+  verdadeira para dizer a clientes: a aplicação não deixa o developer ver
+  os vossos dados.
+- **15/08/2026 — Contas separadas para o Hélio e para a Nádia.** Até aqui
+  eram as mesmas credenciais: ela não podia mudar a password sem lhe
+  cortar o acesso, e os registos de autenticação não distinguiam quem
+  entrou. A membership do Hélio na casa dela é TEMPORÁRIA por desenho —
+  sai quando existir um tenant de demonstração da Sollelio para testes.
+- **15/08/2026 — O briefing saiu da rua** (migração 094). A rota
+  `/briefing/:id` era pública com o uuid a fazer de chave — decisão
+  defensável com uma casa, insustentável com duas (um uuid vale em
+  qualquer sessão). A Nádia imprime a folha a partir do admin, onde já tem
+  sessão; ninguém de fora precisava dela. Com a rota privada, a projecção
+  explícita deixou de fazer sentido: a folha lê os campos por
+  `getValorAtual` a partir dos `steps` do modelo, e uma lista fixa de
+  colunas ficaria desactualizada ao primeiro campo novo — um campo em
+  branco na folha que ela leva para o evento.
+- **15/08/2026 — Um fallback que a política nega falha em SILÊNCIO — e por
+  isso morre.** O padrão «se a RPC não existir, faz por passos» serviu
+  para publicar o front antes da migração. Depois da RLS por casa, esses
+  ramos não dão «função em falta»: dão zero linhas, e a página pinta-se
+  vazia sem erro nenhum. Removidos na captação e no briefing; ficam
+  `clientes.js`, `briefingEdicao.js`, `campanhas.js` e `invites.js`.
+- **15/08/2026 — Três falhas que a RLS não travava, porque `SECURITY
+  DEFINER` ignora políticas por definição.** `captacao_dedupe` procurava
+  contacto por telefone em todas as casas (não vazava dados — escrevia-os
+  no sítio errado, que é pior: não dá erro e não se desfaz);
+  `dlm_dia_estado` devolvia `rival_nome`, o nome de uma cliente de outra
+  casa, no calendário do admin; `dlm_fase_avancar_ate` aceitava ESCRITA
+  anónima em `submissions` — qualquer pessoa com um uuid avançava a fase
+  de qualquer evento.
+- **15/08/2026 — Um DEFAULT em coluna obrigatória não chega ao anónimo, e
+  isso é deliberado.** A 090 pôs `not null` sem default e partiu todos os
+  inserts (a 092 curou com `tenant_actual()`). Mas `auth.uid()` é null nas
+  funções públicas: o default devolve null e o insert falha na mesma.
+  Porquê não remendar: obriga a resolver a casa explicitamente em cada
+  porta pública, em vez de a adivinhar.
+- **15/08/2026 — Um DEFAULT novo num argumento cria SOBRECARGA, não
+  substituição.** A 093 acrescentou `p_tenant` ao `dlm_dia_estado` e
+  ficaram duas funções com o mesmo nome; o `dlm_portal_ver` continuou a
+  chamar a antiga, sem escopo. A 095 apagou-a; a 096 fez a função deduzir
+  a casa do `p_excluir` (que É a submissão a consultar o dia, e vem da
+  base, não do browser) em vez de reescrever as 300 linhas do portal.
+  Regra que fica: ao mudar assinatura de função, verificar sempre se a
+  antiga ficou de pé.
+- **15/08/2026 — A base fica na Irlanda (eu-west-1), como já estava.** A
+  Do Luxo à Mesa opera em Portugal e o sistema guarda dados de convidados
+  — incluindo restrições alimentares, que sob o RGPD podem contar como
+  categoria especial. Ser gratuito não isenta. Região de projecto Supabase
+  não se muda sem migração completa; a que existe é a certa.
+- **15/08/2026 — Só o `sollelio.com`, por agora.** `.pt` e `.com.br`
+  ficam adiados: para um nome inventado, sem tráfego e sem reputação, o
+  risco de alguém os registar é baixo, e sobe só quando houver dinheiro
+  para os comprar. O que tem relógio a correr é a MARCA, não o domínio —
+  e em Portugal antes do Brasil, porque é lá que o produto está em uso.
+
+## O frontend deixa de saber o nome da casa de cor (099 · 15/08/2026)
+
+A 097 pôs a identidade em `tenants` e a 098 abriu as portas; faltava o
+lado de cá. Trinta e três ficheiros liam-na de constantes em JavaScript.
+
+- **15/08/2026 — Cada página pública embrulha-se no SEU Provider e diz
+  de onde vem a casa.** A porta é sempre a que a página já tem na mão: o
+  token no comunicado, no portal e na campanha; o slug na captação; o
+  código do convite no formulário. A alternativa — um Provider no `App`
+  a ler a rota — punha a identidade a depender da NAVEGAÇÃO, e a casa já
+  tem regra contra isso (30/07). Nenhuma passa a identidade por props:
+  os componentes-filhos chamam `useCasa()`, porque um logótipo que viaja
+  por prop é um sítio por onde pode chegar errado.
+- **15/08/2026 — O backoffice leva UM Provider, numa rota-molde sem
+  caminho.** `AreaAutenticada` embrulha o `ProtectedRoute` e as três
+  páginas de dentro. Um por página fazia três pedidos da mesma casa e
+  recomeçava-os a cada salto do painel para um evento; um à volta das
+  `Routes` todas punha as páginas públicas a perguntar por uma sessão
+  que não têm. Aqui a identidade carrega depois de a sessão estar
+  confirmada — que é a ordem que a 098 exige, porque a RPC deriva a casa
+  de `auth.uid()`.
+- **15/08/2026 — O login veste a identidade de omissão, e isso é a
+  resposta certa.** É rota irmã da protegida: quem ainda não entrou não
+  tem sessão, a RPC devolve null. A porta de entrada é do PRODUTO, não
+  de uma casa — saber de que casa é alguém antes de se identificar era
+  exactamente o que a 093 proibiu.
+- **15/08/2026 — Os literais de texto visível migram; os comentários
+  não.** Vinte e cinco frases diziam «Do Luxo à Mesa» à mão, sem passar
+  por constante nenhuma — o grep da 099 não as apanhava e mentiriam
+  exactamente como o `EMPRESA` mentia. Nos comentários a Nádia continua
+  a ser a Nádia (regra de 02/08).
+- **15/08/2026 — Conteúdo de NEGÓCIO não é identidade e não migra
+  aqui.** As cláusulas do contrato, a nota de higienização do orçamento
+  e os textos-sugestão dos geradores são frases escritas pela titular,
+  com a casa cosida por dentro («sob a designação comercial X», «o foro
+  da X»). Trocar o X por `casa.nome` não as torna da casa seguinte —
+  torna-as só menos verdadeiras. Ficam para migração própria, em que
+  passam a texto por casa na base de dados, não a molde com furos.
+- **15/08/2026 — Onze das doze exportações-ponte caíram; sobra o
+  `EMPRESA`, e sobra sozinho.** É o preço da decisão anterior: o
+  `contratoConfig.js` é o único consumidor, está nomeado no comentário
+  do `casa.js`, e a condição de saída está escrita. Um segundo ficheiro
+  nesse grep quer dizer que alguém voltou a atravessar a ponte.
+- **15/08/2026 — Os módulos que não são componentes recebem a casa por
+  ARGUMENTO.** `imprimirFicha`, `imprimirConferencia`, `conteudo.js` e o
+  `validateCode` não têm hook à mão; quem chama é componente e passa o
+  `useCasa()`. Nada de estado global — seria uma segunda fonte de
+  verdade a divergir do Provider em silêncio. A excepção é o
+  `useNotificacoes`: é um hook, e um hook lê o contexto.
+- **15/08/2026 — Ao interpolar a casa em HTML de impressão, escapa-se.**
+  As folhas de armazém montavam o cabeçalho com constantes literais, e
+  interpolar sem escapar era seguro. Deixou de ser: o nome vem agora da
+  base, e um `&` no nome de uma casa partia a folha.
+
+### Pendências desta decisão
+
+- **100 · O token morto veste a casa de omissão.** Um token revogado faz
+  a RPC devolver null, e o Provider mantém a identidade anterior de
+  propósito (uma folha com o cabeçalho de ontem é melhor do que uma sem
+  cabeçalho). Com uma casa só são a mesma coisa; com duas, um link morto
+  da casa B mostra a marca da casa A. Não se resolve no Provider — pede
+  que a porta distinga «não sei» de «não existe».
+- **O texto dos documentos ainda é de UMA casa.** A lista completa está
+  na 099: `orcamentoConfig.js` (nota de rodapé, condições, catálogo de
+  serviços, os 25 € entre as duas moradas dela), `contratoConfig.js` (as
+  onze cláusulas e a composição por lugar) e os textos-sugestão do
+  `GerarProposta` e do `GerarOrcamento`. Enquanto isto viver em
+  JavaScript, a segunda casa assina o contrato da primeira.
+- **`src/lib/casa.js` é identidade de UMA casa, cravada em JavaScript**
+  (WhatsApp, MB Way, IBAN, assinatura do titular). A decisão de 04/08 já
+  o previa: «o dia do segundo negócio, a camada entra ali sem reescrever
+  nada». **Fechada pela 099** — os campos vêm de `tenants` pelo
+  Provider; o que fica no ficheiro é a omissão e a FORMA.
+- **Chaves de texto ainda únicas GLOBALMENTE**: `app_config.chave`,
+  `event_types.nome`, `avaliacao_eixos.chave`, `questionario_grupos.chave`.
+  A segunda casa que quiser um tipo «Casamento» leva erro de constraint.
+- **`form_errors` aceita insert anónimo sem limite** — o caminho mais
+  fácil para encher os 500 MB do plano gratuito.
+- **Sem autoria**: não há `criado_por` em lado nenhum e
+  `respostas_autoria` grava `'cliente'` como texto fixo, não um `user_id`.
+  Duas contas dão dois logins, não histórico de quem fez o quê.
+- **Os nomes de máquina continuam a dizer `dlm_` e `captacao_`** — 43 das
+  56 funções levam o nome da primeira casa, e a palavra abandonada a 29/07
+  vive nas RPCs. Renomeia-se numa migração própria, com invólucros, nunca
+  a meio de outra coisa.
+- **Quando existir a segunda casa:** sai o redirect de `/interesse` (o
+  slug fixo passa a mandar leads para a casa errada), sai a membership do
+  Hélio na Do Luxo à Mesa, e o isolamento testa-se a sério — com um
+  tenant só, nenhum teste distingue «filtra pela casa certa» de «não
+  filtra».

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MarcaCruz } from "./marcas";
+import { useCasa } from "../CasaProvider";
 import {
   TIPOS_NOTA,
   tipoNota,
@@ -127,6 +128,7 @@ function LinhaSistema({ entrada }) {
 
 // O que ela escreveu: cartão, com o tipo e o autor.
 function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
+  const casa = useCasa();
   const t = tipoNota(entrada.tipo);
   const interna = entrada.tipo === "interna";
 
@@ -167,7 +169,7 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
             {t.label}
           </span>
           <span style={{ fontSize: "11.5px", color: "#9B9B9B" }}>
-            {interna ? "só eu vejo" : entrada.autor || "Nádia"}
+            {interna ? "só eu vejo" : entrada.autor || casa.titular}
           </span>
           <div style={{ flex: 1 }} />
           {aApagar ? (

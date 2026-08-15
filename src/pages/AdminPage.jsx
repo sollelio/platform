@@ -7,7 +7,7 @@ import {
   idDoSlug,
 } from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
-import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
+import { useCasa } from "../components/CasaProvider";
 import {
   createInvite,
   ehFormularioOrfao,
@@ -80,8 +80,11 @@ import { motion, AnimatePresence } from "framer-motion";
 // mudaram-se para lib/camposFormulario.js, porque passaram a ter dois
 // donos: esta página e o painel extraído.
 
+// Sem Provider próprio: o backoffice inteiro corre dentro do da
+// AreaAutenticada (App.jsx), montado uma vez à porta.
 export default function AdminPage() {
   const location = useLocation();
+  const casa = useCasa();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   // ------------------------------------------------------------
@@ -712,7 +715,7 @@ export default function AdminPage() {
     const url = `${window.location.origin}/?codigo=${invite.code}`;
     const tipo = eventTypes.find((et) => et.id === invite.event_type_id);
     const emoji = tipo?.icone === "couple" ? "💍" : "✨";
-    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *Do Luxo à Mesa* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${SLOGAN_CASA} ✨`;
+    return `Olá ${getTituloConvite(invite, submissions, eventTypes)}! ${emoji}\n\nO vosso formulário *${casa.nome}* está pronto.\n\nÉ só clicar aqui para começar: ${url}\n\n(O vosso código de acesso é: *${invite.code}*)\n\n${casa.slogan} ✨`;
   };
 
   // `silencioso`: os refetches do realtime não mostram esqueletos — o
@@ -944,7 +947,7 @@ export default function AdminPage() {
               lineHeight: 1.1,
             }}
           >
-            {EMPRESA.designacao}
+            {casa.nome}
           </h1>
           <p
             style={{
@@ -955,7 +958,7 @@ export default function AdminPage() {
               margin: 0,
             }}
           >
-            {LINHA_BY_LUXURY}
+            {casa.linha_by}
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { LOGO_CASA as logoUrl, EMPRESA } from "../lib/casa";
+import { logoDe } from "../lib/casa";
+import { useCasa } from "./CasaProvider";
 
 // ============================================================
 // LogoDourado — o tratamento de luxo do logo (halo de champanhe +
@@ -28,7 +29,11 @@ const POEIRA = [
 
 export default function LogoDourado({
   size = 200,
-  alt = EMPRESA.designacao,
+  // Sem valor por omissão no parâmetro: o nome da casa só se sabe com
+  // o hook, e um parâmetro não pode chamar hooks. Fica indefinido e
+  // resolve-se lá dentro — quem passa um `alt` próprio continua a
+  // mandar nele.
+  alt,
   // Dois interruptores, ambos no valor de sempre por omissão — as páginas
   // que já usavam este componente não notam nada.
   //
@@ -43,6 +48,9 @@ export default function LogoDourado({
   raio = true,
   animar = true,
 }) {
+  const casa = useCasa();
+  const logoUrl = logoDe(casa);
+  const textoAlt = alt ?? casa.nome;
   const k = size / 200;
   const px = (n) => Math.round(n * k * 10) / 10;
 
@@ -66,7 +74,7 @@ export default function LogoDourado({
         />
         <img
           src={logoUrl}
-          alt={alt}
+          alt={textoAlt}
           style={{
             width: `${size}px`,
             height: "auto",
@@ -166,7 +174,7 @@ export default function LogoDourado({
       ))}
       <motion.img
         src={logoUrl}
-        alt={alt}
+        alt={textoAlt}
         initial={{ opacity: 0, scale: 0.94, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.9, ease: EASE_LUXO }}

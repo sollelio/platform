@@ -4,7 +4,8 @@ import { supabase } from "../lib/supabase";
 import { destinoDepoisDoLogin, useSessao } from "../lib/sessao";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.webp";
-import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaDaSessao } from "../lib/identidadeCasa";
 
 function Ornament({ small = false }) {
   return (
@@ -125,7 +126,25 @@ function FlowerDecoration() {
   );
 }
 
+// O login é rota IRMÃ da protegida, e por isso tem Provider próprio —
+// não pode herdar o da AreaAutenticada, que vive do outro lado da porta
+// que este ecrã existe para abrir.
+//
+// A consequência é honesta e fica dita: quem ainda não entrou não tem
+// sessão, a RPC devolve null e o ecrã veste a identidade de omissão. É
+// o que deve acontecer — a porta de entrada é do PRODUTO, não de uma
+// casa; saber de que casa é alguém antes de ele se identificar era
+// exactamente o que a 093 proibiu.
 export default function LoginPage() {
+  return (
+    <CasaProvider chave="sessao" carregar={casaDaSessao}>
+      <LoginConteudo />
+    </CasaProvider>
+  );
+}
+
+function LoginConteudo() {
+  const casa = useCasa();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -275,7 +294,7 @@ export default function LoginPage() {
               lineHeight: 1.1,
             }}
           >
-            {EMPRESA.designacao}
+            {casa.nome}
           </h1>
           <p
             style={{
@@ -286,7 +305,7 @@ export default function LoginPage() {
               margin: "0 0 20px 0",
             }}
           >
-            {LINHA_BY_LUXURY}
+            {casa.linha_by}
           </p>
           <div
             style={{
@@ -548,7 +567,7 @@ export default function LoginPage() {
               margin: "4px 0 0",
             }}
           >
-            {SLOGAN_CASA}
+            {casa.slogan}
           </p>
         </div>
       </div>

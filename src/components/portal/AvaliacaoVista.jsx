@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Esqueleto } from "../admin/acabamento";
 import { overline, playfair, diaMesAno } from "./base";
 import { FileteComLosango, Medalhao } from "./pecas";
+import { useCasa } from "../CasaProvider";
 import { CapsulaVazada, CapsulaCheia, LigacaoDiscreta } from "./documentos-pecas";
 import { verAvaliacao, enviarAvaliacao, eixosRespondidos } from "../../lib/avaliacao";
 
@@ -701,6 +702,7 @@ function Escolha({ activa, titulo, corpo, aoTocar }) {
 // que a torna reversível, que é o que dá confiança a quem acabou de
 // autorizar alguma coisa.
 function Obrigado({ frase, autorizada, nomeComo, foto, quando, aoSair }) {
+  const casa = useCasa();
   const nome = autorizada
     ? nomeComo === "anonimo" ? "sem nome" : "com o seu nome"
     : null;
@@ -721,7 +723,7 @@ function Obrigado({ frase, autorizada, nomeComo, foto, quando, aoSair }) {
           Ficámos com as suas palavras.
         </p>
         <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0" }}>
-          A Do Luxo à Mesa lê tudo o que nos escrevem.
+          A {casa.nome} lê tudo o que nos escrevem.
         </p>
       </div>
 

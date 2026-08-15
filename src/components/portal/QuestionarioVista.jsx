@@ -10,6 +10,7 @@ import {
   ValorDaResposta,
 } from "./questionario-pecas";
 import EditorDeCampo from "./EditorDeCampo";
+import { useCasa } from "../CasaProvider";
 import {
   verQuestionario, responder, pedirAlteracaoCampo, passoRespondido, passoOndeFicou,
   contagemPorExtenso, ondeFicouPorExtenso, emDe, diasAte,
@@ -314,6 +315,7 @@ const MOTIVO_DO_FECHO = {
 const SO_POR_PEDIDO = ["paleta", "morada"];
 
 function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
+  const casa = useCasa();
   const navigate = useNavigate();
   const [aberto, setAberto] = useState(null); // { campo, valor } | { campo, fecho: campo.id }
   const [aGuardar, setAGuardar] = useState(false);
@@ -464,7 +466,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
       return;
     }
     if (!texto || texto.trim().length < 3) {
-      setErro("Escreva o que gostaria de mudar — é o que a Do Luxo à Mesa vai ler.");
+      setErro(`Escreva o que gostaria de mudar — é o que a ${casa.nome} vai ler.`);
       return;
     }
     setAGuardar(true);
@@ -633,7 +635,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
                         «já está connosco». */}
                     {pedidoAberto && !aEditar && !aExplicar && (
                       <p style={{ fontSize: "10.5px", lineHeight: 1.6, color: "#A07830", margin: "7px 0 0" }}>
-                        pedido de alteração enviado a {diaEMes(pedidoAberto.quando)} · está com a Do Luxo à Mesa
+                        pedido de alteração enviado a {diaEMes(pedidoAberto.quando)} · está com a {casa.nome}
                       </p>
                     )}
                     {!podeMudar && passo.fechado && !aExplicar && !pedidoAberto && (
@@ -695,7 +697,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
                     aoPedir={
                       pedidoAberto ? (
                         <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "18px 0 0", textWrap: "pretty" }}>
-                          Já nos pediu uma alteração a {diaEMes(pedidoAberto.quando)} — está com a Do Luxo à Mesa, e respondemos.
+                          Já nos pediu uma alteração a {diaEMes(pedidoAberto.quando)} — está com a {casa.nome}, e respondemos.
                         </p>
                       ) : (
                         <CapsulaVazada onClick={abrirPedido} style={{ marginTop: "18px" }}>
@@ -721,7 +723,7 @@ function Respostas({ token, dados, sub, recargaFalhou, aoMudar }) {
                     </p>
                     {pedidoAberto ? (
                       <p style={{ fontSize: "12.5px", lineHeight: 1.75, color: "var(--gray-mid)", margin: "18px 0 0", textWrap: "pretty" }}>
-                        Já nos pediu uma alteração a {diaEMes(pedidoAberto.quando)} — está com a Do Luxo à Mesa, e respondemos.
+                        Já nos pediu uma alteração a {diaEMes(pedidoAberto.quando)} — está com a {casa.nome}, e respondemos.
                       </p>
                     ) : (
                       <CapsulaVazada onClick={abrirPedido} style={{ marginTop: "18px" }}>
@@ -795,6 +797,7 @@ const comporPedidoMorada = (m) => {
 };
 
 function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro, inicial }) {
+  const casa = useCasa();
   // Monta de fresco a cada pedido, por isso o useState inicial chega. Quando
   // o campo fechou com texto já escrito, o pedido não começa vazio — é o que
   // torna verdadeira a frase «o que escreveu não se perdeu».
@@ -845,7 +848,7 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro,
           Diga-nos o que quer mudar {emDe(campo.label)}.
         </p>
         <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
-          A Do Luxo à Mesa vê o pedido e responde a dizer o que se consegue — e o que já
+          A {casa.nome} vê o pedido e responde a dizer o que se consegue — e o que já
           não dá, dá-lo com alternativa.
         </p>
 
@@ -933,6 +936,7 @@ function PedidoDeAlteracao({ campo, passo, aoEnviar, aoVoltar, aTrabalhar, erro,
 // REGISTO — o que ficou escrito, palavra a palavra — porque é isso que lhe
 // dá confiança de que o pedido não se perdeu.
 function PedidoEnviado({ campo, passo, texto, quando, aoVoltar }) {
+  const casa = useCasa();
   return (
     <div style={{ padding: "34px 26px 32px" }}>
       <div
@@ -946,7 +950,7 @@ function PedidoEnviado({ campo, passo, texto, quando, aoVoltar }) {
         <Medalhao />
         <p style={overline()}>Pedido enviado</p>
         <p style={{ ...playfair, fontSize: "22px", lineHeight: 1.3, margin: "10px 0 0", textWrap: "balance" }}>
-          O pedido está com a Do Luxo à Mesa.
+          O pedido está com a {casa.nome}.
         </p>
         <p style={{ fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)", margin: "11px 0 0", textWrap: "pretty" }}>
           Ela vê o que já foi encomendado e diz-lhe o que se consegue mudar a

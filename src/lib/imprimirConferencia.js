@@ -11,7 +11,7 @@
 // ecrã avisar na barra da casa (nunca alert()).
 // ============================================================
 
-import { EMPRESA, LINHA_BY_LUXURY } from "./casa";
+import { comOmissao } from "./casa";
 
 const escapar = (t) =>
   String(t ?? "")
@@ -110,12 +110,16 @@ const provisoriosHtml = (provisorios, nomeEvento) => {
   </div>`;
 };
 
+// A casa entra por ARGUMENTO, como no imprimirFicha e pela mesma razão:
+// aqui não há hook nenhum à mão. Quem chama é a ConferenciaPeriodo.
 export const imprimirConferencia = ({
+  casa: casaCrua,
   conf,
   intervalo,
   tituloPeriodo,
   nomeEvento,
 }) => {
+  const casa = comOmissao(casaCrua);
   const cabecalhoEventos = conf.eventos
     .map(
       (e) =>
@@ -204,8 +208,8 @@ export const imprimirConferencia = ({
 <div class="folha">
   <header class="cabecalho">
     <div>
-      <p class="marca">${EMPRESA.designacao}</p>
-      <p class="marca-sub">${LINHA_BY_LUXURY}</p>
+      <p class="marca">${escapar(casa.nome)}</p>
+      <p class="marca-sub">${escapar(casa.linha_by || "")}</p>
     </div>
     <div class="cabecalho-direita">
       <h1>O que sai</h1>

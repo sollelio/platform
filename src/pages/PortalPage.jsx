@@ -2,7 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
-import { EMPRESA, DOMINIO_CASA } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorTokenDePortal } from "../lib/identidadeCasa";
 import { Esqueleto } from "../components/admin/acabamento";
 import {
   getPortal,
@@ -37,7 +38,7 @@ import AvaliacaoVista from "../components/portal/AvaliacaoVista";
 import SinalVista from "../components/portal/SinalVista";
 import PorticoDoSinal from "../components/portal/PorticoDoSinal";
 import {
-  WHATSAPP_URL, SITE_URL, overline, playfair, diaEMes, diaMesAno, semanaEAno,
+  urlWhatsAppDoPortal, siteDe, overline, playfair, diaEMes, diaMesAno, semanaEAno,
 } from "../components/portal/base";
 import { CapsulaVazada } from "../components/portal/documentos-pecas";
 import {
@@ -130,6 +131,8 @@ function CampoPorDefinir({ campo, ajuda }) {
 // Inexistente, revogado e expirado são indistinguíveis de propósito — não
 // se confirma nem se desmente a existência de um token.
 function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) {
+  const casa = useCasa();
+  const urlWhatsApp = urlWhatsAppDoPortal(casa);
   return (
     <div
       style={{
@@ -190,9 +193,9 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
 
         {comSaidas && (
           <div style={{ marginTop: "28px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-            {WHATSAPP_URL && (
+            {urlWhatsApp && (
               <a
-                href={WHATSAPP_URL}
+                href={urlWhatsApp}
                 style={{
                   display: "block",
                   font: "600 11px Inter, sans-serif",
@@ -211,7 +214,7 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
               </a>
             )}
             <a
-              href={SITE_URL}
+              href={siteDe(casa)}
               style={{
                 display: "inline-block",
                 padding: "10px 12px",
@@ -226,7 +229,7 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
               }}
             >
               <span style={{ borderBottom: "1px solid #E8D5A3", paddingBottom: "3px" }}>
-                {DOMINIO_CASA}
+                {casa.dominio}
               </span>
             </a>
           </div>
@@ -240,9 +243,23 @@ function Cortina({ titulo, corpo, sobretitulo, comSaidas, reduzir, aoRepetir }) 
 
 // ---------- A página ----------
 
+// A casa vem do token do portal (098). O Provider fica por fora para as
+// cortinas — a de erro e a do acompanhamento terminado — já desenharem
+// com a identidade certa: é onde a cliente pior conhece a casa, e onde
+// o rodapé e o WhatsApp são a única saída.
 export default function PortalPage() {
+  const { token } = useParams();
+  return (
+    <CasaProvider chave={token} carregar={() => casaPorTokenDePortal(token)}>
+      <PortalConteudo />
+    </CasaProvider>
+  );
+}
+
+function PortalConteudo() {
   const { token, vista, sub } = useParams();
   const navigate = useNavigate();
+  const casa = useCasa();
   const [resultado, setResultado] = useState(null);
   // Conta as repetições pedidas pela cortina de erro: o «Tentar novamente»
   // incrementa-a e o efeito refaz o pedido — sem window.location.reload.
@@ -345,8 +362,8 @@ export default function PortalPage() {
       avaliar: "A avaliação",
       sinal: "O sinal",
     };
-    document.title = `${porVista[vista] || "O seu acompanhamento"} — ${EMPRESA.designacao}`;
-  }, [vista]);
+    document.title = `${porVista[vista] || "O seu acompanhamento"} — ${casa.nome}`;
+  }, [vista, casa.nome]);
 
   // Cada troca de vista entra pelo topo (seco, sem smooth); o regresso à
   // jornada devolve ao ponto onde se estava. O foco acompanha, para o
@@ -471,7 +488,7 @@ export default function PortalPage() {
         sobretitulo="Até à próxima mesa"
         titulo="Esta ligação não abre nenhum evento."
         corpo={
-          WHATSAPP_URL
+          urlWhatsAppDoPortal(casa)
             ? "Pode ter terminado o acompanhamento, ou a ligação ter sido substituída por outra. Se precisar de voltar ao seu evento, fale connosco pelo WhatsApp — a porta reabre-se."
             : "Pode ter terminado o acompanhamento, ou a ligação ter sido substituída por outra. Se precisar de voltar ao seu evento, responda à mensagem por onde recebeu esta ligação — a porta reabre-se."
         }
@@ -689,7 +706,7 @@ export default function PortalPage() {
   // O CONTEÚDO das novidades e das pendências vive ao lado das divisões que
   // o consomem (components/portal/divisoes.jsx) — é regra de conteúdo, não
   // de desenho, e a página não tem que a conhecer.
-  const novidadesBase = comporNovidades(dados);
+  const novidadesBase = comporNovidades(dados, casa);
   const pendenciasBase = comporPendencias(dados, caducou || caducaHoje);
   // A ligação constrói-se aqui porque só a página conhece o token: o
   // orçamento pendente passa a levar à área dos documentos.

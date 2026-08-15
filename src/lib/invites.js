@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { ehFuncaoRpcEmFalta } from "./rpc";
+import { comOmissao } from "./casa";
 
 // Gera um código legível e único — ex: DLM-X7K9-2025
 export const generateCode = () => {
@@ -83,7 +84,14 @@ export const getEventTypes = async () => {
 // pré-preenchimento do onboarding — o formulário deixa de precisar de
 // ler a tabela submissions directamente. Enquanto a função não existir
 // na BD, usa o caminho antigo.
-export const validateCode = async (code) => {
+//
+// A CASA entra por argumento (099): duas destas mensagens dizem a quem
+// se há-de queixar, e esse nome deixou de ser constante. Não se lê aqui
+// por hook — isto não é componente — nem se adivinha pelo prefixo do
+// código; quem chama é a porta de entrada, que já tem o Provider. Sem
+// argumento cai na omissão, como tudo o resto.
+export const validateCode = async (code, casaCrua) => {
+  const casa = comOmissao(casaCrua);
   let data = null;
   let error = null;
 
@@ -116,14 +124,14 @@ export const validateCode = async (code) => {
     return {
       valid: false,
       reason:
-        "Este convite não tem um tipo de evento associado. Contacta Do Luxo à Mesa.",
+        `Este convite não tem um tipo de evento associado. Contacta ${casa.nome}.`,
     };
   }
   if (data.status === "Preenchido") {
     return {
       valid: false,
       reason:
-        "Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta Do Luxo à Mesa.",
+        `Este formulário já foi submetido. Se precisares de alterar alguma resposta, contacta ${casa.nome}.`,
     };
   }
   return { valid: true, invite: data };

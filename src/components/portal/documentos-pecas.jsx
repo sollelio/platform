@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import {
   overline, playfair, HACHURA, formatarEuroPT, diaMesAno,
 } from "./base";
-import { EMPRESA } from "../../lib/casa";
+import { logoDe } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 
 // ============================================================
 // documentos-pecas.jsx — as doze peças dos documentos e dos actos
@@ -49,10 +50,14 @@ export function Folha({ children, selada = false }) {
 }
 
 // O timbre: logo pequeno, o nome do documento, o selo de versão.
-export function Timbre({ logoUrl, nome, versao, quando }) {
+// O logo deixou de vir por prop: é identidade, e identidade lê-se do
+// Provider onde se usa — quatro chamadores a passar o mesmo logótipo
+// eram quatro sítios por onde ele podia vir errado.
+export function Timbre({ nome, versao, quando }) {
+  const casa = useCasa();
   return (
     <div style={{ padding: "24px 22px 18px", textAlign: "center", borderBottom: "1px solid #F3EBDA" }}>
-      <img src={logoUrl} alt={EMPRESA.designacao} style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
+      <img src={logoDe(casa)} alt={casa.nome} style={{ width: "92px", height: "auto", display: "block", margin: "0 auto" }} />
       <p style={{ ...overline(), marginTop: "16px" }}>{nome}</p>
       <SeloVersao versao={versao} quando={quando} comDe={false} style={{ marginTop: "8px" }} />
     </div>

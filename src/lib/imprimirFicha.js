@@ -1,5 +1,5 @@
 import { coresDeTexto } from "./paletaCores";
-import { EMPRESA, LINHA_BY_LUXURY } from "./casa";
+import { comOmissao } from "./casa";
 
 // ============================================================
 // imprimirFicha — gera as TRÊS listas operacionais de um evento
@@ -90,15 +90,15 @@ const tabelaCategoria = (grupo) => `
 `;
 
 // Uma lista completa (página): título + evento + categorias
-const gerarLista = (titulo, subtitulo, linhas, submissao, tituloEvento) => {
+const gerarLista = (casa, titulo, subtitulo, linhas, submissao, tituloEvento) => {
   if (linhas.length === 0) return "";
   const grupos = agrupar(linhas);
   return `
   <section class="lista">
     <header class="cabecalho">
       <div>
-        <p class="marca">${EMPRESA.designacao}</p>
-        <p class="marca-sub">${LINHA_BY_LUXURY}</p>
+        <p class="marca">${escapar(casa.nome)}</p>
+        <p class="marca-sub">${escapar(casa.linha_by || "")}</p>
       </div>
       <div class="cabecalho-direita">
         <h1>${escapar(titulo)}</h1>
@@ -115,7 +115,12 @@ const gerarLista = (titulo, subtitulo, linhas, submissao, tituloEvento) => {
   `;
 };
 
-export const imprimirFicha = (linhas, submissao, tituloEvento = "") => {
+// A casa entra por ARGUMENTO e não por importação: este ficheiro não é
+// componente, não tem hook nenhum à mão, e um estado global só para lhe
+// dar a identidade seria uma segunda fonte de verdade a divergir da do
+// Provider. Quem chama é a FichaEvento, que já tem o useCasa().
+export const imprimirFicha = (casaCrua, linhas, submissao, tituloEvento = "") => {
+  const casa = comOmissao(casaCrua);
   const nome =
     tituloEvento ||
     submissao?.nome_noivo ||
@@ -124,6 +129,7 @@ export const imprimirFicha = (linhas, submissao, tituloEvento = "") => {
 
   const listas = [
     gerarLista(
+      casa,
       "Lista de Carga",
       "O que sai do armazém",
       // quantidade > 0 como na conferência «O que sai»: a regra da casa
@@ -137,6 +143,7 @@ export const imprimirFicha = (linhas, submissao, tituloEvento = "") => {
       nome,
     ),
     gerarLista(
+      casa,
       "Lista de Montagem",
       "O que se monta no local",
       linhas.filter((l) => l.lista_montagem),
@@ -144,6 +151,7 @@ export const imprimirFicha = (linhas, submissao, tituloEvento = "") => {
       nome,
     ),
     gerarLista(
+      casa,
       "Lista de Higienização",
       "O que volta e se higieniza",
       linhas.filter((l) => l.lista_higienizacao),

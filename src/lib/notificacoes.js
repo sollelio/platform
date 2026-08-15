@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 import { TITULO_BACKOFFICE } from "./casa";
+import { useCasa } from "../components/CasaProvider";
 
 // ============================================================
 // notificacoes.js — a Caixa de Entrada da Nádia (migração 022).
@@ -138,6 +139,10 @@ const subscreverNotificacoes = (onNova) => {
 // última chegada em tempo real (alimenta o toast).
 // ------------------------------------------------------------
 export function useNotificacoes() {
+  // Este ficheiro não é componente, mas ISTO é um hook — e um hook pode
+  // ler o contexto. O título do separador é o único pedaço de identidade
+  // que aqui vive, e não precisa de descer por argumento.
+  const casa = useCasa();
   const [lista, setLista] = useState([]);
   const [nova, setNova] = useState(null);
 
@@ -170,9 +175,9 @@ export function useNotificacoes() {
   const naoLidas = lista.filter((n) => !n.lida_em).length;
 
   useEffect(() => {
-    const base = TITULO_BACKOFFICE;
+    const base = TITULO_BACKOFFICE(casa);
     document.title = naoLidas > 0 ? `(${naoLidas}) ${base}` : base;
-  }, [naoLidas]);
+  }, [naoLidas, casa]);
 
   const marcarLida = useCallback((id) => {
     setLista((prev) =>

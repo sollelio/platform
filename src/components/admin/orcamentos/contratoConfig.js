@@ -7,9 +7,21 @@
 // {PLACEHOLDERS} são substituídos na geração.
 // ============================================================
 
-import { EMPRESA } from "./orcamentoConfig";
-
-export { EMPRESA };
+// ⚠ O ÚLTIMO CONSUMIDOR DA PONTE (099).
+//
+// As cláusulas abaixo são texto JURÍDICO escrito pela titular, com a
+// identidade cosida por dentro da frase — «sob a designação comercial
+// X», «o padrão estético da marca X», «o foro da X». Trocar o X por
+// `casa.nome` não resolve nada: a frase inteira é dela, e a casa
+// seguinte escreve as suas. Por isso este ficheiro não migrou com os
+// outros e continua a ler o EMPRESA cravado — que, enquanto houver uma
+// casa só, diz a verdade.
+//
+// Fica em aberto como migração PRÓPRIA: as cláusulas passam a texto por
+// casa (base de dados), não a template com furos. Até lá, as
+// exportações @deprecated do casa.js não podem cair — esta linha é a
+// razão, e é a única.
+import { EMPRESA } from "../../../lib/casa";
 
 // Introdução (a seguir aos dados das partes)
 export const CONTRATO_INTRO = `Titular da atividade de prestação de serviços de decoração de eventos, atuando sob a designação comercial "${EMPRESA.designacao}".

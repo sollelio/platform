@@ -9,6 +9,7 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { TITULO_BACKOFFICE } from "../lib/casa";
+import { useCasa } from "../components/CasaProvider";
 import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
 import {
   extrairDadosCliente,
@@ -527,6 +528,7 @@ export default function EventoPage() {
   const { id, aba } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const casa = useCasa();
 
   const [submissao, setSubmissao] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
@@ -591,8 +593,8 @@ export default function EventoPage() {
   // com o título público que o portal tenha deixado. O AdminPage já o
   // repõe via notificacoes.js; esta é a outra porta de entrada.
   useEffect(() => {
-    document.title = TITULO_BACKOFFICE;
-  }, []);
+    document.title = TITULO_BACKOFFICE(casa);
+  }, [casa]);
 
   // O aviso da Caixa de Entrada manda «trate na folha do Acompanhamento»
   // — este state, consumido UMA vez (o padrão do realce), cumpre a

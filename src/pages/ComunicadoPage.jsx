@@ -5,14 +5,13 @@ import { comporFolha } from "../lib/comunicados";
 import { realce } from "../lib/realce";
 import {
   linkWhatsAppCasa,
-  NUMERO_WHATSAPP_CASA,
-  EMPRESA,
-  LINHA_ACTIVIDADE,
-  ASSINATURA_FOLHA,
-  SITE_URL,
-  DOMINIO_CASA,
-  LOGO_CASA as logo,
+  numeroLegivel,
+  logoDe,
+  assinaturaFolha,
+  siteDe,
 } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorTokenDeComunicado } from "../lib/identidadeCasa";
 
 // ============================================================
 // ComunicadoPage — /comunicado/:token, a folha pública de um comunicado.
@@ -69,11 +68,6 @@ const ESTILO_IMPRESSAO = `
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 `;
-
-// O número da casa como se escreve — só o papel o mostra: a frase
-// impressa tem de funcionar sem toque, e ao toque a ligação já
-// funciona. Deriva da constante para nunca desencontrar do wa.me.
-const NUMERO_LEGIVEL = `+${NUMERO_WHATSAPP_CASA.slice(0, 3)} ${NUMERO_WHATSAPP_CASA.slice(3, 6)} ${NUMERO_WHATSAPP_CASA.slice(6, 9)} ${NUMERO_WHATSAPP_CASA.slice(9)}`;
 
 // ---------- Peças locais ----------
 // Nenhuma outra página as usa; ficam aqui.
@@ -171,6 +165,7 @@ function FileteRotulado({ children, margem }) {
 // O cabeçalho de marca: halo (só no ecrã), logo e overline. A cortina e
 // a folha partilham-no — é a mesma casa a falar.
 function Marca({ altura = 118 }) {
+  const casa = useCasa();
   return (
     <header
       id="marca-comunicado"
@@ -198,8 +193,8 @@ function Marca({ altura = 118 }) {
         }}
       />
       <img
-        src={logo}
-        alt={EMPRESA.designacao}
+        src={logoDe(casa)}
+        alt={casa.nome}
         style={{ position: "relative", height: `${altura}px`, width: "auto", display: "block" }}
       />
       <div
@@ -215,7 +210,7 @@ function Marca({ altura = 118 }) {
           textAlign: "center",
         }}
       >
-        {LINHA_ACTIVIDADE}
+        {casa.linha_actividade}
       </div>
     </header>
   );
@@ -242,6 +237,7 @@ function Esq({ w = "100%", h = 12, r = 8, style }) {
 // quem cai aqui é quem pior conhece a casa; só o erro soma o botão
 // de repetir, primeiro.
 function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
+  const casa = useCasa();
   const ligacao = {
     color: "#A07830",
     textDecorationColor: "#E8D5A3",
@@ -316,7 +312,7 @@ function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
           a voz dela. */}
       <div style={{ marginTop: aoRepetir ? "16px" : "32px" }}>
         <Capsula
-          href={linkWhatsAppCasa(mensagemWhatsApp)}
+          href={linkWhatsAppCasa(casa, mensagemWhatsApp)}
           style={{ gap: "8px", padding: "11px 20px", fontSize: "12.5px" }}
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -326,8 +322,8 @@ function Cortina({ titulo, corpo, aoRepetir, mensagemWhatsApp }) {
         </Capsula>
       </div>
       <p style={{ margin: "18px 0 0", fontSize: "12px", color: "#6B6B6B" }}>
-        E se procura a Do Luxo à Mesa, está em{" "}
-        <a href={SITE_URL} style={ligacao}>{DOMINIO_CASA}</a>.
+        E se procura a {casa.nome}, está em{" "}
+        <a href={siteDe(casa)} style={ligacao}>{casa.dominio}</a>.
       </p>
     </div>
   );
@@ -565,7 +561,9 @@ const estruturar = (pecas) => {
 // ---------- A folha ----------
 
 function Folha({ dados }) {
+  const casa = useCasa();
   const itens = estruturar(comporFolha(dados.blocos));
+  const assinatura = assinaturaFolha(casa);
 
   // O registo é temperamento, não outra página: 'oferta' centra, cresce
   // e enche; qualquer outro valor (ou nenhum — as folhas da fase 1)
@@ -584,7 +582,7 @@ function Folha({ dados }) {
   // do GerarOrcamento.
   const imprimir = () => {
     const anterior = document.title;
-    document.title = `${dados.titulo || "Comunicado"} — ${EMPRESA.designacao}`;
+    document.title = `${dados.titulo || "Comunicado"} — ${casa.nome}`;
     window.print();
     document.title = anterior;
   };
@@ -756,10 +754,10 @@ function Folha({ dados }) {
               color: "#A07830",
             }}
           >
-            {ASSINATURA_FOLHA.despedida}
+            {assinatura.despedida}
           </p>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "21px", marginTop: "4px" }}>
-            {ASSINATURA_FOLHA.nome}
+            {assinatura.nome}
           </div>
           <div
             style={{
@@ -770,7 +768,7 @@ function Folha({ dados }) {
               marginTop: "9px",
             }}
           >
-            {DOMINIO_CASA.toUpperCase()}
+            {casa.dominio.toUpperCase()}
           </div>
         </div>
 
@@ -789,15 +787,16 @@ function Folha({ dados }) {
             Alguma questão sobre esta folha?{" "}
             <a
               href={linkWhatsAppCasa(
+                casa,
                 dados.titulo
-                  ? `Olá! Escrevo sobre a folha «${dados.titulo}» da Do Luxo à Mesa.`
-                  : "Olá! Escrevo sobre uma folha da Do Luxo à Mesa."
+                  ? `Olá! Escrevo sobre a folha «${dados.titulo}» da ${casa.nome}.`
+                  : `Olá! Escrevo sobre uma folha da ${casa.nome}.`
               )}
               style={{ color: "#A07830", textDecorationColor: "#E8D5A3", textUnderlineOffset: "3px" }}
             >
               Fale connosco pelo WhatsApp
             </a>
-            <span className="so-print" style={{ display: "none" }}>: {NUMERO_LEGIVEL}</span>
+            <span className="so-print" style={{ display: "none" }}>: {numeroLegivel(casa)}</span>
             .
           </p>
         </div>
@@ -855,8 +854,22 @@ function EsqueletoDaFolha() {
 
 // ---------- A página ----------
 
+// A casa vem do token do comunicado (098). O Provider fica por FORA do
+// conteúdo de propósito: quem cai nas cortinas é quem pior conhece a
+// casa, e é aí que o cabeçalho tem de estar certo — um Provider por
+// dentro deixaria o estado terminado a assinar com a casa errada.
 export default function ComunicadoPage() {
   const { token } = useParams();
+  return (
+    <CasaProvider chave={token} carregar={() => casaPorTokenDeComunicado(token)}>
+      <ComunicadoConteudo />
+    </CasaProvider>
+  );
+}
+
+function ComunicadoConteudo() {
+  const { token } = useParams();
+  const casa = useCasa();
   const [resultado, setResultado] = useState(null);
   // O «Tentar novamente» da cortina de erro incrementa-a e o efeito
   // refaz o pedido — sem window.location.reload (o padrão do portal).
@@ -896,11 +909,11 @@ export default function ComunicadoPage() {
   // neutro do index.html, que a pré-visualização das conversas usa.
   useEffect(() => {
     if (resultado?.estado === "activo") {
-      document.title = `${resultado.dados.titulo || "Comunicado"} — ${EMPRESA.designacao}`;
+      document.title = `${resultado.dados.titulo || "Comunicado"} — ${casa.nome}`;
     } else {
-      document.title = EMPRESA.designacao;
+      document.title = casa.nome;
     }
-  }, [resultado]);
+  }, [resultado, casa.nome]);
 
   if (resultado === null) return <EsqueletoDaFolha />;
 
@@ -909,7 +922,7 @@ export default function ComunicadoPage() {
       <Cortina
         titulo="Não foi possível abrir o comunicado."
         corpo="Verifique a ligação à internet."
-        mensagemWhatsApp="Olá! Tentei abrir um comunicado da Do Luxo à Mesa e não consegui."
+        mensagemWhatsApp={`Olá! Tentei abrir um comunicado da ${casa.nome} e não consegui.`}
         aoRepetir={() => {
           setResultado(null);
           setTentativa((t) => t + 1);
@@ -923,7 +936,7 @@ export default function ComunicadoPage() {
       <Cortina
         titulo="Não há nenhum comunicado neste endereço."
         corpo="Se este endereço lhe foi enviado numa conversa, peça um novo a quem o enviou."
-        mensagemWhatsApp="Olá! Abri o endereço que me enviaram e diz que não há nenhum comunicado da Do Luxo à Mesa."
+        mensagemWhatsApp={`Olá! Abri o endereço que me enviaram e diz que não há nenhum comunicado da ${casa.nome}.`}
       />
     );
   }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { LOGO_CASA as logoUrl, EMPRESA, DOMINIO_CASA } from "../../lib/casa";
+import { logoDe } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 import {
   guardarComunicado,
   listarDestinatarios,
@@ -53,6 +54,7 @@ const OVERLINE = {
 };
 
 export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
+  const casa = useCasa();
   const [base, setBase] = useState(comunicado.mensagem || "");
   const [tentouGuardar, setTentouGuardar] = useState(false);
   const [erroRede, setErroRede] = useState("");
@@ -354,8 +356,8 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
                 }}
               >
                 <img
-                  src={logoUrl}
-                  alt={EMPRESA.designacao}
+                  src={logoDe(casa)}
+                  alt={casa.nome}
                   style={{ height: "34px", width: "auto", flex: "none" }}
                 />
                 <div style={{ minWidth: 0 }}>
@@ -379,9 +381,9 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {`Uma folha da ${EMPRESA.designacao}, para ler e partilhar.`}
+                    {`Uma folha da ${casa.nome}, para ler e partilhar.`}
                   </div>
-                  <div style={{ fontSize: "10px", color: "#9B9B9B" }}>{DOMINIO_CASA}</div>
+                  <div style={{ fontSize: "10px", color: "#9B9B9B" }}>{casa.dominio}</div>
                 </div>
               </div>
               <div

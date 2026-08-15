@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import LogoDourado from "../components/LogoDourado";
-import { EMPRESA } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorTokenDeCampanha } from "../lib/identidadeCasa";
 import { getCampanhaPublica, prometerContribuicao } from "../lib/campanhas";
 import { CONTRIBUICAO_COLETIVA_ATIVA } from "../lib/funcionalidades";
 import { Taca } from "../components/admin/ContribuicaoColetiva";
@@ -86,7 +87,14 @@ function FormularioPromessa({ token, reduzir }) {
         <p style={{ ...serif, fontSize: "17px", margin: "0 0 6px" }}>
           Obrigado, {enviadoPara}. 🥂
         </p>
-        <p style={{ fontSize: "12.5px", color: "var(--gray-mid)", margin: 0, lineHeight: 1.6 }}>
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "var(--gray-mid)",
+            margin: 0,
+            lineHeight: 1.6,
+          }}
+        >
           A tua contribuição ficou registada e entra na taça assim que for
           confirmada pela casa.
         </p>
@@ -97,7 +105,9 @@ function FormularioPromessa({ token, reduzir }) {
   const enviar = async () => {
     setErro(null);
     if (!nome.trim()) {
-      setErro("Diz-nos o teu nome — é assim que os anfitriões sabem quem pôs a mesa.");
+      setErro(
+        "Diz-nos o teu nome — é assim que os anfitriões sabem quem pôs a mesa.",
+      );
       return;
     }
     const v = Number(valor);
@@ -144,8 +154,8 @@ function FormularioPromessa({ token, reduzir }) {
           textWrap: "pretty",
         }}
       >
-        Deixa o teu nome e o valor — para os anfitriões saberem quem ajudou
-        a pôr esta mesa.
+        Deixa o teu nome e o valor — para os anfitriões saberem quem ajudou a
+        pôr esta mesa.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <input
@@ -175,7 +185,9 @@ function FormularioPromessa({ token, reduzir }) {
           style={caixaTexto}
         />
         {erro && (
-          <p style={{ fontSize: "12px", color: "#B91C1C", margin: 0 }}>{erro}</p>
+          <p style={{ fontSize: "12px", color: "#B91C1C", margin: 0 }}>
+            {erro}
+          </p>
         )}
         <button
           onClick={enviar}
@@ -206,8 +218,21 @@ function FormularioPromessa({ token, reduzir }) {
   );
 }
 
+// A casa vem do token da campanha (098). O Provider fica por fora
+// para que o conteúdo inteiro — cortinas de erro incluídas — já
+// desenhe com a identidade certa.
 export default function ContribuirPage() {
   const { token } = useParams();
+  return (
+    <CasaProvider chave={token} carregar={() => casaPorTokenDeCampanha(token)}>
+      <ContribuirConteudo />
+    </CasaProvider>
+  );
+}
+
+function ContribuirConteudo() {
+  const { token } = useParams();
+  const casa = useCasa();
   const [dados, setDados] = useState(null);
   // Com a funcionalidade desligada, o estado INICIAL já é o de link
   // morto: o visitante nem chega a ver um esqueleto a carregar uma
@@ -268,7 +293,12 @@ export default function ContribuirPage() {
           <>
             <Esqueleto w={180} h={12} style={{ margin: "0 auto 14px" }} />
             <Esqueleto w={280} h={24} style={{ margin: "0 auto 22px" }} />
-            <Esqueleto w={130} h={150} r={16} style={{ margin: "0 auto 18px" }} />
+            <Esqueleto
+              w={130}
+              h={150}
+              r={16}
+              style={{ margin: "0 auto 18px" }}
+            />
             <Esqueleto w={220} h={14} style={{ margin: "0 auto" }} />
           </>
         )}
@@ -279,7 +309,9 @@ export default function ContribuirPage() {
             <p style={{ ...serif, fontSize: "22px", margin: "0 0 10px" }}>
               Este link já não está ativo.
             </p>
-            <p style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}>
+            <p
+              style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}
+            >
               Pede um link novo a quem to partilhou.
             </p>
           </>
@@ -291,7 +323,9 @@ export default function ContribuirPage() {
             <p style={{ ...serif, fontSize: "20px", margin: "0 0 10px" }}>
               Não foi possível abrir a campanha.
             </p>
-            <p style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}>
+            <p
+              style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}
+            >
               Verifica a ligação à internet e tenta recarregar a página.
             </p>
           </>
@@ -426,7 +460,7 @@ export default function ContribuirPage() {
           color: "#C0B79F",
         }}
       >
-        {EMPRESA.designacao}
+        {casa.nome}
       </p>
     </div>
   );

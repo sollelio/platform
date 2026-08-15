@@ -77,15 +77,18 @@ export const ehCodigoDeCor = (v) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(
 export const naoVazio = (v) => typeof v === "string" && v.trim() !== "";
 
 // ---------- Contacto da casa ----------
-// O número do negócio vive em lib/casa.js — um sítio só, partilhado com
-// o envio dos comunicados; aqui só se compõe o link. A mensagem
-// pré-escrita dá contexto a quem chega de uma ligação terminada.
-export const WHATSAPP_URL = linkWhatsAppCasa(
-  "Olá! Escrevo a partir da página de acompanhamento do meu evento.",
-);
-// O endereço do site mudou-se para lib/casa.js com o resto da identidade;
-// re-exporta-se daqui para os importadores do portal não mudarem.
-export { SITE_URL } from "../../lib/casa";
+// Eram duas CONSTANTES calculadas ao carregar o módulo — e uma constante
+// não sabe de que casa é (099). Passaram a funções da casa: quem as usa
+// tem o useCasa() à mão e passa-o. A mensagem pré-escrita dá contexto a
+// quem chega de uma ligação terminada.
+export const urlWhatsAppDoPortal = (casa) =>
+  linkWhatsAppCasa(
+    casa,
+    "Olá! Escrevo a partir da página de acompanhamento do meu evento.",
+  );
+// O endereço do site continua a compor-se no casa.js; re-exporta-se
+// daqui para os importadores do portal terem uma porta só.
+export { siteDe } from "../../lib/casa";
 
 // ---------- Dinheiro à portuguesa ----------
 // 1 291,50 € — espaço nos milhares, vírgula nos cêntimos, símbolo no fim,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { EMPRESA, linkWhatsAppCasa } from "../../lib/casa";
+import { linkWhatsAppCasa } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 import {
   overline, playfair, diaEMes, partesDaData, SEMANA, formatarEuroPT, naoVazio,
 } from "./base";
@@ -243,6 +244,7 @@ const micro = (extra) => ({
 // A vista
 // ============================================================
 export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarregar }) {
+  const casa = useCasa();
   // ---------- O que a projecção diz ----------
   const sinal = dados?.sinal || null;
   const ev = dados?.evento || null;
@@ -364,13 +366,13 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
   // A config vem CRUA do evento; os defaults da casa aplicam-se aqui, que
   // é quem os conhece (083): sem escolha → MB Way + IBAN com os dados da
   // casa — e sem MB Way da casa registado, o default seria só IBAN
-  // (decisão 8). EMPRESA.mbway nasceu a 10/08/2026 — este ecrã passou a
-  // mostrá-lo, como estava combinado.
+  // (decisão 8). O MB Way da casa nasceu a 10/08/2026 — este ecrã passou
+  // a mostrá-lo, como estava combinado.
   const config = sinal?.config || null;
   const metodoCfg = config?.metodo || "mbway_iban";
   const mbway = naoVazio(config?.mbway) ? config.mbway.trim()
-    : naoVazio(EMPRESA.mbway) ? EMPRESA.mbway.trim() : null;
-  const iban = naoVazio(config?.iban) ? config.iban.trim() : EMPRESA.iban;
+    : naoVazio(casa.mbway) ? casa.mbway.trim() : null;
+  const iban = naoVazio(config?.iban) ? config.iban.trim() : casa.iban;
   const instrucao = naoVazio(config?.instrucao) ? config.instrucao.trim() : null;
 
   // A caixa fala a língua do método: transferiu ou entregou em mãos.
@@ -380,7 +382,7 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
 
   // A conversa — mensagem neutra de género, com a data quando a há.
   const mensagemConversa = `Olá! Escrevo para tratar do sinal do meu evento${quandoDia ? ` de ${quandoDia}` : ""}.`;
-  const urlConversa = linkWhatsAppCasa(mensagemConversa);
+  const urlConversa = linkWhatsAppCasa(casa, mensagemConversa);
   const abrirConversa = () => window.open(urlConversa, "_blank", "noopener,noreferrer");
 
   // ---------- Copiar ----------
@@ -565,7 +567,7 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
         <FileteComLosango margem="18px auto 20px" />
         <p style={corpo({ maxWidth: "290px", margin: "0 auto 20px" })}>
           A data chegou sem o sinal, e o calendário seguiu. Se ainda quiser
-          a Do Luxo à Mesa no seu evento, fale connosco — encontramos uma
+          a {casa.nome} no seu evento, fale connosco — encontramos uma
           nova data juntos.
         </p>
         {capsulaConversa}
@@ -783,7 +785,7 @@ export default function SinalVista({ token, dados, reduzir, aoVoltar, aoRecarreg
             {/* A cápsula da casa: dorme inerte, acende com a caixa —
                 visível para se saber o que vem, intocável até lá. */}
             <CapsulaCheia inerte={!marcado} aTrabalhar={aEnviar} onClick={avisar}>
-              {aEnviar ? "A guardar…" : "Avisar a Do Luxo à Mesa"}
+              {aEnviar ? "A guardar…" : `Avisar a ${casa.nome}`}
             </CapsulaCheia>
 
             {erro && (

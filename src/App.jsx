@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  Outlet,
   useLocation,
 } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
@@ -18,6 +19,8 @@ import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
+import CasaProvider from "./components/CasaProvider";
+import { casaDaSessao } from "./lib/identidadeCasa";
 
 // Lê as variáveis de ambiente
 // Lista explícita, e não `!== "production"`: se PROD um dia se esquecer da
@@ -46,6 +49,31 @@ function DestinoDesconhecido() {
   const vinhaDoBackoffice =
     pathname.startsWith("/admin") || pathname.startsWith("/evento");
   return <Navigate to={vinhaDoBackoffice ? "/admin/inicio" : "/"} replace />;
+}
+
+// ============================================================
+// A ÁREA AUTENTICADA — uma porta e UMA identidade para as três
+// páginas de dentro (099).
+//
+// É rota-molde sem caminho próprio de propósito. As alternativas eram
+// piores: um CasaProvider por página fazia três pedidos da MESMA casa
+// e recomeçava-o a cada salto do painel para um evento; um Provider à
+// volta das Routes todas punha as páginas públicas a perguntar pela
+// sessão que não têm. Aqui a identidade carrega uma vez, depois de a
+// sessão estar confirmada — que é a ordem certa, porque a RPC da 098
+// deriva a casa de `auth.uid()`.
+//
+// O ProtectedRoute subiu para cá com ela: estava escrito três vezes a
+// dizer o mesmo.
+// ============================================================
+function AreaAutenticada() {
+  return (
+    <ProtectedRoute>
+      <CasaProvider chave="sessao" carregar={casaDaSessao}>
+        <Outlet />
+      </CasaProvider>
+    </ProtectedRoute>
+  );
 }
 
 function App() {
@@ -92,35 +120,19 @@ function App() {
             a seguir (/admin/contactos/:clienteId,
             /admin/documentos/:id/:tipo, /admin/logistica/:vista)
             entrarem sem mexer outra vez na árvore. */}
-          <Route
-            path="/admin/:separador/:p1?/:p2?"
-            element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* A casa própria do evento. A aba vai no URL para cada área
-            ter link directo e posição de scroll própria. */}
-          <Route
-            path="/evento/:id/:aba?"
-            element={
-              <ProtectedRoute>
-                <EventoPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* 094 · O briefing saiu da rua. Era público com o uuid a fazer de
-    chave; com várias casas, um uuid vale em qualquer sessão. A Nádia
-    chega por link do admin, onde já tem sessão. */}
-          <Route
-            path="/briefing/:id"
-            element={
-              <ProtectedRoute>
-                <BriefingPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<AreaAutenticada />}>
+            <Route
+              path="/admin/:separador/:p1?/:p2?"
+              element={<AdminPage />}
+            />
+            {/* A casa própria do evento. A aba vai no URL para cada área
+              ter link directo e posição de scroll própria. */}
+            <Route path="/evento/:id/:aba?" element={<EventoPage />} />
+            {/* 094 · O briefing saiu da rua. Era público com o uuid a fazer
+              de chave; com várias casas, um uuid vale em qualquer sessão. A
+              Nádia chega por link do admin, onde já tem sessão. */}
+            <Route path="/briefing/:id" element={<BriefingPage />} />
+          </Route>
           {/* A página pública da contribuição coletiva — por token
             aleatório e revogável, leitura via RPC (034), sem login. */}
           <Route path="/contribuir/:token" element={<ContribuirPage />} />

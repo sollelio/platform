@@ -3,7 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { validateCode } from "../lib/invites";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.webp";
-import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
+import CasaProvider, { useCasa } from "../components/CasaProvider";
+import { casaPorCodigo } from "../lib/identidadeCasa";
+
+// O código que veio no endereço (?codigo=XXX). Serve duas coisas: a
+// chave da casa e o pré-preenchimento do campo — eram a mesma leitura
+// escrita duas vezes.
+const codigoDoEndereco = () =>
+  (new URLSearchParams(window.location.search).get("codigo") || "")
+    .toUpperCase()
+    .trim();
 
 function Ornament({ small = false }) {
   return (
@@ -111,19 +120,32 @@ function FlowerDecoration() {
   );
 }
 
+// A casa vem do código do convite (098), e o código só conta quando
+// vem no ENDEREÇO. Não se usa o que está a ser escrito no campo: uma
+// chave a mudar a cada tecla pedia a identidade a cada letra, e a
+// maioria delas a códigos que ainda não existem. Quem escreve à mão vê
+// a marca de omissão até entrar — do lado de lá, a FormPage já tem o
+// convite validado e a casa certa.
 export default function FormEntryPage() {
+  const codigo = codigoDoEndereco();
+  return (
+    <CasaProvider chave={codigo} carregar={() => casaPorCodigo(codigo)}>
+      <FormEntryConteudo />
+    </CasaProvider>
+  );
+}
+
+function FormEntryConteudo() {
+  const casa = useCasa();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Lê o código do link (?codigo=XXX) e pré-preenche o campo
+  // Pré-preenche o campo com o código do link
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const codigoUrl = params.get("codigo");
-    if (codigoUrl) {
-      setCode(codigoUrl.toUpperCase().trim());
-    }
+    const codigoUrl = codigoDoEndereco();
+    if (codigoUrl) setCode(codigoUrl);
   }, []);
 
   const handleSubmit = async () => {
@@ -134,7 +156,7 @@ export default function FormEntryPage() {
     setLoading(true);
     setError(null);
 
-    const result = await validateCode(code);
+    const result = await validateCode(code, casa);
 
     if (!result.valid) {
       setError(result.reason);
@@ -187,7 +209,7 @@ export default function FormEntryPage() {
               lineHeight: 1.1,
             }}
           >
-            {EMPRESA.designacao}
+            {casa.nome}
           </h1>
           <p
             style={{
@@ -198,7 +220,7 @@ export default function FormEntryPage() {
               margin: "0 0 20px 0",
             }}
           >
-            {LINHA_BY_LUXURY}
+            {casa.linha_by}
           </p>
           <div
             style={{
@@ -437,7 +459,7 @@ export default function FormEntryPage() {
               margin: "4px 0 0",
             }}
           >
-            {SLOGAN_CASA}
+            {casa.slogan}
           </p>
         </div>
       </div>

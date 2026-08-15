@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { calcularConferencia, periodosPredefinidos } from "../../lib/stock";
 import { Esqueleto } from "./acabamento";
 import { imprimirConferencia } from "../../lib/imprimirConferencia";
+import { useCasa } from "../CasaProvider";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import { FASES_POS_SINAL, FASE_LABEL } from "./faseConfig";
 
@@ -111,6 +112,7 @@ export default function ConferenciaPeriodo({
   erro = null,
   onTentarNovamente,
 }) {
+  const casa = useCasa();
   // O "hoje" dos períodos re-ancora quando a janela volta a estar à
   // vista: deixada aberta de domingo para segunda, "Fim de semana"
   // apontava para o fim de semana PASSADO sem nenhum indício.
@@ -160,6 +162,9 @@ export default function ConferenciaPeriodo({
 
   const imprimir = () => {
     const { ok } = imprimirConferencia({
+      // O cabeçalho da folha de armazém é o da casa; o módulo de
+      // impressão não é componente e recebe-a por argumento.
+      casa,
       conf,
       intervalo: periodo ? intervaloLegivel(periodo.inicio, periodo.fim) : "",
       tituloPeriodo:

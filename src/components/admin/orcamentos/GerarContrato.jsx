@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
 import { obterDocumento, assinarPelaCasa } from "../../../lib/documentos";
 import { getPublicacoes } from "../../../lib/portal";
-import { LOGO_CASA as logoUrl, FONTE_ASSINATURA_CASA } from "../../../lib/casa";
+import { logoDe, FONTE_ASSINATURA_CASA } from "../../../lib/casa";
+import { useCasa } from "../../CasaProvider";
 import {
-  EMPRESA,
   CONTRATO_INTRO,
   CLAUSULAS,
   COMPOSICAO_LUGAR_SUGERIDA,
@@ -57,6 +57,7 @@ const diaLocal = (iso) => {
 };
 
 export default function GerarContrato({ prefill = null, ativo = true }) {
+  const casa = useCasa();
   // Rascunho persistente: cada documento (evento ou manual) tem o seu
   const rid = `contrato:${prefill?.submissionId || "manual"}`;
   const submissionId = prefill?.submissionId || null;
@@ -258,7 +259,7 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
   const imprimir = () => {
     const tituloAnterior = document.title;
     const nomePrimeiro = contraentes[0]?.nome;
-    document.title = `Contrato — ${nomePrimeiro || EMPRESA.designacao}`;
+    document.title = `Contrato — ${nomePrimeiro || casa.nome}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -692,6 +693,10 @@ function ContratoDocumento({
   assinaturaCasa = null,
   onAssinarCasa = null,
 }) {
+  // O timbre e o bloco da 2.ª contraente são IDENTIDADE — nome, morada
+  // e NIF de quem assina. Vêm do Provider. As cláusulas, essas, ainda
+  // trazem a casa cosida no texto e migram numa passagem própria.
+  const casa = useCasa();
   // Monta o corpo dos serviços (cláusula 2.ª) a partir dos campos
   const servicosTexto = useMemo(() => {
     const linhas = [];
@@ -746,8 +751,8 @@ function ContratoDocumento({
       {/* Logo + título */}
       <div style={{ textAlign: "center", marginBottom: "24px" }}>
         <img
-          src={logoUrl}
-          alt={EMPRESA.designacao}
+          src={logoDe(casa)}
+          alt={casa.nome}
           style={{ width: "90px", height: "auto", margin: "0 auto 16px" }}
         />
         <h1
@@ -761,7 +766,7 @@ function ContratoDocumento({
           CONTRATO DE PRESTAÇÃO DE SERVIÇOS
         </h1>
         <p style={{ fontStyle: "italic", margin: 0, color: "#444" }}>
-          {EMPRESA.designacao}
+          {casa.nome}
         </p>
       </div>
 
@@ -797,13 +802,13 @@ function ContratoDocumento({
 
       <p style={{ fontWeight: "700", margin: "0 0 8px 0" }}>2.ª CONTRAENTE</p>
       <p style={{ margin: "0 0 4px 0" }}>
-        <strong>Nome:</strong> {EMPRESA.nome}
+        <strong>Nome:</strong> {casa.titular}
       </p>
       <p style={{ margin: "0 0 4px 0" }}>
-        <strong>Morada:</strong> {EMPRESA.morada}
+        <strong>Morada:</strong> {casa.morada}
       </p>
       <p style={{ margin: "0 0 16px 0" }}>
-        <strong>NIF:</strong> {EMPRESA.nif}
+        <strong>NIF:</strong> {casa.nif}
       </p>
 
       {/* Intro */}
@@ -930,8 +935,18 @@ function ContratoDocumento({
 // bloco é no-print: no papel só saem as assinaturas, nunca botões.
 // ------------------------------------------------------------
 function AssinarPelaCasa({ onAssinar }) {
+  const casa = useCasa();
   const [aberto, setAberto] = useState(false);
-  const [nome, setNome] = useState(EMPRESA.nome);
+  // ⚠ `casa.titular` e não `casa.nome`: quem assina é a PESSOA. O
+  // casa.js antigo chamava `nome` à titular e `designacao` ao negócio —
+  // os dois trocaram de lugar na 097, e este é o sítio onde trocá-los
+  // punha o nome do negócio na linha da assinatura.
+  //
+  // O pré-preenchimento faz-se ao ABRIR, não à montagem: montado é o
+  // documento inteiro, e a identidade pode ainda vir a caminho. Semeado
+  // na montagem, o campo ficaria com o nome de outra casa e ninguém
+  // notaria — é um nome plausível numa linha de assinatura.
+  const [nome, setNome] = useState("");
   const [aAssinar, setAAssinar] = useState(false);
   const [erro, setErro] = useState(null);
 
@@ -960,7 +975,13 @@ function AssinarPelaCasa({ onAssinar }) {
   if (!aberto) {
     return (
       <div className="no-print" style={{ marginTop: "10px" }}>
-        <button onClick={() => setAberto(true)} style={btnAssinarCasa}>
+        <button
+          onClick={() => {
+            setNome(casa.titular || "");
+            setAberto(true);
+          }}
+          style={btnAssinarCasa}
+        >
           Assinar pela casa
         </button>
       </div>

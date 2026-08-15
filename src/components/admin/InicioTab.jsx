@@ -8,6 +8,7 @@ import CaptacaoForm from "../captacao/CaptacaoForm";
 import ErrosFormulario from "./ErrosFormulario";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
 import ConsultaData from "./ConsultaData";
+import { useCasa } from "../CasaProvider";
 import { Icone } from "./Navegacao";
 
 // ============================================================
@@ -76,6 +77,12 @@ export default function InicioTab({
   onNavegar,
   onDadosMudaram,
 }) {
+  const casa = useCasa();
+  // A saudação trata a titular pelo PRIMEIRO nome, como quem fala com
+  // ela — «Boa tarde, Nádia», não «Boa tarde, Nádia Schultz». Sem
+  // titular registada, a saudação fica sozinha em vez de acabar numa
+  // vírgula pendurada.
+  const tratamento = (casa.titular || "").trim().split(" ")[0];
   const [novoInteressado, setNovoInteressado] = useState(false);
   const [consultaAberta, setConsultaAberta] = useState(false);
   const [consultaDataAberta, setConsultaDataAberta] = useState(false);
@@ -325,7 +332,7 @@ export default function InicioTab({
           margin: "0 0 2px 0",
         }}
       >
-        {saudacao()}, Nádia
+        {tratamento ? `${saudacao()}, ${tratamento}` : saudacao()}
       </h2>
       <p
         style={{

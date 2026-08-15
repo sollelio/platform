@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
+import { useCasa } from "../components/CasaProvider";
 import {
   normalizeSubmission,
   getValorAtual,
@@ -456,8 +456,12 @@ function FichaImpressa({ materiais }) {
   );
 }
 
+// Sem Provider próprio: desde a 094 esta rota vive atrás do
+// ProtectedRoute, dentro da AreaAutenticada — a casa já lá está, e
+// montar um segundo Provider era pedir a mesma identidade outra vez.
 export default function BriefingPage() {
   const { id } = useParams();
+  const casa = useCasa();
   const [submission, setSubmission] = useState(null);
   const [tipoEvento, setTipoEvento] = useState(null);
   const [materiais, setMateriais] = useState([]);
@@ -707,7 +711,7 @@ export default function BriefingPage() {
                   margin: "0 0 2px 0",
                 }}
               >
-                {EMPRESA.designacao}
+                {casa.nome}
               </h1>
               <p
                 style={{
@@ -718,7 +722,7 @@ export default function BriefingPage() {
                   margin: 0,
                 }}
               >
-                {LINHA_BY_LUXURY}
+                {casa.linha_by}
               </p>
             </div>
             <div
@@ -924,10 +928,10 @@ export default function BriefingPage() {
                 margin: 0,
               }}
             >
-              {SLOGAN_CASA}
+              {casa.slogan}
             </p>
             <p style={{ fontSize: "10px", color: "#6B7280", margin: 0 }}>
-              {EMPRESA.designacao} · {new Date().getFullYear()}
+              {casa.nome} · {new Date().getFullYear()}
             </p>
           </div>
         </div>

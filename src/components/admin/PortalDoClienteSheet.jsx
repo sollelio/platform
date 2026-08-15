@@ -31,7 +31,7 @@ import {
 import { linkWhatsApp } from "../../lib/mensagens";
 import { getValorAtual } from "../../lib/submissionFields";
 import { extrairDadosCliente } from "../../lib/clientes";
-import { EMPRESA } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 import { diaDito } from "./comunicadoTempo";
 import { guardarAlteracoes } from "../../lib/briefingEdicao";
 import { formatarMorada, moradaVazia } from "../../lib/morada";
@@ -225,6 +225,7 @@ function ErroDaZona({ erro, zona }) {
 }
 
 function Conteudo({ evento, onFechar }) {
+  const casa = useCasa();
   // { estado: 'a-carregar' | 'pronto' | 'erro', acesso, docs, pubs, pedidos }
   const [resultado, setResultado] = useState(null);
   // { zona: 'porta'|'documentos'|'codigos'|'questionario'|'papel'|'fecho',
@@ -1236,7 +1237,7 @@ function Conteudo({ evento, onFechar }) {
                           type="text"
                           value={mbwaySinal}
                           onChange={(e) => setMbwaySinal(e.target.value)}
-                          placeholder={`Vazio — usa o da casa (${EMPRESA.mbway})`}
+                          placeholder={`Vazio — usa o da casa (${casa.mbway})`}
                           style={{
                             width: "100%",
                             boxSizing: "border-box",
@@ -1269,7 +1270,7 @@ function Conteudo({ evento, onFechar }) {
                           type="text"
                           value={ibanSinal}
                           onChange={(e) => setIbanSinal(e.target.value)}
-                          placeholder={`Vazio — usa o da casa (${EMPRESA.iban})`}
+                          placeholder={`Vazio — usa o da casa (${casa.iban})`}
                           style={{
                             width: "100%",
                             boxSizing: "border-box",
@@ -1375,7 +1376,7 @@ function Conteudo({ evento, onFechar }) {
                       }}
                     >
                       Campos vazios usam os dados da casa — o MB Way{" "}
-                      {EMPRESA.mbway} e o IBAN da Nádia.
+                      {casa.mbway} e o IBAN da {casa.titular || "casa"}.
                     </p>
                   )}
 

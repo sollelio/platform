@@ -9,6 +9,7 @@ import {
   agruparPorCategoria,
 } from "../../lib/materiais";
 import { imprimirFicha } from "../../lib/imprimirFicha";
+import { useCasa } from "../CasaProvider";
 import { getResumoSubmissao } from "../../lib/submissionFields";
 import SeletorPaleta, {
   AmostraPaleta,
@@ -372,6 +373,9 @@ function FichaMateriais({
   onFichaAlterada,
   onContagem,
 }) {
+  // A folha impressa leva o cabeçalho da casa, e o imprimirFicha.js não
+  // é componente — a identidade vai daqui para lá por argumento.
+  const casa = useCasa();
   const [catalogo, setCatalogo] = useState([]);
   const [linhas, setLinhas] = useState([]); // evento_materiais (com .material)
   const [loading, setLoading] = useState(true);
@@ -528,7 +532,7 @@ function FichaMateriais({
           <SaveIndicator state={saveState} />
           {linhas.length > 0 && (
             <button
-              onClick={() => imprimirFicha(linhas, submissao)}
+              onClick={() => imprimirFicha(casa, linhas, submissao)}
               title="Imprimir ou guardar como PDF"
               style={{
                 padding: "9px 18px",

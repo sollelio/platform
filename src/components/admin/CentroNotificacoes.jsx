@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { linkWhatsApp } from "../../lib/mensagens";
-import { EMPRESA } from "../../lib/casa";
+import { useCasa } from "../CasaProvider";
 import { MarcaVisto, MarcaCruz } from "./marcas";
 
 // ============================================================
@@ -1042,6 +1042,7 @@ function ConteudoCaixa({
   onAbrirEvento,
   datasDisputadas,
 }) {
+  const casa = useCasa();
   const [expandidaId, setExpandidaId] = useState(destaqueId || null);
   // null = fora do modo de seleção; Set (mesmo vazio) = a escolher
   const [selecao, setSelecao] = useState(null);
@@ -1142,7 +1143,7 @@ function ConteudoCaixa({
                 margin: "0 0 3px 0",
               }}
             >
-              {EMPRESA.designacao}
+              {casa.nome}
             </p>
             <h2
               style={{

@@ -1,10 +1,7 @@
 import { useState, useRef } from "react";
 import { useCampoDocumento as useRascunho } from "./DocumentoProvider";
-import {
-  LOGO_CASA as logoUrl,
-  EMPRESA,
-  ASSINATURA_TITULAR,
-} from "../../../lib/casa";
+import { logoDe, assinaturaTitular } from "../../../lib/casa";
+import { useCasa } from "../../CasaProvider";
 import { formatarDataPT } from "./orcamentoConfig";
 import { uploadImagemProposta } from "../../../lib/propostas";
 
@@ -38,6 +35,7 @@ const novaSeccao = () => ({
 });
 
 export default function GerarProposta({ prefill = null, ativo = true }) {
+  const casa = useCasa();
   // Rascunho persistente: cada documento (evento ou manual) tem o seu
   const rid = `proposta:${prefill?.submissionId || "manual"}`;
   const [cliente, setCliente] = useRascunho(`${rid}:cliente`, prefill?.nomeCliente || "");
@@ -98,7 +96,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
 
   const imprimir = () => {
     const tituloAnterior = document.title;
-    document.title = `Projecto — ${cliente || EMPRESA.designacao}`;
+    document.title = `Projecto — ${cliente || casa.nome}`;
     window.print();
     document.title = tituloAnterior;
   };
@@ -440,8 +438,8 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
         <div className="pagina-prop" style={estiloPaginaEcra}>
           <div style={{ textAlign: "center" }}>
             <img
-              src={logoUrl}
-              alt={EMPRESA.designacao}
+              src={logoDe(casa)}
+              alt={casa.nome}
               style={{ width: "120px", height: "auto", margin: "0 auto 28px" }}
             />
             <h1
@@ -514,7 +512,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
               margin: 0,
             }}
           >
-            {ASSINATURA_TITULAR}
+            {assinaturaTitular(casa)}
           </p>
         </div>
 
