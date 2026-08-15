@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { ehFuncaoRpcEmFalta } from "../lib/rpc";
 import { EMPRESA, LINHA_BY_LUXURY, SLOGAN_CASA } from "../lib/casa";
 import {
   normalizeSubmission,
@@ -342,8 +341,8 @@ function FichaImpressa({ materiais }) {
           Ficha de Materiais
         </h2>
         <span style={{ fontSize: "11px", color: "#6B6B6B" }}>
-          {materiais.length}{" "}
-          {materiais.length === 1 ? "material" : "materiais"} · {totalUn} un
+          {materiais.length} {materiais.length === 1 ? "material" : "materiais"}{" "}
+          · {totalUn} un
         </span>
       </div>
       <p
@@ -419,7 +418,10 @@ function FichaImpressa({ materiais }) {
                 )}
               </span>
               <span
-                style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                style={{
+                  textAlign: "right",
+                  fontVariantNumeric: "tabular-nums",
+                }}
               >
                 {m.quantidade ?? "—"}
                 {m.unidade ? ` ${m.unidade}` : ""}
@@ -467,28 +469,13 @@ export default function BriefingPage() {
       // (uuid não adivinhável) continua a ser a chave de acesso, mas
       // sem SELECT anónimo à tabela inteira. Enquanto a função não
       // existir na BD, usa as queries antigas.
-      let data = null;
-      let tipo = null;
+      // 094 · Sem fallback: a rota é privada e a RLS filtra por casa.
+      // Um SELECT directo devolveria zero linhas em silêncio — e a
+      // folha sairia vazia sem erro nenhum, que é o pior modo de falhar.
       const rpc = await supabase.rpc("formulario_briefing", { p_id: id });
-      if (!rpc.error && rpc.data) {
-        data = rpc.data.submission;
-        tipo = rpc.data.event_type;
-      } else if (rpc.error && ehFuncaoRpcEmFalta(rpc.error)) {
-        const antigo = await supabase
-          .from("submissions")
-          .select("*")
-          .eq("id", id)
-          .single();
-        data = antigo.data;
-        if (data?.event_type_id) {
-          const { data: t } = await supabase
-            .from("event_types")
-            .select("*")
-            .eq("id", data.event_type_id)
-            .single();
-          tipo = t;
-        }
-      }
+      if (rpc.error) throw rpc.error;
+      const data = rpc.data?.submission ?? null;
+      const tipo = rpc.data?.event_type ?? null;
       const sub = normalizeSubmission(data);
       setSubmission(sub);
       // O modelo do evento — é dele que nascem as secções
@@ -503,25 +490,6 @@ export default function BriefingPage() {
       const rpcMat = await supabase.rpc("briefing_materiais", { p_id: id });
       if (!rpcMat.error && Array.isArray(rpcMat.data)) {
         setMateriais(rpcMat.data);
-      } else {
-        const { data: linhas } = await supabase
-          .from("evento_materiais")
-          .select("*, material:materiais(nome, categoria, unidade, ordem)")
-          .eq("submission_id", id);
-        setMateriais(
-          (linhas || []).map((l) => ({
-            id: l.id,
-            nome: l.material?.nome,
-            categoria: l.material?.categoria,
-            unidade: l.material?.unidade,
-            quantidade: l.quantidade,
-            cores: l.cores,
-            observacoes: l.observacoes,
-            lista_carga: l.lista_carga,
-            lista_montagem: l.lista_montagem,
-            lista_higienizacao: l.lista_higienizacao,
-          })),
-        );
       }
     };
     fetch();
@@ -573,10 +541,7 @@ export default function BriefingPage() {
 
   // Título pela cadeia canónica (nomeNoivo & nomeNoiva → nomeDoCliente
   // → ... → tipo) — a mesma da app inteira. Adeus "&" órfão.
-  const resumo = getResumoSubmissao(
-    submission,
-    tipoEvento ? [tipoEvento] : [],
-  );
+  const resumo = getResumoSubmissao(submission, tipoEvento ? [tipoEvento] : []);
 
   const localEvento = getValorAtual(submission, "localEvento");
   const convidados = getValorAtual(submission, "numeroConvidados");
@@ -601,9 +566,7 @@ export default function BriefingPage() {
 
   // A secção da captação (só chaves não cobertas pelo modelo)
   const idsDoModelo = new Set(
-    (tipoEvento?.steps || []).flatMap((s) =>
-      (s.fields || []).map((f) => f.id),
-    ),
+    (tipoEvento?.steps || []).flatMap((s) => (s.fields || []).map((f) => f.id)),
   );
   const camposCaptacao = CAMPOS_CAPTACAO.filter(
     ([id_]) => !idsDoModelo.has(id_),

@@ -885,7 +885,7 @@ export default function VisaoGeralEvento({
               }))}
               onIr={irPara}
               onImprimir={onImprimir}
-              nota="A folha sai sempre completa — com a ficha de materiais e sem pagamentos. Cada campo corrige-se aqui mesmo; o endereço /briefing/:id continua a abrir só a folha."
+              nota="A folha sai sempre completa — com a ficha de materiais e sem pagamentos. Cada campo corrige-se aqui mesmo; o endereço /briefing/:id continua a abrir só a folha, com sessão aberta"
             />
           </div>
         </>

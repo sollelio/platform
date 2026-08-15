@@ -110,7 +110,17 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/briefing/:id" element={<BriefingPage />} />
+          {/* 094 · O briefing saiu da rua. Era público com o uuid a fazer de
+    chave; com várias casas, um uuid vale em qualquer sessão. A Nádia
+    chega por link do admin, onde já tem sessão. */}
+          <Route
+            path="/briefing/:id"
+            element={
+              <ProtectedRoute>
+                <BriefingPage />
+              </ProtectedRoute>
+            }
+          />
           {/* A página pública da contribuição coletiva — por token
             aleatório e revogável, leitura via RPC (034), sem login. */}
           <Route path="/contribuir/:token" element={<ContribuirPage />} />
