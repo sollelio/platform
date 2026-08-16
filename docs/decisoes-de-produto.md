@@ -1888,3 +1888,9 @@ problema por baixo.
   negócio que as funções sinalizam de propósito, em vez de adivinhar
   migrações por correr. O cabeçalho do ficheiro foi reescrito — descrevia
   o padrão inteiro, e o padrão já não existe.
+- **15/08/2026 — A suspensão testada de ponta a ponta.** Casa suspensa em
+  staging: o portal e a folha respondem `terminado`, a identidade responde
+  `desconhecida`, o pedido não abre o formulário, e o convite continua a
+  abrir — como desenhado. No admin, a Nádia entra e o sistema fica sem
+  marca; a saudação passa a «Boa noite» sem nome, o que é aceitável.
+  Fecha a dívida de «a 103 nunca foi exercitada».
