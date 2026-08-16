@@ -320,8 +320,10 @@ uma migração.
 > **A chave `interessada` está no feminino** e a `submissions.fase` diz
 > `interessado` — a pendência #2 deste ficheiro a aparecer num sítio novo. Não se
 > corrigiu porque é chave de máquina e o rótulo já resolve a exclusão do lado de
-> quem lê. Fica registado que **é agora que é grátis**: nenhum outro consumidor
-> depende dela.
+> quem lê. O «é agora que é grátis» que aqui esteve morreu quando o portal
+> nasceu: o frontend consome a chave desde então (corrigido a 16/08/2026, na
+> varredura dos comentários), e mudar passou a ser «nos dois lados ao mesmo
+> tempo», como a 051 previa. A pendência continua válida — só o preço subiu.
 
 No código, os rótulos vivem em `src/lib/portal.js` (`ROTULO_ETAPA`), com os textos
 de acompanhamento de cada etapa ao lado — um para quando é o presente, outro para

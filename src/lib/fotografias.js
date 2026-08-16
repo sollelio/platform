@@ -102,9 +102,12 @@ export const getFotografias = async (eventoId) => {
 // Apagar tira a linha E os ficheiros. Sem isto, apagar do ecrã deixava lixo
 // no armazenamento para sempre — e ninguém volta lá para o limpar.
 //
-// A linha sai PRIMEIRO: se o apagar dos ficheiros falhar, fica um ficheiro
-// órfão que ninguém vê. Pela ordem contrária ficava uma linha a apontar
-// para uma imagem que já não existe, que é o que a cliente veria partida.
+// A linha sai PRIMEIRO — e inverter a ordem foi avaliado e recusado
+// (16/08/2026, o crivo dos catches do grupo 1 no registo de decisões):
+// apagar os ficheiros antes da linha trocava um órfão invisível no
+// balde por uma linha a apontar para uma fotografia partida à vista
+// da cliente, que é pior. Fica o órfão; espera pelo dia em que o
+// Storage doer.
 export const apagarFotografia = async (foto) => {
   const { error } = await supabase
     .from("evento_fotografias")

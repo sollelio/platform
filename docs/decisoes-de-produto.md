@@ -44,6 +44,15 @@ DOIS lados — a dupla «formulário/questionário» morreu.)
   autenticadas. Porquê: a RLS é a fronteira; a porta pública não revela
   quem já é contacto da casa.
 
+- **16/08/2026 (da varredura dos comentários) — O formulário nunca
+  reutiliza um EVENTO encontrado pelo telefone.** Ao contrário da
+  captação, que cola pedidos à ficha da pessoa, a submissão de
+  formulário com telefone repetido cria evento novo: um telefone
+  partilhado (a mãe, a organizadora) escreveria as respostas de um
+  casal por cima do evento de OUTRO. Fundir eventos, só com alvo
+  explícito da Nádia. (Origem: docs/migracoes/036 ·
+  formulario_submeter, cabeçalho.)
+
 ## Funil, fases e pagamentos
 
 - **27/07/2026 — "Sugere-se, nunca se executa":** avanços de fase são
@@ -53,6 +62,83 @@ DOIS lados — a dupla «formulário/questionário» morreu.)
   quando há pagamentos registados, a recuperação pergunta para onde volta
   (com o saldo do sinal à vista), não adivinha. Porquê: o par fase/status
   é um invariante com CHECK na BD (migração 040).
+
+- **16/08/2026 (da varredura dos comentários) — Dinheiro não
+  desaparece por arrasto: a base recusa apagar um evento com
+  pagamentos.** A FK é RESTRICT de propósito — apagar um evento com
+  dinheiro registado dá um beco à entrada, e o caminho é apagar
+  primeiro cada pagamento, com confirmação a mostrar valor e data.
+  Preferível a dados de dinheiro perdidos em silêncio numa cascata.
+  (Origem: docs/migracoes/025 · cabeçalho; o ecrã distingue o erro
+  pelo nome da constraint.)
+- **16/08/2026 (da varredura dos comentários) — O plano do dinheiro nasce
+  em par — Sinal (50%) + Remanescente (50%) — e o resto tem prazo.**
+  Todo o evento com valor acordado gera os dois previstos; o
+  remanescente vence 48 horas ANTES do evento (data_limite = data − 2
+  dias), e o Início alerta enquanto faltar. A metade «o sinal é sempre
+  50%» já cá estava (02/08); o prazo do remanescente vivia só no
+  código. (Origem: docs/migracoes/027 · cabeçalho;
+  src/lib/pagamentos.js · gerarPrevistos; src/lib/clientes.js ·
+  marcarPagamentoFinal.)
+- **29/07/2026 (registada 16/08, da varredura) — As secções escondidas
+  dos Pagamentos.** Contribuição coletiva e Gastos do evento estão
+  escondidas «por enquanto» por decisão do Hélio: uma vai ser
+  repensada antes de ser estendida, a outra anunciava um módulo que
+  ainda não existe. Esconder é na UI — o dinheiro das contribuições já
+  registadas continua a contar em tudo. (Origem:
+  src/components/admin/PagamentosEvento.jsx · SECÇÕES ESCONDIDAS; o
+  interruptor único vive em src/lib/funcionalidades.js — ver a secção
+  «Contribuição coletiva».)
+
+## Contribuição coletiva (26–29/07/2026 · registada 16/08, da varredura)
+
+As decisões desta funcionalidade nunca tinham chegado ao documento —
+viviam nos comentários das migrações 033–047 e do frontend.
+
+- **26/07/2026 — Privacidade por desenho na página pública.** Quem
+  contribui vê a percentagem e o número de pessoas — NUNCA valores
+  absolutos, nem a meta, nem contribuições individuais, nem nomes.
+  Token errado ou regenerado devolve zero linhas. (Origem:
+  docs/migracoes/034 · campanha_publica; o banner de
+  src/pages/ContribuirPage.jsx cita a mesma decisão.)
+- **26/07/2026 — A imputação é por ordem: primeiro o sinal, depois o
+  remanescente.** Cada contribuição enche o sinal, transborda para o
+  remanescente, e o que exceder o plano inteiro fica numa linha sem
+  previsto — dividida em duas linhas no MESMO statement (mesmo
+  created_at). (Origem: src/lib/campanhas.js · cabeçalho; cimentada
+  na RPC transacional da 039.)
+- **O estado da campanha não se valida ao registar, de propósito.**
+  Registar numa campanha fechada ou concluída é acerto legítimo de
+  backoffice — dinheiro que chegou tarde continua a ser dinheiro.
+  (Origem: docs/migracoes/042 · contribuicao_registar.)
+- **29/07/2026 — Desligada por decisão do Hélio, com UM interruptor
+  para DUAS portas.** CONTRIBUICAO_COLETIVA_ATIVA esconde a secção dos
+  Pagamentos e a página pública JUNTAS — esconder a sala e deixar a
+  rua aberta deixava entrar promessas que ninguém veria. (Origem:
+  src/lib/funcionalidades.js.)
+
+### Pendências desta secção
+
+- As duas funções públicas da base (`campanha_publica`,
+  `prometer_contribuicao`) continuam concedidas ao anon com a
+  funcionalidade desligada — fechar esse lado é uma migração, e é
+  decisão do Hélio. (Origem: src/lib/funcionalidades.js.)
+- Os registos manuais de pagamentos (remanescente, avulsos) escrevem
+  `pagamentos` fora do cadeado transacional das contribuições — a
+  corrida anotada na 039 nunca foi fechada para o caminho manual (o
+  sinal ganhou porta própria com advisory lock na 083). (Origem:
+  docs/migracoes/042 · contribuicao_registar, passo 2.)
+
+## Notas e o histórico do evento (registada 16/08, da varredura)
+
+- **O histórico deriva-se, nunca se grava.** O separador Notas só
+  guarda o que a Nádia escreve; os acontecimentos do sistema
+  (pagamentos, publicações, actos) constroem-se na leitura — uma linha
+  gravada por acontecimento seria um segundo registo da mesma verdade,
+  a divergir à primeira correcção. Derivado, o histórico dos eventos
+  antigos aparece inteiro, sem backfill. (Origem: docs/migracoes/029 ·
+  cabeçalho; src/lib/notas.js · construirHistorico.)
+
 
 ## Atualização em direto
 
@@ -122,6 +208,18 @@ DOIS lados — a dupla «formulário/questionário» morreu.)
   comprar ou negociar datas); manter sem marca fazia o badge gritar
   por hipóteses — e um badge que grita por hipóteses deixa de ser
   lido.
+
+- **16/08/2026 (da varredura dos comentários) — O stock responde a duas
+  perguntas: HOJE e FUTURO.** O cartão do inventário desconta
+  `por_confirmar` E `em_higienizacao` (fala do disponível de hoje); o
+  motor de conflitos desconta `por_confirmar` mas NÃO a higienização
+  (fala do futuro — o que está a lavar volta a tempo). A diferença é
+  análise de risco, não descuido. (Origem: src/lib/stock.js ·
+  stockParaConflitos; reutilizada pela conferência.)
+- **16/08/2026 (da varredura dos comentários) — O calendário operacional
+  da casa.** O «fim de semana» começa à SEXTA — é quando a carrinha
+  sai; «esta semana» são os próximos 7 dias, não a semana de
+  calendário. (Origem: src/lib/stock.js · periodosPredefinidos.)
 
 ## Formulários — onde se criam (30/07/2026)
 
@@ -214,6 +312,14 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   alternativa era fazer sair do servidor o que ele decidiu não deixar
   sair.
 
+- **16/08/2026 (da varredura dos comentários) — Todo o acto se refere a uma
+  versão, e a versão tem de ser a que está em vigor.** Se saiu outra
+  entretanto, o acto NÃO se grava — e no papel, o acto fica preso à
+  versão que a cliente teve mesmo na mão. A «folha de decisões» que os
+  comentários citavam era esta regra, que nunca cá tinha chegado.
+  (Origem: docs/migracoes/058 e 086 · dlm_portal_acto; 077 ·
+  dlm_portal_confirmar_papel.)
+
 ## Portal — o âmbito do código (01/08/2026)
 
 - **01/08/2026 — Só o acto de ASSINAR exige um código pedido a partir do
@@ -230,6 +336,13 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   é o que ela já ia fazer de qualquer maneira. Um pedido **por atender**
   continua a não gerar aviso repetido; isso é eco, e a Nádia já o tem à
   frente.
+
+- **16/08/2026 (da varredura dos comentários) — O código vale 24 horas; a
+  sessão que ele abre vale 60 minutos e sobrevive a recarregar
+  (sessionStorage).** O desenho dizia trinta minutos e perdeu — «ela
+  pode só ver o pedido à noite». (Origem:
+  src/components/portal/DocumentosVista.jsx · banner; estado
+  confirmado na 057.)
 
 ## Questionário no acompanhamento — fase 5 (01/08/2026)
 
@@ -282,6 +395,12 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   sem caminho para sempre — a mesma armadilha do contrato em papel, evitada
   antes de doer.
 
+- **16/08/2026 (da varredura dos comentários) — O questionário entrega-se
+  SOZINHO.** Não há botão de submeter, de propósito: quando não falta
+  nada obrigatório, o servidor entrega. Sem campos obrigatórios no
+  modelo, valem TODOS. (Origem: docs/migracoes/069 ·
+  dlm_portal_responder; comentário vivo na versão da 102.)
+
 ## As fotografias do dia — fase 6 (01/08/2026)
 
 - **01/08/2026 — Sem fotografias não há secção.** Nem rótulo, nem espaço
@@ -320,6 +439,12 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
   que a Nádia escreveu, porque zero dos 192 campos tem `papel`. Quando o
   rótulo não bate, a frase não aparece. Porquê: uma hora adivinhada num
   ecrã que diz «estamos no espaço» manda alguém sair de casa à hora errada.
+
+- **16/08/2026 (da varredura dos comentários) — Dois enquadramentos, a mesma
+  divisão.** Antes do dia, o portal é presente e mostra só a montagem;
+  depois do dia é memória, e entra tudo. Sem data de evento, trata-se
+  como presente. (Origem: docs/migracoes/065 e 085 · dlm_portal_ver —
+  corpo hoje em dlm_portal_ver_interno.)
 
 ## A avaliação e a despedida — fase 7 (01/08/2026)
 
@@ -362,6 +487,11 @@ uma a uma; **duas foram riscadas do desenho, não construídas**.
 - **01/08/2026 — Na vista das avaliações não há véu.** Mostram-se todas,
   incluindo as que ficaram só para a casa: são precisamente essas que dizem
   o que melhorar.
+
+- **16/08/2026 (da varredura dos comentários) — Reenviar ACTUALIZA, nunca
+  recusa.** Ela pode mudar de ideias sobre a autorização — o ecrã do
+  obrigado promete que sai do site no mesmo dia, e a RPC cumpre,
+  substituindo. (Origem: docs/migracoes/067 · dlm_portal_avaliar.)
 
 ## Revisão UX do portal, de ponta a ponta (01/08/2026)
 
@@ -455,6 +585,13 @@ correcções aplicadas. As decisões que ficam:
   a coerência portal↔papel manda mais do que o guia. Fica anotado para o
   Hélio decidir se o guia se corrige ou o formato muda nos dois sítios ao
   mesmo tempo.
+
+- **16/08/2026 (da varredura dos comentários) — O princípio das datas
+  honestas da Jornada.** Cada etapa é datada pelo momento em que se
+  tornou verdade PARA A CLIENTE — não pelo momento em que deu trabalho
+  à Nádia; e a ausência de um clique nunca prova a ausência do facto
+  (feito_sem_data). As decisões derivadas estavam registadas caso a
+  caso; o princípio, não. (Origem: docs/migracoes/051 · cabeçalho.)
 
 ## O contrato antes do sinal — a ordem real do negócio (02/08/2026)
 
@@ -684,6 +821,11 @@ vive a mandar mensagens a lembrar. Migração **078**.
   si» a quem deve o sinal — as duas divisões contavam histórias opostas.
   A pendência «O sinal» leva à conversa («Combinar pela conversa», o
   WhatsApp da casa) porque o pagamento não se faz no portal.
+
+- **16/08/2026 (da varredura dos comentários) — O pórtico só se mostra a
+  quem ainda não respondeu — sem backfill.** Os eventos antigos não
+  precisam de leitura fingida: quem já tem acto não volta a ver o
+  pórtico. (Origem: docs/migracoes/078 · cabeçalho.)
 
 ## A logística entre moradas, diluída (03/08/2026)
 
@@ -945,6 +1087,13 @@ transporte manual é a app a pedir à Nádia o trabalho do código.
   fica aquém do AA em todo o painel — escurecer para ≈#8a6528 é
   decisão de casa, por tomar.
 
+- **16/08/2026 (da varredura dos comentários) — Quem notifica a captação é
+  a ORIGEM do pedido.** anon (o site público) notifica; authenticated
+  (a Nádia a transcrever uma conversa) não se auto-notifica. E o
+  gatilho nunca pode falhar a captação: qualquer erro dentro dele vira
+  warning, nunca excepção. (Origem: docs/migracoes/026 ·
+  dlm_notificar_captacao; regra nascida na 022/024.)
+
 ## Deslocação — km inteiros (08/08/2026)
 
 - **08/08/2026 — A distância calculada arredonda ao km inteiro** (≥,50
@@ -1058,6 +1207,13 @@ visual é o mockup validado; aqui fica a substância:
   rival (o caso mais grave); a gravidade conta-a o banner. Sinalizado
   ao Hélio, não bloqueante: a EventoPage usa hojeISO em UTC
   (pré-existente) enquanto o resto da disputa compara com a data local.
+
+- **16/08/2026 (da varredura dos comentários) — A âncora do prazo é a data
+  do CALENDÁRIO, nunca a data do pagamento rival.** Avaliado e
+  recusado ancorar ao pagamento: as datas de pagamento são escritas à
+  mão e podem ser retroactivas, e ir buscá-las arrastava dados do
+  rival para o ramo do outro. (Origem: docs/migracoes/085 ·
+  dlm_portal_ver, corpo hoje em _interno.)
 
 ## Comunicados — o briefing das melhorias (09/08/2026, fases A-C)
 
@@ -1359,6 +1515,13 @@ método; aqui ficam as decisões aprovadas fase a fase).
   eixo): a **migração 087** junta a cadeia nova ao eixo «bolo», a
   antiga fica pelo histórico. Pendência: **correr a 087**.
 
+- **16/08/2026 (da varredura dos comentários) — UM formulário, UMA verdade,
+  nas três portas.** Campos, labels e componente são os MESMOS em
+  /interesse, no funil e no Início — pedido explícito de consistência.
+  A VALIDAÇÃO é que diverge, por decisão já registada (rigidez
+  pública, flexibilidade interna). (Origem:
+  src/components/captacao/CaptacaoForm.jsx · banner.)
+
 ## Portal — a saída do ecrã do acto (10/08/2026)
 
 - **«Voltar ao acompanhamento» passou a «Acompanhar evento em tempo
@@ -1497,6 +1660,13 @@ método; aqui ficam as decisões aprovadas fase a fase).
   Porquê: eram o resto do sistema de avisos bloqueantes removido nesta
   mesma data; uma rota pública sem protecção para pré-visualizar
   backoffice era, além de morta, uma fresta desnecessária.
+- **16/08/2026 — Candidata nova, da varredura dos comentários:
+  `dlm_velar_instantaneo` (057/058) está morta em pé.** A última
+  chamada viva era a versão 083 do `dlm_portal_ver_documento`; a 086
+  redefiniu-o sem ela quando o véu do contrato morreu, e hoje não há
+  chamador nenhum (confirmado por grep às 86 migrações e ao src).
+  Não se apaga já — sai numa migração de limpeza, e o comment on
+  function da 057 vai com ela.
 
 ## O mecanismo único de imagens (14/08/2026)
 
@@ -1536,6 +1706,14 @@ método; aqui ficam as decisões aprovadas fase a fase).
   Porquê: duas vezes neste projeto o build passou com um erro que o eslint
   apanhou e que teria rebentado no ecrã da Nádia (uma importação em falta
   que viajou com um handler). O build sozinho não chega.
+
+- **16/08/2026 (da varredura dos comentários) — Telefones internacionais
+  aceitam-se.** A restrição antiga a 9 dígitos PT bloqueava clientes
+  no estrangeiro — a Nádia fala por WhatsApp com qualquer país.
+  (Origem: src/lib/validation.js · isValidPhone. Regra IRMÃ a não
+  confundir: a chave de dedupe continua a usar os últimos 9 dígitos,
+  em TRÊS cópias que têm de dizer o mesmo — a vista SQL,
+  src/lib/comunicados.js e src/lib/importacao/schema.js.)
 
 ## Multi-tenant — o gestor deixa de servir uma casa só (15/08/2026)
 
@@ -1634,6 +1812,13 @@ negócios correm»), agora com nome próprio.
   para os comprar. O que tem relógio a correr é a MARCA, não o domínio —
   e em Portugal antes do Brasil, porque é lá que o produto está em uso.
 
+- **16/08/2026 (da varredura dos comentários) — Suspender corta o acesso
+  sem apagar nada.** Uma casa suspensa não devolve tenants a ninguém:
+  as portas fecham-se e os dados ficam intactos à espera. (Origem:
+  docs/migracoes/090 · tenants_do_utilizador. Ver o conflito anotado
+  na varredura: o efeito no backoffice é maior do que a entrada da 104
+  regista.)
+
 ## O frontend deixa de saber o nome da casa de cor (099 · 15/08/2026)
 
 A 097 pôs a identidade em `tenants` e a 098 abriu as portas; faltava o
@@ -1687,6 +1872,15 @@ lado de cá. Trinta e três ficheiros liam-na de constantes em JavaScript.
   As folhas de armazém montavam o cabeçalho com constantes literais, e
   interpolar sem escapar era seguro. Deixou de ser: o nome vem agora da
   base, e um `&` no nome de uma casa partia a folha.
+
+- **16/08/2026 (da varredura dos comentários) — A identidade tem porta
+  própria em vez de viajar embutida.** Avaliado e recusado embutir a
+  chave `casa` nas cinco projecções públicas: a porta única cacheia-se
+  e mantém-se num sítio só; cinco projecções em sincronia divergiam à
+  primeira mudança. A excepção única, aberta conscientemente pela 100:
+  `formulario_validar_convite` leva a identidade embutida, porque o
+  código escrito à mão não tem outra porta por onde a pedir. (Origem:
+  docs/migracoes/098 · cabeçalho; 100.)
 
 ### Pendências desta decisão
 
@@ -1911,9 +2105,18 @@ problema por baixo.
 - **15/08/2026 — A suspensão testada de ponta a ponta.** Casa suspensa em
   staging: o portal e a folha respondem `terminado`, a identidade responde
   `desconhecida`, o pedido não abre o formulário, e o convite continua a
-  abrir — como desenhado. No admin, a Nádia entra e o sistema fica sem
-  marca; a saudação passa a «Boa noite» sem nome, o que é aceitável.
-  Fecha a dívida de «a 103 nunca foi exercitada».
+  abrir — como desenhado. No admin, a Nádia entra e o sistema fica
+  APARENTEMENTE SEM DADOS: o `tenants_do_utilizador` devolve vazio e a
+  RLS nega tudo, por isso TODAS as listas esvaziam (e a saudação fica
+  «Boa noite» sem nome). *(Corrigido a 16/08, da varredura: esta
+  entrada dizia «fica sem marca … o que é aceitável», e isso
+  subavaliava o efeito — não é a marca, é o sistema inteiro a parecer
+  avariado.)* Fecha a dívida de «a 103 nunca foi exercitada».
+- **Pendência (16/08, da varredura):** uma casa suspensa devia ver um
+  ecrã que EXPLICA — «esta casa está suspensa, fale com …» — em vez de
+  um sistema que parece avariado (listas todas vazias sem uma
+  palavra). Hoje o vazio é comportamento emergente da RLS, não um
+  estado desenhado.
 ## A autoria chega ao ecrã (105b · 16/08/2026)
 
 A 105 pôs `criado_por` em quinze tabelas, com `default auth.uid()`, e
@@ -2005,6 +2208,8 @@ e muda o suficiente por dentro.
   A varredura é trabalho a sério: 56 funções com comentários densos,
   muitos a explicar escolhas que nunca chegaram ao documento. Fica como
   pendência PRÓPRIA, não a meio de outra coisa.
+  *(Feita a 16/08 — ver «A varredura dos comentários de função», no
+  fim do documento.)*
 
 ## O registo de erros passa por função (106b · 16/08/2026)
 
@@ -2095,6 +2300,12 @@ aceita insert anónimo sem limite — o caminho mais fácil para encher os
   catches é do grupo 2 (levam `setErro`, `onErroGravacao`, `setErroAccao`
   — chegam ao ecrã) ou do 3 (leituras de rótulos, com o comentário a
   dizer que degradam). Do grupo 1 restam DOIS, abaixo.
+
+- **16/08/2026 (da varredura dos comentários) — Os erros guardam-se 30
+  dias, e o prazo prometido grava-se na linha.** `respostas_ate` fica
+  na linha e não numa constante do código: o dia em que o prazo mudar,
+  as linhas antigas mantêm o prazo com que nasceram — que é o que foi
+  prometido no ecrã. (Origem: docs/migracoes/106 · respostas_ate.)
 
 ### Os dois catches do grupo 1 (varredura de 16/08/2026)
 
@@ -2314,3 +2525,114 @@ que se chamava da última vez».
   índigo — até lá, o funil fica ilha clara no escuro); e a validação a
   quente da Nádia — o contraste passou AA no papel, mas é o uso que
   confirma.
+
+## A varredura dos comentários de função (16/08/2026)
+
+A pendência da 105b — «há decisões deste documento espalhadas por
+comentários de função» — foi paga: varridas as 86 migrações de
+docs/migracoes/, a Edge Function, e o src/ inteiro (lib, páginas,
+componentes), com um critério só: *se apagassem esta função amanhã,
+esta decisão perdia-se?* O que a varredura encontrou foi arrumado
+assim: as decisões de produto subiram às secções temáticas deste
+documento (marcadas «da varredura», com a origem citada); os
+invariantes técnicos têm agora casa própria em `docs/invariantes.md`
+— curto, sem datas, para ler antes de mexer no código; uma recusa mal
+escrita foi reescrita no próprio comentário como recusa
+(src/lib/fotografias.js · apagarFotografia); as pendências
+verdadeiras estão abaixo. Os comentários originais ficaram todos onde
+estavam — quem lê a função continua a precisar deles.
+
+### Conflitos encontrados — e as decisões do Hélio (16/08)
+
+- **`dlm_comunicado_ver` concedida a authenticated (103) contra a
+  recusa deliberada da 085 — DECIDIDO: revogar.** A decisão da 085 é
+  válida («a função conta uma leitura, e uma espreitadela do
+  backoffice não pode contar como visita de uma cliente»); o grant da
+  103 foi reversão acidental do Hélio, na pressa de repor grants
+  depois da 101. O SQL da revogação é dele — fica aqui a razão, para
+  a migração citar. Até lá, a regra de sempre segura o risco: o
+  frontend nunca chama a porta pública para pré-visualizar.
+- **O efeito da suspensão no backoffice — DECIDIDO: o registo estava
+  errado e foi corrigido.** A entrada da 104 dizia «fica sem marca …
+  aceitável»; a verdade é que o admin fica aparentemente SEM DADOS
+  (`tenants_do_utilizador` vazio, RLS a negar tudo). Entrada
+  corrigida no próprio sítio, e pendência nova registada ao lado:
+  uma casa suspensa devia ver um ecrã que explica, não um sistema que
+  parece avariado.
+- **A nota do glossário («mudar a chave `interessada` é grátis») —
+  DECIDIDO: corrigir.** O «é grátis» morreu quando o portal nasceu; a
+  nota passou a dizer o preço real («nos dois lados ao mesmo tempo»).
+  A pendência continua válida — só o preço subiu.
+
+### Pendências desta varredura (com a origem)
+
+- `notasSobreEstiloDaPlaca` («Espelho») continua órfã: a 032 deixou-a
+  de fora do backfill «pendente de decisão de produto com a Nádia», a
+  053 recriou `numeroDeMesas` mas esta nunca foi recriada nem
+  decidida. (Origem: docs/migracoes/032 · nota final.)
+- `invites.status` é texto livre sem CHECK e o gatilho
+  `dlm_marcar_preenchido` depende da grafia exacta 'Preenchido' — a
+  «dívida consciente» da 048 (reiterada na 052) nunca foi paga: falta
+  o inventário de grafias e o CHECK. (Origem: docs/migracoes/048 ·
+  nota final; 052.)
+- O livro de auditoria (quem ALTEROU o quê) está desenhado mas por
+  escrever, com três razões de adiamento registadas — 29 funções
+  SECURITY DEFINER sem auth.uid(), retenção por decidir ANTES de
+  ligar, esperar por pergunta real. (Origem: docs/migracoes/105 ·
+  rodapé «O LIVRO, POR ESCREVER».)
+- `reservas` sem `submission_id` são visíveis e escritas por TODAS as
+  casas (política assume tabela quase vazia); quando as reservas
+  tiverem uso a sério, provavelmente pedem `tenant_id` próprio.
+  (Origem: docs/migracoes/091 · política de reservas.)
+- O bloco «Dados da captação» do painel antigo continua de pé apesar
+  de a ponte pedido→formulário já existir na ficha do evento —
+  retirá-lo é a pendência #4 do ESTADO_APP. (Origem:
+  src/components/admin/PainelNovoFormulario.jsx · banner.)
+- Os `COMMENT ON COLUMN` desactualizados na BD, listados para a
+  migração do Hélio (a varredura só encontrou estes dois; os comment
+  de FUNÇÃO reescrevem-se a cada redefinição e estão certos):
+  `documentos.enviado_em` diz «Marcado à mão.» e desde a 057 é
+  carimbado por `dlm_portal_publicar` — publicar é o envio;
+  `documentos.assinado_em` diz «Marcado à mão.» e desde a 057/059 é
+  carimbado pelo acto da cliente (`dlm_portal_acto` /
+  `dlm_portal_confirmar_papel`). O comment da `dlm_velar_instantaneo`
+  (057:443) morre com a função, na limpeza. (Origem:
+  docs/migracoes/030 · comment on column.)
+- Marcar `papel` (contraente, morada, título) nos campos dos modelos:
+  hoje nenhum dos 192 campos tem papel, e as escadas por
+  palavra-chave dos documentos existem para viver sem isso — o
+  caminho limpo fica por fazer. (Origem: src/lib/clientes.js ·
+  getDadosParaDocumento.)
+
+### Desactualizadas — deixadas em paz, com o que as atropela
+
+Comentários históricos que já não descrevem o sistema; ficam nos
+ficheiros (são registo de época), e esta lista é o antídoto: 020/031
+briefing público → 094 tirou-o da rua; 021 excepções do anon
+(event_types, form_errors) → 093 e 106; 030 `comment on column`
+«marcado à mão» → 057/059 carimbam por publicação e acto (⚠ os
+COMMENT na própria BD continuam errados — corrigir pede migração);
+040 membros do par fase/status → 077; 043 nota de grants do dedupe →
+093/101; 052 «três sinais» da preparação → 076 (acende pelo
+trabalho); 057 véu de euros e actos com código → 061/083/086; 058
+`dlm_velar_instantaneo` confirmada morta por grep (a última chamada
+viva era a versão 083 do `dlm_portal_ver_documento`; a 086
+redefiniu-o sem ela; zero chamadores hoje) — entrou na lista da
+grande limpeza; 059 CHECK das duas provas → 086 (a prova tem três
+nomes); 061 «assinar exige código do contrato» → 083/086; 091 secção
+«dívidas» → todas pagas (092/093/101/102/106, com dois ponteiros
+errados de origem); ImportarTab banner «Fase 1, nada escreve» → a
+Fase 2 vive no mesmo ficheiro; PortalPage/ComunicadoPage «inexistente,
+revogado e expirado são indistinguíveis» → a 100 vestiu a marca no
+token morto (as PALAVRAS da cortina continuam a não confirmar nada —
+é a identidade que mudou); notificacoes.js justificação da
+«degradação graciosa» → o padrão morreu na 104.
+
+### O método, para a próxima
+
+Cinco varredores paralelos (migrações em três fatias, lib, ecrãs),
+critério único, verificação da ÚLTIMA definição de cada função antes
+de promover (a lição do «procurar pelo mecanismo»: metade dos achados
+antigos estava atropelada). Três falsos desaparecimentos vieram de
+espelho incompleto do repositório — confirmados contra o disco antes
+de virarem pendência.
