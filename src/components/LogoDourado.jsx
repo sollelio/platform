@@ -167,7 +167,10 @@ export default function LogoDourado({
             top: p.top,
             fontSize: `${Math.max(4, Math.round(p.size * k))}px`,
             lineHeight: 1,
-            color: "var(--gold)",
+            // A poeira é parte da JOIA: preso ao ouro do claro, como o
+            // halo e o brilho ao lado — a joia não segue o tema, e era
+            // a única peça dela atrelada à ponte var(--gold).
+            color: "#C9A84C",
             textShadow: "0 0 6px rgba(232,213,163,0.9)",
             pointerEvents: "none",
             userSelect: "none",

@@ -137,9 +137,9 @@ function Centrado({ children }) {
 // limpar aqui seria anular a promessa de OUTRO evento sem lhe abrir a
 // ficha, e é exactamente o tipo de gesto cego que a casa recusa.
 //
-// Veste o padrão âmbar de FormulariosOrfaos (#FEF3E2/#F0D9B5/#92400E,
-// linha do ⚠ a 13px/700): atenção sem alarme — a disputa não é um
-// erro, é o negócio a acontecer.
+// Veste o padrão âmbar de FormulariosOrfaos (hoje nos tokens de aviso:
+// --aviso-fundo/--aviso-borda/--aviso-texto, linha do ⚠ a 13px/700):
+// atenção sem alarme — a disputa não é um erro, é o negócio a acontecer.
 // ============================================================
 
 // Os meses à mão, como disputaDia.js e base.js (a cópia é deliberada,
@@ -183,9 +183,9 @@ const botaoAmbar = {
   fontWeight: "600",
   padding: "8px 14px",
   borderRadius: "10px",
-  border: "1.5px solid #F0D9B5",
-  backgroundColor: "white",
-  color: "#92400E",
+  border: "1.5px solid var(--aviso-borda)",
+  backgroundColor: "var(--superficie)",
+  color: "var(--aviso-texto)",
   cursor: "pointer",
   fontFamily: "inherit",
   whiteSpace: "nowrap",
@@ -278,8 +278,8 @@ function BannerDisputaDia({
   return (
     <div
       style={{
-        backgroundColor: "#FEF3E2",
-        border: "1px solid #F0D9B5",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1px solid var(--aviso-borda)",
         borderRadius: "12px",
         padding: "12px 14px",
         marginBottom: "20px",
@@ -290,7 +290,7 @@ function BannerDisputaDia({
           margin: "0 0 6px",
           fontSize: "13px",
           fontWeight: "700",
-          color: "#92400E",
+          color: "var(--aviso-texto)",
           lineHeight: 1.5,
         }}
       >
@@ -310,7 +310,7 @@ function BannerDisputaDia({
           style={{
             margin: "0 0 4px",
             fontSize: "12.5px",
-            color: "#92400E",
+            color: "var(--aviso-texto)",
             lineHeight: 1.55,
           }}
         >
@@ -353,7 +353,7 @@ function BannerDisputaDia({
           style={{
             margin: "2px 0 10px",
             fontSize: "12.5px",
-            color: "#92400E",
+            color: "var(--aviso-texto)",
             lineHeight: 1.55,
           }}
         >
@@ -410,7 +410,7 @@ function BannerDisputaDia({
                 padding: "6px 10px",
                 fontSize: "12.5px",
                 fontFamily: "inherit",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--charcoal)",
               }}
             />
@@ -459,8 +459,8 @@ function BannerDisputaDia({
         <div
           style={{
             marginTop: "10px",
-            backgroundColor: "white",
-            border: "1px solid #F0D9B5",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--aviso-borda)",
             borderRadius: "9px",
             padding: "10px 12px",
           }}
@@ -498,7 +498,7 @@ function BannerDisputaDia({
             <span
               style={{
                 fontSize: "11.5px",
-                color: "#92400E",
+                color: "var(--aviso-texto)",
                 fontStyle: "italic",
               }}
             >
@@ -514,7 +514,7 @@ function BannerDisputaDia({
             margin: "8px 0 0",
             fontSize: "12px",
             fontWeight: "600",
-            color: "#B91C1C",
+            color: "var(--perigo-texto)",
           }}
         >
           {erro}
@@ -1004,8 +1004,8 @@ export default function EventoPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              backgroundColor: "white",
-              borderBottom: "1px solid #F0E6D0",
+              backgroundColor: "var(--superficie)",
+              borderBottom: "1px solid var(--borda)",
               padding: "18px 40px 0",
             }}
           >
@@ -1491,7 +1491,7 @@ export default function EventoPage() {
             gap: "14px",
             flexWrap: "wrap",
             width: "min(680px, calc(100vw - 48px))",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             border: "1.5px solid var(--gold)",
             borderRadius: "14px",
             padding: "12px 16px",
@@ -1544,14 +1544,14 @@ export default function EventoPage() {
             alignItems: "center",
             gap: "14px",
             width: "min(560px, calc(100vw - 48px))",
-            backgroundColor: "white",
-            border: "1.5px solid #FECACA",
+            backgroundColor: "var(--superficie)",
+            border: "1.5px solid var(--perigo-borda)",
             borderRadius: "14px",
             padding: "12px 16px",
             boxShadow: "0 14px 36px rgba(26,26,26,0.18)",
           }}
         >
-          <span style={{ fontSize: "13px", color: "#B91C1C" }}>
+          <span style={{ fontSize: "13px", color: "var(--perigo-texto)" }}>
             {erroAccao}
           </span>
           <div style={{ flex: 1 }} />

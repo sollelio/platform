@@ -42,8 +42,8 @@ export default function FormulariosOrfaos({
   return (
     <div
       style={{
-        backgroundColor: "#FEF3E2",
-        border: "1px solid #F0D9B5",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1px solid var(--aviso-borda)",
         borderRadius: "12px",
         padding: "16px 18px",
         marginBottom: "20px",
@@ -54,7 +54,7 @@ export default function FormulariosOrfaos({
           margin: "0 0 4px",
           fontSize: "13px",
           fontWeight: "700",
-          color: "#92400E",
+          color: "var(--aviso-texto)",
         }}
       >
         ⚠{" "}
@@ -66,7 +66,7 @@ export default function FormulariosOrfaos({
         style={{
           margin: "0 0 12px",
           fontSize: "12.5px",
-          color: "#92400E",
+          color: "var(--aviso-texto)",
           lineHeight: 1.6,
         }}
       >
@@ -90,8 +90,8 @@ export default function FormulariosOrfaos({
               alignItems: "center",
               gap: "10px",
               flexWrap: "wrap",
-              backgroundColor: "white",
-              border: "1px solid #F0D9B5",
+              backgroundColor: "var(--superficie)",
+              border: "1px solid var(--aviso-borda)",
               borderRadius: "9px",
               padding: "10px 12px",
               marginBottom: "8px",
@@ -119,7 +119,7 @@ export default function FormulariosOrfaos({
                 <span
                   style={{
                     fontSize: "11.5px",
-                    color: "#92400E",
+                    color: "var(--aviso-texto)",
                     fontStyle: "italic",
                   }}
                 >
@@ -129,7 +129,7 @@ export default function FormulariosOrfaos({
                 <span
                   style={{
                     fontSize: "11.5px",
-                    color: "#92400E",
+                    color: "var(--aviso-texto)",
                     fontStyle: "italic",
                   }}
                 >
@@ -143,12 +143,12 @@ export default function FormulariosOrfaos({
                       setAlvos((prev) => ({ ...prev, [o.id]: e.target.value }))
                     }
                     style={{
-                      border: "1px solid #F0D9B5",
+                      border: "1px solid var(--aviso-borda)",
                       borderRadius: "999px",
                       padding: "5px 11px",
                       fontSize: "11.5px",
-                      backgroundColor: "#FEF9EC",
-                      color: "#92400E",
+                      backgroundColor: "var(--superficie-selo)",
+                      color: "var(--aviso-texto)",
                       fontFamily: "inherit",
                       maxWidth: "260px",
                     }}
@@ -173,6 +173,11 @@ export default function FormulariosOrfaos({
                     }}
                     disabled={!escolhido || aAdoptar === o.id}
                     style={{
+                      // O apagado #FDF6E8 está fora da paleta da
+                      // identidade — o par inteiro (fundo, letra,
+                      // borda) fica literal: ilha clara com letra
+                      // escura nos dois modos, nunca letra clara
+                      // sobre fundo claro. Segue no relatório.
                       border: "1px solid #F0D9B5",
                       backgroundColor: escolhido ? "white" : "#FDF6E8",
                       color: "#92400E",

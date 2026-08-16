@@ -71,7 +71,7 @@ const pastilha = {
   letterSpacing: "0.14em",
   textTransform: "uppercase",
   color: "var(--gold-dark)",
-  backgroundColor: "#FEF9EC",
+  backgroundColor: "var(--superficie-selo)",
   border: "1px solid var(--gold-light)",
   borderRadius: "999px",
   padding: "4px 9px",
@@ -86,9 +86,9 @@ const pastilha = {
 // desaparecesse ao rolar não era aviso.
 const pastilhaDisputa = {
   ...pastilha,
-  color: "#92400E",
-  backgroundColor: "#FEF3E2",
-  border: "1px solid #F0D9B5",
+  color: "var(--aviso-texto)",
+  backgroundColor: "var(--aviso-fundo)",
+  border: "1px solid var(--aviso-borda)",
 };
 
 // O selo só aponta; quem conta a história (rivais, prazo, acções) é o
@@ -177,7 +177,9 @@ function LinhaDinheiro({ resumo, compacta = false }) {
           fontWeight: "600",
           letterSpacing: "0.16em",
           textTransform: "uppercase",
-          color: destaque ? "#B08A3C" : "#9B9B9B",
+          // #B08A3C é o «rótulo dourado de contraste» da identidade,
+          // sem token — fica literal (lê-se nos dois modos).
+          color: destaque ? "#B08A3C" : "var(--texto-apagado)",
         }}
       >
         {rotulo}
@@ -218,6 +220,8 @@ function LinhaDinheiro({ resumo, compacta = false }) {
       }}
     >
       {par("Total", totalAnim, false)}
+      {/* os «·» em #E4DCCB estão fora da paleta da identidade — sem
+          token com este valor, ficam literais e seguem no relatório */}
       <span style={{ fontSize: "12px", color: "#E4DCCB" }}>·</span>
       {par("Recebido", pagoAnim, false)}
       <span style={{ fontSize: "12px", color: "#E4DCCB" }}>·</span>
@@ -275,7 +279,13 @@ function Separadores({ abas, activeAba, onAba }) {
                 <span
                   style={{
                     fontSize: "10px",
-                    color: ativo ? "rgba(255,255,255,0.75)" : "#B0A88F",
+                    // O contador do separador activo é o par do ouro a
+                    // 75% (no claro é o mesmo branco-75 de sempre); o
+                    // inactivo, #B0A88F, está fora da paleta — fica
+                    // literal e segue no relatório.
+                    color: ativo
+                      ? "rgba(var(--texto-sobre-ouro-rgb), 0.75)"
+                      : "#B0A88F",
                   }}
                 >
                   {aba.contagem}
@@ -293,7 +303,9 @@ function Separadores({ abas, activeAba, onAba }) {
                     width: "6px",
                     height: "6px",
                     borderRadius: "50%",
-                    backgroundColor: ativo ? "white" : "var(--gold)",
+                    backgroundColor: ativo
+                      ? "var(--texto-sobre-ouro)"
+                      : "var(--gold)",
                     flexShrink: 0,
                   }}
                 />
@@ -469,7 +481,9 @@ export default function CabecalhoEvento({
     <>
       {/* A PARTE QUE SE DESPEDE — nunca sticky; rola para fora com a
           página. É isto a "condensação": o grande despede-se. */}
-      <div style={{ backgroundColor: "white", padding: "18px 40px 0" }}>
+      <div
+        style={{ backgroundColor: "var(--superficie)", padding: "18px 40px 0" }}
+      >
         <div
           style={{
             display: "flex",
@@ -499,8 +513,11 @@ export default function CabecalhoEvento({
               >
                 ← Clientes
               </button>
+              {/* #C4C4C4 é o valor de --traco-discreto, mas o papel
+                  registado do token é o gesto destrutivo discreto — o
+                  divisor fica literal e segue no relatório */}
               <span style={{ fontSize: "11px", color: "#C4C4C4" }}>/</span>
-              <span style={{ fontSize: "11px", color: "#9B9B9B" }}>
+              <span style={{ fontSize: "11px", color: "var(--texto-apagado)" }}>
                 Evento
               </span>
             </div>
@@ -533,6 +550,8 @@ export default function CabecalhoEvento({
                   style={{ display: "flex", alignItems: "center", gap: "9px" }}
                 >
                   {i > 0 && (
+                    // #DCD3C0 está fora da paleta da identidade — fica
+                    // literal e segue no relatório
                     <span style={{ fontSize: "13px", color: "#DCD3C0" }}>
                       ·
                     </span>
@@ -588,12 +607,12 @@ export default function CabecalhoEvento({
         </div>
       </div>
 
-      {/* O SENTINELA: 1px branco que responde "a moldura está
-          pregada?" — visível = não; fora do ecrã = sim. */}
+      {/* O SENTINELA: 1px na cor da superfície que responde "a moldura
+          está pregada?" — visível = não; fora do ecrã = sim. */}
       <div
         ref={sentinelaRef}
         aria-hidden
-        style={{ height: "1px", backgroundColor: "white" }}
+        style={{ height: "1px", backgroundColor: "var(--superficie)" }}
       />
 
       {/* A MOLDURA PERMANENTE — altura constante, sempre. Sobrepõe-se
@@ -607,6 +626,7 @@ export default function CabecalhoEvento({
           top: 0,
           zIndex: 20,
           marginTop: `-${ALTURA_LINHA_COMPACTA + 1}px`,
+          // sombra quase-preta fica literal (regra das sombras)
           boxShadow: fixado ? "0 2px 10px rgba(26,26,26,0.06)" : "none",
           transition: "box-shadow 180ms ease",
         }}
@@ -619,7 +639,7 @@ export default function CabecalhoEvento({
             alignItems: "center",
             gap: "22px",
             padding: "0 40px",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             opacity: fixado ? 1 : 0,
             transform: fixado ? "none" : "translateY(-4px)",
             visibility: fixado ? "visible" : "hidden",
@@ -695,8 +715,8 @@ export default function CabecalhoEvento({
 
         <div
           style={{
-            backgroundColor: "white",
-            borderBottom: "1px solid #F0E6D0",
+            backgroundColor: "var(--superficie)",
+            borderBottom: "1px solid var(--borda)",
             padding: "0 40px",
           }}
         >

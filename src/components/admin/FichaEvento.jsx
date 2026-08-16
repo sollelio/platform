@@ -131,7 +131,7 @@ export default function FichaEvento({
               padding: "14px 18px",
               borderRadius: "12px",
               border: "1.5px solid var(--gold)",
-              backgroundColor: "#FEF9EC",
+              backgroundColor: "var(--superficie-selo)",
             }}
           >
             <div style={{ minWidth: 0 }}>
@@ -154,7 +154,7 @@ export default function FichaEvento({
                     fontWeight: "700",
                     padding: "2px 10px",
                     borderRadius: "999px",
-                    backgroundColor: "#FEF9EC",
+                    backgroundColor: "var(--superficie-selo)",
                     color: "var(--gold)",
                     border: "1px solid var(--gold-light)",
                     textTransform: "uppercase",
@@ -188,7 +188,7 @@ export default function FichaEvento({
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 border: "1.5px solid var(--gold-light)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold)",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
@@ -216,8 +216,8 @@ export default function FichaEvento({
                 outline: "none",
                 fontFamily: "Inter, sans-serif",
                 boxSizing: "border-box",
-                backgroundColor: "white",
-                boxShadow: "0 0 0 3px rgba(201,168,76,0.08)",
+                backgroundColor: "var(--superficie)",
+                boxShadow: "0 0 0 3px rgba(var(--ouro-rgb), 0.08)",
               }}
             />
             {seletorAberto && (
@@ -234,9 +234,11 @@ export default function FichaEvento({
                     left: 0,
                     right: 0,
                     zIndex: 31,
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     borderRadius: "10px",
                     border: "1px solid var(--gold-light)",
+                    // sombra preta fica literal (não coincide com os
+                    // tokens de sombra)
                     boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
                     overflowY: "auto",
                   }}
@@ -269,16 +271,18 @@ export default function FichaEvento({
                           width: "100%",
                           padding: "10px 14px",
                           border: "none",
-                          borderBottom: "1px solid #F5ECD7",
-                          backgroundColor: "white",
+                          borderBottom: "1px solid var(--borda-leve)",
+                          backgroundColor: "var(--superficie)",
                           cursor: "pointer",
                           textAlign: "left",
                         }}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = "#FBF7EF")
+                          (e.currentTarget.style.backgroundColor =
+                            "var(--superficie-quente)")
                         }
                         onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor = "white")
+                          (e.currentTarget.style.backgroundColor =
+                            "var(--superficie)")
                         }
                       >
                         <span
@@ -307,7 +311,7 @@ export default function FichaEvento({
                               fontWeight: "700",
                               padding: "2px 8px",
                               borderRadius: "999px",
-                              backgroundColor: "#FEF9EC",
+                              backgroundColor: "var(--superficie-selo)",
                               color: "var(--gold-dark)",
                               border: "1px solid var(--gold-light)",
                               textTransform: "uppercase",
@@ -541,7 +545,7 @@ function FichaMateriais({
                 fontWeight: "600",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold)",
                 border: "1.5px solid var(--gold-light)",
                 cursor: "pointer",
@@ -561,11 +565,11 @@ function FichaMateriais({
               letterSpacing: "0.05em",
               textTransform: "uppercase",
               backgroundColor: "var(--gold)",
-              color: "white",
+              color: "var(--texto-sobre-ouro)",
               border: "none",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              boxShadow: "0 4px 16px rgba(201,168,76,0.4)",
+              boxShadow: "0 4px 16px rgba(var(--ouro-rgb), 0.4)",
             }}
           >
             + Adicionar
@@ -589,9 +593,10 @@ function FichaMateriais({
           style={{
             textAlign: "center",
             padding: "40px 20px",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             borderRadius: "14px",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+            // igual ao token, valor por valor — pode ir inteiro
+            boxShadow: "var(--sombra-cartao)",
           }}
         >
           <p style={{ fontSize: "13px", color: "var(--gray-mid)", margin: 0 }}>
@@ -664,7 +669,7 @@ function SaveIndicator({ state }) {
     <span
       style={{
         fontSize: "11px",
-        color: state === "saving" ? "var(--gray-mid)" : "#22C55E",
+        color: state === "saving" ? "var(--gray-mid)" : "var(--sucesso)",
         fontWeight: "500",
         whiteSpace: "nowrap",
       }}
@@ -717,10 +722,11 @@ function LinhaMaterial({ linha, onUpdate, onRemove }) {
   return (
     <div
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "14px",
         padding: "16px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+        // igual ao token, valor por valor — pode ir inteiro
+        boxShadow: "var(--sombra-cartao)",
       }}
     >
       {/* Nome + remover */}
@@ -749,9 +755,9 @@ function LinhaMaterial({ linha, onUpdate, onRemove }) {
           style={{
             padding: "4px 8px",
             borderRadius: "8px",
-            border: "1px solid #FECACA",
-            backgroundColor: "#FEF2F2",
-            color: "#DC2626",
+            border: "1px solid var(--perigo-borda)",
+            backgroundColor: "var(--perigo-fundo)",
+            color: "var(--perigo)",
             cursor: "pointer",
             fontSize: "12px",
             flexShrink: 0,
@@ -809,7 +815,9 @@ function LinhaMaterial({ linha, onUpdate, onRemove }) {
               fontSize: "11px",
               fontWeight: "600",
               border: `1.5px solid ${paletaAberta ? "var(--gold)" : "var(--gold-light)"}`,
-              backgroundColor: paletaAberta ? "#FEF9EC" : "white",
+              backgroundColor: paletaAberta
+                ? "var(--superficie-selo)"
+                : "var(--superficie)",
               color: "var(--gold-dark)",
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -845,7 +853,7 @@ function LinhaMaterial({ linha, onUpdate, onRemove }) {
               padding: "14px",
               borderRadius: "12px",
               border: "1.5px solid var(--gold-light)",
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
             }}
           >
             <SeletorPaleta value={cores} onChange={mudarCores} compact />
@@ -904,8 +912,8 @@ function ListaToggle({ label, ativo, onClick }) {
         fontSize: "11px",
         fontWeight: "600",
         border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-        backgroundColor: ativo ? "var(--gold)" : "white",
-        color: ativo ? "white" : "var(--gray-mid)",
+        backgroundColor: ativo ? "var(--gold)" : "var(--superficie)",
+        color: ativo ? "var(--texto-sobre-ouro)" : "var(--gray-mid)",
         cursor: "pointer",
         transition: "all 0.15s",
       }}
@@ -961,7 +969,10 @@ function AdicionarMateriais({
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        backgroundColor: "rgba(0,0,0,0.4)",
+        // Cortina unificada no token (decisão do Hélio, 16/08: um véu,
+        // um valor): este era 0.4, o terceiro valor divergente que a
+        // varredura encontrou para o mesmo papel.
+        backgroundColor: "var(--cortina)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
@@ -991,6 +1002,9 @@ function AdicionarMateriais({
               width: "40px",
               height: "4px",
               borderRadius: "999px",
+              // #E5E7EB é o valor de --neutro-borda, mas o papel do
+              // token é a borda dos estados neutros — a pega da folha
+              // fica literal e segue no relatório
               backgroundColor: "#E5E7EB",
               margin: "0 auto 16px",
             }}
@@ -1060,7 +1074,7 @@ function AdicionarMateriais({
                 outline: "none",
                 fontFamily: "Inter, sans-serif",
                 boxSizing: "border-box",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
               }}
             />
           </div>
@@ -1098,9 +1112,10 @@ function AdicionarMateriais({
                   <div
                     key={grupo.categoria}
                     style={{
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       borderRadius: "12px",
                       overflow: "hidden",
+                      // sombra preta fica literal (≠ tokens de sombra)
                       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                     }}
                   >
@@ -1157,7 +1172,7 @@ function AdicionarMateriais({
                             fontSize: "10px",
                             fontWeight: "600",
                             color: "var(--gold)",
-                            backgroundColor: "#FEF9EC",
+                            backgroundColor: "var(--superficie-selo)",
                             border: "1px solid var(--gold-light)",
                             borderRadius: "999px",
                             padding: "2px 8px",
@@ -1195,7 +1210,9 @@ function AdicionarMateriais({
                                 padding: "10px 12px",
                                 borderRadius: "8px",
                                 border: "none",
-                                backgroundColor: dentro ? "#FEF9EC" : "white",
+                                backgroundColor: dentro
+                                  ? "var(--superficie-selo)"
+                                  : "var(--superficie)",
                                 cursor: "pointer",
                                 textAlign: "left",
                               }}
@@ -1222,8 +1239,10 @@ function AdicionarMateriais({
                                   border: `1.5px solid ${dentro ? "var(--gold)" : "var(--gold-light)"}`,
                                   backgroundColor: dentro
                                     ? "var(--gold)"
-                                    : "white",
-                                  color: dentro ? "white" : "var(--gold)",
+                                    : "var(--superficie)",
+                                  color: dentro
+                                    ? "var(--texto-sobre-ouro)"
+                                    : "var(--gold)",
                                 }}
                               >
                                 {dentro ? "✓" : "+"}
@@ -1245,7 +1264,7 @@ function AdicionarMateriais({
           style={{
             padding: "12px 20px",
             borderTop: "1px solid var(--gold-light)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             flexShrink: 0,
           }}
         >
@@ -1258,7 +1277,7 @@ function AdicionarMateriais({
               fontSize: "13px",
               fontWeight: "600",
               backgroundColor: "var(--gold)",
-              color: "white",
+              color: "var(--texto-sobre-ouro)",
               border: "none",
               cursor: "pointer",
             }}
@@ -1289,5 +1308,5 @@ const miniInput = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };

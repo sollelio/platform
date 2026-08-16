@@ -107,6 +107,9 @@ const STATUS_EM_PREPARACAO = ["Em Preparação", "Confirmado"];
 // Nádia passa a ser «onde está o trabalho?» — formulário, projecto,
 // contrato, materiais. Três marcas da casa (traço à mão, nunca
 // glifos): vazio (por começar) · meia-lua (a meio) · visto (feito).
+// As cores das marcas ficam literais: são atributos SVG (stroke/fill),
+// que não aceitam var(--…) — os valores até são os da identidade
+// (--ouro/--ouro-suave/--aro); seguem no relatório.
 // ------------------------------------------------------------
 function MarcaTrilho({ estado }) {
   if (estado === "feito") {
@@ -142,6 +145,8 @@ function TrilhoPreparacao({ itens }) {
         gap: "6px 12px",
         margin: "0 0 10px",
         paddingTop: "8px",
+        // #F5EFE2 está fora da paleta (--borda-leve é #F5ECD7) —
+        // fica literal e segue no relatório de violações.
         borderTop: "1px solid #F5EFE2",
       }}
     >
@@ -156,7 +161,10 @@ function TrilhoPreparacao({ itens }) {
             style={{
               fontSize: "9.5px",
               letterSpacing: "0.02em",
-              color: it.estado === "vazio" ? "#9B9B9B" : "var(--gray-mid)",
+              color:
+                it.estado === "vazio"
+                  ? "var(--texto-apagado)"
+                  : "var(--gray-mid)",
             }}
           >
             {it.rotulo}
@@ -735,7 +743,7 @@ export default function FunilBoard({
     );
   }
   if (erro) {
-    return <p style={{ color: "#DC2626", fontSize: "14px" }}>{erro}</p>;
+    return <p style={{ color: "var(--perigo)", fontSize: "14px" }}>{erro}</p>;
   }
 
   const perdidos = eventos.filter((e) => faseDe(e) === "perdido");
@@ -762,9 +770,9 @@ export default function FunilBoard({
             fontWeight: "600",
             border: "none",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
+            boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.3)",
             whiteSpace: "nowrap",
           }}
         >
@@ -778,8 +786,12 @@ export default function FunilBoard({
             fontSize: "12px",
             fontWeight: mostrarPerdidos ? "600" : "500",
             border: `1.5px solid ${mostrarPerdidos ? "#9CA3AF" : "var(--gold-light)"}`,
+            // O estado activo (#F3F4F6/#9CA3AF) está fora da paleta —
+            // como a cor do texto é partilhada pelos dois estados, o
+            // par fica literal nos dois e o texto fixa-se no literal
+            // claro; segue no relatório de violações.
             backgroundColor: mostrarPerdidos ? "#F3F4F6" : "white",
-            color: "var(--gray-mid)",
+            color: "#6B6B6B",
             cursor: "pointer",
             transition: "all 0.2s",
             whiteSpace: "nowrap",
@@ -793,9 +805,9 @@ export default function FunilBoard({
         <p
           style={{
             fontSize: "12px",
-            color: "#DC2626",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "8px 14px",
             margin: "0 0 12px 0",
@@ -860,6 +872,12 @@ export default function FunilBoard({
           posSinalAtivos.filter((e) => !estaEmPreparacao(e)),
         );
 
+        // As COLUNAS ficam literais (ilhas claras nos dois modos): duas
+        // das quatro têm fundos fora da paleta (#F6FBF6 verde, #F5F9FF
+        // azul) e, como a componente é partilhada, o par inteiro
+        // congela nas quatro — com os textos cinzentos fixados no
+        // literal claro, para nunca ficar letra clara sobre fundo
+        // claro no escuro. Os fora-de-paleta seguem no relatório.
         const Coluna = ({ titulo, cor, fundo, borda, lista, legendaEuros, comTrilho }) => (
           <div
             style={{
@@ -889,7 +907,7 @@ export default function FunilBoard({
               >
                 {titulo}
               </p>
-              <span style={{ fontSize: "12px", color: "var(--gray-mid)" }}>
+              <span style={{ fontSize: "12px", color: "#6B6B6B" }}>
                 {lista.length}
               </span>
             </div>
@@ -906,7 +924,7 @@ export default function FunilBoard({
                 style={{
                   fontSize: "10px",
                   fontWeight: "400",
-                  color: "var(--gray-mid)",
+                  color: "#6B6B6B",
                 }}
               >
                 {legendaEuros}
@@ -917,7 +935,7 @@ export default function FunilBoard({
                 style={{
                   fontSize: "12px",
                   fontStyle: "italic",
-                  color: "var(--gray-mid)",
+                  color: "#6B6B6B",
                   textAlign: "center",
                   padding: "18px 0",
                   margin: 0,
@@ -1003,7 +1021,9 @@ export default function FunilBoard({
           >
             <Coluna
               titulo="Interessados"
-              cor="var(--gold-dark)"
+              // Preso ao claro como a coluna toda: ouro-texto do tema
+              // sobre uma coluna congelada ao claro morreria no escuro.
+              cor="#A07830"
               fundo="#FBF7EF"
               borda="#F0EBE0"
               lista={interessados}
@@ -1029,7 +1049,7 @@ export default function FunilBoard({
             {mostrarPerdidos && (
               <Coluna
                 titulo="Perdidos"
-                cor="var(--gray-mid)"
+                cor="#6B6B6B"
                 fundo="#F9FAFB"
                 borda="#E5E7EB"
                 lista={perdidos}
@@ -1049,7 +1069,7 @@ export default function FunilBoard({
             position: "fixed",
             inset: 0,
             zIndex: 50,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -1060,12 +1080,14 @@ export default function FunilBoard({
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "22px 20px",
               width: "100%",
               maxWidth: "440px",
               border: "1px solid var(--gold-light)",
+              // sombra preta fica literal (32px ≠ os 28px da
+              // --sombra-flutuante — não é o token completo)
               boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
             }}
           >
@@ -1182,7 +1204,7 @@ function FormularioSinalInline({ valorSinal, aAtualizar, onConfirmar, onCancelar
             fontWeight: "600",
             border: "none",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             cursor: aAtualizar || !metodo ? "not-allowed" : "pointer",
           }}
         >
@@ -1196,8 +1218,8 @@ function FormularioSinalInline({ valorSinal, aAtualizar, onConfirmar, onCancelar
             padding: "7px 8px",
             borderRadius: "8px",
             fontSize: "12px",
-            border: "1px solid #E5E7EB",
-            backgroundColor: "white",
+            border: "1px solid var(--neutro-borda)",
+            backgroundColor: "var(--superficie)",
             color: "var(--gray-mid)",
             cursor: "pointer",
           }}
@@ -1230,13 +1252,13 @@ function PainelDisputaCartao({
   const linha = {
     fontSize: "13px",
     fontWeight: "700",
-    color: "#92400E",
+    color: "var(--aviso-texto)",
     lineHeight: 1.5,
     margin: "0 0 6px",
   };
   const corpo = {
     fontSize: "12.5px",
-    color: "#92400E",
+    color: "var(--aviso-texto)",
     lineHeight: 1.55,
     margin: "0 0 10px",
   };
@@ -1249,15 +1271,15 @@ function PainelDisputaCartao({
   };
   const btnCalmo = {
     ...btnBase,
-    border: "1.5px solid #F0D9B5",
-    backgroundColor: "white",
-    color: "#92400E",
+    border: "1.5px solid var(--aviso-borda)",
+    backgroundColor: "var(--superficie)",
+    color: "var(--aviso-texto)",
   };
   const btnForte = {
     ...btnBase,
     border: "1.5px solid var(--gold)",
     backgroundColor: "var(--gold)",
-    color: "white",
+    color: "var(--texto-sobre-ouro)",
   };
 
   // Cada porta com a sua conversa — a acção forte só existe onde a
@@ -1298,8 +1320,8 @@ function PainelDisputaCartao({
     <div
       onClick={(e) => e.stopPropagation()}
       style={{
-        backgroundColor: "#FEF3E2",
-        border: "1.5px solid #F0D9B5",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1.5px solid var(--aviso-borda)",
         borderRadius: "12px",
         padding: "12px 14px",
       }}
@@ -1379,12 +1401,14 @@ function CardEvento({
     <div
       onClick={onAbrir}
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "12px",
         padding: "12px",
         marginBottom: "8px",
+        // #F0EBE0 está fora da paleta (--borda é #F0E6D0) — fica
+        // literal e segue no relatório de violações.
         border: "1px solid #F0EBE0",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+        boxShadow: "var(--sombra-cartao)",
         cursor: "pointer",
         opacity: ehPerdido ? 0.85 : 1,
       }}
@@ -1422,8 +1446,11 @@ function CardEvento({
             textTransform: "uppercase",
             padding: "3px 9px",
             borderRadius: "999px",
+            // O fundo de recurso #F3F4F6 está fora da paleta — o par
+            // de recurso fica literal, com o texto fixado no literal
+            // claro (nunca letra clara sobre fundo claro no escuro).
             backgroundColor: (FASE_COR[fase] || {}).bg || "#F3F4F6",
-            color: (FASE_COR[fase] || {}).cor || "var(--gray-mid)",
+            color: (FASE_COR[fase] || {}).cor || "#6B6B6B",
           }}
         >
           {FASE_LABEL[fase] || fase}
@@ -1506,6 +1533,10 @@ function CardEvento({
                 fontSize: "12px",
                 fontWeight: "600",
                 border: "none",
+                // Botão de perigo CHEIO: o token desse papel é
+                // --perigo-cheio (#EF4444), valor diferente — não se
+                // aproxima; o par fica literal (branco sobre #DC2626
+                // lê-se nos dois modos) e segue no relatório.
                 backgroundColor: "#DC2626",
                 color: "white",
                 cursor: aAtualizar ? "wait" : "pointer",
@@ -1523,8 +1554,8 @@ function CardEvento({
                 padding: "7px 8px",
                 borderRadius: "8px",
                 fontSize: "12px",
-                border: "1px solid #E5E7EB",
-                backgroundColor: "white",
+                border: "1px solid var(--neutro-borda)",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gray-mid)",
                 cursor: "pointer",
               }}
@@ -1573,7 +1604,7 @@ function CardEvento({
                 fontSize: "12px",
                 fontWeight: "600",
                 border: "1.5px solid var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold)",
                 cursor: aAtualizar ? "wait" : "pointer",
               }}
@@ -1590,8 +1621,8 @@ function CardEvento({
                 padding: "7px 8px",
                 borderRadius: "8px",
                 fontSize: "12px",
-                border: "1px solid #E5E7EB",
-                backgroundColor: "white",
+                border: "1px solid var(--neutro-borda)",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gray-mid)",
                 cursor: "pointer",
               }}
@@ -1627,9 +1658,9 @@ function CardEvento({
             <p
               style={{
                 fontSize: "12px",
-                color: "#92400E",
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                color: "var(--aviso-texto)",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "8px",
                 padding: "7px 9px",
                 lineHeight: 1.5,
@@ -1659,14 +1690,17 @@ function CardEvento({
                 borderRadius: "8px",
                 fontSize: "12px",
                 fontWeight: "600",
+                // #D1D5DB está fora da paleta (--neutro-borda é
+                // #E5E7EB) — fica literal e segue no relatório (idem
+                // nos dois botões abaixo).
                 border: aEscolherRecuperacao.sinalPago
                   ? "1.5px solid var(--gold)"
                   : "1px solid #D1D5DB",
                 backgroundColor: aEscolherRecuperacao.sinalPago
                   ? "var(--gold)"
-                  : "white",
+                  : "var(--superficie)",
                 color: aEscolherRecuperacao.sinalPago
-                  ? "white"
+                  ? "var(--texto-sobre-ouro)"
                   : "var(--gray-mid)",
                 cursor: aAtualizar ? "wait" : "pointer",
               }}
@@ -1689,9 +1723,9 @@ function CardEvento({
                   : "1px solid #D1D5DB",
                 backgroundColor: !aEscolherRecuperacao.sinalPago
                   ? "var(--gold)"
-                  : "white",
+                  : "var(--superficie)",
                 color: !aEscolherRecuperacao.sinalPago
-                  ? "white"
+                  ? "var(--texto-sobre-ouro)"
                   : "var(--gray-mid)",
                 cursor: aAtualizar ? "wait" : "pointer",
               }}
@@ -1707,8 +1741,8 @@ function CardEvento({
                 padding: "6px 8px",
                 borderRadius: "8px",
                 fontSize: "12px",
-                border: "1px solid #E5E7EB",
-                backgroundColor: "white",
+                border: "1px solid var(--neutro-borda)",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gray-mid)",
                 cursor: "pointer",
               }}
@@ -1731,7 +1765,7 @@ function CardEvento({
             fontSize: "12px",
             fontWeight: "600",
             border: "1px solid #D1D5DB",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             color: "var(--gray-mid)",
             cursor: aAtualizar ? "wait" : "pointer",
           }}
@@ -1763,7 +1797,7 @@ function CardEvento({
                 fontSize: "12px",
                 fontWeight: "600",
                 border: "1.5px solid var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold)",
                 cursor: aAtualizar ? "wait" : "pointer",
                 whiteSpace: "nowrap",

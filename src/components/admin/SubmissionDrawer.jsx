@@ -296,7 +296,7 @@ export default function SubmissionDrawer({
           position: "fixed",
           inset: 0,
           zIndex: 50,
-          backgroundColor: "rgba(0,0,0,0.35)",
+          backgroundColor: "var(--cortina)",
           display: "flex",
           justifyContent: "flex-end",
         }}
@@ -308,7 +308,7 @@ export default function SubmissionDrawer({
           exit={{ x: "100%" }}
           transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
           style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             width: "100%",
             maxWidth: "560px", // largo o suficiente para a Jornada respirar
             height: "100%",
@@ -437,7 +437,7 @@ export default function SubmissionDrawer({
                 style={{
                   fontSize: "11px",
                   fontStyle: "italic",
-                  color: "#B45309",
+                  color: "var(--aviso)",
                   margin: "6px 0 0",
                 }}
               >
@@ -476,7 +476,7 @@ export default function SubmissionDrawer({
                   fontSize: "13.5px",
                   fontWeight: "600",
                   letterSpacing: "0.01em",
-                  boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                  boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                 }}
               >
                 {gesto.rotulo}
@@ -615,6 +615,8 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           title="Guardar"
           className="icone-botao"
           style={{
+            // #16A34A está fora da paleta (--sucesso é #22C55E) — fica
+            // literal e segue no relatório de violações.
             color: "#16A34A",
             padding: "3px 5px",
             lineHeight: 1,
@@ -642,7 +644,7 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
           <MarcaCruz />
         </button>
         {erro && (
-          <span style={{ fontSize: "11px", color: "#B91C1C" }}>{erro}</span>
+          <span style={{ fontSize: "11px", color: "var(--perigo-texto)" }}>{erro}</span>
         )}
       </span>
     );
@@ -662,8 +664,8 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
       whileHover="hover"
       whileTap={{ scale: 0.97 }}
       variants={{
-        rest: { backgroundColor: "rgba(201,168,76,0)", color: "#6b6b6b" },
-        hover: { backgroundColor: "rgba(201,168,76,0.14)", color: "#A07830" },
+        rest: { backgroundColor: "rgba(var(--ouro-rgb), 0)", color: "var(--texto-suave)" },
+        hover: { backgroundColor: "rgba(var(--ouro-rgb), 0.14)", color: "var(--ouro-texto)" },
       }}
       transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
       style={{
@@ -752,7 +754,7 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         border: "1px solid var(--gold-light)",
         borderRadius: "12px",
         padding: "12px 14px",
@@ -802,7 +804,7 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
             fontSize: "12px",
             outline: "none",
             fontFamily: "Inter, sans-serif",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
           }}
         >
           <option value="">Associar a um modelo…</option>
@@ -846,7 +848,7 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
         <p
           style={{
             fontSize: "11px",
-            color: "#DC2626",
+            color: "var(--perigo)",
             margin: "8px 0 0 0",
           }}
         >

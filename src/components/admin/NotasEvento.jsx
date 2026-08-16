@@ -62,7 +62,8 @@ function Quando({ iso, esbatido }) {
       <p
         style={{
           fontSize: "11px",
-          color: esbatido ? "#B0A88F" : "#9B9B9B",
+          // #B0A88F (hora esbatida) está fora da paleta — fica literal.
+          color: esbatido ? "#B0A88F" : "var(--texto-apagado)",
           margin: "1px 0 0",
           fontVariantNumeric: "tabular-nums",
         }}
@@ -106,7 +107,7 @@ function LinhaSistema({ entrada }) {
         <p
           style={{
             fontSize: "12.5px",
-            color: entrada.inicio ? "#9B9B9B" : "var(--gray-mid)",
+            color: entrada.inicio ? "var(--texto-apagado)" : "var(--gray-mid)",
             margin: 0,
           }}
         >
@@ -114,7 +115,7 @@ function LinhaSistema({ entrada }) {
           {entrada.valor && (
             <>
               {" · "}
-              <span style={{ color: "#166534", fontWeight: "600" }}>
+              <span style={{ color: "var(--sucesso-texto)", fontWeight: "600" }}>
                 {entrada.valor}
               </span>
             </>
@@ -143,8 +144,8 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
       </div>
       <div
         style={{
-          backgroundColor: interna ? "#FBF7EF" : "white",
-          border: "1px solid #F0E6D0",
+          backgroundColor: interna ? "var(--superficie-quente)" : "var(--superficie)",
+          border: "1px solid var(--borda)",
           borderRadius: "14px",
           padding: "14px 18px",
         }}
@@ -173,7 +174,7 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
             {t.label}
           </span>
           {(interna || autor) && (
-            <span style={{ fontSize: "11.5px", color: "#9B9B9B" }}>
+            <span style={{ fontSize: "11.5px", color: "var(--texto-apagado)" }}>
               {interna ? "só eu vejo" : autor}
             </span>
           )}
@@ -193,7 +194,7 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
               <button
                 onClick={onApagar}
                 className="ligacao"
-                style={{ fontSize: "11.5px", color: "#B91C1C" }}
+                style={{ fontSize: "11.5px", color: "var(--perigo-texto)" }}
               >
                 Apagar
               </button>
@@ -203,7 +204,7 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
               onClick={onPedirApagar}
               title="Apagar esta nota"
               className="ligacao"
-              style={{ color: "#C4C4C4", display: "inline-flex" }}
+              style={{ color: "var(--traco-discreto)", display: "inline-flex" }}
             >
               <MarcaCruz t={11} />
             </button>
@@ -268,7 +269,7 @@ function Escrever({ onGuardar, aGuardar }) {
           alignItems: "center",
           gap: "8px",
           flexWrap: "wrap",
-          borderTop: "1px solid #F5ECD7",
+          borderTop: "1px solid var(--borda-leve)",
           paddingTop: "12px",
         }}
       >
@@ -302,7 +303,7 @@ function Escrever({ onGuardar, aGuardar }) {
             borderRadius: "10px",
             fontSize: "12.5px",
             fontWeight: "600",
-            boxShadow: corpo.trim() ? "0 4px 12px rgba(201,168,76,0.30)" : "none",
+            boxShadow: corpo.trim() ? "0 4px 12px rgba(var(--ouro-rgb), 0.30)" : "none",
           }}
         >
           {aGuardar ? "A guardar…" : "Guardar nota"}
@@ -444,9 +445,9 @@ export default function NotasEvento({
           <p
             style={{
               fontSize: "12.5px",
-              color: "#B91C1C",
-              backgroundColor: "#FEF2F2",
-              border: "1px solid #FECACA",
+              color: "var(--perigo-texto)",
+              backgroundColor: "var(--perigo-fundo)",
+              border: "1px solid var(--perigo-borda)",
               borderRadius: "10px",
               padding: "10px 14px",
               margin: "0 0 16px",
@@ -533,8 +534,9 @@ export default function NotasEvento({
                 >
                   {f.label}
                 </span>
+                {/* #C0B79F (contagem activa) está fora da paleta — fica literal. */}
                 <span
-                  style={{ fontSize: "10px", color: ativo ? "#C0B79F" : "#C4C4C4" }}
+                  style={{ fontSize: "10px", color: ativo ? "#C0B79F" : "var(--traco-discreto)" }}
                 >
                   {contagens[f.id === "tudo" ? "tudo" : f.id]}
                 </span>
@@ -545,10 +547,10 @@ export default function NotasEvento({
         <p
           style={{
             fontSize: "10.5px",
-            color: "#9B9B9B",
+            color: "var(--texto-apagado)",
             lineHeight: 1.5,
             margin: 0,
-            borderTop: "1px solid #F0E6D0",
+            borderTop: "1px solid var(--borda)",
             paddingTop: "12px",
           }}
         >

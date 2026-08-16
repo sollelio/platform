@@ -32,7 +32,7 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };
 
 const miniLabel = {
@@ -144,7 +144,7 @@ export default function ConsultaData({ onFechar }) {
         right: 0,
         width: "340px",
         maxWidth: "92vw",
-        background: "white",
+        background: "var(--superficie)",
         border: "1px solid var(--gold-light)",
         borderRadius: "16px",
         boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
@@ -212,7 +212,7 @@ export default function ConsultaData({ onFechar }) {
             fontWeight: "600",
             border: "1.5px solid var(--gold)",
             color: carregando ? "var(--gray-mid)" : "var(--gold)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             cursor: carregando || !data ? "not-allowed" : "pointer",
             opacity: !data && !carregando ? 0.6 : 1,
             whiteSpace: "nowrap",
@@ -260,12 +260,12 @@ const caixaAmbar = {
   display: "flex",
   gap: "7px",
   alignItems: "flex-start",
-  background: "#FEF3E2",
-  border: "1px solid #F0D9B5",
+  background: "var(--aviso-fundo)",
+  border: "1px solid var(--aviso-borda)",
   borderRadius: "9px",
   padding: "9px 11px",
   margin: "12px 0 0",
-  color: "#92400E",
+  color: "var(--aviso-texto)",
   fontSize: "11.5px",
   lineHeight: 1.5,
 };
@@ -332,11 +332,11 @@ function Resposta({ resultado, navigate }) {
       {leitura.tom === "verde" && (
         <div
           style={{
-            background: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            background: "var(--sucesso-fundo)",
+            border: "1px solid var(--sucesso-borda)",
             borderRadius: "9px",
             padding: "10px 12px",
-            color: "#166534",
+            color: "var(--sucesso-texto)",
             fontSize: "13px",
             fontWeight: "600",
             lineHeight: 1.5,
@@ -395,7 +395,7 @@ function LinhaIrmao({ ev, navigate }) {
   return (
     <div
       style={{
-        border: "1px solid #F0E6D0",
+        border: "1px solid var(--borda)",
         borderRadius: "10px",
         padding: "9px 11px",
         marginTop: "8px",
@@ -442,9 +442,9 @@ function LinhaIrmao({ ev, navigate }) {
               <span
                 style={{
                   ...pastilha,
-                  color: "#166534",
-                  background: "#F0FDF4",
-                  border: "1px solid #BBF7D0",
+                  color: "var(--sucesso-texto)",
+                  background: "var(--sucesso-fundo)",
+                  border: "1px solid var(--sucesso-borda)",
                 }}
               >
                 sinal pago
@@ -454,9 +454,9 @@ function LinhaIrmao({ ev, navigate }) {
               <span
                 style={{
                   ...pastilha,
-                  color: "#92400E",
-                  background: "#FEF3E2",
-                  border: "1px solid #F0D9B5",
+                  color: "var(--aviso-texto)",
+                  background: "var(--aviso-fundo)",
+                  border: "1px solid var(--aviso-borda)",
                 }}
               >
                 em confirmação
@@ -467,7 +467,7 @@ function LinhaIrmao({ ev, navigate }) {
                 style={{
                   ...pastilha,
                   color: "var(--gold-dark)",
-                  background: "#FEF9EC",
+                  background: "var(--superficie-selo)",
                   border: "1px solid var(--gold-light)",
                 }}
               >

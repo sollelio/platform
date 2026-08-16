@@ -342,8 +342,8 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
           position: "relative",
           display: "flex",
           marginTop: "20px",
-          backgroundColor: "#FBF7EF",
-          border: "1px solid #F0E6D0",
+          backgroundColor: "var(--superficie-quente)",
+          border: "1px solid var(--borda)",
           borderRadius: "12px",
           padding: "3px",
         }}
@@ -356,7 +356,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
             bottom: "3px",
             left: "3px",
             width: "calc(50% - 3px)",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: "var(--superficie)",
             border: "1px solid var(--gold-light)",
             borderRadius: "9px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
@@ -430,7 +430,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
               )}
             </div>
             {erroTipos && (
-              <p role="alert" style={{ margin: "10px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+              <p role="alert" style={{ margin: "10px 0 0", fontSize: "12.5px", color: "var(--perigo)" }}>
                 Não foi possível carregar os tipos de evento. Recarregue a página.
               </p>
             )}
@@ -462,8 +462,8 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
       <div
         style={{
           marginTop: "24px",
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #F0E6D0",
+          backgroundColor: "var(--superficie)",
+          border: "1px solid var(--borda)",
           borderRadius: "14px",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
           padding: "18px 18px 16px",
@@ -478,7 +478,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
           </>
         )}
         {falhou && (
-          <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "#DC2626" }}>
+          <p role="alert" style={{ margin: 0, fontSize: "12.5px", color: "var(--perigo)" }}>
             Não foi possível contar.{" "}
             <button
               onClick={() => setTick((t) => t + 1)}
@@ -507,8 +507,8 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 {dedup}
               </p>
             )}
-            <div style={{ marginTop: "14px", borderTop: "1px solid #F5ECD7", paddingTop: "12px" }}>
-              <div style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.15em", color: "#9B9B9B" }}>
+            <div style={{ marginTop: "14px", borderTop: "1px solid var(--borda-leve)", paddingTop: "12px" }}>
+              <div style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.15em", color: "var(--texto-apagado)" }}>
                 FICA DE FORA
               </div>
               <p style={{ margin: "7px 0 0", fontSize: "12.5px", lineHeight: 1.6, color: "var(--gray-mid)" }}>
@@ -531,7 +531,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
           bottom: 0,
           marginTop: "24px",
           backgroundColor: "var(--cream)",
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
           padding: "12px 0 16px",
         }}
       >
@@ -549,7 +549,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 borderRadius: "12px",
                 fontSize: "13.5px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                 opacity: podeCongelar && !ocupado ? 1 : 0.45,
               }}
             >
@@ -569,7 +569,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              backgroundColor: "#FEF9EC",
+              backgroundColor: "var(--superficie-selo)",
               border: "1px solid var(--gold-light)",
               borderRadius: "12px",
               padding: "13px 16px",
@@ -584,7 +584,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
               <path
                 d="M4.6 8.4l2.4 2.4 4.4-5"
                 fill="none"
-                stroke="#FFFFFF"
+                stroke="var(--texto-sobre-ouro)"
                 strokeWidth="1.7"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -626,7 +626,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
                 borderRadius: "10px",
                 fontSize: "12px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                 whiteSpace: "nowrap",
               }}
             >
@@ -635,7 +635,7 @@ export default function ComunicadoRecorte({ comunicado, onVoltar, onMudou, onAbr
           </div>
         )}
         {erro && (
-          <p role="alert" style={{ margin: "10px 0 0", textAlign: "center", fontSize: "12.5px", color: "#DC2626" }}>
+          <p role="alert" style={{ margin: "10px 0 0", textAlign: "center", fontSize: "12.5px", color: "var(--perigo)" }}>
             {erro}
           </p>
         )}

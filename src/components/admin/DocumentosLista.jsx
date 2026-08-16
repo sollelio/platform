@@ -221,7 +221,7 @@ export default function DocumentosLista({
     padding: "7px 12px",
     borderRadius: "999px",
     border: "1px solid var(--gold-light)",
-    backgroundColor: ativo ? "#FBF7EF" : "white",
+    backgroundColor: ativo ? "var(--superficie-quente)" : "var(--superficie)",
     color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
     fontSize: "12px",
     fontWeight: ativo ? "600" : "400",
@@ -254,7 +254,7 @@ export default function DocumentosLista({
         .doc-card { transition: all 0.15s; }
         .doc-card:hover {
           border-color: var(--gold);
-          box-shadow: 0 4px 16px rgba(201,168,76,0.18);
+          box-shadow: 0 4px 16px rgba(var(--ouro-rgb), 0.18);
         }
         .doc-card:active { transform: scale(0.995); }
         .doc-card:focus-visible {
@@ -303,7 +303,7 @@ export default function DocumentosLista({
           outline: "none",
           fontFamily: "Inter, sans-serif",
           boxSizing: "border-box",
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           marginBottom: "12px",
           transition: "border-color 0.15s",
         }}
@@ -424,7 +424,7 @@ export default function DocumentosLista({
               fontWeight: "600",
               border: "1.5px solid var(--gold)",
               color: "var(--gold-dark)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               cursor: "pointer",
               transition: "all 0.15s",
             }}
@@ -492,11 +492,12 @@ export default function DocumentosLista({
                   gap: "14px",
                   width: "100%",
                   textAlign: "left",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   border: "1px solid var(--gold-light)",
                   borderRadius: "14px",
                   padding: "14px 16px",
                   cursor: "pointer",
+                  // Sombra preta fica literal (0.04 ≠ 0.05 do --sombra-cartao).
                   boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
                   fontFamily: "Inter, sans-serif",
                 }}
@@ -508,7 +509,7 @@ export default function DocumentosLista({
                     width: "38px",
                     height: "38px",
                     borderRadius: "50%",
-                    backgroundColor: "#FBF7EF",
+                    backgroundColor: "var(--superficie-quente)",
                     border: "1px solid var(--gold-light)",
                     color: "var(--gold-dark)",
                     display: "flex",

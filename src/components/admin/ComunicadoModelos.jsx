@@ -34,7 +34,7 @@ const MINI_OVERLINE = {
   fontSize: "9px",
   fontWeight: "700",
   letterSpacing: "0.14em",
-  color: "#9B9B9B",
+  color: "var(--texto-apagado)",
 };
 
 // O que o estado vazio promete que cada linha vai mostrar — as notas
@@ -182,11 +182,11 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
         .dlm-molde-x {
           border: none;
           background-color: transparent;
-          color: #C4C4C4;
+          color: var(--traco-discreto);
         }
         .dlm-molde-x:hover:not(:disabled) {
-          color: #DC2626;
-          background-color: #FEF2F2;
+          color: var(--perigo);
+          background-color: var(--perigo-fundo);
         }
         .dlm-molde-ver:hover:not(:disabled) {
           border-color: var(--gold-light);
@@ -220,7 +220,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
       </p>
 
       {erro && (
-        <p role="alert" style={{ margin: "16px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+        <p role="alert" style={{ margin: "16px 0 0", fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro}{" "}
           <button
             onClick={carregar}
@@ -246,9 +246,9 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
         <div
           style={{
             marginTop: "24px",
-            border: "1.5px dashed #E8DCC0",
+            border: "1.5px dashed var(--aro)",
             borderRadius: "16px",
-            backgroundColor: "#FDFBF5",
+            backgroundColor: "var(--superficie-espera)",
             padding: "24px 20px 22px",
           }}
         >
@@ -281,8 +281,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
               display: "flex",
               flexDirection: "column",
               gap: "1px",
-              backgroundColor: "#F0E6D0",
-              border: "1px solid #F0E6D0",
+              backgroundColor: "var(--borda)",
+              border: "1px solid var(--borda)",
               borderRadius: "12px",
               overflow: "hidden",
             }}
@@ -294,7 +294,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                   display: "flex",
                   gap: "12px",
                   alignItems: "baseline",
-                  backgroundColor: "#FFFFFF",
+                  backgroundColor: "var(--superficie)",
                   padding: "13px 15px",
                 }}
               >
@@ -361,8 +361,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                 key={m.id}
                 style={{
                   marginTop: "12px",
-                  backgroundColor: "#FFFFFF",
-                  border: "1px solid #F0E6D0",
+                  backgroundColor: "var(--superficie)",
+                  border: "1px solid var(--borda)",
                   borderRadius: "14px",
                   boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
                   padding: "15px 16px",
@@ -377,8 +377,8 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       flexShrink: 0,
                       padding: "3px 9px",
                       borderRadius: "999px",
-                      backgroundColor: eOferta ? "#FEF9EC" : "#FFFFFF",
-                      border: `1px solid ${eOferta ? "var(--gold-light)" : "#F0E6D0"}`,
+                      backgroundColor: eOferta ? "var(--superficie-selo)" : "var(--superficie)",
+                      border: `1px solid ${eOferta ? "var(--gold-light)" : "var(--borda)"}`,
                       fontSize: "9px",
                       fontWeight: "700",
                       letterSpacing: "0.12em",
@@ -395,7 +395,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                     {rotulo || "Ainda sem regra de quem recebe"}
                   </div>
                 </div>
-                <div style={{ fontSize: "11.5px", color: "#9B9B9B", marginTop: "5px" }}>
+                <div style={{ fontSize: "11.5px", color: "var(--texto-apagado)", marginTop: "5px" }}>
                   {historiaDoModelo(m.usos, m.ultimoUso)}
                 </div>
 
@@ -405,7 +405,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                     alignItems: "center",
                     gap: "8px",
                     marginTop: "13px",
-                    borderTop: "1px solid #F5ECD7",
+                    borderTop: "1px solid var(--borda-leve)",
                     paddingTop: "12px",
                   }}
                 >
@@ -419,7 +419,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       borderRadius: "10px",
                       fontSize: "12.5px",
                       fontWeight: "600",
-                      boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                      boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                     }}
                   >
                     Usar este modelo
@@ -447,10 +447,10 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                       style={{
                         flexShrink: 0,
                         padding: "8px 12px",
-                        border: "1px solid #FECACA",
+                        border: "1px solid var(--perigo-borda)",
                         borderRadius: "999px",
-                        backgroundColor: "#FEF2F2",
-                        color: "#DC2626",
+                        backgroundColor: "var(--perigo-fundo)",
+                        color: "var(--perigo)",
                         fontSize: "11.5px",
                         fontWeight: "600",
                       }}
@@ -493,7 +493,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                 </div>
 
                 {erroCartao?.id === m.id && (
-                  <p role="alert" style={{ margin: "10px 0 0", fontSize: "12px", color: "#DC2626" }}>
+                  <p role="alert" style={{ margin: "10px 0 0", fontSize: "12px", color: "var(--perigo)" }}>
                     {erroCartao.texto}
                   </p>
                 )}
@@ -502,7 +502,7 @@ export default function ComunicadoModelos({ onUsar, onIrAosFeitos }) {
                   <div
                     style={{
                       marginTop: "12px",
-                      borderTop: "1px solid #F5ECD7",
+                      borderTop: "1px solid var(--borda-leve)",
                       paddingTop: "13px",
                       display: "flex",
                       flexDirection: "column",

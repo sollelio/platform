@@ -376,7 +376,7 @@ export default function InicioTab({
             outline: "none",
             fontFamily: "Inter, sans-serif",
             boxSizing: "border-box",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
           }}
           onFocus={(e) => (e.target.style.borderColor = "var(--gold)")}
           onBlur={(e) => (e.target.style.borderColor = "var(--gold-light)")}
@@ -394,7 +394,7 @@ export default function InicioTab({
                 left: 0,
                 right: 0,
                 zIndex: 41,
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "12px",
                 border: "1px solid var(--gold-light)",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
@@ -433,16 +433,18 @@ export default function InicioTab({
                         alignItems: "flex-start",
                         padding: "10px 16px",
                         border: "none",
-                        borderBottom: "1px solid #F5ECD7",
-                        backgroundColor: "white",
+                        borderBottom: "1px solid var(--borda-leve)",
+                        backgroundColor: "var(--superficie)",
                         cursor: "pointer",
                         textAlign: "left",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#FBF7EF")
+                        (e.currentTarget.style.backgroundColor =
+                          "var(--superficie-quente)")
                       }
                       onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "white")
+                        (e.currentTarget.style.backgroundColor =
+                          "var(--superficie)")
                       }
                     >
                       <span
@@ -495,8 +497,12 @@ export default function InicioTab({
               fontSize: "13px",
               fontWeight: consultaAberta ? "700" : "500",
               border: `1.5px solid ${consultaAberta ? "var(--gold)" : "var(--gold-light)"}`,
-              backgroundColor: consultaAberta ? "var(--gold)" : "white",
-              color: consultaAberta ? "white" : "var(--charcoal)",
+              backgroundColor: consultaAberta
+                ? "var(--gold)"
+                : "var(--superficie)",
+              color: consultaAberta
+                ? "var(--texto-sobre-ouro)"
+                : "var(--charcoal)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -538,8 +544,12 @@ export default function InicioTab({
               fontSize: "13px",
               fontWeight: consultaDataAberta ? "700" : "500",
               border: `1.5px solid ${consultaDataAberta ? "var(--gold)" : "var(--gold-light)"}`,
-              backgroundColor: consultaDataAberta ? "var(--gold)" : "white",
-              color: consultaDataAberta ? "white" : "var(--charcoal)",
+              backgroundColor: consultaDataAberta
+                ? "var(--gold)"
+                : "var(--superficie)",
+              color: consultaDataAberta
+                ? "var(--texto-sobre-ouro)"
+                : "var(--charcoal)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -566,7 +576,7 @@ export default function InicioTab({
         <div
           onClick={() => onAbrirEvento && onAbrirEvento(proximo)}
           style={{
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
             border: "1px solid var(--gold-light)",
             borderRadius: "14px",
             padding: "16px 20px",
@@ -653,10 +663,10 @@ export default function InicioTab({
           {alertasVisiveis.length === 0 ? (
             <div
               style={{
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "12px",
                 padding: "18px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
                 textAlign: "center",
               }}
             >
@@ -679,11 +689,11 @@ export default function InicioTab({
                 key={a.chave}
                 onClick={() => onAbrirEvento && onAbrirEvento(a.evento)}
                 style={{
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   borderRadius: "12px",
                   padding: "12px 14px",
                   marginBottom: "8px",
-                  border: "1px solid #F0E6D0",
+                  border: "1px solid var(--borda)",
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
@@ -736,10 +746,10 @@ export default function InicioTab({
           {semana.length === 0 ? (
             <div
               style={{
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "12px",
                 padding: "18px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
                 textAlign: "center",
               }}
             >
@@ -766,11 +776,11 @@ export default function InicioTab({
                     key={`sem-${s.id}`}
                     onClick={() => onAbrirEvento && onAbrirEvento(s)}
                     style={{
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       borderRadius: "12px",
                       padding: "10px 12px",
                       marginBottom: "8px",
-                      border: "1px solid #F0E6D0",
+                      border: "1px solid var(--borda)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
@@ -897,7 +907,7 @@ export default function InicioTab({
                 textTransform: "uppercase",
                 border: "none",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 cursor: "pointer",
                 marginTop: "6px",
               }}
@@ -914,7 +924,7 @@ export default function InicioTab({
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 border: "1px solid var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold-dark)",
                 cursor: "pointer",
               }}
@@ -936,7 +946,7 @@ export default function InicioTab({
             position: "fixed",
             inset: 0,
             zIndex: 60,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -947,7 +957,7 @@ export default function InicioTab({
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "22px 20px",
               width: "100%",
@@ -1025,7 +1035,9 @@ function EsqueletoBarra({ largura = "100%", altura = "14px" }) {
         width: largura,
         height: altura,
         borderRadius: "6px",
-        backgroundColor: "#F0E6D0",
+        // Este esqueleto sempre vestiu o tom da --borda (não o par
+        // --esqueleto-a/b, que tem outros valores claros) — segue-a.
+        backgroundColor: "var(--borda)",
         animation: "dlm-esqueleto-pulso 1.3s ease-in-out infinite",
       }}
     />
@@ -1036,11 +1048,11 @@ function EsqueletoCartao({ altura = "56px" }) {
   return (
     <div
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "12px",
         padding: "12px 14px",
         marginBottom: "8px",
-        border: "1px solid #F0E6D0",
+        border: "1px solid var(--borda)",
         height: altura,
         display: "flex",
         alignItems: "center",
@@ -1077,10 +1089,10 @@ function EsqueletoInicio() {
             <div
               key={n}
               style={{
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "12px",
                 padding: "12px 16px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
               }}
             >
               <div style={{ marginBottom: "6px" }}>
@@ -1100,10 +1112,12 @@ function CartaoNumero({ numero, legenda, dinheiro, verde, onClick }) {
     <div
       onClick={onClick}
       style={{
-        backgroundColor: verde ? "#F0FDF4" : "white",
+        backgroundColor: verde ? "var(--sucesso-fundo)" : "var(--superficie)",
         borderRadius: "12px",
         padding: "12px 16px",
-        border: verde ? "1px solid #BBF7D0" : "1px solid #F0E6D0",
+        border: verde
+          ? "1px solid var(--sucesso-borda)"
+          : "1px solid var(--borda)",
         cursor: onClick ? "pointer" : "default",
       }}
     >
@@ -1111,7 +1125,7 @@ function CartaoNumero({ numero, legenda, dinheiro, verde, onClick }) {
         style={{
           fontSize: "24px",
           fontWeight: "600",
-          color: verde ? "#166534" : "var(--gold-dark)",
+          color: verde ? "var(--sucesso-texto)" : "var(--gold-dark)",
           margin: 0,
           lineHeight: 1.2,
         }}
@@ -1126,7 +1140,7 @@ function CartaoNumero({ numero, legenda, dinheiro, verde, onClick }) {
           style={{
             fontSize: "12px",
             fontWeight: "700",
-            color: verde ? "#166534" : "var(--gold-dark)",
+            color: verde ? "var(--sucesso-texto)" : "var(--gold-dark)",
             margin: "4px 0 0 0",
           }}
         >

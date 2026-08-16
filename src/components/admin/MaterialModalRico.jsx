@@ -138,7 +138,7 @@ export default function MaterialModalRico({
         position: "fixed",
         inset: 0,
         zIndex: 150,
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "var(--cortina)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -148,7 +148,7 @@ export default function MaterialModalRico({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           padding: "24px",
           maxWidth: "460px",
@@ -197,7 +197,7 @@ export default function MaterialModalRico({
               width: "72px",
               height: "72px",
               borderRadius: "12px",
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
               border: "1px solid var(--gold-light)",
               display: "flex",
               alignItems: "center",
@@ -234,7 +234,7 @@ export default function MaterialModalRico({
                 fontWeight: "600",
                 border: "1.5px solid var(--gold)",
                 color: aEnviarImagem ? "var(--gray-mid)" : "var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: aEnviarImagem ? "wait" : "pointer",
               }}
             >
@@ -272,7 +272,7 @@ export default function MaterialModalRico({
               <p
                 style={{
                   fontSize: "11px",
-                  color: "#DC2626",
+                  color: "var(--perigo)",
                   margin: "6px 0 0 0",
                 }}
               >
@@ -468,9 +468,9 @@ export default function MaterialModalRico({
           <p
             style={{
               fontSize: "12px",
-              color: "#DC2626",
-              backgroundColor: "#FEF2F2",
-              border: "1px solid #FECACA",
+              color: "var(--perigo)",
+              backgroundColor: "var(--perigo-fundo)",
+              border: "1px solid var(--perigo-borda)",
               borderRadius: "8px",
               padding: "10px 14px",
               margin: "16px 0 0 0",
@@ -522,6 +522,11 @@ export default function MaterialModalRico({
                     fontSize: "12px",
                     fontWeight: "600",
                     border: "none",
+                    // Par literal: #DC2626 é o valor de --perigo, mas o
+                    // papel é botão CHEIO — no escuro esse token é salmão
+                    // de texto e a letra branca deixava de se ler. O cheio
+                    // da identidade é --perigo-cheio (#EF4444), outro
+                    // valor; não se aproxima e segue no relatório.
                     backgroundColor: "#DC2626",
                     color: "white",
                     cursor: removendo ? "not-allowed" : "pointer",
@@ -538,7 +543,7 @@ export default function MaterialModalRico({
                     fontSize: "12px",
                     border: "1.5px solid var(--gold-light)",
                     color: "var(--gray-mid)",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     cursor: "pointer",
                   }}
                 >
@@ -552,9 +557,11 @@ export default function MaterialModalRico({
                   padding: "10px 16px",
                   borderRadius: "8px",
                   fontSize: "13px",
+                  // O rosa #F0D0D0 não é a --perigo-borda (#FECACA) nem
+                  // outro token — fica literal e segue no relatório.
                   border: "1.5px solid #F0D0D0",
-                  color: "#DC2626",
-                  backgroundColor: "white",
+                  color: "var(--perigo)",
+                  backgroundColor: "var(--superficie)",
                   cursor: "pointer",
                 }}
               >
@@ -571,7 +578,7 @@ export default function MaterialModalRico({
                 fontSize: "13px",
                 border: "1.5px solid var(--gold-light)",
                 color: "var(--gray-mid)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: "pointer",
               }}
             >
@@ -586,10 +593,12 @@ export default function MaterialModalRico({
                 fontSize: "13px",
                 fontWeight: "600",
                 border: "none",
-                backgroundColor: guardando
-                  ? "var(--gold-light)"
-                  : "var(--gold)",
-                color: "white",
+                // O ouro pálido do «A guardar…» fica literal (mesma razão
+                // do login e do painel de formulários): o token equivalente
+                // no escuro é tom de borda, e um botão a meio do gesto não
+                // se apaga.
+                backgroundColor: guardando ? "#E8D5A3" : "var(--gold)",
+                color: "var(--texto-sobre-ouro)",
                 cursor: guardando ? "not-allowed" : "pointer",
               }}
             >
@@ -636,7 +645,9 @@ function CheckLinha({ label, checked, onChange }) {
         marginBottom: "6px",
         borderRadius: "10px",
         border: `1.5px solid ${checked ? "var(--gold)" : "var(--gold-light)"}`,
-        backgroundColor: checked ? "#FEF9EC" : "white",
+        backgroundColor: checked
+          ? "var(--superficie-selo)"
+          : "var(--superficie)",
         cursor: "pointer",
         textAlign: "left",
       }}
@@ -647,12 +658,13 @@ function CheckLinha({ label, checked, onChange }) {
           height: "18px",
           borderRadius: "6px",
           border: `1.5px solid ${checked ? "var(--gold)" : "var(--gold-light)"}`,
-          backgroundColor: checked ? "var(--gold)" : "white",
+          backgroundColor: checked ? "var(--gold)" : "var(--superficie)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          color: "white",
+          // o ✓ só aparece com o fundo dourado cheio
+          color: "var(--texto-sobre-ouro)",
           fontSize: "11px",
         }}
       >
@@ -684,5 +696,5 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };

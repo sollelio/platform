@@ -69,8 +69,10 @@ export default function LacunasFormulario({
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              backgroundColor: "var(--branco-quente, #FDFBF5)",
-              border: "1px solid #F5ECD7",
+              // --branco-quente nunca existiu — isto era sempre o
+              // fallback #FDFBF5, o valor claro de --superficie-espera.
+              backgroundColor: "var(--superficie-espera)",
+              border: "1px solid var(--borda-leve)",
               borderRadius: "12px",
               padding: "13px 16px",
               marginBottom: "8px",
@@ -119,9 +121,9 @@ export default function LacunasFormulario({
                   fontWeight: "600",
                   padding: "3px 10px",
                   borderRadius: "999px",
-                  backgroundColor: "#FEF2F2",
-                  color: "#B91C1C",
-                  border: "1px solid #FECACA",
+                  backgroundColor: "var(--perigo-fundo)",
+                  color: "var(--perigo-texto)",
+                  border: "1px solid var(--perigo-borda)",
                   whiteSpace: "nowrap",
                 }}
               >

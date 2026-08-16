@@ -901,7 +901,7 @@ export default function AdminPage() {
       ) : (
         <div
           style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             borderBottom: "1px solid var(--gold-light)",
             padding: "12px 16px",
             textAlign: "center",
@@ -1073,9 +1073,9 @@ export default function AdminPage() {
               <div
                 style={{
                   fontSize: "12.5px",
-                  color: "#B91C1C",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  color: "var(--perigo-texto)",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "10px",
                   padding: "10px 14px",
                   margin: "0 0 16px 0",
@@ -1092,7 +1092,7 @@ export default function AdminPage() {
                     style={{
                       border: "none",
                       background: "none",
-                      color: "#B91C1C",
+                      color: "var(--perigo-texto)",
                       cursor: "pointer",
                       fontSize: "14px",
                       lineHeight: 1,
@@ -1160,9 +1160,9 @@ export default function AdminPage() {
                   fontWeight: "600",
                   cursor: "pointer",
                   backgroundColor: "var(--gold)",
-                  color: "white",
+                  color: "var(--texto-sobre-ouro)",
                   border: "none",
-                  boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
+                  boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.3)",
                 }}
               >
                 + Formulário para cliente novo
@@ -1334,7 +1334,7 @@ export default function AdminPage() {
                 fontWeight: "600",
                 border: "1px solid var(--gold-light)",
                 color: "var(--gold-dark)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
@@ -1474,14 +1474,14 @@ export default function AdminPage() {
             alignItems: "center",
             gap: "14px",
             width: "min(560px, calc(100vw - 48px))",
-            backgroundColor: "white",
-            border: "1.5px solid #FECACA",
+            backgroundColor: "var(--superficie)",
+            border: "1.5px solid var(--perigo-borda)",
             borderRadius: "14px",
             padding: "12px 16px",
             boxShadow: "0 14px 36px rgba(26,26,26,0.18)",
           }}
         >
-          <span style={{ fontSize: "13px", color: "#B91C1C" }}>
+          <span style={{ fontSize: "13px", color: "var(--perigo-texto)" }}>
             {erroEstado}
           </span>
           <div style={{ flex: 1 }} />

@@ -270,9 +270,9 @@ export default function GerarOrcamento({
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "14px",
@@ -408,7 +408,10 @@ export default function GerarOrcamento({
                       height: "18px",
                       borderRadius: "50%",
                       border: "none",
-                      backgroundColor: "var(--charcoal)",
+                      // Véu sobre a MINIATURA (conteúdo, não tema): preso
+                      // ao quase-preto do claro — com a ponte, no escuro
+                      // virava bola clara com ✕ branco invisível.
+                      backgroundColor: "#1A1A1A",
                       color: "white",
                       fontSize: "10px",
                       lineHeight: 1,
@@ -429,7 +432,7 @@ export default function GerarOrcamento({
                   height: "58px",
                   borderRadius: "10px",
                   border: "1.5px dashed var(--gold)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   color: "var(--gold)",
                   fontSize: "20px",
                   cursor: carregandoImg ? "wait" : "pointer",
@@ -484,7 +487,7 @@ export default function GerarOrcamento({
               fontWeight: "600",
               border: "1.5px solid var(--gold)",
               color: "var(--gold)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               cursor: "pointer",
             }}
           >
@@ -496,7 +499,7 @@ export default function GerarOrcamento({
         <div>
           <div
             style={{
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
               borderRadius: "12px",
               padding: "18px",
               border: "1px solid var(--gold-light)",
@@ -533,8 +536,8 @@ export default function GerarOrcamento({
                 style={{
                   fontSize: "12px",
                   color: "var(--gold-dark)",
-                  backgroundColor: "#FEF9EC",
-                  border: "1px solid #E8D5A3",
+                  backgroundColor: "var(--superficie-selo)",
+                  border: "1px solid var(--ouro-suave)",
                   borderRadius: "10px",
                   padding: "10px 12px",
                   margin: "0 0 12px 0",
@@ -566,7 +569,7 @@ export default function GerarOrcamento({
                 fontWeight: "600",
                 border: "none",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 cursor: "pointer",
               }}
             >
@@ -609,11 +612,19 @@ export default function GerarOrcamento({
                   borderRadius: "10px",
                   fontSize: "12px",
                   fontWeight: "600",
+                  // O verde #16A34A está fora da família de sucesso da
+                  // identidade (#22C55E/#166534) — fica literal e segue
+                  // na lista para o Hélio; o resto do par é o trio de
+                  // sucesso da tabela.
                   border: valorGuardado
                     ? "1.5px solid #16A34A"
                     : "1.5px solid var(--gold)",
-                  backgroundColor: valorGuardado ? "#DCFCE7" : "white",
-                  color: valorGuardado ? "#166534" : "var(--gold-dark)",
+                  backgroundColor: valorGuardado
+                    ? "var(--sucesso-fundo-forte)"
+                    : "var(--superficie)",
+                  color: valorGuardado
+                    ? "var(--sucesso-texto)"
+                    : "var(--gold-dark)",
                   cursor: aGuardarValor ? "wait" : "pointer",
                 }}
               >
@@ -631,8 +642,10 @@ export default function GerarOrcamento({
       {/* ===== PRÉ-VISUALIZAÇÃO / ÁREA IMPRIMÍVEL =====
           O orçamento é um cartão-página; cada imagem de referência é
           OUTRO cartão-página abaixo (a divisão visível no ecrã é a
-          mesma divisão de páginas do PDF). Sem imagens, nada muda. */}
-      <div className="area-impressao">
+          mesma divisão de páginas do PDF). Sem imagens, nada muda.
+          A folha é papel e não escurece: o .papel reancora os tokens
+          aos claros cá dentro. */}
+      <div className="area-impressao papel">
         <OrcamentoDocumento
           cliente={cliente}
           tipoEvento={tipoEvento}
@@ -720,11 +733,11 @@ function LinhaServicoEditor({
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         borderRadius: "12px",
         padding: "14px",
         marginBottom: "12px",
-        border: "1px solid #F0E6D0",
+        border: "1px solid var(--borda)",
       }}
     >
       <div
@@ -752,7 +765,7 @@ function LinhaServicoEditor({
             style={{
               background: "none",
               border: "none",
-              color: "#DC2626",
+              color: "var(--perigo)",
               cursor: "pointer",
               fontSize: "13px",
             }}
@@ -845,8 +858,11 @@ function LinhaServicoEditor({
             inputMode="numeric"
             style={{
               ...inputStyle,
+              // Fundo fora da paleta (#F3F1EC) — o par inteiro fica
+              // literal, fixado nos claros, para não ficar letra clara
+              // sobre fundo claro no escuro.
               ...(ehDeslocacao
-                ? { backgroundColor: "#F3F1EC", color: "var(--gray-mid)", cursor: "not-allowed" }
+                ? { backgroundColor: "#F3F1EC", color: "#6B6B6B", cursor: "not-allowed" }
                 : {}),
             }}
             value={ehDeslocacao ? 1 : linha.qtd}
@@ -860,12 +876,12 @@ function LinhaServicoEditor({
             <motion.span
               key={pulsar}
               aria-hidden="true"
-              initial={{ boxShadow: "0 0 0 0 rgba(201,168,76,0)" }}
+              initial={{ boxShadow: "0 0 0 0 rgba(var(--ouro-rgb), 0)" }}
               animate={{
                 boxShadow: [
-                  "0 0 0 0 rgba(201,168,76,0)",
-                  "0 0 0 5px rgba(201,168,76,0.35)",
-                  "0 0 0 0 rgba(201,168,76,0)",
+                  "0 0 0 0 rgba(var(--ouro-rgb), 0)",
+                  "0 0 0 5px rgba(var(--ouro-rgb), 0.35)",
+                  "0 0 0 0 rgba(var(--ouro-rgb), 0)",
                 ],
               }}
               transition={{ duration: 0.9, ease: "easeOut" }}
@@ -885,7 +901,7 @@ function LinhaServicoEditor({
               ...inputStyle,
               position: "relative",
               ...(ehDeslocacao
-                ? { backgroundColor: "#FBF7EF", cursor: "default", fontWeight: "600" }
+                ? { backgroundColor: "var(--superficie-quente)", cursor: "default", fontWeight: "600" }
                 : {}),
             }}
             value={ehDeslocacao ? formatarEuros(valorExibido).replace("€", "") : linha.valor}

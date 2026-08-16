@@ -107,9 +107,9 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "14px",
@@ -156,7 +156,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
           {referencias.length > 0 && (
             <div
               style={{
-                backgroundColor: "#FBF7EF",
+                backgroundColor: "var(--superficie-quente)",
                 border: "1px solid var(--gold-light)",
                 borderRadius: "10px",
                 padding: "12px 14px",
@@ -250,11 +250,11 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
             <div
               key={s.uid}
               style={{
-                backgroundColor: "#FBF7EF",
+                backgroundColor: "var(--superficie-quente)",
                 borderRadius: "12px",
                 padding: "14px",
                 marginBottom: "12px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
               }}
             >
               <div
@@ -282,7 +282,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#DC2626",
+                      color: "var(--perigo)",
                       cursor: "pointer",
                       fontSize: "12px",
                     }}
@@ -372,7 +372,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
               fontWeight: "600",
               border: "1.5px solid var(--gold)",
               color: "var(--gold)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               cursor: "pointer",
             }}
           >
@@ -392,7 +392,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
         <div>
           <div
             style={{
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
               borderRadius: "12px",
               padding: "18px",
               border: "1px solid var(--gold-light)",
@@ -422,7 +422,7 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
                 fontWeight: "600",
                 border: "none",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 cursor: "pointer",
               }}
             >
@@ -432,8 +432,10 @@ export default function GerarProposta({ prefill = null, ativo = true }) {
         </div>
       </div>
 
-      {/* ===== PRÉ-VISUALIZAÇÃO / ÁREA IMPRIMÍVEL ===== */}
-      <div className="area-impressao-prop">
+      {/* ===== PRÉ-VISUALIZAÇÃO / ÁREA IMPRIMÍVEL =====
+          A folha é papel e não escurece: o .papel reancora os tokens
+          aos claros cá dentro (capa e secções). */}
+      <div className="area-impressao-prop papel">
         {/* CAPA */}
         <div className="pagina-prop" style={estiloPaginaEcra}>
           <div style={{ textAlign: "center" }}>
@@ -679,7 +681,10 @@ function SlotImagem({ rotulo, url, aCarregar, bloqueado, onPedir, onRemover }) {
               height: "18px",
               borderRadius: "50%",
               border: "none",
-              backgroundColor: "var(--charcoal)",
+              // Véu sobre a MINIATURA (conteúdo, não tema): preso ao
+              // quase-preto do claro — com a ponte, no escuro virava
+              // bola clara com ✕ branco invisível.
+              backgroundColor: "#1A1A1A",
               color: "white",
               fontSize: "10px",
               lineHeight: 1,
@@ -699,7 +704,7 @@ function SlotImagem({ rotulo, url, aCarregar, bloqueado, onPedir, onRemover }) {
             height: "80px",
             borderRadius: "10px",
             border: "1.5px dashed var(--gold)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             color: "var(--gold)",
             fontSize: "12px",
             opacity: bloqueado && !aCarregar ? 0.5 : 1,
@@ -739,7 +744,7 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };
 
 const miniLabel = {

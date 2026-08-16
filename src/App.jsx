@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,6 +8,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
+import { aplicarTemaNaRota } from "./lib/tema";
 import FormEntryPage from "./pages/FormEntryPage";
 import FormPage from "./pages/FormPage";
 import LoginPage from "./pages/LoginPage";
@@ -76,6 +78,22 @@ function AreaAutenticada() {
   );
 }
 
+// ============================================================
+// O tema segue a rota — num sítio só, para TODAS as rotas de uma
+// vez. O guião do index.html trata do primeiro pintar; isto trata
+// das navegações internas (entrar no backoffice põe o atributo,
+// sair para uma página pública tira-o). Vive aqui e não em cada
+// página pela mesma razão do MotionConfig ali em baixo: uma regra
+// da casa não pode depender de cada ecrã se lembrar dela.
+// ============================================================
+function TemaDoBackoffice() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    aplicarTemaNaRota(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -83,6 +101,7 @@ function App() {
           framer-motion de uma vez — a regra da identidade §3 deixa de
           depender de cada componente se lembrar dela. */}
       <MotionConfig reducedMotion="user">
+        <TemaDoBackoffice />
         {/* Faixa de ambiente (só em desenvolvimento e em TEST) */}
         {isTest && <EnvBanner />}
         <Routes>

@@ -6,13 +6,250 @@
    foi o que aconteceu, e a aplicação inteira pintou em Noto durante esse
    tempo todo. */
 
+/* ============================================================
+   OS TOKENS DA CASA — nomeados pelo PAPEL, nunca pela cor.
+   Um «creme» que no escuro é castanho seria um nome a mentir;
+   «fundo» é verdade nos dois modos. Os valores claros são os
+   exactos que o admin já usava (identidade-visual.md §1) — o
+   modo claro não muda um pixel.
+
+   O bloco escuro vive em html[data-tema="escuro"], que só o
+   backoffice recebe (/admin, /evento): as vitrinas públicas
+   nunca têm o atributo, por isso nunca mudam.
+   ============================================================ */
 :root {
-  --gold: #c9a84c;
-  --gold-light: #e8d5a3;
-  --gold-dark: #a07830;
-  --cream: #fafaf8;
-  --charcoal: #1a1a1a;
-  --gray-mid: #6b6b6b;
+  /* — Fundos e superfícies — */
+  --fundo: #fafaf8; /* o creme: fundo de página */
+  --fundo-invisivel: rgba(250, 250, 248, 0); /* ponta transparente dos fades */
+  --superficie: #ffffff; /* cartões e superfícies de conteúdo */
+  --superficie-quente: #fbf7ef; /* destaque/hover lavado */
+  --superficie-selo: #fef9ec; /* selos e etiquetas douradas */
+  --superficie-espera: #fdfbf5; /* «por preencher» (engastes vazios) */
+  --superficie-atenta: #fffdf6; /* linhas com atenção pendente */
+
+  /* — Traços — */
+  --borda: #f0e6d0; /* hairline padrão */
+  --borda-leve: #f5ecd7; /* linhas de tabela */
+  --aro: #e8dcc0; /* aro de engaste, passo futuro */
+
+  /* — Texto — */
+  --texto: #1a1a1a;
+  --texto-suave: #6b6b6b;
+  --texto-apagado: #9b9b9b; /* rótulos apagados — NUNCA em algo que se clica */
+  --traco-discreto: #c4c4c4; /* gestos destrutivos quase invisíveis */
+
+  /* — Ouro — */
+  --ouro: #c9a84c; /* a marca: acções primárias, «feito» */
+  --ouro-texto: #a07830; /* ouro legível como texto/overline */
+  --ouro-suave: #e8d5a3; /* hairlines e bordas douradas */
+  --ouro-carregado: #b9973e; /* hover do botão dourado cheio */
+  --ouro-rgb: 201, 168, 76; /* para halos: rgba(var(--ouro-rgb), α) */
+  --texto-sobre-ouro: #ffffff; /* o par do ouro em botões cheios */
+  --texto-sobre-ouro-rgb: 255, 255, 255; /* o mesmo par, com α (contadores) */
+
+  /* — Semânticos (o trio texto/fundo/borda de cada família) — */
+  --perigo: #dc2626;
+  --perigo-texto: #b91c1c;
+  --perigo-fundo: #fef2f2;
+  --perigo-borda: #fecaca;
+  --perigo-cheio: #ef4444; /* botão de perigo cheio */
+  --sucesso: #22c55e;
+  --sucesso-texto: #166534;
+  --sucesso-fundo: #f0fdf4;
+  --sucesso-fundo-forte: #dcfce7; /* hover do verde */
+  --sucesso-borda: #bbf7d0;
+  --aviso: #b45309;
+  --aviso-texto: #92400e;
+  --aviso-fundo: #fef3e2;
+  --aviso-borda: #f0d9b5;
+  --neutro-texto: #6b7280; /* terminado / perdido */
+  --neutro-fundo: #f9fafb;
+  --neutro-borda: #e5e7eb;
+
+  /* — Sombra e cortina — */
+  --sombra-cartao: 0 2px 12px rgba(0, 0, 0, 0.05);
+  --sombra-flutuante: 0 8px 28px rgba(0, 0, 0, 0.15);
+  --cortina: rgba(0, 0, 0, 0.35); /* o véu atrás de modais e folhas */
+
+  /* — Esqueleto de carregamento — */
+  --esqueleto-a: #f3eee1;
+  --esqueleto-b: #faf6ec;
+
+  /* — Os seis nomes antigos, reancorados ao papel que sempre
+       serviram. ~1450 usos de var(--…) seguem o tema por esta
+       ponte, sem tocar em componente nenhum. Não usar em código
+       novo: o nome certo é o do papel. — */
+  --gold: var(--ouro);
+  --gold-light: var(--ouro-suave);
+  --gold-dark: var(--ouro-texto);
+  --cream: var(--fundo);
+  --charcoal: var(--texto);
+  --gray-mid: var(--texto-suave);
+}
+
+/* ============================================================
+   O BLOCO ESCURO — só no ecrã, nunca no papel: o @media screen
+   garante que qualquer impressão a partir do backoffice escuro
+   sai com os valores claros, sem duplicar listas de tokens.
+
+   A base é castanho-quente (a família do rgba(26,24,20) que a
+   casa já usa como cortina), não cinza frio: o escuro também é
+   da casa. Todos os pares texto/fundo abaixo passam AA (≥4.5:1),
+   verificados um a um; os «apagados» mantêm o papel de apagados
+   com rácio IGUAL OU MELHOR que o do claro.
+
+   O OURO É O PAR COM JUÍZO: #C9A84C sobre escuro fica sujo e
+   perde presença (foi desenhado para viver sobre creme). O par
+   escuro sobe a luz sem perder o metal — #D9BA67 — e serve ao
+   mesmo tempo de marca e de texto (sobre escuro já é legível em
+   todo o lado: 8–10:1, coisa que sobre creme era impossível).
+   Em troca, o texto SOBRE o ouro deixa de ser branco e passa a
+   quase-preto quente: ouro claro com letra branca daria ~1.9:1.
+   No escuro o hover ACLARA (--ouro-carregado), não escurece —
+   a luz é que é o gesto.
+   ============================================================ */
+@media screen {
+  html[data-tema="escuro"] {
+    color-scheme: dark; /* selects, datas e scrollbars nativos no tom certo */
+
+    --fundo: #131109;
+    --fundo-invisivel: rgba(19, 17, 9, 0);
+    --superficie: #1d1a12;
+    --superficie-quente: #272215;
+    --superficie-selo: #2c2614;
+    --superficie-espera: #221f15;
+    --superficie-atenta: #282212;
+
+    --borda: #3a3427;
+    --borda-leve: #2e2a1f;
+    --aro: #423b2b;
+
+    --texto: #f1ece1;
+    --texto-suave: #b0a899;
+    --texto-apagado: #7e7767;
+    --traco-discreto: #5a5344;
+
+    --ouro: #d9ba67;
+    --ouro-texto: #d9ba67; /* no escuro, marca e texto convergem — ver acima */
+    --ouro-suave: #4e4423;
+    --ouro-carregado: #e3c87e;
+    --ouro-rgb: 217, 186, 103;
+    --texto-sobre-ouro: #181405;
+    --texto-sobre-ouro-rgb: 24, 20, 5;
+
+    --perigo: #f27e72;
+    --perigo-texto: #f5a19a;
+    --perigo-fundo: #301715;
+    --perigo-borda: #5c2620;
+    --perigo-cheio: #c63a31; /* letra branca: 5.2:1 (no claro era 3.8) */
+    --sucesso: #57c97c;
+    --sucesso-texto: #8fdca8;
+    --sucesso-fundo: #152a1b;
+    --sucesso-fundo-forte: #1d3a25;
+    --sucesso-borda: #28502f;
+    --aviso: #e0a94e;
+    --aviso-texto: #e5b364;
+    --aviso-fundo: #2e2410;
+    --aviso-borda: #5c4a1c;
+    --neutro-texto: #a6a296;
+    --neutro-fundo: #232119;
+    --neutro-borda: #3e3a2f;
+
+    /* A sombra preta é invisível sobre escuro: o equivalente é
+       uma borda de luz. As flutuantes somam profundidade a sério
+       (o preto ainda existe ABAIXO da superfície). */
+    --sombra-cartao: 0 0 0 1px rgba(241, 236, 225, 0.06);
+    --sombra-flutuante: 0 8px 28px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(241, 236, 225, 0.08);
+    /* Uma cortina de 0.35 desaparece sobre fundo escuro; sobe
+       para continuar a ser cortina. */
+    --cortina: rgba(0, 0, 0, 0.62);
+
+    --esqueleto-a: #262215;
+    --esqueleto-b: #2e2a1c;
+  }
+}
+
+/* ============================================================
+   PAPEL — a folha que nunca escurece. A moldura à volta segue o
+   tema; o que esta classe embrulha volta aos valores claros,
+   como papel em cima da mesa. É a peça das superfícies de
+   impressão (orçamento, contrato, proposta, pré-visualizações)
+   — a aplicar na etapa das superfícies de papel, mas definida
+   aqui ao lado dos tokens porque é parte do mesmo contrato.
+   ⚠ Token novo no :root ⇒ valor claro repetido aqui.
+   ============================================================ */
+.papel {
+  color-scheme: light;
+
+  /* A cor de TEXTO herdada calcula-se no body, ACIMA desta fronteira —
+     sem esta linha, prosa sem cor própria dentro do papel herdava a
+     letra clara do modo escuro sobre a folha clara. Recalculada aqui,
+     com o token já reancorado, volta a ser tinta sobre papel. No claro
+     é igual ao que o body já dava: no-op. */
+  color: var(--texto);
+
+  --fundo: #fafaf8;
+  --fundo-invisivel: rgba(250, 250, 248, 0);
+  --superficie: #ffffff;
+  --superficie-quente: #fbf7ef;
+  --superficie-selo: #fef9ec;
+  --superficie-espera: #fdfbf5;
+  --superficie-atenta: #fffdf6;
+  --borda: #f0e6d0;
+  --borda-leve: #f5ecd7;
+  --aro: #e8dcc0;
+  --texto: #1a1a1a;
+  --texto-suave: #6b6b6b;
+  --texto-apagado: #9b9b9b;
+  --traco-discreto: #c4c4c4;
+  --ouro: #c9a84c;
+  --ouro-texto: #a07830;
+  --ouro-suave: #e8d5a3;
+  --ouro-carregado: #b9973e;
+  --ouro-rgb: 201, 168, 76;
+  --texto-sobre-ouro: #ffffff;
+  --texto-sobre-ouro-rgb: 255, 255, 255;
+  --perigo: #dc2626;
+  --perigo-texto: #b91c1c;
+  --perigo-fundo: #fef2f2;
+  --perigo-borda: #fecaca;
+  --perigo-cheio: #ef4444;
+  --sucesso: #22c55e;
+  --sucesso-texto: #166534;
+  --sucesso-fundo: #f0fdf4;
+  --sucesso-fundo-forte: #dcfce7;
+  --sucesso-borda: #bbf7d0;
+  --aviso: #b45309;
+  --aviso-texto: #92400e;
+  --aviso-fundo: #fef3e2;
+  --aviso-borda: #f0d9b5;
+  --neutro-texto: #6b7280;
+  --neutro-fundo: #f9fafb;
+  --neutro-borda: #e5e7eb;
+  --sombra-cartao: 0 2px 12px rgba(0, 0, 0, 0.05);
+  --sombra-flutuante: 0 8px 28px rgba(0, 0, 0, 0.15);
+  --cortina: rgba(0, 0, 0, 0.35);
+  --esqueleto-a: #f3eee1;
+  --esqueleto-b: #faf6ec;
+}
+
+/* Três lavados de hover da camada de interacção são tão subtis que
+   não mereceram token (um uso cada). No claro ficam como estavam;
+   aqui está só a tradução escura de cada um. */
+@media screen {
+  html[data-tema="escuro"] .acao--neutra:hover:not(:disabled) {
+    background-color: #241f13; /* o par escuro do #fcfbf7 */
+  }
+  html[data-tema="escuro"] .icone-botao:hover {
+    background-color: #2c2718; /* o par escuro do #f5efe0 */
+  }
+  html[data-tema="escuro"] .acao--perigo-cheia:hover:not(:disabled) {
+    /* No claro o hover escurece o vermelho; sobre fundo escuro o
+       gesto equivalente é acender um pouco. */
+    background-color: #d24339;
+    border-color: #d24339;
+  }
 }
 
 * {
@@ -113,7 +350,7 @@ h3 {
   bottom: 0;
   width: 32px;
   pointer-events: none;
-  background: linear-gradient(to right, rgba(250, 250, 248, 0), var(--cream));
+  background: linear-gradient(to right, var(--fundo-invisivel), var(--cream));
 }
 
 /* ===== Admin: listas com scroll próprio (≈4 visíveis) ===== */
@@ -240,25 +477,25 @@ h3 {
 .acao--cheia {
   border: 1.5px solid var(--gold);
   background-color: var(--gold);
-  color: #fff;
+  color: var(--texto-sobre-ouro);
 }
 .acao--cheia:hover:not(:disabled) {
-  background-color: #b9973e;
-  border-color: #b9973e;
+  background-color: var(--ouro-carregado);
+  border-color: var(--ouro-carregado);
 }
 
 .acao--ouro {
   border: 1.5px solid var(--gold);
-  background-color: #fff;
+  background-color: var(--superficie);
   color: var(--gold-dark);
 }
 .acao--ouro:hover:not(:disabled) {
-  background-color: #fbf7ef;
+  background-color: var(--superficie-quente);
 }
 
 .acao--neutra {
   border: 1.5px solid var(--gold-light);
-  background-color: #fff;
+  background-color: var(--superficie);
   color: var(--gray-mid);
 }
 .acao--neutra:hover:not(:disabled) {
@@ -268,27 +505,27 @@ h3 {
 }
 
 .acao--verde {
-  border: 1.5px solid #bbf7d0;
-  background-color: #f0fdf4;
-  color: #166534;
+  border: 1.5px solid var(--sucesso-borda);
+  background-color: var(--sucesso-fundo);
+  color: var(--sucesso-texto);
 }
 .acao--verde:hover:not(:disabled) {
-  background-color: #dcfce7;
+  background-color: var(--sucesso-fundo-forte);
 }
 
 .acao--perigo {
-  border: 1.5px solid #fecaca;
-  background-color: #fff;
-  color: #b91c1c;
+  border: 1.5px solid var(--perigo-borda);
+  background-color: var(--superficie);
+  color: var(--perigo-texto);
 }
 .acao--perigo:hover:not(:disabled) {
-  background-color: #fef2f2;
+  background-color: var(--perigo-fundo);
 }
 
 .acao--perigo-cheia {
-  border: 1.5px solid #ef4444;
-  background-color: #ef4444;
-  color: #fff;
+  border: 1.5px solid var(--perigo-cheio);
+  background-color: var(--perigo-cheio);
+  color: #fff; /* branco nos dois modos: 5.2:1 no escuro, ver bloco escuro */
 }
 .acao--perigo-cheia:hover:not(:disabled) {
   background-color: #dc2626;
@@ -321,24 +558,24 @@ h3 {
   background-color: #f5efe0;
 }
 .icone-botao--perigo:hover {
-  background-color: #fef2f2;
+  background-color: var(--perigo-fundo);
 }
 
 /* --- Pastilhas de escolha (filtros, tipos, opções) --- */
 .pastilha-escolha {
-  border: 1px solid #f0e6d0;
-  background-color: #fff;
+  border: 1px solid var(--borda);
+  background-color: var(--superficie);
   color: var(--gray-mid);
 }
 .pastilha-escolha:hover:not(.pastilha-escolha--activa) {
   border-color: var(--gold-light);
-  background-color: #fbf7ef;
+  background-color: var(--superficie-quente);
   color: var(--gold-dark);
 }
 .pastilha-escolha--activa {
   border-color: var(--gold);
   background-color: var(--gold);
-  color: #fff;
+  color: var(--texto-sobre-ouro);
 }
 
 /* --- Os separadores da página de evento --- */
@@ -348,14 +585,14 @@ h3 {
   color: var(--gray-mid);
 }
 .separador-aba:hover:not(.separador-aba--activa) {
-  background-color: #fbf7ef;
+  background-color: var(--superficie-quente);
   color: var(--gold-dark);
 }
 /* O fundo dourado do separador activo é pintado pela pastilha que
    DESLIZA (motion.span com layoutId, em CabecalhoEvento) — a classe
    só trata da cor do texto. */
 .separador-aba--activa {
-  color: #fff;
+  color: var(--texto-sobre-ouro);
 }
 
 /* --- Itens dos índices laterais (Nesta folha, Mostrar) --- */
@@ -365,7 +602,7 @@ h3 {
 }
 .indice-item:hover,
 .indice-item--activa {
-  background-color: #fbf7ef;
+  background-color: var(--superficie-quente);
 }
 
 /* --- Texto que se edita ao clicar (briefing, nome do material) --- */
@@ -381,18 +618,18 @@ h3 {
 /* --- Caixas de escrita: o foco vê-se sem lutar com a borda inline --- */
 .caixa-texto:focus {
   outline: none;
-  box-shadow: 0 0 0 2.5px rgba(201, 168, 76, 0.28);
+  box-shadow: 0 0 0 2.5px rgba(var(--ouro-rgb), 0.28);
 }
 
 /* O cartão que acorda inteiro quando se escreve lá dentro (Notas) */
 .cartao-escrita {
-  background-color: #fff;
+  background-color: var(--superficie);
   border: 1.5px solid var(--gold-light);
   border-radius: 14px;
 }
 .cartao-escrita:focus-within {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--ouro-rgb), 0.12);
 }
 
 /* A coluna fixa dos índices laterais (Visão geral, Notas). O top é a
@@ -467,7 +704,12 @@ h3 {
   }
 }
 .esqueleto {
-  background: linear-gradient(90deg, #f3eee1 40%, #faf6ec 50%, #f3eee1 60%);
+  background: linear-gradient(
+    90deg,
+    var(--esqueleto-a) 40%,
+    var(--esqueleto-b) 50%,
+    var(--esqueleto-a) 60%
+  );
   background-size: 300% 100%;
   animation: esqueleto-ondula 1.6s ease-in-out infinite;
 }
@@ -478,12 +720,12 @@ h3 {
   from {
     opacity: 0;
     transform: translateY(-4px);
-    background-color: rgba(201, 168, 76, 0.16);
+    background-color: rgba(var(--ouro-rgb), 0.16);
   }
   55% {
     opacity: 1;
     transform: none;
-    background-color: rgba(201, 168, 76, 0.16);
+    background-color: rgba(var(--ouro-rgb), 0.16);
   }
   to {
     background-color: transparent;
@@ -497,10 +739,10 @@ h3 {
    o elemento em causa acende e apaga-se, duas vezes, e fica quieto --- */
 @keyframes realce-pulso {
   0% {
-    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--ouro-rgb), 0.5);
   }
   100% {
-    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0);
+    box-shadow: 0 0 0 3px rgba(var(--ouro-rgb), 0);
   }
 }
 .realce-pulso {
@@ -569,7 +811,7 @@ h3 {
   }
   .realce-pulso {
     animation: none;
-    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.35);
+    box-shadow: 0 0 0 3px rgba(var(--ouro-rgb), 0.35);
   }
 }
 

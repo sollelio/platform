@@ -41,7 +41,9 @@ import { MarcaVisto } from "./marcas";
 // ---------- as marcas, desenhadas à mão ----------
 
 // O visto da casa vem do módulo partilhado (marcas.jsx) — aqui só se
-// fixa o tamanho e a cor por omissão da régua.
+// fixa o tamanho e a cor por omissão da régua. O branco por omissão
+// fica literal: serve o percurso perdido, onde o visto assenta em
+// medalhões de cinza literal (branco sobre fundo literal fica branco).
 const Visto = ({ cor = "#fff", t = 11 }) => <MarcaVisto t={t} cor={cor} />;
 
 // A taça do grande dia — line-art, não emoji
@@ -64,7 +66,9 @@ const Taca = ({ cor, t = 11, opacidade = 1 }) => (
   </svg>
 );
 
-// A meia-lua do formulário por preencher — meio selo dado
+// A meia-lua do formulário por preencher — meio selo dado.
+// O #CBB77E do traço está fora da paleta da identidade — fica literal
+// e segue no relatório.
 const MeiaLua = ({ t = 13 }) => (
   <svg width={t} height={t} viewBox="0 0 13 13" aria-hidden>
     <circle
@@ -95,6 +99,7 @@ const SELO_ESTADOS = {
     texto: "Formulário por criar",
     cor: "var(--gray-mid)",
     glifo: (
+      // #C4C7CC está fora da paleta — fica literal e segue no relatório
       <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
         <circle
           cx="6.5"
@@ -120,7 +125,7 @@ const SELO_ESTADOS = {
         <circle cx="6.5" cy="6.5" r="6" fill="var(--gold)" />
         <path
           d="M3.8 6.8 L5.7 8.7 L9.4 4.6"
-          stroke="#fff"
+          stroke="var(--texto-sobre-ouro)"
           strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -139,7 +144,7 @@ const SELO_ESTADOS = {
         <circle cx="6.5" cy="6.5" r="6" fill="var(--gold)" />
         <path
           d="M3.8 6.8 L5.7 8.7 L9.4 4.6"
-          stroke="#fff"
+          stroke="var(--texto-sobre-ouro)"
           strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -150,7 +155,7 @@ const SELO_ESTADOS = {
   },
   "preenchido-noutro": {
     texto: "Respostas noutro evento",
-    cor: "#B45309",
+    cor: "var(--aviso)",
     glifo: (
       <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden>
         <circle
@@ -158,10 +163,10 @@ const SELO_ESTADOS = {
           cy="6.5"
           r="5.75"
           fill="none"
-          stroke="#B45309"
+          stroke="var(--aviso)"
           strokeWidth="1.25"
         />
-        <circle cx="6.5" cy="6.5" r="1.6" fill="#B45309" />
+        <circle cx="6.5" cy="6.5" r="1.6" fill="var(--aviso)" />
       </svg>
     ),
   },
@@ -197,8 +202,8 @@ function SeloFormulario({
         height: "22px",
         padding: "0 10px 0 8px",
         borderRadius: "999px",
-        backgroundColor: "white",
-        border: `1px solid ${estado === "preenchido-noutro" ? "#F0D9B5" : "var(--gold-light)"}`,
+        backgroundColor: "var(--superficie)",
+        border: `1px solid ${estado === "preenchido-noutro" ? "var(--aviso-borda)" : "var(--gold-light)"}`,
         fontSize: "10.5px",
         color: conf.cor,
         cursor: morto || !onEtapa ? "default" : "pointer",
@@ -226,13 +231,15 @@ function SeloFormulario({
   );
 }
 
-// Cor do ponto do selo na régua compacta
+// Cor do ponto do selo na régua compacta. #F1EBDD e #EAD9AC estão fora
+// da paleta da identidade — sem token com o valor exacto, ficam
+// literais e seguem no relatório; só o âmbar coincide com a tabela.
 const SELO_COR_COMPACTA = {
   nenhum: "#F1EBDD",
   pendente: "#EAD9AC",
   preenchido: "var(--gold)",
   "respondido-portal": "var(--gold)",
-  "preenchido-noutro": "#B45309",
+  "preenchido-noutro": "var(--aviso)",
 };
 
 // ---------- a régua compacta (moldura sticky de 42px) ----------
@@ -264,8 +271,10 @@ function JornadaCompacta({ etapas, atual, formulario, porArrumar = false }) {
                 height: ehAtual ? "10px" : "8px",
                 borderRadius: "50%",
                 boxSizing: "border-box",
+                // #F1EBDD (ponto/fio por fazer) está fora da paleta —
+                // fica literal e segue no relatório
                 backgroundColor: ehAtual
-                  ? "white"
+                  ? "var(--superficie)"
                   : e.feito
                     ? "var(--gold)"
                     : "#F1EBDD",
@@ -329,17 +338,17 @@ function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
     estilo = {
       width: "21px",
       height: "21px",
-      backgroundColor: "white",
+      backgroundColor: "var(--superficie)",
       border: "2px solid var(--gold)",
     };
-    conteudo = <Visto cor="#A07830" />;
+    conteudo = <Visto cor="var(--ouro-texto)" />;
   } else if (etapa.feito) {
     estilo = {
       width: "21px",
       height: "21px",
       backgroundColor: "var(--gold)",
       // aro de cunhagem — o rebordo de uma moeda
-      boxShadow: "inset 0 0 0 1px #b9973e",
+      boxShadow: "inset 0 0 0 1px var(--ouro-carregado)",
     };
     // O visto (ou a taça, no grande dia) salta com a mola canónica da
     // casa quando a etapa SE CONCLUI à frente dos olhos — nunca ao
@@ -360,7 +369,11 @@ function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
         }}
         style={{ display: "inline-flex" }}
       >
-        {ehTaca ? <Taca cor="#fff" t={12} /> : <Visto />}
+        {ehTaca ? (
+          <Taca cor="var(--texto-sobre-ouro)" t={12} />
+        ) : (
+          <Visto cor="var(--texto-sobre-ouro)" />
+        )}
       </motion.span>
     );
   } else if (ehAtual) {
@@ -371,7 +384,7 @@ function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
     estilo = {
       width: "24px",
       height: "24px",
-      backgroundColor: "white",
+      backgroundColor: "var(--superficie)",
       border: "1.5px solid var(--gold)",
     };
     conteudo = (
@@ -389,7 +402,7 @@ function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
             // do aro de 1.5px e o halo media ~2.5px em vez de 4)
             inset: "-1.5px",
             borderRadius: "50%",
-            boxShadow: "0 0 0 4px rgba(201,168,76,0.16)",
+            boxShadow: "0 0 0 4px rgba(var(--ouro-rgb), 0.16)",
             pointerEvents: "none",
           }}
         />
@@ -413,10 +426,11 @@ function Medalhao({ etapa, ehAtual, primeiraPintura, reduzirMovimento }) {
     estilo = {
       width: "21px",
       height: "21px",
-      backgroundColor: "#FDFBF5",
-      border: "1px solid #E8DCC0",
+      backgroundColor: "var(--superficie-espera)",
+      border: "1px solid var(--aro)",
       opacity: bloqueada ? 0.62 : 1,
     };
+    // #A08B55 está fora da paleta — fica literal e segue no relatório
     conteudo = ehTaca ? <Taca cor="#A08B55" opacidade={0.5} /> : null;
   }
 
@@ -515,6 +529,12 @@ export default function Jornada({
     return (
       <div
         style={{
+          // A caixa da evidência é um par com cinzas fora da paleta
+          // (#4B5563, #B8BBC0, #C9CBD1…) — não se parte o par: fica
+          // ilha clara literal inteira, letra escura nos dois modos
+          // (o fundo até é o valor de --neutro-fundo, mas os rótulos
+          // não têm token). Os var(--gray-mid) cá dentro fixam-se no
+          // literal claro, para não ficar letra clara sobre a ilha.
           backgroundColor: "#F9FAFB",
           border: "1px solid #E5E7EB",
           borderRadius: "12px",
@@ -537,7 +557,8 @@ export default function Jornada({
               fontWeight: "700",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--gray-mid)",
+              // fixo no literal claro: vive dentro da ilha literal
+              color: "#6B6B6B",
               margin: 0,
             }}
           >
@@ -648,7 +669,9 @@ export default function Jornada({
                   style={{
                     fontSize: "10px",
                     fontWeight: e.evidencia ? "600" : "400",
-                    color: e.evidencia ? "#4B5563" : "var(--gray-mid)",
+                    // par da ilha: #4B5563 não tem token, e o apagado
+                    // fixa-se no literal claro pela mesma razão
+                    color: e.evidencia ? "#4B5563" : "#6B6B6B",
                     margin: "0 2px",
                     lineHeight: 1.25,
                     overflowWrap: "break-word",
@@ -660,7 +683,8 @@ export default function Jornada({
                   <p
                     style={{
                       fontSize: "9.5px",
-                      color: "var(--gray-mid)",
+                      // fixo no literal claro: texto da ilha literal
+                      color: "#6B6B6B",
                       fontVariantNumeric: "tabular-nums",
                       margin: 0,
                       lineHeight: 1.3,
@@ -682,7 +706,8 @@ export default function Jornada({
             margin: "12px 4px 2px",
           }}
         >
-          <p style={{ fontSize: "11px", color: "var(--gray-mid)", margin: 0 }}>
+          {/* fixo no literal claro: texto da ilha literal */}
+          <p style={{ fontSize: "11px", color: "#6B6B6B", margin: 0 }}>
             {fraseStatus || "O que ficou registado mantém-se legível."}
           </p>
           {onRecuperar && (
@@ -699,7 +724,9 @@ export default function Jornada({
                 fontSize: "11.5px",
                 fontWeight: "500",
                 border: "1.5px solid var(--gold-light)",
-                backgroundColor: "white",
+                // acção viva, não evidência: segue o tema (par próprio
+                // com as bordas e o dourado, coerente nos dois modos)
+                backgroundColor: "var(--superficie)",
                 color: "var(--gold-dark)",
                 cursor: "pointer",
                 flexShrink: 0,
@@ -750,7 +777,7 @@ export default function Jornada({
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         border: "1px solid var(--gold-light)",
         borderRadius: "12px",
         padding: "14px 10px 10px",
@@ -813,6 +840,8 @@ export default function Jornada({
                     left: "50%",
                     right: "-50%",
                     height: "2px",
+                    // #E5DCC3 é o «trilho» da identidade, sem token
+                    // próprio — fica literal e segue no relatório
                     backgroundColor: "#E5DCC3",
                     overflow: "hidden",
                   }}
@@ -876,7 +905,7 @@ export default function Jornada({
                     color: e.saldado
                       ? "var(--gold-dark)"
                       : ehAtual
-                        ? "#B45309"
+                        ? "var(--aviso)"
                         : "var(--gray-mid)",
                     fontWeight: e.saldado || ehAtual ? "600" : "400",
                     fontVariantNumeric: "tabular-nums",
@@ -898,7 +927,7 @@ export default function Jornada({
           transition={{ duration: 0.14, ease: [0.32, 0.72, 0, 1] }}
           style={{
             marginTop: "10px",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             border: "1px solid var(--gold-light)",
             borderRadius: "10px",
             padding: "10px 12px",
@@ -935,7 +964,12 @@ export default function Jornada({
                     fontWeight: "600",
                     border: `1px solid ${colors.border}`,
                     backgroundColor: isActive ? colors.color : colors.bg,
-                    color: isActive ? "white" : colors.color,
+                    // A letra do estado activo vem do próprio config
+                    // (textoActivo): fundos tematizados pedem o par do
+                    // ouro, o azul congelado mantém o branco — ver a
+                    // nota em faseConfig.js. No claro é branco em todos,
+                    // como sempre foi.
+                    color: isActive ? colors.textoActivo : colors.color,
                   }}
                 >
                   {status}

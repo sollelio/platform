@@ -16,6 +16,11 @@ export default function EnvBanner() {
         style={{
           position: "fixed",
           inset: 0,
+          // O alarme fica literal por inteiro (moldura, faixa e o
+          // branco por cima): #DC2626 é o valor de --perigo, mas o
+          // papel aqui é preenchimento/traço de alarme — no escuro
+          // esse token é salmão de texto e a faixa deixava de gritar
+          // em uníssono com a moldura. Segue no relatório.
           border: "3px solid #DC2626",
           borderRadius: "2px",
           pointerEvents: "none",

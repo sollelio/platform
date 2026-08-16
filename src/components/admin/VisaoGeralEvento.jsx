@@ -77,8 +77,8 @@ const rotuloCampo = {
 };
 
 const cartao = (aberta) => ({
-  backgroundColor: "white",
-  border: "1px solid #F0E6D0",
+  backgroundColor: "var(--superficie)",
+  border: "1px solid var(--borda)",
   borderRadius: "14px",
   padding: aberta ? "16px 20px 8px" : "14px 20px",
   breakInside: "avoid",
@@ -133,9 +133,9 @@ const medidaBotaoBarra = {
 
 const caixaErro = {
   fontSize: "12.5px",
-  color: "#B91C1C",
-  backgroundColor: "#FEF2F2",
-  border: "1px solid #FECACA",
+  color: "var(--perigo-texto)",
+  backgroundColor: "var(--perigo-fundo)",
+  border: "1px solid var(--perigo-borda)",
   borderRadius: "10px",
   padding: "10px 14px",
   margin: "0 0 16px",
@@ -298,6 +298,8 @@ function CampoEmEdicao({ campo, valor, alterado, porPreencher, onChange }) {
               style={{
                 fontSize: "9px",
                 letterSpacing: "0.08em",
+                // #C0B79F está fora da paleta da identidade — fica
+                // literal e segue no relatório
                 color: "#C0B79F",
                 textTransform: "uppercase",
               }}
@@ -363,6 +365,7 @@ function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota })
             >
               {item.titulo}
             </span>
+            {/* #C0B79F fora da paleta — fica e segue no relatório */}
             <span style={{ fontSize: "10px", color: "#C0B79F" }}>
               {item.direita}
             </span>
@@ -389,10 +392,10 @@ function IndiceLateral({ titulo, itens, onIr = irParaSeccao, onImprimir, nota })
       <p
         style={{
           fontSize: "10.5px",
-          color: "#9B9B9B",
+          color: "var(--texto-apagado)",
           lineHeight: 1.5,
           margin: 0,
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
           paddingTop: "12px",
         }}
       >
@@ -501,7 +504,9 @@ function BriefingEmEdicao({
                 id={`seccao-${slug(sec.titulo)}`}
                 style={{
                   ...cartao(true),
-                  borderColor: mudadosAqui ? "var(--gold-light)" : "#F0E6D0",
+                  borderColor: mudadosAqui
+                    ? "var(--gold-light)"
+                    : "var(--borda)",
                 }}
               >
                 <div style={tituloSeccao(true, false)}>
@@ -556,10 +561,12 @@ function BriefingEmEdicao({
           alignItems: "center",
           gap: "14px",
           flexWrap: "wrap",
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           border: "1.5px solid var(--gold)",
           borderRadius: "14px",
           padding: "12px 16px",
+          // sombra quase-preta fica literal (regra das sombras); a
+          // borda dourada é quem separa nos dois modos
           boxShadow: "0 10px 28px rgba(26,26,26,0.12)",
         }}
       >
@@ -597,7 +604,7 @@ function BriefingEmEdicao({
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: "var(--gold-dark)",
-                backgroundColor: "#FEF9EC",
+                backgroundColor: "var(--superficie-selo)",
                 border: "1px solid var(--gold-light)",
                 borderRadius: "999px",
                 padding: "4px 9px",
@@ -717,8 +724,8 @@ export default function VisaoGeralEvento({
         <FaixaOperacional submissao={submissao} seccoes={seccoes} />
         <div
           style={{
-            backgroundColor: "white",
-            border: "1px solid #F0E6D0",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--borda)",
             borderRadius: "14px",
             padding: "20px 24px",
             fontSize: "13px",
@@ -823,6 +830,8 @@ export default function VisaoGeralEvento({
                       width: "12px",
                       height: "12px",
                       borderRadius: "50%",
+                      // c.hex é dado (paleta do evento); o aro alfa que
+                      // segura as amostras claras fica literal
                       backgroundColor: c.hex,
                       border: "1px solid rgba(0,0,0,0.12)",
                       display: "block",
@@ -844,6 +853,7 @@ export default function VisaoGeralEvento({
             >
               {resumo.textos.join(" · ")}
             </span>
+            {/* #B0A88F fora da paleta — fica e segue no relatório */}
             <span style={{ fontSize: "11px", color: "#B0A88F" }}>
               {sec.campos.length}{" "}
               {sec.campos.length === 1 ? "campo" : "campos"}

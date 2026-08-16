@@ -2191,3 +2191,113 @@ Nos dois casos procurou-se o SINTOMA conhecido em vez da FORMA do
 problema — e nos dois o defeito sobreviveu por estar escrito de outra
 maneira. Ao varrer, a pergunta é «que forma tem isto?», nunca «como é
 que se chamava da última vez».
+
+## O modo escuro do backoffice (16/08/2026)
+
+- **16/08/2026 — O backoffice ganhou modo escuro; as vitrinas nunca.**
+  O atributo `data-tema="escuro"` vive no `<html>` e SÓ nas rotas
+  `/admin` e `/evento` (o guião inline do `index.html` põe-no antes do
+  primeiro pintar; `TemaDoBackoffice` no `App.jsx` acompanha as
+  navegações). As páginas públicas nunca recebem o atributo — os tokens
+  resolvem lá sempre para os valores claros — e o `/briefing` ficou de
+  fora de propósito: é superfície de papel inteira. Porquê assim: uma
+  preferência de quem trabalha oito horas no backoffice não muda a cara
+  da casa para as clientes dela.
+
+- **16/08/2026 — Os tokens nomeiam-se pelo papel, nunca pela cor.**
+  O `:root` do `index.css` passou a ter a paleta semântica; os seis
+  nomes antigos (`--gold`, `--gold-light`, `--gold-dark`, `--cream`,
+  `--charcoal`, `--gray-mid`) ficaram como pontes reancoradas ao papel
+  que sempre serviram — ~1450 usos de `var(--…)` seguiram o tema sem
+  tocar em componente nenhum. Os papéis: fundos (`--fundo`,
+  `--fundo-invisivel`), superfícies (`--superficie`, `-quente`,
+  `-selo`, `-espera`, `-atenta`), traços (`--borda`, `--borda-leve`,
+  `--aro`), texto (`--texto`, `-suave`, `-apagado`, `--traco-discreto`),
+  ouro (`--ouro`, `--ouro-texto`, `--ouro-suave`, `--ouro-carregado`,
+  `--ouro-rgb`, `--texto-sobre-ouro`, `--texto-sobre-ouro-rgb`), os
+  trios semânticos (perigo, com `--perigo-cheio`; sucesso, com
+  `--sucesso-fundo-forte`; aviso; neutro), sombras (`--sombra-cartao`,
+  `--sombra-flutuante` — no escuro a sombra vira borda de luz), a
+  `--cortina` e o esqueleto (`--esqueleto-a/b`). No claro cada token
+  vale EXACTAMENTE o hex que o admin já usava: o modo claro não mudou
+  um pixel (verificado mecanicamente, remoção a remoção).
+
+- **16/08/2026 — O ouro escuro é a única escolha de cor com juízo.**
+  `#C9A84C` foi desenhado para viver sobre creme; sobre escuro fica
+  sujo. O par escuro sobe a luz sem perder o metal — `#D9BA67` — e
+  serve de marca e de texto ao mesmo tempo (8–10:1 sobre qualquer
+  superfície escura, coisa impossível sobre creme). Em troca, o texto
+  SOBRE o ouro deixou de ser branco no escuro (`--texto-sobre-ouro`:
+  quase-preto quente #181405) — branco sobre ouro claro daria ~1.9:1.
+  No escuro o hover ACLARA (`--ouro-carregado`), não escurece. Todos os
+  pares texto/fundo do bloco escuro passam AA ≥4.5:1, verificados um a
+  um; os «apagados» mantêm o papel de apagados com rácio igual ou
+  melhor que o do claro, e a falha conhecida do ouro-sobre-selo
+  (≈3.8:1 no claro, registada acima a 06/08) não se repete: 8:1.
+
+- **16/08/2026 — O interruptor chama-se «Aspecto» e mora ao pé do
+  «Sair».** No fundo da sidebar (e da folha «Mais»), onde já vivem as
+  coisas de configurar — a casa não tem ecrã de definições e um
+  interruptor não justifica construir um. O rótulo é fixo («Modo
+  escuro»/«Modo claro» ao lado do «Sair» liam-se como acção sem se
+  saber se diziam o estado ou o destino); quem diz o estado é o ícone
+  — lua convida ao escuro, sol ao claro. «Aspecto» é a palavra que a
+  casa já fixou para o temperamento de uma superfície (fase A dos
+  comunicados, `registo → aspecto`). A preferência vive no navegador
+  (`localStorage`, chave `dlm.backoffice.tema`), com omissão a seguir
+  o sistema — o precedente é a ordem dos cartões de Documentos
+  (10/08): preferência pessoal de visualização não entra no
+  `app_config`, que desde a 093 é por cliente.
+
+- **16/08/2026 — A moldura escurece, o documento nunca.** A classe
+  `.papel` (no `index.css`, ao lado dos tokens) reancora todos os
+  tokens aos valores claros dentro dela — e recalcula a `color`
+  herdada na fronteira, senão a prosa sem cor própria trazia a letra
+  clara do escuro para cima da folha clara. Usa-se: na folha dos três
+  geradores (orçamento, contrato, proposta), nas pré-visualizações do
+  ComunicadoEditor e do MensagemEditor, nas peças PÚBLICAS embutidas
+  no admin (CaptacaoForm, FormField, AvisoDiaDisputado — a vitrina não
+  segue o tema de ninguém) e, CONDICIONAL, nas ilhas de estado fora da
+  paleta (cartão com erro do Importar, linha de rutura da
+  Conferência). No claro a classe é um no-op pixel-perfeito. O bloco
+  escuro inteiro vive em `@media screen`: qualquer impressão sai
+  sempre clara, sem duplicar listas de tokens.
+
+- **16/08/2026 — Um véu, um valor.** O admin tinha CINCO cortinas
+  (0.35, 0.4 ×4 sítios, 26/26/26 a 0.4, 26/26/26 a 0.32) — todas
+  passaram a `var(--cortina)` (0.35 no claro; 0.62 no escuro, porque
+  uma cortina de 0.35 desaparece sobre fundo escuro). Dois véus
+  ficaram DELIBERADAMENTE de fora, por serem consistentes entre si e
+  possivelmente desenho: o 0.28 das gavetas dos comunicados (×3) e o
+  0.5 do ShareSheet — pergunta em aberto na lista.
+
+- **16/08/2026 — O botão a meio do gesto não se apaga.** Estados «A
+  criar…/A guardar…/A validar…» usavam `var(--gold-light)` como
+  preenchimento; no escuro esse token é tom de borda. O par ficou
+  preso ao claro (`#E8D5A3`) nos sete sítios, com o mesmo comentário.
+  Joias (gradientes dourados de medalhões, a Taça, o LogoDourado)
+  não seguem o tema — ouro claro brilha sobre escuro — e véus sobre
+  FOTOGRAFIA são conteúdo, não tema. Dois pseudo-tokens que nunca
+  existiram (`--hairline`, `--branco-quente`) foram resolvidos para os
+  tokens verdadeiros (viviam do fallback; único sobrevivente: dentro
+  da folha do contrato, onde tanto faz).
+
+- **16/08/2026 — As três respostas que fecharam a varredura.** (1) Os
+  véus 0.28 das gavetas e 0.5 do ShareSheet ficam: uma gaveta e uma
+  folha de partilha não são o mesmo papel que uma cortina modal — não
+  é divergência, é desenho. (2) Os quase-acertos de hairline (a lista
+  de gralhas prováveis em `docs/listas-modo-escuro.md`) não se tocam
+  nesta passagem: mudam o claro, e foi precisamente o claro não mudar
+  que tornou a tarefa verificável — ficam para outra passagem, com o
+  mesmo critério. (3) O ferrugem dos botões de remover fica: procurada
+  e não achada razão registada, mas unificá-lo é decisão de identidade
+  visual, não de tema.
+
+- **Pendências desta decisão:** as três listas em
+  `docs/listas-modo-escuro.md` (cores que não coube traduzir;
+  violações de identidade encontradas e não corrigidas; ficheiros onde
+  o claro mudou: zero, fora as unificações de véu decididas acima); a
+  paleta das fases fora de identidade (azul/amarelo/laranja/roxo/
+  índigo — até lá, o funil fica ilha clara no escuro); e a validação a
+  quente da Nádia — o contraste passou AA no papel, mas é o uso que
+  confirma.

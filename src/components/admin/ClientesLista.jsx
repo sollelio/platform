@@ -266,8 +266,8 @@ export default function ClientesLista({
               fontSize: "13px",
               fontWeight: ativo ? "700" : "500",
               border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-              backgroundColor: ativo ? "var(--gold)" : "white",
-              color: ativo ? "white" : "var(--charcoal)",
+              backgroundColor: ativo ? "var(--gold)" : "var(--superficie)",
+              color: ativo ? "var(--texto-sobre-ouro)" : "var(--charcoal)",
               cursor: "pointer",
               transition: "all 0.2s",
             }}
@@ -323,7 +323,7 @@ export default function ClientesLista({
     return (
       <div>
         {alternador}
-        <p style={{ color: "#DC2626", fontSize: "14px" }}>{erro}</p>
+        <p style={{ color: "var(--perigo)", fontSize: "14px" }}>{erro}</p>
       </div>
     );
   }
@@ -367,12 +367,14 @@ export default function ClientesLista({
                 key={c.id}
                 onClick={() => abrirCliente(c)}
                 style={{
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   borderRadius: "14px",
                   padding: "14px 16px",
                   marginBottom: "10px",
+                  // #F0EBE0 está fora da paleta (--borda é #F0E6D0) —
+                  // fica literal e segue no relatório de violações.
                   border: "1px solid #F0EBE0",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+                  boxShadow: "var(--sombra-cartao)",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -385,7 +387,7 @@ export default function ClientesLista({
                     width: "42px",
                     height: "42px",
                     borderRadius: "50%",
-                    backgroundColor: "#FBF7EF",
+                    backgroundColor: "var(--superficie-quente)",
                     border: "1px solid var(--gold-light)",
                     display: "flex",
                     alignItems: "center",
@@ -460,7 +462,7 @@ export default function ClientesLista({
                     fontSize: "11px",
                     fontWeight: "600",
                     border: "1px solid var(--gold-light)",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     color: "var(--gold-dark)",
                     cursor: "pointer",
                     whiteSpace: "nowrap",

@@ -78,7 +78,7 @@ const CAMPO = {
   color: "var(--charcoal)",
   border: "1.5px solid var(--gold-light)",
   borderRadius: "10px",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   outline: "none",
 };
 
@@ -93,9 +93,9 @@ const CAMPO_ROTULO = {
   fontSize: "13px",
   fontWeight: "600",
   color: "var(--charcoal)",
-  border: "1.5px solid #F0E6D0",
+  border: "1.5px solid var(--borda)",
   borderRadius: "8px",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   outline: "none",
 };
 
@@ -110,7 +110,7 @@ const PASTILHA_REVER = {
   letterSpacing: "0.1em",
   textTransform: "uppercase",
   color: "var(--gold-dark)",
-  backgroundColor: "#FEF9EC",
+  backgroundColor: "var(--superficie-selo)",
   border: "1px solid var(--gold-light)",
   borderRadius: "999px",
   padding: "2px 8px",
@@ -132,15 +132,15 @@ const ETIQUETA_PAPEL = {
   borderRadius: "999px",
   padding: "2px 9px",
   whiteSpace: "nowrap",
-  color: "#9B9B9B",
-  backgroundColor: "#FDFBF5",
-  border: "1px solid #E8DCC0",
+  color: "var(--texto-apagado)",
+  backgroundColor: "var(--superficie-espera)",
+  border: "1px solid var(--aro)",
 };
 
 const ETIQUETA_PAPEL_FORTE = {
   ...ETIQUETA_PAPEL,
   color: "var(--gold-dark)",
-  backgroundColor: "#FEF9EC",
+  backgroundColor: "var(--superficie-selo)",
   borderColor: "var(--gold-light)",
 };
 
@@ -592,7 +592,9 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
   // saudação desenha-se lá dentro UMA vez, lida do campo — a coluna
   // própria da 085.
   const previa = (
-    <>
+    // A folha é papel e não escurece: o .papel reancora os tokens aos
+    // claros nas duas montagens (gaveta e coluna) de uma vez.
+    <div className="papel">
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
         {logoDe(casa) && (
           <img
@@ -982,7 +984,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -1008,7 +1010,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
           color: var(--gray-mid);
         }
         .dlm-gesto-bloco:hover {
-          background-color: #fbf7ef;
+          background-color: var(--superficie-quente);
           color: var(--gold-dark);
         }
         .dlm-gesto-bloco--principal {
@@ -1020,11 +1022,11 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
           color: var(--gold-dark);
         }
         .dlm-zona-imagem:hover:not(:disabled) {
-          background-color: #fbf7ef;
+          background-color: var(--superficie-quente);
           border-color: var(--gold);
         }
         .dlm-miniatura {
-          border: 1px solid #F0E6D0;
+          border: 1px solid var(--borda);
           background: none;
         }
         .dlm-miniatura:hover {
@@ -1040,7 +1042,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
           alignItems: "center",
           gap: "12px",
           padding: "12px 20px",
-          borderBottom: "1px solid #F0E6D0",
+          borderBottom: "1px solid var(--borda)",
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1188,8 +1190,8 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                   width: "188px",
                   boxSizing: "border-box",
                   padding: "3px",
-                  backgroundColor: "#FBF7EF",
-                  border: "1px solid #F0E6D0",
+                  backgroundColor: "var(--superficie-quente)",
+                  border: "1px solid var(--borda)",
                   borderRadius: "999px",
                 }}
               >
@@ -1202,7 +1204,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                     left: "3px",
                     width: "calc(50% - 3px)",
                     borderRadius: "999px",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                     transform: registo === "oferta" ? "translateX(100%)" : "none",
                     transition: reduzido ? "none" : "transform 180ms ease",
@@ -1258,10 +1260,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                   display: "flex",
                   gap: "10px",
                   alignItems: "flex-start",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   // Um bloco por rever veste o filete das marcas (o mesmo
                   // tom do cartão marcado no resto da casa).
-                  border: `1px solid ${b.rever ? "#F0D9B5" : "#F0E6D0"}`,
+                  border: `1px solid ${b.rever ? "var(--aviso-borda)" : "var(--borda)"}`,
                   borderRadius: "12px",
                   padding: "13px",
                   marginTop: "12px",
@@ -1295,6 +1297,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                     touchAction: "none",
                     userSelect: "none",
                     WebkitUserSelect: "none",
+                    // Bate com --texto-apagado, mas a pega agarra-se e o
+                    // token proíbe-se em interactivos; harmonizar com o
+                    // var(--gray-mid) das outras pegas mudava o claro —
+                    // fica literal e vai no relatório.
                     color: "#9B9B9B",
                     fontSize: "15px",
                     lineHeight: 1,
@@ -1446,7 +1452,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                         style={CAMPO_LINHA}
                       />
                       {up.erro && (
-                        <div role="alert" style={{ fontSize: "11.5px", color: "#DC2626" }}>
+                        <div role="alert" style={{ fontSize: "11.5px", color: "var(--perigo)" }}>
                           {up.erro}
                         </div>
                       )}
@@ -1514,9 +1520,9 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                             gap: "8px",
                             fontSize: "11.5px",
                             lineHeight: 1.5,
-                            color: "#92400E",
-                            backgroundColor: "#FEF3E2",
-                            border: "1px solid #F0D9B5",
+                            color: "var(--aviso-texto)",
+                            backgroundColor: "var(--aviso-fundo)",
+                            border: "1px solid var(--aviso-borda)",
                             borderRadius: "8px",
                             padding: "6px 10px",
                           }}
@@ -1556,10 +1562,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                       flex: "none",
                       marginTop: "3px",
                       padding: "7px 11px",
-                      border: "1px solid #FECACA",
+                      border: "1px solid var(--perigo-borda)",
                       borderRadius: "999px",
-                      backgroundColor: "#FEF2F2",
-                      color: "#DC2626",
+                      backgroundColor: "var(--perigo-fundo)",
+                      color: "var(--perigo)",
                       fontSize: "11.5px",
                       fontWeight: "600",
                     }}
@@ -1577,7 +1583,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                       width: "30px",
                       height: "30px",
                       marginTop: "3px",
-                      color: "#C4C4C4",
+                      color: "var(--traco-discreto)",
                     }}
                   >
                     <svg
@@ -1719,6 +1725,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               boxSizing: "border-box",
               overflowY: "auto",
               padding: "18px 18px 48px",
+              // A mesa atrás da folha: #F6F2E9 está fora da paleta da
+              // identidade — o par inteiro (fundo + filete) fica literal
+              // e segue na lista para o Hélio. A folha pousada em cima
+              // é papel: trata-se na etapa do papel, não aqui.
               backgroundColor: "#F6F2E9",
               borderLeft: "1px solid #F0E6D0",
             }}
@@ -1736,10 +1746,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
           alignItems: "center",
           gap: "12px",
           padding: "12px 20px",
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
         }}
       >
-        <div role="alert" style={{ flex: 1, minWidth: 0, fontSize: "12.5px", color: "#DC2626" }}>
+        <div role="alert" style={{ flex: 1, minWidth: 0, fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro}
         </div>
         <button
@@ -1768,7 +1778,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
             borderRadius: "10px",
             fontSize: "12.5px",
             fontWeight: "600",
-            boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+            boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
           }}
         >
           {guardado && (
@@ -1801,11 +1811,13 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
             zIndex: 80,
             pointerEvents: "none",
             boxSizing: "border-box",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             border: "1px solid var(--gold-light)",
             borderRadius: "12px",
             padding: "12px 14px",
-            boxShadow: "0 8px 28px rgba(0,0,0,0.15)",
+            // O box-shadow completo é, valor por valor, a sombra
+            // flutuante da casa — por isso pode ser o token inteiro.
+            boxShadow: "var(--sombra-flutuante)",
             transform: "rotate(0.5deg) scale(1.02)",
           }}
         >
@@ -1844,6 +1856,8 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
             style={{
               position: "fixed",
               inset: 0,
+              // O véu 0.28 das gavetas fica literal: juntá-lo à cortina
+              // única (--cortina, 0.35) é pergunta em aberto a 16/08.
               backgroundColor: "rgba(26,26,26,0.28)",
               opacity: prevAberta ? 1 : 0,
               pointerEvents: prevAberta ? "auto" : "none",
@@ -1861,7 +1875,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
               width: "min(432px, 94vw)",
               boxSizing: "border-box",
               backgroundColor: "var(--cream)",
-              borderLeft: "1px solid #F0E6D0",
+              borderLeft: "1px solid var(--borda)",
               boxShadow: "-12px 0 48px rgba(0,0,0,0.12)",
               zIndex: 95,
               transform: prevAberta ? "translateX(0)" : "translateX(103%)",
@@ -1878,7 +1892,7 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
                 justifyContent: "space-between",
                 gap: "10px",
                 padding: "12px 16px",
-                borderBottom: "1px solid #F0E6D0",
+                borderBottom: "1px solid var(--borda)",
               }}
             >
               <div style={OVERLINE}>PRÉ-VISUALIZAÇÃO</div>

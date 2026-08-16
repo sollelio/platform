@@ -215,7 +215,7 @@ function ErroDaZona({ erro, zona }) {
       style={{
         fontSize: "12.5px",
         lineHeight: 1.6,
-        color: "#B91C1C",
+        color: "var(--perigo-texto)",
         margin: "10px 0 0",
       }}
     >
@@ -842,9 +842,9 @@ function Conteudo({ evento, onFechar }) {
             marginTop: "20px",
             fontSize: "12.5px",
             lineHeight: 1.6,
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "12px 14px",
           }}
@@ -862,9 +862,9 @@ function Conteudo({ evento, onFechar }) {
                 marginTop: "18px",
                 fontSize: "12px",
                 lineHeight: 1.65,
-                color: "#92400E",
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                color: "var(--aviso-texto)",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "10px",
                 padding: "12px 14px",
               }}
@@ -881,7 +881,7 @@ function Conteudo({ evento, onFechar }) {
               width: "100%",
               border: "none",
               backgroundColor: "var(--gold)",
-              color: "white",
+              color: "var(--texto-sobre-ouro)",
               opacity: aTrabalhar ? 0.6 : 1,
               cursor: aTrabalhar ? "wait" : "pointer",
             }}
@@ -926,7 +926,9 @@ function Conteudo({ evento, onFechar }) {
                 fontSize: "12.5px",
                 fontFamily: "inherit",
                 color: "var(--charcoal)",
-                backgroundColor: "var(--branco-quente, #FDFBF5)",
+                // --branco-quente nunca existiu — isto era sempre o
+                // fallback #FDFBF5, o valor claro de --superficie-espera.
+                backgroundColor: "var(--superficie-espera)",
                 boxSizing: "border-box",
               }}
             />
@@ -935,8 +937,14 @@ function Conteudo({ evento, onFechar }) {
               style={{
                 ...botao,
                 border: "none",
+                // O verde do «Copiado» é --sucesso-texto com o papel
+                // trocado (texto usado como fundo): no escuro o token
+                // clareia e o branco morria em cima — o gesto fica
+                // literal, com o branco literal (verde-escuro com branco
+                // lê-se nos dois modos), e segue na lista. Só o par do
+                // ouro segue o tema.
                 backgroundColor: copiado ? "#166534" : "var(--gold)",
-                color: "white",
+                color: copiado ? "white" : "var(--texto-sobre-ouro)",
                 transition: "background-color 140ms ease",
               }}
             >
@@ -977,7 +985,7 @@ function Conteudo({ evento, onFechar }) {
                 {acesso.ultimo_acesso_em && (
                   <> A última foi a {dataHora(acesso.ultimo_acesso_em)}.</>
                 )}{" "}
-                <span style={{ color: "#9B9B9B" }}>
+                <span style={{ color: "var(--texto-apagado)" }}>
                   Aberturas seguidas na mesma meia hora contam como uma.
                 </span>
               </>
@@ -1005,7 +1013,7 @@ function Conteudo({ evento, onFechar }) {
               style={{
                 marginTop: "20px",
                 paddingTop: "16px",
-                borderTop: "1px solid var(--hairline, #F0E6D0)",
+                borderTop: "1px solid var(--borda)",
               }}
             >
               <p style={{ ...overline, marginBottom: "10px" }}>
@@ -1047,7 +1055,7 @@ function Conteudo({ evento, onFechar }) {
                         style={{
                           fontSize: "11.5px",
                           lineHeight: 1.55,
-                          color: trancado ? "#166534" : "var(--gray-mid)",
+                          color: trancado ? "var(--sucesso-texto)" : "var(--gray-mid)",
                           margin: "2px 0 0",
                         }}
                       >
@@ -1075,7 +1083,7 @@ function Conteudo({ evento, onFechar }) {
                           style={{
                             fontSize: "11.5px",
                             lineHeight: 1.55,
-                            color: condicoesLidasEm ? "var(--gray-mid)" : "#9B9B9B",
+                            color: condicoesLidasEm ? "var(--gray-mid)" : "var(--texto-apagado)",
                             margin: "2px 0 0",
                           }}
                         >
@@ -1111,7 +1119,7 @@ function Conteudo({ evento, onFechar }) {
                           padding: "7px 13px",
                           fontSize: "11.5px",
                           border: "1px solid var(--gold)",
-                          backgroundColor: "white",
+                          backgroundColor: "var(--superficie)",
                           color: "var(--gold-dark)",
                           opacity: aTrabalhar ? 0.6 : 1,
                           cursor: aTrabalhar ? "wait" : "pointer",
@@ -1129,7 +1137,7 @@ function Conteudo({ evento, onFechar }) {
                 style={{
                   fontSize: "11px",
                   lineHeight: 1.6,
-                  color: "#9B9B9B",
+                  color: "var(--texto-apagado)",
                   margin: "6px 0 0",
                 }}
               >
@@ -1159,7 +1167,7 @@ function Conteudo({ evento, onFechar }) {
               style={{
                 marginTop: "20px",
                 paddingTop: "16px",
-                borderTop: "1px solid var(--hairline, #F0E6D0)",
+                borderTop: "1px solid var(--borda)",
               }}
             >
               <p style={{ ...overline, marginBottom: "8px" }}>
@@ -1210,8 +1218,8 @@ function Conteudo({ evento, onFechar }) {
                             border: ativa
                               ? "1.5px solid var(--gold)"
                               : "1.5px solid var(--gold-light)",
-                            backgroundColor: ativa ? "var(--gold)" : "white",
-                            color: ativa ? "white" : "var(--gold-dark)",
+                            backgroundColor: ativa ? "var(--gold)" : "var(--superficie)",
+                            color: ativa ? "var(--texto-sobre-ouro)" : "var(--gold-dark)",
                           }}
                         >
                           {rotulo}
@@ -1250,7 +1258,7 @@ function Conteudo({ evento, onFechar }) {
                             letterSpacing: "normal",
                             textTransform: "none",
                             color: "var(--charcoal)",
-                            backgroundColor: "var(--branco-quente, #FDFBF5)",
+                            backgroundColor: "var(--superficie-espera)",
                             outline: "none",
                           }}
                         />
@@ -1283,7 +1291,7 @@ function Conteudo({ evento, onFechar }) {
                             letterSpacing: "normal",
                             textTransform: "none",
                             color: "var(--charcoal)",
-                            backgroundColor: "var(--branco-quente, #FDFBF5)",
+                            backgroundColor: "var(--superficie-espera)",
                             outline: "none",
                           }}
                         />
@@ -1336,7 +1344,7 @@ function Conteudo({ evento, onFechar }) {
                           letterSpacing: "normal",
                           textTransform: "none",
                           color: "var(--charcoal)",
-                          backgroundColor: "var(--branco-quente, #FDFBF5)",
+                          backgroundColor: "var(--superficie-espera)",
                           outline: "none",
                           resize: "vertical",
                         }}
@@ -1351,10 +1359,12 @@ function Conteudo({ evento, onFechar }) {
                       ...botao,
                       marginTop: "10px",
                       border: "none",
+                      // o verde de gesto literal — ver a nota no
+                      // «Copiar» da ligação, lá em cima.
                       backgroundColor: configGuardada
                         ? "#166534"
                         : "var(--gold)",
-                      color: "white",
+                      color: configGuardada ? "white" : "var(--texto-sobre-ouro)",
                       opacity: aGuardarConfig ? 0.6 : 1,
                       cursor: aGuardarConfig ? "wait" : "pointer",
                       transition: "background-color 140ms ease",
@@ -1371,7 +1381,7 @@ function Conteudo({ evento, onFechar }) {
                       style={{
                         fontSize: "11px",
                         lineHeight: 1.6,
-                        color: "#9B9B9B",
+                        color: "var(--texto-apagado)",
                         margin: "8px 0 0",
                       }}
                     >
@@ -1420,7 +1430,7 @@ function Conteudo({ evento, onFechar }) {
                                 fontSize: "11.5px",
                                 border: "none",
                                 backgroundColor: "var(--gold)",
-                                color: "white",
+                                color: "var(--texto-sobre-ouro)",
                                 textDecoration: "none",
                               }}
                             >
@@ -1434,9 +1444,11 @@ function Conteudo({ evento, onFechar }) {
                               padding: "7px 13px",
                               fontSize: "11.5px",
                               border: "1px solid var(--gold)",
+                              // o verde de gesto literal — ver a nota no
+                              // «Copiar» da ligação, lá em cima.
                               backgroundColor: copiadoMsgPrazo
                                 ? "#166534"
-                                : "white",
+                                : "var(--superficie)",
                               color: copiadoMsgPrazo
                                 ? "white"
                                 : "var(--gold-dark)",
@@ -1452,8 +1464,8 @@ function Conteudo({ evento, onFechar }) {
                               ...botao,
                               padding: "7px 13px",
                               fontSize: "11.5px",
-                              border: "1px solid var(--hairline, #F0E6D0)",
-                              backgroundColor: "white",
+                              border: "1px solid var(--borda)",
+                              backgroundColor: "var(--superficie)",
                               color: "var(--gray-mid)",
                               opacity: aGuardarPrazo ? 0.6 : 1,
                               cursor: aGuardarPrazo ? "wait" : "pointer",
@@ -1466,7 +1478,7 @@ function Conteudo({ evento, onFechar }) {
                           style={{
                             fontSize: "11px",
                             lineHeight: 1.6,
-                            color: "#9B9B9B",
+                            color: "var(--texto-apagado)",
                             margin: "8px 0 0",
                           }}
                         >
@@ -1511,7 +1523,7 @@ function Conteudo({ evento, onFechar }) {
                               fontSize: "12.5px",
                               fontFamily: "inherit",
                               color: "var(--charcoal)",
-                              backgroundColor: "var(--branco-quente, #FDFBF5)",
+                              backgroundColor: "var(--superficie-espera)",
                               outline: "none",
                             }}
                           />
@@ -1531,7 +1543,7 @@ function Conteudo({ evento, onFechar }) {
                             style={{
                               ...botao,
                               border: "1px solid var(--gold)",
-                              backgroundColor: "white",
+                              backgroundColor: "var(--superficie)",
                               color: "var(--gold-dark)",
                               opacity: aGuardarPrazo ? 0.6 : 1,
                               cursor: aGuardarPrazo ? "wait" : "pointer",
@@ -1545,7 +1557,7 @@ function Conteudo({ evento, onFechar }) {
                           style={{
                             fontSize: "11px",
                             lineHeight: 1.6,
-                            color: "#9B9B9B",
+                            color: "var(--texto-apagado)",
                             margin: "8px 0 0",
                           }}
                         >
@@ -1568,8 +1580,8 @@ function Conteudo({ evento, onFechar }) {
                     <div
                       style={{
                         marginTop: "16px",
-                        backgroundColor: "#FEF3E2",
-                        border: "1px solid #F0D9B5",
+                        backgroundColor: "var(--aviso-fundo)",
+                        border: "1px solid var(--aviso-borda)",
                         borderRadius: "10px",
                         padding: "13px 14px",
                       }}
@@ -1579,7 +1591,7 @@ function Conteudo({ evento, onFechar }) {
                           fontSize: "13px",
                           fontWeight: "700",
                           lineHeight: 1.5,
-                          color: "#92400E",
+                          color: "var(--aviso-texto)",
                           margin: "0 0 6px",
                         }}
                       >
@@ -1589,7 +1601,7 @@ function Conteudo({ evento, onFechar }) {
                         style={{
                           fontSize: "12.5px",
                           lineHeight: 1.6,
-                          color: "#92400E",
+                          color: "var(--aviso-texto)",
                           margin: 0,
                         }}
                       >
@@ -1607,7 +1619,7 @@ function Conteudo({ evento, onFechar }) {
                             style={{
                               fontSize: "11.5px",
                               lineHeight: 1.6,
-                              color: "#92400E",
+                              color: "var(--aviso-texto)",
                               margin: 0,
                             }}
                           >
@@ -1631,7 +1643,7 @@ function Conteudo({ evento, onFechar }) {
                                 fontSize: "11.5px",
                                 border: "none",
                                 backgroundColor: "var(--gold)",
-                                color: "white",
+                                color: "var(--texto-sobre-ouro)",
                                 opacity: aLimparConf ? 0.6 : 1,
                                 cursor: aLimparConf ? "wait" : "pointer",
                               }}
@@ -1644,8 +1656,8 @@ function Conteudo({ evento, onFechar }) {
                                 ...botao,
                                 padding: "6px 12px",
                                 fontSize: "11.5px",
-                                border: "1px solid var(--hairline, #F0E6D0)",
-                                backgroundColor: "white",
+                                border: "1px solid var(--borda)",
+                                backgroundColor: "var(--superficie)",
                                 color: "var(--gray-mid)",
                               }}
                             >
@@ -1661,9 +1673,13 @@ function Conteudo({ evento, onFechar }) {
                             marginTop: "10px",
                             padding: "6px 12px",
                             fontSize: "11.5px",
+                            // #D9A441 está fora da paleta (a borda de
+                            // aviso da identidade é #F0D9B5) — fica
+                            // literal e segue no relatório; o resto do
+                            // par segue os tokens do aviso.
                             border: "1px solid #D9A441",
-                            backgroundColor: "white",
-                            color: "#92400E",
+                            backgroundColor: "var(--superficie)",
+                            color: "var(--aviso-texto)",
                           }}
                         >
                           Limpar a confirmação
@@ -1686,13 +1702,13 @@ function Conteudo({ evento, onFechar }) {
             <div
               style={{
                 marginTop: "18px",
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "10px",
                 padding: "13px 14px",
               }}
             >
-              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+              <p style={{ ...overline, color: "var(--aviso-texto)", marginBottom: "8px" }}>
                 {pedidosVivos.length === 1
                   ? "Pedido de código"
                   : `${pedidosVivos.length} pedidos de código`}
@@ -1712,7 +1728,7 @@ function Conteudo({ evento, onFechar }) {
                     style={{
                       fontSize: "12px",
                       lineHeight: 1.5,
-                      color: "#92400E",
+                      color: "var(--aviso-texto)",
                       margin: 0,
                       minWidth: 0,
                       flex: 1,
@@ -1736,7 +1752,7 @@ function Conteudo({ evento, onFechar }) {
                       style={{
                         fontSize: "11.5px",
                         lineHeight: 1.5,
-                        color: "#92400E",
+                        color: "var(--aviso-texto)",
                         margin: 0,
                         flexShrink: 0,
                         fontWeight: 600,
@@ -1755,9 +1771,14 @@ function Conteudo({ evento, onFechar }) {
                         letterSpacing: "0.12em",
                         fontVariantNumeric: "tabular-nums",
                         border: "none",
+                        // o verde de gesto literal — ver a nota no
+                        // «Copiar» da ligação, lá em cima.
                         backgroundColor:
                           copiadoCodigo === p.id ? "#166534" : "var(--gold)",
-                        color: "white",
+                        color:
+                          copiadoCodigo === p.id
+                            ? "white"
+                            : "var(--texto-sobre-ouro)",
                         flexShrink: 0,
                       }}
                       title="Copiar, para enviar pela conversa de WhatsApp"
@@ -1774,7 +1795,7 @@ function Conteudo({ evento, onFechar }) {
                         fontSize: "11.5px",
                         border: "none",
                         backgroundColor: "var(--gold)",
-                        color: "white",
+                        color: "var(--texto-sobre-ouro)",
                         opacity: aTrabalhar ? 0.6 : 1,
                         cursor: aTrabalhar ? "wait" : "pointer",
                         flexShrink: 0,
@@ -1790,7 +1811,7 @@ function Conteudo({ evento, onFechar }) {
                 style={{
                   fontSize: "11px",
                   lineHeight: 1.6,
-                  color: "#92400E",
+                  color: "var(--aviso-texto)",
                   margin: "8px 0 0",
                 }}
               >
@@ -1813,13 +1834,13 @@ function Conteudo({ evento, onFechar }) {
             <div
               style={{
                 marginTop: "18px",
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "10px",
                 padding: "13px 14px",
               }}
             >
-              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+              <p style={{ ...overline, color: "var(--aviso-texto)", marginBottom: "8px" }}>
                 {pedidosQ.length === 1
                   ? "Pedido de alteração ao formulário"
                   : `${pedidosQ.length} pedidos de alteração ao formulário`}
@@ -1828,7 +1849,7 @@ function Conteudo({ evento, onFechar }) {
                 const dadosMorada = moradaDoPedido(p);
                 return (
                 <div key={p.id} style={{ padding: "7px 0" }}>
-                  <p style={{ fontSize: "11px", fontWeight: "600", letterSpacing: "0.04em", textTransform: "uppercase", color: "#92400E", margin: 0 }}>
+                  <p style={{ fontSize: "11px", fontWeight: "600", letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--aviso-texto)", margin: 0 }}>
                     {p.campo_label}
                   </p>
                   <p style={{ fontSize: "12.5px", lineHeight: 1.65, color: "var(--charcoal)", margin: "5px 0 0", whiteSpace: "pre-wrap" }}>
@@ -1841,8 +1862,8 @@ function Conteudo({ evento, onFechar }) {
                       no briefing, com registo da equipa, e o pedido fecha
                       no mesmo gesto. Confirmação inline, como sempre. */}
                   {dadosMorada && (
-                    <div style={{ marginTop: "8px", backgroundColor: "white", border: "1px solid #F0D9B5", borderRadius: "8px", padding: "10px 12px" }}>
-                      <p style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.06em", textTransform: "uppercase", color: "#92400E", margin: 0 }}>
+                    <div style={{ marginTop: "8px", backgroundColor: "var(--superficie)", border: "1px solid var(--aviso-borda)", borderRadius: "8px", padding: "10px 12px" }}>
+                      <p style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--aviso-texto)", margin: 0 }}>
                         A morada nova
                       </p>
                       <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "var(--charcoal)", margin: "5px 0 0" }}>
@@ -1865,7 +1886,7 @@ function Conteudo({ evento, onFechar }) {
                                 fontSize: "11.5px",
                                 border: "none",
                                 backgroundColor: "var(--gold)",
-                                color: "white",
+                                color: "var(--texto-sobre-ouro)",
                                 opacity: aAplicarMorada ? 0.6 : 1,
                                 cursor: aAplicarMorada ? "wait" : "pointer",
                               }}
@@ -1878,8 +1899,8 @@ function Conteudo({ evento, onFechar }) {
                                 ...botao,
                                 padding: "6px 12px",
                                 fontSize: "11.5px",
-                                border: "1px solid var(--hairline, #F0E6D0)",
-                                backgroundColor: "white",
+                                border: "1px solid var(--borda)",
+                                backgroundColor: "var(--superficie)",
                                 color: "var(--gray-mid)",
                               }}
                             >
@@ -1895,9 +1916,11 @@ function Conteudo({ evento, onFechar }) {
                             marginTop: "9px",
                             padding: "6px 12px",
                             fontSize: "11.5px",
+                            // o mesmo âmbar #D9A441 fora da paleta —
+                            // literal, no relatório.
                             border: "1px solid #D9A441",
-                            backgroundColor: "white",
-                            color: "#92400E",
+                            backgroundColor: "var(--superficie)",
+                            color: "var(--aviso-texto)",
                           }}
                         >
                           Aplicar esta morada
@@ -1907,7 +1930,7 @@ function Conteudo({ evento, onFechar }) {
                   )}
 
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "7px" }}>
-                    <span style={{ fontSize: "11px", color: "#92400E" }}>
+                    <span style={{ fontSize: "11px", color: "var(--aviso-texto)" }}>
                       {dataHora(p.pedido_em)}
                     </span>
                     <button
@@ -1917,9 +1940,11 @@ function Conteudo({ evento, onFechar }) {
                         ...botao,
                         padding: "6px 12px",
                         fontSize: "11.5px",
+                        // o mesmo âmbar #D9A441 fora da paleta —
+                        // literal, no relatório.
                         border: "1px solid #D9A441",
-                        backgroundColor: "white",
-                        color: "#92400E",
+                        backgroundColor: "var(--superficie)",
+                        color: "var(--aviso-texto)",
                         opacity: aTrabalhar ? 0.6 : 1,
                         cursor: aTrabalhar ? "wait" : "pointer",
                       }}
@@ -1931,7 +1956,7 @@ function Conteudo({ evento, onFechar }) {
                 );
               })}
               <ErroDaZona erro={erro} zona="questionario" />
-              <p style={{ fontSize: "11px", lineHeight: 1.6, color: "#92400E", margin: "9px 0 0" }}>
+              <p style={{ fontSize: "11px", lineHeight: 1.6, color: "var(--aviso-texto)", margin: "9px 0 0" }}>
                 Marcar como tratado não muda a resposta — muda-se no briefing,
                 se ficar acordado. Só fecha o pedido e deixa a cliente voltar a
                 pedir se precisar.
@@ -1945,7 +1970,7 @@ function Conteudo({ evento, onFechar }) {
               informa, não bloqueia. */}
           {moradaAplicada && (
             <div style={{ marginTop: "14px" }}>
-              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "#166534", margin: 0 }}>
+              <p style={{ fontSize: "12px", lineHeight: 1.6, color: "var(--sucesso-texto)", margin: 0 }}>
                 Morada aplicada ao briefing — a resposta ficou com o registo da
                 equipa.
               </p>
@@ -1954,9 +1979,9 @@ function Conteudo({ evento, onFechar }) {
                   style={{
                     fontSize: "12px",
                     lineHeight: 1.65,
-                    color: "#92400E",
-                    backgroundColor: "#FEF3E2",
-                    border: "1px solid #F0D9B5",
+                    color: "var(--aviso-texto)",
+                    backgroundColor: "var(--aviso-fundo)",
+                    border: "1px solid var(--aviso-borda)",
                     borderRadius: "8px",
                     padding: "10px 12px",
                     margin: "8px 0 0",
@@ -1979,20 +2004,20 @@ function Conteudo({ evento, onFechar }) {
             <div
               style={{
                 marginTop: "18px",
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "10px",
                 padding: "13px 14px",
               }}
             >
-              <p style={{ ...overline, color: "#92400E", marginBottom: "8px" }}>
+              <p style={{ ...overline, color: "var(--aviso-texto)", marginBottom: "8px" }}>
                 Contrato assinado em papel
               </p>
               <p
                 style={{
                   fontSize: "12px",
                   lineHeight: 1.6,
-                  color: "#92400E",
+                  color: "var(--aviso-texto)",
                   margin: "0 0 10px",
                 }}
               >
@@ -2008,9 +2033,11 @@ function Conteudo({ evento, onFechar }) {
                   ...botao,
                   padding: "7px 13px",
                   fontSize: "12px",
+                  // o mesmo âmbar #D9A441 fora da paleta — literal,
+                  // no relatório.
                   border: "1px solid #D9A441",
-                  backgroundColor: "white",
-                  color: "#92400E",
+                  backgroundColor: "var(--superficie)",
+                  color: "var(--aviso-texto)",
                   marginBottom: "10px",
                 }}
               >
@@ -2029,9 +2056,9 @@ function Conteudo({ evento, onFechar }) {
                   fontSize: "13.5px",
                   fontFamily: "inherit",
                   color: "var(--charcoal, #1A1A1A)",
-                  border: "1px solid #F0D9B5",
+                  border: "1px solid var(--aviso-borda)",
                   borderRadius: "8px",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   outline: "none",
                 }}
               />
@@ -2045,7 +2072,7 @@ function Conteudo({ evento, onFechar }) {
                   marginTop: "9px",
                   border: "none",
                   backgroundColor: "var(--gold)",
-                  color: "white",
+                  color: "var(--texto-sobre-ouro)",
                   opacity: aConfirmarPapel ? 0.6 : 1,
                   cursor: aConfirmarPapel ? "wait" : "pointer",
                 }}
@@ -2057,7 +2084,7 @@ function Conteudo({ evento, onFechar }) {
                 style={{
                   fontSize: "11px",
                   lineHeight: 1.6,
-                  color: "#92400E",
+                  color: "var(--aviso-texto)",
                   margin: "9px 0 0",
                 }}
               >
@@ -2071,7 +2098,7 @@ function Conteudo({ evento, onFechar }) {
             style={{
               marginTop: "20px",
               paddingTop: "16px",
-              borderTop: "1px solid var(--hairline, #F0E6D0)",
+              borderTop: "1px solid var(--borda)",
             }}
           >
             {!aConfirmarFecho ? (
@@ -2079,9 +2106,9 @@ function Conteudo({ evento, onFechar }) {
                 onClick={() => setAConfirmarFecho(true)}
                 style={{
                   ...botao,
-                  border: "1px solid #FECACA",
-                  backgroundColor: "white",
-                  color: "#B91C1C",
+                  border: "1px solid var(--perigo-borda)",
+                  backgroundColor: "var(--superficie)",
+                  color: "var(--perigo-texto)",
                 }}
               >
                 Fechar o acompanhamento
@@ -2092,8 +2119,8 @@ function Conteudo({ evento, onFechar }) {
               // diz o que se perde.
               <div
                 style={{
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "10px",
                   padding: "14px 16px",
                 }}
@@ -2102,7 +2129,7 @@ function Conteudo({ evento, onFechar }) {
                   style={{
                     fontSize: "12.5px",
                     lineHeight: 1.65,
-                    color: "#B91C1C",
+                    color: "var(--perigo-texto)",
                     margin: 0,
                   }}
                 >
@@ -2120,6 +2147,11 @@ function Conteudo({ evento, onFechar }) {
                     style={{
                       ...botao,
                       border: "none",
+                      // --perigo-texto com o papel trocado (texto usado
+                      // como fundo): no escuro o token é rosa-claro e o
+                      // branco perdia-se — o par fica literal (branco
+                      // sobre vinho lê-se nos dois modos) e segue na
+                      // lista. O cheio da identidade seria #EF4444.
                       backgroundColor: "#B91C1C",
                       color: "white",
                       opacity: aTrabalhar ? 0.6 : 1,
@@ -2132,8 +2164,8 @@ function Conteudo({ evento, onFechar }) {
                     onClick={() => setAConfirmarFecho(false)}
                     style={{
                       ...botao,
-                      border: "1px solid var(--hairline, #F0E6D0)",
-                      backgroundColor: "white",
+                      border: "1px solid var(--borda)",
+                      backgroundColor: "var(--superficie)",
                       color: "var(--gray-mid)",
                     }}
                   >
@@ -2160,7 +2192,7 @@ function Conteudo({ evento, onFechar }) {
           style={{
             marginTop: "20px",
             paddingTop: "16px",
-            borderTop: "1px solid var(--hairline, #F0E6D0)",
+            borderTop: "1px solid var(--borda)",
           }}
         >
           <p style={{ ...overline, marginBottom: "4px" }}>
@@ -2211,7 +2243,7 @@ function Conteudo({ evento, onFechar }) {
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
+            color: "var(--perigo-texto)",
             margin: "14px 0 0",
           }}
         >
@@ -2225,8 +2257,8 @@ function Conteudo({ evento, onFechar }) {
           ...botao,
           marginTop: "22px",
           width: "100%",
-          border: "1px solid var(--hairline, #F0E6D0)",
-          backgroundColor: "white",
+          border: "1px solid var(--borda)",
+          backgroundColor: "var(--superficie)",
           color: "var(--gray-mid)",
         }}
       >
@@ -2272,7 +2304,10 @@ export default function PortalDoClienteSheet({ evento, aberto, onFechar }) {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(26,26,26,0.32)",
+            // Cortina unificada no token (decisão do Hélio, 16/08: um
+            // véu, um valor): este era o quarto valor divergente
+            // encontrado (26/26/26 a 0.32).
+            backgroundColor: "var(--cortina)",
             zIndex: 1000,
             display: "flex",
             alignItems: "flex-end",
@@ -2291,7 +2326,7 @@ export default function PortalDoClienteSheet({ evento, aberto, onFechar }) {
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               width: "100%",
               maxWidth: "520px",
               borderRadius: "16px 16px 0 0",

@@ -193,8 +193,8 @@ export default function OperacionalTab({
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-                backgroundColor: ativo ? "var(--gold)" : "white",
-                color: ativo ? "white" : "var(--gray-mid)",
+                backgroundColor: ativo ? "var(--gold)" : "var(--superficie)",
+                color: ativo ? "var(--texto-sobre-ouro)" : "var(--gray-mid)",
                 cursor: "pointer",
                 transition: "all 0.2s",
               }}
@@ -215,6 +215,10 @@ export default function OperacionalTab({
                     lineHeight: 1,
                     // No botão ativo (fundo dourado) o badge fica branco com
                     // texto dourado; no inativo, vermelho cheio.
+                    // O par fica literal: o valor é o da --perigo, mas o
+                    // PAPEL é de cheio (--perigo-cheio, outro valor) — no
+                    // escuro a --perigo vira salmão de texto e a letra
+                    // branca deixava de se ler. Vai na lista.
                     backgroundColor: ativo ? "white" : "#DC2626",
                     color: ativo ? "#DC2626" : "white",
                   }}
@@ -231,9 +235,9 @@ export default function OperacionalTab({
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "16px",

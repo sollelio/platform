@@ -53,8 +53,8 @@ const OVERLINE = {
 };
 
 const CARTAO = {
-  backgroundColor: "white",
-  border: "1px solid #F0E6D0",
+  backgroundColor: "var(--superficie)",
+  border: "1px solid var(--borda)",
   borderRadius: "12px",
 };
 
@@ -81,7 +81,7 @@ const Medalha = ({ tamanho = 18 }) => (
     <path
       d="M4.6 8.4l2.4 2.4 4.4-5"
       fill="none"
-      stroke="#FFFFFF"
+      stroke="var(--texto-sobre-ouro)"
       strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -126,13 +126,13 @@ const CaixaPortal = ({ ligada, onAlternar }) => (
         marginTop: "1px",
         border: `1.5px solid var(${ligada ? "--gold" : "--gold-light"})`,
         borderRadius: "4px",
-        backgroundColor: ligada ? "var(--gold)" : "white",
+        backgroundColor: ligada ? "var(--gold)" : "var(--superficie)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: "11px",
         lineHeight: 1,
-        color: "white",
+        color: "var(--texto-sobre-ouro)",
       }}
     >
       {ligada ? "✓" : ""}
@@ -167,7 +167,7 @@ const PastilhaAcrescentada = () => (
       flex: "none",
       padding: "2px 8px",
       borderRadius: "999px",
-      backgroundColor: "#FEF9EC",
+      backgroundColor: "var(--superficie-selo)",
       border: "1px solid var(--gold-light)",
       fontSize: "8.5px",
       fontWeight: "700",
@@ -241,6 +241,8 @@ function Regua({ feitos, total, reduzido }) {
       style={{
         marginTop: "10px",
         height: "3px",
+        // #E5DCC3 (calha da régua) está fora da paleta — fica literal e
+        // vai na lista de violações; o preenchido é var(--gold).
         backgroundColor: "#E5DCC3",
         borderRadius: "999px",
         overflow: "hidden",
@@ -496,7 +498,7 @@ function OFim({
       <Regua feitos={n} total={comNumero.length} reduzido={reduzido} />
 
       {(erro || erroFim) && (
-        <p role="alert" style={{ margin: "14px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+        <p role="alert" style={{ margin: "14px 0 0", fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro || erroFim}
         </p>
       )}
@@ -517,7 +519,7 @@ function OFim({
               gap: "11px",
               padding: "12px 0",
               borderBottom:
-                i === filas.length - 1 ? "1px solid transparent" : "1px solid #F5ECD7",
+                i === filas.length - 1 ? "1px solid transparent" : "1px solid var(--borda-leve)",
             }}
           >
             {tipo === "enviada" ? (
@@ -530,7 +532,7 @@ function OFim({
                   width: "14px",
                   height: "14px",
                   borderRadius: "50%",
-                  border: tipo === "semnumero" ? "1.5px dashed #E8DCC0" : "1.5px solid var(--gold-light)",
+                  border: tipo === "semnumero" ? "1.5px dashed var(--aro)" : "1.5px solid var(--gold-light)",
                   boxSizing: "border-box",
                 }}
               />
@@ -560,7 +562,7 @@ function OFim({
                 style={{
                   flex: "none",
                   fontSize: "11.5px",
-                  color: "#9B9B9B",
+                  color: "var(--texto-apagado)",
                   fontVariantNumeric: "tabular-nums",
                   whiteSpace: "nowrap",
                 }}
@@ -568,7 +570,7 @@ function OFim({
                 {quandoDita(l.enviado_em)}
               </div>
             ) : tipo === "espera" ? (
-              <div style={{ flex: "none", fontSize: "11.5px", color: "#9B9B9B", whiteSpace: "nowrap" }}>
+              <div style={{ flex: "none", fontSize: "11.5px", color: "var(--texto-apagado)", whiteSpace: "nowrap" }}>
                 à espera de resposta
               </div>
             ) : tipo === "porabrir" ? (
@@ -592,7 +594,7 @@ function OFim({
                 Enviar
               </button>
             ) : (
-              <div style={{ flex: "none", fontSize: "11.5px", color: "#9B9B9B", whiteSpace: "nowrap" }}>
+              <div style={{ flex: "none", fontSize: "11.5px", color: "var(--texto-apagado)", whiteSpace: "nowrap" }}>
                 sem número
               </div>
             )}
@@ -608,8 +610,8 @@ function OFim({
           key={`volta-${l.id}`}
           style={{
             marginTop: "14px",
-            backgroundColor: "#FFFDF6",
-            border: "1px solid #F0D9B5",
+            backgroundColor: "var(--superficie-atenta)",
+            border: "1px solid var(--aviso-borda)",
             borderRadius: "12px",
             padding: "13px 14px",
           }}
@@ -714,7 +716,7 @@ function OFim({
                 alignItems: "center",
                 gap: "10px",
                 marginTop: "13px",
-                borderTop: "1px solid #F5ECD7",
+                borderTop: "1px solid var(--borda-leve)",
                 paddingTop: "12px",
               }}
             >
@@ -770,7 +772,7 @@ function OFim({
       <div
         style={{
           marginTop: "22px",
-          backgroundColor: "#FBF7EF",
+          backgroundColor: "var(--superficie-quente)",
           border: "1px solid var(--gold-light)",
           borderRadius: "14px",
           padding: "15px 16px",
@@ -854,7 +856,7 @@ function OFim({
             alignItems: "center",
             gap: "11px",
             marginTop: "16px",
-            backgroundColor: "#FEF9EC",
+            backgroundColor: "var(--superficie-selo)",
             border: "1px solid var(--gold-light)",
             borderRadius: "12px",
             padding: "13px 14px",
@@ -1218,8 +1220,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         <div
           style={{
             marginTop: "20px",
-            backgroundColor: "#FFFDF6",
-            border: "1px solid #F0D9B5",
+            backgroundColor: "var(--superficie-atenta)",
+            border: "1px solid var(--aviso-borda)",
             borderRadius: "14px",
             padding: "16px 18px",
           }}
@@ -1255,7 +1257,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
             alignItems: "center",
             gap: "12px",
             marginTop: "22px",
-            backgroundColor: "#FEF9EC",
+            backgroundColor: "var(--superficie-selo)",
             border: "1px solid var(--gold-light)",
             borderRadius: "14px",
             padding: "15px 16px",
@@ -1279,7 +1281,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
       )}
 
       {erro && (
-        <p role="alert" style={{ margin: "16px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+        <p role="alert" style={{ margin: "16px 0 0", fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro}
         </p>
       )}
@@ -1292,8 +1294,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
               key={l.id}
               style={{
                 marginTop: "14px",
-                backgroundColor: "#FFFDF6",
-                border: "1px solid #F0D9B5",
+                backgroundColor: "var(--superficie-atenta)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "12px",
                 padding: "13px 14px",
               }}
@@ -1335,7 +1337,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 alignItems: "center",
                 gap: "12px",
                 marginTop: "16px",
-                backgroundColor: "#FBF7EF",
+                backgroundColor: "var(--superficie-quente)",
                 border: "1px solid var(--gold-light)",
                 borderRadius: "12px",
                 padding: "12px 14px",
@@ -1437,15 +1439,15 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
               com a mensagem à mão para seguir por onde houver caminho. */}
           {semNumero.length > 0 && (
             <>
-              <div style={{ ...OVERLINE, marginTop: "22px", color: "#9B9B9B" }}>
+              <div style={{ ...OVERLINE, marginTop: "22px", color: "var(--texto-apagado)" }}>
                 SEM NÚMERO UTILIZÁVEL · {semNumero.length}
               </div>
               {semNumero.map((l) => (
                 <div
                   key={l.id}
                   style={{
-                    backgroundColor: "white",
-                    border: "1px dashed #E8DCC0",
+                    backgroundColor: "var(--superficie)",
+                    border: "1px dashed var(--aro)",
                     borderRadius: "12px",
                     padding: "12px 14px",
                     marginTop: "8px",
@@ -1493,8 +1495,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 <div
                   key={l.id}
                   style={{
-                    backgroundColor: "white",
-                    border: "1px solid #F5ECD7",
+                    backgroundColor: "var(--superficie)",
+                    border: "1px solid var(--borda-leve)",
                     borderRadius: "12px",
                     padding: "11px 14px",
                     marginTop: "8px",
@@ -1519,7 +1521,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                       style={{
                         flex: "none",
                         fontSize: "11.5px",
-                        color: "#9B9B9B",
+                        color: "var(--texto-apagado)",
                         fontVariantNumeric: "tabular-nums",
                         whiteSpace: "nowrap",
                       }}
@@ -1612,7 +1614,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 </button>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "12px", marginTop: "16px", borderTop: "1px solid #F5ECD7", paddingTop: "14px" }}>
+            <div style={{ display: "flex", gap: "12px", marginTop: "16px", borderTop: "1px solid var(--borda-leve)", paddingTop: "14px" }}>
               <div style={{ flex: "none", width: "20px", textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: "14px", color: "var(--gold)" }}>
                 2
               </div>
@@ -1620,7 +1622,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                 No WhatsApp, crie — ou abra — uma lista de difusão com estas pessoas.
               </div>
             </div>
-            <div style={{ display: "flex", gap: "12px", marginTop: "14px", borderTop: "1px solid #F5ECD7", paddingTop: "14px" }}>
+            <div style={{ display: "flex", gap: "12px", marginTop: "14px", borderTop: "1px solid var(--borda-leve)", paddingTop: "14px" }}>
               <div style={{ flex: "none", width: "20px", textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: "14px", color: "var(--gold)" }}>
                 3
               </div>
@@ -1672,10 +1674,10 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
                   boxSizing: "border-box",
                   marginTop: "16px",
                   padding: "13px",
-                  border: "1px solid #FECACA",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "12px",
-                  backgroundColor: "#FEF2F2",
-                  color: "#DC2626",
+                  backgroundColor: "var(--perigo-fundo)",
+                  color: "var(--perigo)",
                   fontSize: "13px",
                   fontWeight: "600",
                 }}
@@ -1710,6 +1712,8 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
         style={{
           position: "fixed",
           inset: 0,
+          // Véu de gaveta a 0.28 — diverge da cortina (0.35/0.4, decisão
+          // de 16/08): fica literal e vai no relatório.
           backgroundColor: "rgba(26,26,26,0.28)",
           opacity: fichaAberta ? 1 : 0,
           pointerEvents: fichaAberta ? "auto" : "none",
@@ -1738,7 +1742,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
             maxWidth: "560px",
             boxSizing: "border-box",
             backgroundColor: "var(--cream)",
-            border: "1px solid #F0E6D0",
+            border: "1px solid var(--borda)",
             borderBottom: "none",
             borderRadius: "18px 18px 0 0",
             boxShadow: "0 -12px 48px rgba(0,0,0,0.12)",
@@ -1749,7 +1753,7 @@ export default function ComunicadoExpedicao({ comunicado, onVoltar, onMensagem }
           }}
         >
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ width: "36px", height: "4px", borderRadius: "999px", backgroundColor: "#E8DCC0" }} />
+            <div style={{ width: "36px", height: "4px", borderRadius: "999px", backgroundColor: "var(--aro)" }} />
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "14px" }}>
             <div style={{ fontSize: "15px", fontWeight: "600" }}>{ficha?.nome}</div>

@@ -75,9 +75,9 @@ function PontoDourado({ brilho }) {
         brilho
           ? {
               boxShadow: [
-                "0 0 0 0 rgba(201,168,76,0)",
-                "0 0 0 5px rgba(201,168,76,0.35)",
-                "0 0 0 0 rgba(201,168,76,0)",
+                "0 0 0 0 rgba(var(--ouro-rgb), 0)",
+                "0 0 0 5px rgba(var(--ouro-rgb), 0.35)",
+                "0 0 0 0 rgba(var(--ouro-rgb), 0)",
               ],
             }
           : undefined
@@ -365,8 +365,8 @@ export default function FormularioDoEvento({
       <header
         style={{
           flex: "none",
-          backgroundColor: "white",
-          borderBottom: "1px solid #F5ECD7",
+          backgroundColor: "var(--superficie)",
+          borderBottom: "1px solid var(--borda-leve)",
           padding: "18px 32px 16px",
           display: "flex",
           alignItems: "flex-start",
@@ -397,8 +397,8 @@ export default function FormularioDoEvento({
             width: "34px",
             height: "34px",
             borderRadius: "9px",
-            border: "1px solid #F0E6D0",
-            backgroundColor: "white",
+            border: "1px solid var(--borda)",
+            backgroundColor: "var(--superficie)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -444,7 +444,7 @@ export default function FormularioDoEvento({
               style={{
                 maxWidth: "1080px",
                 margin: "0 auto 16px",
-                backgroundColor: "#FEF9EC",
+                backgroundColor: "var(--superficie-selo)",
                 border: "1px solid var(--gold-light)",
                 borderRadius: "10px",
                 padding: "8px 14px",
@@ -552,8 +552,8 @@ export default function FormularioDoEvento({
                           : { duration: 0 }
                       }
                       style={{
-                        backgroundColor: "white",
-                        border: "1px solid #F0E6D0",
+                        backgroundColor: "var(--superficie)",
+                        border: "1px solid var(--borda)",
                         borderRadius: "12px",
                         padding: "12px 16px 14px",
                       }}
@@ -608,25 +608,34 @@ export default function FormularioDoEvento({
                           ✕ remover
                         </button>
                       </div>
-                      <FormField
-                        field={{
-                          ...field,
-                          required: false,
-                          placeholder:
-                            field.placeholder || "— a cliente responde aqui",
-                        }}
-                        value={rascunho.valores[field.id]}
-                        onChange={mudarValor}
-                        error={erros[field.id]}
-                        onClearError={(id) =>
-                          setErros((prev) => {
-                            if (!prev[id]) return prev;
-                            const n = { ...prev };
-                            delete n[id];
-                            return n;
-                          })
-                        }
-                      />
+                      {/* O FormField é peça PÚBLICA embutida no admin (a
+                          mesma do formulário da cliente) — as cores dele
+                          são as da vitrina e não seguem o tema. A classe
+                          .papel reancora os tokens ao claro dentro desta
+                          ilha: no escuro, o cartão escurece e o campo
+                          fica como papel em cima da mesa (no claro a
+                          classe é um no-op, valores idênticos). */}
+                      <div className="papel">
+                        <FormField
+                          field={{
+                            ...field,
+                            required: false,
+                            placeholder:
+                              field.placeholder || "— a cliente responde aqui",
+                          }}
+                          value={rascunho.valores[field.id]}
+                          onChange={mudarValor}
+                          error={erros[field.id]}
+                          onClearError={(id) =>
+                            setErros((prev) => {
+                              if (!prev[id]) return prev;
+                              const n = { ...prev };
+                              delete n[id];
+                              return n;
+                            })
+                          }
+                        />
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -636,7 +645,7 @@ export default function FormularioDoEvento({
               <div
                 style={{
                   border: "1.5px dashed var(--gold-light)",
-                  backgroundColor: "#FDFBF5",
+                  backgroundColor: "var(--superficie-espera)",
                   borderRadius: "12px",
                   padding: "14px 16px 16px",
                   marginTop: "12px",
@@ -657,8 +666,8 @@ export default function FormularioDoEvento({
                 <div
                   className="fdev-cartao-pedido"
                   style={{
-                    backgroundColor: "white",
-                    border: "1px solid #F0E6D0",
+                    backgroundColor: "var(--superficie)",
+                    border: "1px solid var(--borda)",
                     borderRadius: "14px",
                     padding: "18px 20px 20px",
                   }}
@@ -690,7 +699,7 @@ export default function FormularioDoEvento({
                         gridTemplateColumns: "112px 1fr",
                         gap: "10px",
                         padding: "7px 0",
-                        borderTop: "1px solid #F5ECD7",
+                        borderTop: "1px solid var(--borda-leve)",
                         alignItems: "baseline",
                       }}
                     >
@@ -714,8 +723,8 @@ export default function FormularioDoEvento({
                   {notasDaConversa && (
                     <div
                       style={{
-                        backgroundColor: "#FDFBF5",
-                        border: "1px solid #F5ECD7",
+                        backgroundColor: "var(--superficie-espera)",
+                        border: "1px solid var(--borda-leve)",
                         borderRadius: "10px",
                         padding: "10px 12px",
                         marginTop: "12px",
@@ -762,7 +771,7 @@ export default function FormularioDoEvento({
               <div
                 style={{
                   border: "1.5px dashed var(--gold-light)",
-                  backgroundColor: "#FDFBF5",
+                  backgroundColor: "var(--superficie-espera)",
                   borderRadius: "14px",
                   padding: "26px 22px 28px",
                   textAlign: "center",
@@ -803,8 +812,8 @@ export default function FormularioDoEvento({
             {/* O contador — números derivados, sempre certos */}
             <div
               style={{
-                backgroundColor: "white",
-                border: "1px solid #F0E6D0",
+                backgroundColor: "var(--superficie)",
+                border: "1px solid var(--borda)",
                 borderRadius: "12px",
                 padding: "10px 14px",
                 marginTop: "12px",
@@ -840,8 +849,8 @@ export default function FormularioDoEvento({
       <footer
         style={{
           flex: "none",
-          backgroundColor: "white",
-          borderTop: "1px solid #F5ECD7",
+          backgroundColor: "var(--superficie)",
+          borderTop: "1px solid var(--borda-leve)",
           padding: "14px 32px",
           display: "flex",
           alignItems: "center",
@@ -854,7 +863,7 @@ export default function FormularioDoEvento({
           <span
             style={{
               fontSize: "12.5px",
-              color: "#B91C1C",
+              color: "var(--perigo-texto)",
               marginRight: "auto",
               lineHeight: 1.5,
             }}
@@ -894,7 +903,7 @@ export default function FormularioDoEvento({
             borderRadius: "10px",
             fontSize: "13.5px",
             fontWeight: "600",
-            boxShadow: "0 2px 10px rgba(201,168,76,0.38)",
+            boxShadow: "0 2px 10px rgba(var(--ouro-rgb), 0.38)",
           }}
         >
           {aCriar ? "A criar…" : "Criar formulário"}

@@ -282,7 +282,9 @@ function Chip({ children, cheio }) {
         borderRadius: "999px",
         fontSize: "11.5px",
         fontWeight: "500",
-        backgroundColor: cheio ? "#FBF7EF" : "white",
+        backgroundColor: cheio
+          ? "var(--superficie-quente)"
+          : "var(--superficie)",
         border: "1px solid var(--gold-light)",
         color: "var(--gold-dark)",
         // o texto livre legado («Outro: …») pode exceder o cartão —
@@ -351,7 +353,7 @@ function DetalhePedido({ n, datasDisputadas }) {
   return (
     <div
       style={{
-        borderTop: "1px solid #F5ECD7",
+        borderTop: "1px solid var(--borda-leve)",
         marginTop: "12px",
         paddingTop: "14px",
       }}
@@ -454,7 +456,7 @@ function DetalhePedido({ n, datasDisputadas }) {
               margin: "5px 0 0 0",
               padding: "10px 14px",
               borderLeft: "2px solid var(--gold)",
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
               borderRadius: "0 10px 10px 0",
               fontSize: "13px",
               fontStyle: "italic",
@@ -524,7 +526,7 @@ function DetalhePedido({ n, datasDisputadas }) {
               fontWeight: "600",
               border: "1px solid var(--gold)",
               color: "var(--gold-dark)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               textDecoration: "none",
             }}
           >
@@ -543,9 +545,9 @@ function DetalhePedido({ n, datasDisputadas }) {
             textTransform: "uppercase",
             border: "none",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             cursor: "pointer",
-            boxShadow: "0 3px 10px rgba(201,168,76,0.3)",
+            boxShadow: "0 3px 10px rgba(var(--ouro-rgb), 0.3)",
           }}
         >
           Abrir ficha completa →
@@ -582,9 +584,9 @@ function PastilhaDisputa() {
         letterSpacing: "0.14em",
         textTransform: "uppercase",
         whiteSpace: "nowrap",
-        color: "#92400E",
-        backgroundColor: "#FEF3E2",
-        border: "1px solid #F0D9B5",
+        color: "var(--aviso-texto)",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1px solid var(--aviso-borda)",
         borderRadius: "999px",
         padding: "4px 9px",
       }}
@@ -600,7 +602,7 @@ function DetalheDoPortal({ corpo, citacao, contexto, disputado, onAbrirFicha }) 
       style={{
         marginTop: "12px",
         paddingTop: "12px",
-        borderTop: "1px solid #F0E6D0",
+        borderTop: "1px solid var(--borda)",
       }}
     >
       {disputado && (
@@ -631,11 +633,17 @@ function DetalheDoPortal({ corpo, citacao, contexto, disputado, onAbrirFicha }) 
             margin: "0 0 12px",
             padding: "10px 14px",
             borderLeft: "2px solid var(--gold)",
+            // #FEFCF7 está fora da paleta (a citação gémea, em
+            // DetalhePedido, usa o lavado quente da casa) — vai na
+            // lista de violações em vez de se corrigir aqui. Até à
+            // decisão, o par inteiro fica literal: ilha clara com
+            // letra escura também no modo escuro, nunca letra clara
+            // sobre fundo claro.
             backgroundColor: "#FEFCF7",
             borderRadius: "0 8px 8px 0",
             fontSize: "13.5px",
             lineHeight: 1.7,
-            color: "var(--charcoal)",
+            color: "#1A1A1A",
             fontStyle: "italic",
             whiteSpace: "pre-wrap",
           }}
@@ -666,9 +674,9 @@ function DetalheDoPortal({ corpo, citacao, contexto, disputado, onAbrirFicha }) 
           textTransform: "uppercase",
           border: "none",
           backgroundColor: "var(--gold)",
-          color: "white",
+          color: "var(--texto-sobre-ouro)",
           cursor: "pointer",
-          boxShadow: "0 3px 10px rgba(201,168,76,0.3)",
+          boxShadow: "0 3px 10px rgba(var(--ouro-rgb), 0.3)",
         }}
       >
         Abrir ficha completa →
@@ -732,12 +740,15 @@ function MedalhaoSelecao({ titulo, emSelecao, selecionada, protegida, onToggle }
           display: "block",
         }}
       >
-        {/* frente: as iniciais */}
+        {/* frente: as iniciais. O gradiente dourado é JOIA, como o
+            logótipo — não segue o tema (os degraus são os ouros do
+            claro de propósito: ouro brilha sobre escuro), e por isso
+            as iniciais sobre ele continuam brancas, literais. */}
         <span
           style={{
             ...face,
             background: emSelecao
-              ? "white"
+              ? "var(--superficie)"
               : "linear-gradient(135deg, #E8D5A3 0%, #C9A84C 60%, #A07830 100%)",
             border: emSelecao ? "1.5px solid var(--gold)" : "none",
             color: emSelecao ? "var(--gold-dark)" : "white",
@@ -757,7 +768,7 @@ function MedalhaoSelecao({ titulo, emSelecao, selecionada, protegida, onToggle }
             transform: "rotateY(180deg)",
             background: "linear-gradient(135deg, #C9A84C 0%, #A07830 100%)",
             color: "white",
-            boxShadow: "0 3px 10px rgba(201,168,76,0.45)",
+            boxShadow: "0 3px 10px rgba(var(--ouro-rgb), 0.45)",
           }}
         >
           <MarcaVisto t={16} cor="white" />
@@ -802,24 +813,24 @@ function CartaoNotificacao({
       style={{
         position: "relative",
         backgroundColor: selecionada
-          ? "#FBF7EF"
+          ? "var(--superficie-quente)"
           : naoLida
-            ? "#FFFDF6"
-            : "white",
+            ? "var(--superficie-atenta)"
+            : "var(--superficie)",
         border: selecionada
           ? "1.5px solid var(--gold)"
           : naoLida
             ? "1px solid var(--gold-light)"
-            : "1px solid #F0E6D0",
+            : "1px solid var(--borda)",
         borderRadius: "14px",
         padding: "14px 16px",
         marginBottom: "10px",
         cursor: "pointer",
         overflow: "hidden",
         boxShadow: selecionada
-          ? "0 4px 16px rgba(201,168,76,0.22)"
+          ? "0 4px 16px rgba(var(--ouro-rgb), 0.22)"
           : naoLida
-            ? "0 2px 12px rgba(201,168,76,0.12)"
+            ? "0 2px 12px rgba(var(--ouro-rgb), 0.12)"
             : "none",
       }}
     >
@@ -1120,7 +1131,7 @@ function ConteudoCaixa({
       <div
         style={{
           padding: "22px 22px 16px",
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderBottom: "1px solid var(--gold-light)",
         }}
       >
@@ -1167,7 +1178,7 @@ function ConteudoCaixa({
                     marginLeft: "10px",
                     borderRadius: "999px",
                     backgroundColor: "var(--gold)",
-                    color: "white",
+                    color: "var(--texto-sobre-ouro)",
                     fontSize: "11px",
                     fontWeight: "700",
                     fontFamily: "Inter, sans-serif",
@@ -1323,8 +1334,10 @@ function ConteudoCaixa({
             transition={{ type: "spring", damping: 28, stiffness: 340 }}
             style={{
               flexShrink: 0,
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderTop: "1px solid var(--gold-light)",
+              // A sombra preta some no escuro; a borda dourada acima
+              // é quem carrega a separação nos dois modos.
               boxShadow: "0 -8px 24px rgba(0,0,0,0.08)",
               padding: "14px 18px calc(14px + env(safe-area-inset-bottom))",
             }}
@@ -1374,7 +1387,7 @@ function ConteudoCaixa({
                       fontWeight: "600",
                       border: "1px solid var(--gold-light)",
                       color: "var(--gray-mid)",
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       cursor: "pointer",
                     }}
                   >
@@ -1389,6 +1402,12 @@ function ConteudoCaixa({
                       fontWeight: "600",
                       letterSpacing: "0.04em",
                       border: "none",
+                      // O ferrugem #A63D2F está fora da família de perigo
+                      // da identidade (#EF4444/#DC2626) e não tem razão
+                      // registada nas decisões (procurado a 16/08) —
+                      // fica como está e segue na lista para o Hélio.
+                      // O par é literal: branco sobre ferrugem lê-se nos
+                      // dois modos (6.8:1).
                       backgroundColor: "#A63D2F",
                       color: "white",
                       cursor: "pointer",
@@ -1475,7 +1494,7 @@ function ConteudoCaixa({
                     fontWeight: "600",
                     border: "1px solid var(--gold-light)",
                     color: "var(--gray-mid)",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     cursor: "pointer",
                   }}
                 >
@@ -1492,6 +1511,8 @@ function ConteudoCaixa({
                     fontWeight: "600",
                     letterSpacing: "0.04em",
                     border: "none",
+                    // O mesmo ferrugem fora de paleta de «Sim, remover»
+                    // (e #E5E0D5, o apagado dele) — na lista, par literal.
                     backgroundColor: nSel === 0 ? "#E5E0D5" : "#A63D2F",
                     color: "white",
                     cursor: nSel === 0 ? "default" : "pointer",
@@ -1563,7 +1584,11 @@ export default function PainelNotificacoes({
             position: "fixed",
             inset: 0,
             zIndex: 52,
-            backgroundColor: "rgba(26,26,26,0.4)",
+            // Cortina unificada no token (decisão do Hélio, 16/08):
+            // este véu era rgba(26,26,26,0.4), o único divergente da
+            // cortina dos restantes véus do admin — dois valores para
+            // o mesmo papel era divergência, não desenho.
+            backgroundColor: "var(--cortina)",
             backdropFilter: "blur(2px)",
             display: "flex",
             justifyContent: "flex-end",
@@ -1677,7 +1702,7 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
               left: "auto",
               zIndex: 70,
               width: "min(360px, calc(100vw - 36px))",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               border: "1px solid var(--gold)",
               borderRadius: "16px",
               boxShadow:
@@ -1728,7 +1753,7 @@ export function ToastNotificacao({ nova, eventTypes, onAbrir, onFechar }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(201,168,76,0.4)",
+                  boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.4)",
                 }}
               >
                 {/* losango no traço da casa, não o glifo ✦ */}

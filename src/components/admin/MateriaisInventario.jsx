@@ -61,10 +61,22 @@ let escritaEmVoo = Promise.resolve();
 
 // Cores de cada estado (paleta do dlm-app)
 const CORES_ESTADO = {
+  // «ok» e «vazio» têm fundos fora da paleta (#EAF3DE / #F3F4F6): cada
+  // par fica literal por inteiro — pastilha clara com letra escura nos
+  // dois modos (o var(--gray-mid) do vazio fixa-se no claro #6B6B6B,
+  // senão era letra clara sobre fundo claro no escuro). Vão na lista.
   ok: { texto: "#3B6D11", fundo: "#EAF3DE", label: "OK" },
-  atencao: { texto: "var(--gold-dark)", fundo: "#FEF9EC", label: "Atenção" },
-  critico: { texto: "#DC2626", fundo: "#FEF2F2", label: "Crítico" },
-  vazio: { texto: "var(--gray-mid)", fundo: "#F3F4F6", label: "Sem stock" },
+  atencao: {
+    texto: "var(--gold-dark)",
+    fundo: "var(--superficie-selo)",
+    label: "Atenção",
+  },
+  critico: {
+    texto: "var(--perigo)",
+    fundo: "var(--perigo-fundo)",
+    label: "Crítico",
+  },
+  vazio: { texto: "#6B6B6B", fundo: "#F3F4F6", label: "Sem stock" },
 };
 
 export default function MateriaisInventario({ onStockAlterado, onErroGravacao }) {
@@ -237,9 +249,9 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
             fontWeight: "600",
             border: "none",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(201,168,76,0.3)",
+            boxShadow: "0 2px 8px rgba(var(--ouro-rgb), 0.3)",
           }}
         >
           + Novo material
@@ -250,9 +262,9 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
         <p
           style={{
             fontSize: "12px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "8px",
             padding: "10px 14px",
             marginBottom: "14px",
@@ -265,9 +277,9 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
         <p
           style={{
             fontSize: "12px",
-            color: "#22C55E",
-            backgroundColor: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            color: "var(--sucesso)",
+            backgroundColor: "var(--sucesso-fundo)",
+            border: "1px solid var(--sucesso-borda)",
             borderRadius: "8px",
             padding: "10px 14px",
             marginBottom: "14px",
@@ -306,12 +318,12 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
             outline: "none",
             fontFamily: "Inter, sans-serif",
             color: "var(--charcoal)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             boxSizing: "border-box",
           }}
           onFocus={(e) => {
             e.target.style.borderColor = "var(--gold)";
-            e.target.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)";
+            e.target.style.boxShadow = "0 0 0 3px rgba(var(--ouro-rgb), 0.12)";
           }}
           onBlur={(e) => {
             e.target.style.borderColor = "var(--gold-light)";
@@ -358,8 +370,8 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
                   fontSize: "12px",
                   fontWeight: ativo ? "600" : "400",
                   border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-                  backgroundColor: ativo ? "var(--gold)" : "white",
-                  color: ativo ? "white" : "var(--charcoal)",
+                  backgroundColor: ativo ? "var(--gold)" : "var(--superficie)",
+                  color: ativo ? "var(--texto-sobre-ouro)" : "var(--charcoal)",
                   cursor: "pointer",
                   whiteSpace: "nowrap",
                   transition: "all 0.2s",
@@ -370,7 +382,9 @@ export default function MateriaisInventario({ onStockAlterado, onErroGravacao })
                   style={{
                     fontSize: "11px",
                     opacity: 0.7,
-                    color: ativo ? "white" : "var(--gray-mid)",
+                    color: ativo
+                      ? "var(--texto-sobre-ouro)"
+                      : "var(--gray-mid)",
                   }}
                 >
                   {g.n}
@@ -537,11 +551,11 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
       }}
       whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(0,0,0,0.1)" }}
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "12px",
         border: "1px solid var(--gold-light)",
         overflow: "hidden",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+        boxShadow: "var(--sombra-cartao)",
         opacity: inativo ? 0.5 : 1,
         cursor: "pointer",
       }}
@@ -550,7 +564,7 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
       <div
         style={{
           height: "96px",
-          backgroundColor: "#FBF7EF",
+          backgroundColor: "var(--superficie-quente)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -582,7 +596,11 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
               left: "10px",
               fontFamily: "monospace",
               fontSize: "11px",
-              color: "var(--gold-dark)",
+              // O selo do código assenta em branco translúcido sobre a
+              // FOTOGRAFIA (fora da paleta): o par inteiro fica literal,
+              // com o ouro-texto fixado no claro — no escuro, o token
+              // vira ouro claro e apagava-se sobre o selo branco.
+              color: "#A07830",
               backgroundColor: "rgba(255,255,255,0.85)",
               padding: "1px 6px",
               borderRadius: "6px",
@@ -652,7 +670,10 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
                   style={{
                     fontSize: "22px",
                     fontWeight: "600",
-                    color: estado === "critico" ? "#DC2626" : "var(--charcoal)",
+                    color:
+                      estado === "critico"
+                        ? "var(--perigo)"
+                        : "var(--charcoal)",
                     lineHeight: 1,
                   }}
                 >
@@ -668,7 +689,8 @@ function MaterialCard({ material, idx, onEditar, onAtualizarTotal }) {
                 style={{
                   fontSize: "22px",
                   fontWeight: "600",
-                  color: estado === "critico" ? "#DC2626" : "var(--charcoal)",
+                  color:
+                    estado === "critico" ? "var(--perigo)" : "var(--charcoal)",
                   lineHeight: 1,
                 }}
               >
@@ -714,8 +736,10 @@ function StepBtn({ label, onClick, disabled }) {
         width: "28px",
         height: "28px",
         borderRadius: "8px",
-        border: `1.5px solid ${disabled ? "#E5E7EB" : "var(--gold-light)"}`,
-        backgroundColor: "white",
+        border: `1.5px solid ${disabled ? "var(--neutro-borda)" : "var(--gold-light)"}`,
+        backgroundColor: "var(--superficie)",
+        // O cinza #D1D5DB do glifo desativado não tem token na tabela
+        // da identidade — fica literal e segue no relatório.
         color: disabled ? "#D1D5DB" : "var(--gold-dark)",
         fontSize: "16px",
         fontWeight: "700",

@@ -32,7 +32,9 @@ export default function InviteCreatedModal({
             position: "fixed",
             inset: 0,
             zIndex: 50,
-            backgroundColor: "rgba(0,0,0,0.4)",
+            // Cortina unificada no token (decisão do Hélio, 16/08: um véu,
+            // um valor): este era mais um 0.4 divergente.
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -46,13 +48,15 @@ export default function InviteCreatedModal({
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             style={{
-              backgroundColor: "#F0FDF4",
+              backgroundColor: "var(--sucesso-fundo)",
               borderRadius: "16px",
               padding: "20px 24px",
               width: "100%",
               maxWidth: "480px",
+              // Quase --sombra-flutuante (40px ≠ 28px de desfoque) —
+              // sombra preta fica literal.
               boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-              border: "1px solid #BBF7D0",
+              border: "1px solid var(--sucesso-borda)",
             }}
           >
             <div
@@ -68,7 +72,7 @@ export default function InviteCreatedModal({
                   style={{
                     fontSize: "14px",
                     fontWeight: "600",
-                    color: "#166534",
+                    color: "var(--sucesso-texto)",
                     margin: "0 0 2px 0",
                   }}
                 >
@@ -77,7 +81,7 @@ export default function InviteCreatedModal({
                 <p
                   style={{
                     fontSize: "13px",
-                    color: "#166534",
+                    color: "var(--sucesso-texto)",
                     margin: 0,
                   }}
                 >
@@ -92,7 +96,7 @@ export default function InviteCreatedModal({
                     padding: "3px 12px",
                     borderRadius: "999px",
                     backgroundColor: "var(--gold)",
-                    color: "white",
+                    color: "var(--texto-sobre-ouro)",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                   }}
@@ -107,7 +111,7 @@ export default function InviteCreatedModal({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#166534",
+                  color: "var(--sucesso-texto)",
                   fontSize: "18px",
                 }}
               >
@@ -118,17 +122,17 @@ export default function InviteCreatedModal({
             {/* Mensagem */}
             <div
               style={{
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "10px",
                 padding: "14px 18px",
                 marginBottom: "14px",
-                border: "1px solid #BBF7D0",
+                border: "1px solid var(--sucesso-borda)",
               }}
             >
               <p
                 style={{
                   fontSize: "10px",
-                  color: "#6B7280",
+                  color: "var(--neutro-texto)",
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                   margin: "0 0 8px 0",
@@ -160,9 +164,9 @@ export default function InviteCreatedModal({
                 fontWeight: "600",
                 cursor: "pointer",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 border: "none",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.35)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.35)",
                 transition: "all 0.2s",
               }}
             >

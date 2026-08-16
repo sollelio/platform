@@ -1,10 +1,12 @@
 // Ícones de linha fina dourados — estilo Do Luxo à Mesa
+// O ouro segue o tema; nas rotas públicas (sem o atributo do tema) e
+// dentro de .papel o var() resolve no mesmo #C9A84C de sempre.
 const base = {
   width: 18,
   height: 18,
   viewBox: '0 0 24 24',
   fill: 'none',
-  stroke: '#C9A84C',
+  stroke: 'var(--ouro)',
   strokeWidth: 1.4,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',

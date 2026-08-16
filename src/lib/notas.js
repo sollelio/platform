@@ -19,33 +19,37 @@ import { supabase } from "./supabase";
 
 // Os quatro tipos que a UI oferece, com as cores da casa. Espelham a
 // CHECK da migração 029.
+// As bordas de «Alteração» (#FADCB4) e «Nota interna» (#E4DCCB) estão
+// fora da paleta (as da identidade seriam #F0D9B5 e #E8DCC0 — prováveis
+// gralhas) — ficam literais e seguem na lista para o Hélio. O resto dos
+// trios é valor-exacto e segue o tema.
 export const TIPOS_NOTA = [
   {
     id: "chamada",
     label: "Chamada",
     cor: "var(--gold-dark)",
-    fundo: "#FEF9EC",
+    fundo: "var(--superficie-selo)",
     borda: "var(--gold-light)",
   },
   {
     id: "mensagem",
     label: "Mensagem",
-    cor: "#166534",
-    fundo: "#F0FDF4",
-    borda: "#BBF7D0",
+    cor: "var(--sucesso-texto)",
+    fundo: "var(--sucesso-fundo)",
+    borda: "var(--sucesso-borda)",
   },
   {
     id: "alteracao",
     label: "Alteração",
-    cor: "#B45309",
-    fundo: "#FEF3E2",
+    cor: "var(--aviso)",
+    fundo: "var(--aviso-fundo)",
     borda: "#FADCB4",
   },
   {
     id: "interna",
     label: "Nota interna",
     cor: "var(--gray-mid)",
-    fundo: "white",
+    fundo: "var(--superficie)",
     borda: "#E4DCCB",
   },
 ];

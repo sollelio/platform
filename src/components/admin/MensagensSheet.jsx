@@ -204,8 +204,8 @@ export function MensagensConteudo({
   const renderCartao = (m, pega) => (
     <div
               style={{
-                border: "1px solid #F0E6D0",
-                backgroundColor: "#FBF7EF",
+                border: "1px solid var(--borda)",
+                backgroundColor: "var(--superficie-quente)",
                 borderRadius: "12px",
                 padding: "12px 14px",
                 marginBottom: "10px",
@@ -247,8 +247,11 @@ export function MensagensConteudo({
                         ? "1.5px solid var(--gold)"
                         : "none",
                     backgroundColor:
-                      copiadoId === m.id ? "white" : "var(--gold)",
-                    color: copiadoId === m.id ? "var(--gold-dark)" : "white",
+                      copiadoId === m.id ? "var(--superficie)" : "var(--gold)",
+                    color:
+                      copiadoId === m.id
+                        ? "var(--gold-dark)"
+                        : "var(--texto-sobre-ouro)",
                     cursor: "pointer",
                     transition: "all 0.15s",
                   }}
@@ -273,9 +276,9 @@ export function MensagensConteudo({
                       borderRadius: "999px",
                       fontSize: "12px",
                       fontWeight: "600",
-                      border: "1.5px solid #BBF7D0",
-                      backgroundColor: "#F0FDF4",
-                      color: "#166534",
+                      border: "1.5px solid var(--sucesso-borda)",
+                      backgroundColor: "var(--sucesso-fundo)",
+                      color: "var(--sucesso-texto)",
                       cursor: "pointer",
                     }}
                   >
@@ -311,7 +314,7 @@ export function MensagensConteudo({
                       style={{
                         border: "none",
                         background: "none",
-                        color: "#DC2626",
+                        color: "var(--perigo)",
                         fontWeight: "600",
                         cursor: "pointer",
                         fontSize: "12px",
@@ -361,7 +364,7 @@ export function MensagensConteudo({
               borderRadius: "12px",
               padding: "14px",
               marginBottom: "10px",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
             }}
           >
             <p
@@ -414,7 +417,7 @@ export function MensagensConteudo({
                   fontSize: "12px",
                   border: "1.5px solid var(--gold-light)",
                   color: "var(--gray-mid)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   cursor: "pointer",
                 }}
               >
@@ -430,10 +433,12 @@ export function MensagensConteudo({
                   fontSize: "12px",
                   fontWeight: "600",
                   border: "none",
-                  backgroundColor: guardando
-                    ? "var(--gold-light)"
-                    : "var(--gold)",
-                  color: "white",
+                  // O ouro pálido do «A guardar…» fica literal (mesma
+                  // razão do login e do painel de formulários): o token
+                  // equivalente no escuro é tom de borda, e um botão a
+                  // meio do gesto não se apaga.
+                  backgroundColor: guardando ? "#E8D5A3" : "var(--gold)",
+                  color: "var(--texto-sobre-ouro)",
                   cursor: guardando ? "wait" : "pointer",
                 }}
               >
@@ -450,7 +455,7 @@ export function MensagensConteudo({
             A carregar mensagens...
           </p>
         )}
-        {erro && <p style={{ fontSize: "13px", color: "#DC2626" }}>{erro}</p>}
+        {erro && <p style={{ fontSize: "13px", color: "var(--perigo)" }}>{erro}</p>}
 
         {/* Lista de mensagens resolvidas */}
         {!carregando &&
@@ -495,7 +500,7 @@ export function MensagensConteudo({
                 {aArrastar ? (
                   <div
                     style={{
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       borderRadius: "12px",
                       padding: "14px 18px",
                       boxShadow: "0 10px 32px rgba(0,0,0,0.2)",
@@ -536,7 +541,7 @@ export function MensagensConteudo({
                 fontWeight: "600",
                 border: "1.5px solid var(--gold)",
                 color: "var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: "pointer",
               }}
             >
@@ -562,7 +567,7 @@ export default function MensagensSheet({
         position: "fixed",
         inset: 0,
         zIndex: 70, // por cima do drawer (50)
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "var(--cortina)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
@@ -573,7 +578,7 @@ export default function MensagensSheet({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           padding: "20px",
           width: "100%",
@@ -641,5 +646,5 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };

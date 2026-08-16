@@ -8,15 +8,17 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
+// Escala de SÉRIE do gráfico das paletas — dados visuais da casa,
+// não pele de UI: fica literal nos dois modos.
 const GOLD_SHADES = ["#C9A84C", "#A07830", "#E8D5A3", "#7A5C20", "#F5ECD7"];
 
 // Estilos partilhados dos cards de KPI do dashboard
 const kpiCardStyle = {
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   borderRadius: "14px",
   padding: "20px 16px",
   textAlign: "center",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+  boxShadow: "var(--sombra-cartao)",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -38,7 +40,7 @@ function ChartCard({ title, children }) {
   return (
     <div
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "16px",
         padding: "24px 20px",
         boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
@@ -301,6 +303,8 @@ export default function DashboardTab({
 
         {/* Total de convidados a servir */}
         <div style={kpiCardStyle}>
+          {/* Azul fora da identidade (sem token) — fica literal e
+              segue na lista de violações para o Hélio. */}
           <p style={{ ...kpiValueStyle, color: "#3B82F6" }}>
             {totalConvidados()}
           </p>
@@ -309,7 +313,7 @@ export default function DashboardTab({
 
         {/* Confirmados */}
         <div style={kpiCardStyle}>
-          <p style={{ ...kpiValueStyle, color: "#22C55E" }}>
+          <p style={{ ...kpiValueStyle, color: "var(--sucesso)" }}>
             {ativos.filter((s) => s.status === "Confirmado").length}
           </p>
           <p style={kpiLabelStyle}>Eventos Confirmados</p>
@@ -366,14 +370,14 @@ export default function DashboardTab({
         <div
           style={{
             ...kpiCardStyle,
-            backgroundColor: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            backgroundColor: "var(--sucesso-fundo)",
+            border: "1px solid var(--sucesso-borda)",
           }}
         >
-          <p style={{ ...kpiValueStyle, color: "#166534" }}>
+          <p style={{ ...kpiValueStyle, color: "var(--sucesso-texto)" }}>
             {formatarEuros(somaValores(garantidosPorRealizar))}
           </p>
-          <p style={{ ...kpiLabelStyle, color: "#166534" }}>
+          <p style={{ ...kpiLabelStyle, color: "var(--sucesso-texto)" }}>
             Garantido (por realizar) · {garantidosPorRealizar.length}{" "}
             {garantidosPorRealizar.length === 1 ? "evento" : "eventos"}
           </p>
@@ -437,6 +441,8 @@ export default function DashboardTab({
                     formatter: (v) => (v > 0 ? formatarEuros(v) : ""),
                   }}
                 />
+                {/* Cores de SÉRIE (barra «possível» e o rótulo dela) —
+                    dados visuais, fora da tabela: ficam literais. */}
                 <Bar
                   dataKey="possivel"
                   fill="#EAD9AC"
@@ -529,10 +535,12 @@ export default function DashboardTab({
                   <div
                     key={et.id}
                     style={{
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       borderRadius: "14px",
                       padding: "16px 18px",
-                      boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+                      boxShadow: "var(--sombra-cartao)",
+                      // #F0EDE8 está fora da tabela (não é a --borda
+                      // #F0E6D0) — fica literal e vai na lista.
                       border: isPrincipal
                         ? "1px solid var(--gold-light)"
                         : "1px solid #F0EDE8",
@@ -583,7 +591,7 @@ export default function DashboardTab({
                       style={{
                         height: "4px",
                         borderRadius: "999px",
-                        backgroundColor: "#F5ECD7",
+                        backgroundColor: "var(--borda-leve)",
                         overflow: "hidden",
                       }}
                     >
@@ -742,7 +750,7 @@ export default function DashboardTab({
                     style={{
                       height: "8px",
                       borderRadius: "999px",
-                      backgroundColor: "#F5ECD7",
+                      backgroundColor: "var(--borda-leve)",
                       overflow: "hidden",
                     }}
                   >
@@ -812,6 +820,9 @@ export default function DashboardTab({
                     style={{
                       height: "8px",
                       borderRadius: "999px",
+                      // Pista cinzenta fora da tabela (≠ --neutro-fundo
+                      // #F9FAFB) — fica literal e vai na lista; o
+                      // preenchimento vem da config de estados (dados).
                       backgroundColor: "#F3F4F6",
                       overflow: "hidden",
                     }}

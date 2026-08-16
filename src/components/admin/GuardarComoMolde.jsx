@@ -70,7 +70,7 @@ function Visto({ t = 14 }) {
       <path
         d="M4.6 8.4l2.4 2.4 4.4-5"
         fill="none"
-        stroke="#FFFFFF"
+        stroke="var(--texto-sobre-ouro)"
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -232,6 +232,8 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
         style={{
           position: "fixed",
           inset: 0,
+          // Véu de gaveta a 0.28 — diverge da cortina (0.35/0.4, decisão
+          // de 16/08): fica literal e vai no relatório.
           backgroundColor: "rgba(26,26,26,0.28)",
           opacity: aberta ? 1 : 0,
           pointerEvents: aberta ? "auto" : "none",
@@ -261,7 +263,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             maxWidth: "560px",
             boxSizing: "border-box",
             backgroundColor: "var(--cream)",
-            border: "1px solid #F0E6D0",
+            border: "1px solid var(--borda)",
             borderBottom: "none",
             borderRadius: "18px 18px 0 0",
             boxShadow: "0 -12px 48px rgba(0,0,0,0.12)",
@@ -274,7 +276,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
           }}
         >
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ width: "36px", height: "4px", borderRadius: "999px", backgroundColor: "#E8DCC0" }} />
+            <div style={{ width: "36px", height: "4px", borderRadius: "999px", backgroundColor: "var(--aro)" }} />
           </div>
 
           <div style={{ marginTop: "16px", ...OVERLINE }}>GUARDAR COMO MODELO</div>
@@ -288,8 +290,8 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               display: "flex",
               flexDirection: "column",
               gap: "1px",
-              backgroundColor: "#F0E6D0",
-              border: "1px solid #F0E6D0",
+              backgroundColor: "var(--borda)",
+              border: "1px solid var(--borda)",
               borderRadius: "12px",
               overflow: "hidden",
             }}
@@ -297,7 +299,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             {fica.map((f) => (
               <div
                 key={f.nome}
-                style={{ display: "flex", gap: "11px", alignItems: "flex-start", backgroundColor: "#FFFFFF", padding: "13px 15px" }}
+                style={{ display: "flex", gap: "11px", alignItems: "flex-start", backgroundColor: "var(--superficie)", padding: "13px 15px" }}
               >
                 <svg
                   width="14"
@@ -324,14 +326,14 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             {naoFica.map((f) => (
               <div
                 key={f.nome}
-                style={{ display: "flex", gap: "11px", alignItems: "flex-start", backgroundColor: "#FDFBF5", padding: "13px 15px" }}
+                style={{ display: "flex", gap: "11px", alignItems: "flex-start", backgroundColor: "var(--superficie-espera)", padding: "13px 15px" }}
               >
                 <svg
                   width="14"
                   height="14"
                   viewBox="0 0 16 16"
                   fill="none"
-                  stroke="#C4C4C4"
+                  stroke="var(--traco-discreto)"
                   strokeWidth="1.6"
                   strokeLinecap="round"
                   aria-hidden="true"
@@ -346,7 +348,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
                       fontWeight: "600",
                       color: "var(--gray-mid)",
                       textDecoration: "line-through",
-                      textDecorationColor: "#E8DCC0",
+                      textDecorationColor: "var(--aro)",
                     }}
                   >
                     {f.nome}
@@ -390,7 +392,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               color: "var(--charcoal)",
               border: "1.5px solid var(--gold-light)",
               borderRadius: "10px",
-              backgroundColor: "#FFFFFF",
+              backgroundColor: "var(--superficie)",
             }}
           />
           <div style={{ fontSize: "11.5px", fontStyle: "italic", color: "var(--gray-mid)", marginTop: "7px" }}>
@@ -421,8 +423,8 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
                   display: "flex",
                   flexDirection: "column",
                   gap: "1px",
-                  backgroundColor: "#F0E6D0",
-                  border: "1px solid #F0E6D0",
+                  backgroundColor: "var(--borda)",
+                  border: "1px solid var(--borda)",
                   borderRadius: "12px",
                   overflow: "hidden",
                 }}
@@ -430,7 +432,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
                 {blocosDeTexto.map((b) => {
                   const marcado = b.id in marcas;
                   return (
-                    <div key={b.id} style={{ backgroundColor: "#FFFFFF", padding: "11px 13px" }}>
+                    <div key={b.id} style={{ backgroundColor: "var(--superficie)", padding: "11px 13px" }}>
                       <button
                         onClick={() => alternar(b)}
                         aria-pressed={marcado}
@@ -458,8 +460,8 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
                               width: "20px",
                               height: "20px",
                               borderRadius: "50%",
-                              backgroundColor: "#FDFBF5",
-                              border: "1px solid #E8DCC0",
+                              backgroundColor: "var(--superficie-espera)",
+                              border: "1px solid var(--aro)",
                               boxSizing: "border-box",
                               flexShrink: 0,
                             }}
@@ -496,7 +498,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
                             color: "var(--charcoal)",
                             border: "1px solid var(--gold-light)",
                             borderRadius: "8px",
-                            backgroundColor: "#FDFBF5",
+                            backgroundColor: "var(--superficie-espera)",
                           }}
                         />
                       )}
@@ -507,7 +509,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
             )}
           </div>
 
-          <div role="alert" style={{ minHeight: "18px", marginTop: "12px", fontSize: "12.5px", color: "#DC2626" }}>
+          <div role="alert" style={{ minHeight: "18px", marginTop: "12px", fontSize: "12.5px", color: "var(--perigo)" }}>
             {erroNome || erroGuardar}
           </div>
           <button
@@ -521,7 +523,7 @@ export default function GuardarComoMolde({ comunicado, aberta, onFechar, onGuard
               borderRadius: "12px",
               fontSize: "13.5px",
               fontWeight: "600",
-              boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+              boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
             }}
           >
             Guardar o modelo

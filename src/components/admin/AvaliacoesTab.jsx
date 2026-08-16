@@ -40,8 +40,13 @@ const ROTULO_NOME = {
   anonimo: "sem nome",
 };
 
+// Estas cores pintam texto DENTRO da Pastilha, cujo fundo #FBF9F4 está
+// fora da paleta: o par inteiro fica literal — pastilha clara com letra
+// escura nos dois modos (o var(--gray-mid) fixa-se no claro #6B6B6B,
+// senão era letra clara sobre fundo claro no escuro). O castanho
+// #9C5A3C também não tem token; segue tudo no relatório.
 const ESTADO_FOTO = {
-  por_rever: { texto: "por rever", cor: "var(--gray-mid)" },
+  por_rever: { texto: "por rever", cor: "#6B6B6B" },
   sem_convidados: { texto: "pode ir para o site", cor: "#166534" },
   com_convidados: { texto: "com convidados — fica cá", cor: "#9C5A3C" },
 };
@@ -87,7 +92,7 @@ export default function AvaliacoesTab() {
 
   if (estado === "erro") {
     return (
-      <p style={{ fontSize: "13px", color: "#B91C1C" }}>
+      <p style={{ fontSize: "13px", color: "var(--perigo-texto)" }}>
         Não foi possível carregar as avaliações. Recarregue a página.
       </p>
     );
@@ -105,10 +110,13 @@ export default function AvaliacoesTab() {
       {lista.length === 0 ? (
         <p
           style={{
-            fontSize: "12.5px", lineHeight: 1.7, color: "var(--gray-mid)",
+            // O lavado #FBF9F4 está fora da paleta: o par fica literal,
+            // com o var(--gray-mid) fixado no claro #6B6B6B — senão era
+            // letra clara sobre fundo claro no escuro. Vai no relatório.
+            fontSize: "12.5px", lineHeight: 1.7, color: "#6B6B6B",
             margin: "22px 0 0", padding: "16px 18px",
             backgroundColor: "#FBF9F4",
-            border: "1px solid var(--hairline, #F0E6D0)",
+            border: "1px solid var(--borda)",
             borderRadius: "10px", maxWidth: "62ch",
           }}
         >
@@ -124,9 +132,9 @@ export default function AvaliacoesTab() {
               <div
                 key={a.id}
                 style={{
-                  border: "1px solid var(--hairline, #F0E6D0)",
+                  border: "1px solid var(--borda)",
                   borderRadius: "12px",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   padding: "16px 18px",
                   display: "flex",
                   gap: "16px",
@@ -141,7 +149,7 @@ export default function AvaliacoesTab() {
                     style={{
                       width: "110px", height: "110px", objectFit: "cover",
                       borderRadius: "8px", flexShrink: 0,
-                      border: "1px solid var(--hairline, #F0E6D0)",
+                      border: "1px solid var(--borda)",
                     }}
                   />
                 )}
@@ -176,7 +184,7 @@ export default function AvaliacoesTab() {
                           <span style={{ fontSize: "11.5px", color: "var(--gray-mid)", width: "160px", flexShrink: 0 }}>
                             {e.rotulo || e.chave}
                           </span>
-                          <span style={{ position: "relative", flex: 1, height: "4px", backgroundColor: "#F0E6D0", borderRadius: "999px", minWidth: "80px" }}>
+                          <span style={{ position: "relative", flex: 1, height: "4px", backgroundColor: "var(--borda)", borderRadius: "999px", minWidth: "80px" }}>
                             <span
                               style={{
                                 position: "absolute", top: 0, left: 0, height: "4px",
@@ -192,7 +200,9 @@ export default function AvaliacoesTab() {
 
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "13px", alignItems: "center" }}>
                     <Pastilha
-                      cor={a.publicacao_autorizada ? "#166534" : "var(--gray-mid)"}
+                      // Par da Pastilha (fundo #FBF9F4 fora da paleta):
+                      // literal, com o gray-mid fixado no claro #6B6B6B.
+                      cor={a.publicacao_autorizada ? "#166534" : "#6B6B6B"}
                       texto={
                         a.publicacao_autorizada
                           ? `Autorizou publicação · ${ROTULO_NOME[a.nome_como] || a.nome_como}`
@@ -238,8 +248,9 @@ function Pastilha({ cor, texto }) {
     <span
       style={{
         fontSize: "11px", lineHeight: 1.6, color: cor,
-        border: `1px solid var(--hairline, #F0E6D0)`,
+        border: `1px solid var(--borda)`,
         borderRadius: "999px", padding: "3px 10px",
+        // fora da paleta — o par (ver ESTADO_FOTO) fica literal
         backgroundColor: "#FBF9F4",
       }}
     >

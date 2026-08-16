@@ -155,7 +155,9 @@ export default function ReservaModal({
         position: "fixed",
         inset: 0,
         zIndex: 320,
-        backgroundColor: "rgba(0,0,0,0.4)",
+        // Cortina unificada no token (decisão do Hélio, 16/08: um véu,
+        // um valor): este era mais um 0.4 divergente.
+        backgroundColor: "var(--cortina)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -168,7 +170,7 @@ export default function ReservaModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           width: "100%",
           maxWidth: "400px",
@@ -192,7 +194,7 @@ export default function ReservaModal({
               style={{
                 fontFamily: "Playfair Display, serif",
                 fontSize: "16px",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 margin: 0,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -203,7 +205,7 @@ export default function ReservaModal({
             <p
               style={{
                 fontSize: "10px",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 opacity: 0.85,
                 margin: "2px 0 0 0",
                 letterSpacing: "0.04em",
@@ -219,7 +221,7 @@ export default function ReservaModal({
             style={{
               background: "none",
               border: "none",
-              color: "white",
+              color: "var(--texto-sobre-ouro)",
               fontSize: "18px",
               cursor: "pointer",
               lineHeight: 1,
@@ -276,13 +278,21 @@ export default function ReservaModal({
           {/* O aviso da disputa — NUNCA bloqueia: a reserva cria-se na
               mesma (o dia só muda de mãos no registo do sinal). Fica
               logo por baixo do campo da data, a que ele responde. */}
+          {/* O aviso é peça PÚBLICA embutida no admin — as cores dele
+              são as da vitrina e não seguem o tema. A classe .papel
+              reancora os tokens ao claro dentro desta ilha: no escuro,
+              a moldura do modal escurece e o aviso fica como papel em
+              cima da mesa (no claro a classe é um no-op, valores
+              idênticos). */}
           {(irmaosDia.length > 0 || falhouDia) && (
-            <AvisoDiaDisputado
-              dataISO={dataEvento}
-              irmaos={irmaosDia}
-              falhou={falhouDia}
-              estilo={{ margin: "-4px 0 14px" }}
-            />
+            <div className="papel">
+              <AvisoDiaDisputado
+                dataISO={dataEvento}
+                irmaos={irmaosDia}
+                falhou={falhouDia}
+                estilo={{ margin: "-4px 0 14px" }}
+              />
+            </div>
           )}
 
           {/* Contacto */}
@@ -313,6 +323,11 @@ export default function ReservaModal({
             <p
               style={{
                 fontSize: "12px",
+                // #EF4444 como TEXTO fica literal (padrão registado: o
+                // token deste valor é o perigo CHEIO, escuro demais
+                // para letra no modo escuro) — e o par fundo/borda
+                // fica com ele: ilha clara legível nos dois modos.
+                // Vai na lista.
                 color: "#EF4444",
                 backgroundColor: "#FEF2F2",
                 border: "1px solid #FECACA",
@@ -345,6 +360,10 @@ export default function ReservaModal({
                   borderRadius: "8px",
                   fontSize: "12px",
                   fontWeight: "600",
+                  // O verde #15803D está fora da paleta (--sucesso-texto
+                  // é #166534) — o par inteiro fica literal: ilha clara
+                  // com letra escura nos dois modos. A borda #22C55E e
+                  // o fundo #F0FDF4 seguem com o par; vai na lista.
                   border: "1.5px solid #22C55E",
                   backgroundColor: "#F0FDF4",
                   color: "#15803D",
@@ -367,9 +386,9 @@ export default function ReservaModal({
                     borderRadius: "8px",
                     fontSize: "12px",
                     fontWeight: "600",
-                    border: "1.5px solid #FECACA",
-                    backgroundColor: "#FEF2F2",
-                    color: "#DC2626",
+                    border: "1.5px solid var(--perigo-borda)",
+                    backgroundColor: "var(--perigo-fundo)",
+                    color: "var(--perigo)",
                     cursor: guardando ? "not-allowed" : "pointer",
                     opacity: guardando ? 0.6 : 1,
                   }}
@@ -387,6 +406,12 @@ export default function ReservaModal({
                     fontSize: "12px",
                     fontWeight: "700",
                     border: "none",
+                    // Par literal: #DC2626 é o valor de --perigo, mas
+                    // o papel aqui é botão CHEIO — no escuro esse
+                    // token é salmão de texto e a letra branca deixava
+                    // de se ler. O cheio da identidade é --perigo-cheio
+                    // (#EF4444), outro valor; não se aproxima e segue
+                    // no relatório.
                     backgroundColor: "#DC2626",
                     color: "white",
                     cursor: "pointer",
@@ -416,9 +441,9 @@ export default function ReservaModal({
                     borderRadius: "8px",
                     fontSize: "12px",
                     fontWeight: "600",
-                    border: "1.5px solid #F0D9B5",
-                    backgroundColor: "#FEF3E2",
-                    color: "#92400E",
+                    border: "1.5px solid var(--aviso-borda)",
+                    backgroundColor: "var(--aviso-fundo)",
+                    color: "var(--aviso-texto)",
                     cursor: guardando ? "not-allowed" : "pointer",
                     opacity: guardando ? 0.6 : 1,
                   }}
@@ -436,6 +461,11 @@ export default function ReservaModal({
                     fontSize: "12px",
                     fontWeight: "700",
                     border: "none",
+                    // --aviso-texto com o papel trocado (texto usado
+                    // como fundo): no escuro o token é âmbar-claro e o
+                    // branco perdia-se — o par fica literal (branco
+                    // sobre castanho lê-se nos dois modos) e segue na
+                    // lista. A família aviso não tem «cheio».
                     backgroundColor: "#92400E",
                     color: "white",
                     cursor: "pointer",
@@ -470,7 +500,7 @@ export default function ReservaModal({
                 fontSize: "13px",
                 border: "1.5px solid var(--gold-light)",
                 color: "var(--gray-mid)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: "pointer",
               }}
             >
@@ -486,12 +516,13 @@ export default function ReservaModal({
                 fontSize: "13px",
                 fontWeight: "600",
                 border: "none",
-                backgroundColor: guardando
-                  ? "var(--gold-light)"
-                  : "var(--gold)",
-                color: "white",
+                // O ouro pálido do «A guardar…» fica literal (padrão da
+                // casa, ver login): o token equivalente no escuro é tom
+                // de borda, e um botão a meio do gesto não se apaga.
+                backgroundColor: guardando ? "#E8D5A3" : "var(--gold)",
+                color: "var(--texto-sobre-ouro)",
                 cursor: guardando ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.3)",
               }}
             >
               {guardando
@@ -526,5 +557,5 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };

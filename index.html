@@ -4,6 +4,44 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- O tema do backoffice ANTES de tudo o resto. Isto é uma SPA:
+         se o atributo esperasse pelo React, cada carregamento em modo
+         escuro começava com um relâmpago creme. Corre inline, antes
+         do CSS, e decide pelo caminho: só /admin e /evento escurecem
+         — as páginas públicas (e o /briefing, que é papel) nunca.
+         É a miniatura de src/lib/tema.js: quem mudar a chave, o
+         atributo ou as rotas, muda NOS DOIS sítios. -->
+    <script>
+      (function () {
+        try {
+          var caminho = location.pathname;
+          if (
+            caminho.indexOf("/admin") !== 0 &&
+            caminho.indexOf("/evento") !== 0
+          )
+            return;
+          var tema = null;
+          try {
+            tema = localStorage.getItem("dlm.backoffice.tema");
+          } catch (e) {
+            /* modo privado: fica a preferência do sistema */
+          }
+          if (tema !== "escuro" && tema !== "claro") {
+            tema =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "escuro"
+                : "claro";
+          }
+          if (tema === "escuro") {
+            document.documentElement.setAttribute("data-tema", "escuro");
+          }
+        } catch (e) {
+          /* sem tema é simplesmente o claro de sempre */
+        }
+      })();
+    </script>
     <!-- Neutro e público: é o que se vê na pré-visualização do WhatsApp e no
          instante antes de o JS acordar. Cada área repõe o seu — o portal
          escreve «O seu acompanhamento», o backoffice «Sistema DLM». -->

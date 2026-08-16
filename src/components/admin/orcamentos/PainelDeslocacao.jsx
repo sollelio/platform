@@ -138,7 +138,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: "var(--superficie)",
         border: "1px solid var(--gold-light)",
         borderRadius: "14px",
         padding: "18px 18px 16px",
@@ -210,7 +210,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
             fontWeight: "600",
             border: "1.5px solid var(--gold)",
             color: carregando ? "var(--gray-mid)" : "var(--gold)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             cursor: carregando || !morada.trim() ? "not-allowed" : "pointer",
             opacity: !morada.trim() && !carregando ? 0.6 : 1,
             whiteSpace: "nowrap",
@@ -266,12 +266,12 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
             display: "flex",
             gap: "8px",
             alignItems: "flex-start",
-            background: "#FEF3E2",
-            border: "1px solid #F0D9B5",
+            background: "var(--aviso-fundo)",
+            border: "1px solid var(--aviso-borda)",
             borderRadius: "10px",
             padding: "10px 12px",
             margin: "12px 0 0",
-            color: "#92400E",
+            color: "var(--aviso-texto)",
             fontSize: "12.5px",
             lineHeight: 1.55,
           }}
@@ -333,16 +333,20 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
                   fontSize: "11px",
                   fontWeight: "600",
                   whiteSpace: "nowrap",
+                  // Fundos fora da paleta (#FBF0D9 / #F3F1EC) — o par
+                  // inteiro fica literal, fixado nos claros, para não
+                  // ficar letra clara sobre fundo claro no escuro
+                  // (o mesmo gesto da ConsultaDeslocacao).
                   ...(origem === "auto"
                     ? {
                         background: "#FBF0D9",
-                        border: "1px solid var(--gold-light)",
-                        color: "var(--gold-dark)",
+                        border: "1px solid #E8D5A3",
+                        color: "#A07830",
                       }
                     : {
                         background: "#F3F1EC",
                         border: "1px solid #DCD5C4",
-                        color: "var(--gray-mid)",
+                        color: "#6B6B6B",
                       }),
                 }}
               >
@@ -375,8 +379,8 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
                   fontWeight: "600",
                   border: "none",
                   borderLeft: n === 4 ? "1.5px solid var(--gold-light)" : "none",
-                  backgroundColor: nTrocos === n ? "var(--gold)" : "white",
-                  color: nTrocos === n ? "white" : "var(--charcoal)",
+                  backgroundColor: nTrocos === n ? "var(--gold)" : "var(--superficie)",
+                  color: nTrocos === n ? "var(--texto-sobre-ouro)" : "var(--charcoal)",
                   cursor: "pointer",
                 }}
               >
@@ -394,6 +398,9 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
 
       {/* Régua visual */}
       <div style={{ marginTop: "18px", opacity: isento ? 0.55 : 1 }}>
+        {/* A pista da régua (aro #ECE3CE, vazio #F1ECDE e o tramado
+            lá em baixo) está fora da paleta — fica literal, ilha
+            clara nos dois modos, e segue na lista para o Hélio. */}
         <div
           style={{
             display: "flex",
@@ -460,9 +467,12 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
               marginTop: "12px",
               padding: "6px 14px",
               borderRadius: "999px",
-              background: "#DCFCE7",
+              background: "var(--sucesso-fundo-forte)",
+              // O aro #BBE5C8 está fora da família de sucesso da
+              // identidade (#BBF7D0) — fica literal e segue na lista
+              // para o Hélio.
               border: "1px solid #BBE5C8",
-              color: "#166534",
+              color: "var(--sucesso-texto)",
               fontSize: "12px",
               fontWeight: "600",
             }}
@@ -515,6 +525,9 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
                   fontSize: "32px",
                   fontWeight: "600",
                   lineHeight: 1,
+                  // O verde #16A34A do «oferecido» está fora da família
+                  // de sucesso da identidade (#22C55E/#166534) — fica
+                  // literal e segue na lista para o Hélio.
                   color: !calc.temDistancia
                     ? "var(--gray-mid)"
                     : isento
@@ -539,7 +552,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
             )}
           </div>
           {isento && (
-            <p style={{ fontSize: "12px", color: "#166534", fontWeight: "600", margin: "3px 0 0" }}>
+            <p style={{ fontSize: "12px", color: "var(--sucesso-texto)", fontWeight: "600", margin: "3px 0 0" }}>
               Oferecido ao cliente
             </p>
           )}
@@ -573,6 +586,8 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
 
 // ---------- sub-componentes visuais ----------
 
+// O tramado dos km incluídos está fora da paleta — fica literal (a
+// pista da régua é ilha clara nos dois modos; ver comentário lá em cima).
 const tramadoCss = {
   backgroundImage:
     "repeating-linear-gradient(135deg, #EDE2C0 0px, #EDE2C0 5px, #F7F0DD 5px, #F7F0DD 10px)",
@@ -582,7 +597,7 @@ const chipStyle = {
   padding: "5px 12px",
   borderRadius: "999px",
   border: "1px solid var(--gold-light)",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   color: "var(--charcoal)",
   fontSize: "11.5px",
   cursor: "pointer",
@@ -613,15 +628,18 @@ function Pastilha({ children, dourada = false }) {
         whiteSpace: "nowrap",
         ...(dourada
           ? {
+              // Gradiente fora da paleta (#FFFDF5→#FBF2D6) — o par
+              // inteiro fica literal, fixado nos claros, para não
+              // ficar letra clara sobre fundo claro no escuro.
               background: "linear-gradient(160deg, #FFFDF5, #FBF2D6)",
-              border: "1px solid var(--gold)",
-              color: "var(--gold-dark)",
+              border: "1px solid #C9A84C",
+              color: "#A07830",
               fontFamily: "Playfair Display, serif",
               fontSize: "14px",
             }
           : {
-              background: "#FBF7EF",
-              border: "1px solid #F0E6D0",
+              background: "var(--superficie-quente)",
+              border: "1px solid var(--borda)",
               color: "var(--charcoal)",
             }),
       }}
@@ -698,6 +716,9 @@ function Interruptor({ ligado, onChange }) {
         borderRadius: "999px",
         border: "none",
         padding: "2px",
+        // Verde #16A34A e taupe #DCD5C4 fora da paleta — ficam
+        // literais (o botão branco por cima lê-se nos dois modos)
+        // e seguem na lista para o Hélio.
         background: ligado ? "#16A34A" : "#DCD5C4",
         cursor: "pointer",
         display: "flex",

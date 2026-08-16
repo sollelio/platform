@@ -56,8 +56,8 @@ export default function ErrosFormulario() {
   return (
     <div
       style={{
-        backgroundColor: "#FEF2F2",
-        border: "1px solid #FECACA",
+        backgroundColor: "var(--perigo-fundo)",
+        border: "1px solid var(--perigo-borda)",
         borderRadius: "14px",
         padding: "16px 18px",
         marginBottom: "22px",
@@ -67,7 +67,7 @@ export default function ErrosFormulario() {
         style={{
           fontSize: "12px",
           fontWeight: "700",
-          color: "#B91C1C",
+          color: "var(--perigo-texto)",
           textTransform: "uppercase",
           letterSpacing: "0.06em",
           margin: "0 0 10px 0",
@@ -83,9 +83,9 @@ export default function ErrosFormulario() {
         <p
           style={{
             fontSize: "12px",
-            color: "#B91C1C",
-            backgroundColor: "white",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "8px",
             padding: "8px 12px",
             margin: "0 0 10px 0",
@@ -101,9 +101,9 @@ export default function ErrosFormulario() {
           <div
             key={e.id}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "10px",
-              border: "1px solid #FECACA",
+              border: "1px solid var(--perigo-borda)",
               padding: "10px 14px",
               marginBottom: "8px",
             }}
@@ -132,7 +132,7 @@ export default function ErrosFormulario() {
                 <p
                   style={{
                     fontSize: "12px",
-                    color: "#B91C1C",
+                    color: "var(--perigo-texto)",
                     margin: "2px 0 0 0",
                     wordBreak: "break-word",
                   }}
@@ -149,7 +149,7 @@ export default function ErrosFormulario() {
                     fontSize: "11px",
                     fontWeight: "600",
                     border: "1.5px solid var(--gold-light)",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     color: "var(--gold-dark)",
                     cursor: "pointer",
                   }}
@@ -163,9 +163,9 @@ export default function ErrosFormulario() {
                     borderRadius: "999px",
                     fontSize: "11px",
                     fontWeight: "600",
-                    border: "1.5px solid #FECACA",
-                    backgroundColor: "white",
-                    color: "#B91C1C",
+                    border: "1.5px solid var(--perigo-borda)",
+                    backgroundColor: "var(--superficie)",
+                    color: "var(--perigo-texto)",
                     cursor: "pointer",
                   }}
                 >
@@ -179,7 +179,7 @@ export default function ErrosFormulario() {
                   marginTop: "10px",
                   marginBottom: 0,
                   padding: "10px",
-                  backgroundColor: "#FAFAF8",
+                  backgroundColor: "var(--fundo)",
                   borderRadius: "8px",
                   fontSize: "11px",
                   lineHeight: 1.5,

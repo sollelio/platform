@@ -59,8 +59,14 @@ const MOMENTOS = [
 // TRÊS estados e não dois, porque «por rever» não é «com convidados»: com
 // um booleano, a página dizia à cliente que a fotografia dela tem
 // convidados sem ninguém ter olhado.
+//
+// Estas cores pintam o estado ESCOLHIDO da pastilha, cujo fundo #FBF9F4
+// está fora da paleta: o par inteiro fica literal — pastilha clara com
+// letra escura nos dois modos (o var(--gray-mid) fixa-se no claro
+// #6B6B6B, senão era letra clara sobre fundo claro no escuro). O
+// castanho #9C5A3C não tem token; segue tudo no relatório.
 const PUBLICAVEL = [
-  { valor: "por_rever", label: "Por rever", cor: "var(--gray-mid)" },
+  { valor: "por_rever", label: "Por rever", cor: "#6B6B6B" },
   { valor: "sem_convidados", label: "Sem convidados", cor: "#166534" },
   { valor: "com_convidados", label: "Com convidados", cor: "#9C5A3C" },
 ];
@@ -208,7 +214,7 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
     // Uma leitura que falhou tem de parecer uma falha — «Nenhuma
     // ainda» aqui seria mentira, e podia levar a carregar em dobro.
     return (
-      <p style={{ fontSize: "13px", color: "#B91C1C" }}>
+      <p style={{ fontSize: "13px", color: "var(--perigo-texto)" }}>
         Não foi possível ler as fotografias. Recarregue a página.
       </p>
     );
@@ -240,7 +246,7 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
             ...botao,
             border: "none",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             opacity: aCarregar > 0 ? 0.6 : 1,
             cursor: aCarregar > 0 ? "wait" : "pointer",
           }}
@@ -265,7 +271,7 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
       </div>
 
       {erro && (
-        <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "#B91C1C", margin: "12px 0 0" }}>
+        <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "var(--perigo-texto)", margin: "12px 0 0" }}>
           {erro}
         </p>
       )}
@@ -273,13 +279,16 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
       {fotos.length === 0 ? (
         <p
           style={{
+            // O lavado #FBF9F4 está fora da paleta: o par fica literal,
+            // com o var(--gray-mid) fixado no claro #6B6B6B — senão era
+            // letra clara sobre fundo claro no escuro. Vai no relatório.
             fontSize: "12.5px",
             lineHeight: 1.7,
-            color: "var(--gray-mid)",
+            color: "#6B6B6B",
             margin: "22px 0 0",
             padding: "16px 18px",
             backgroundColor: "#FBF9F4",
-            border: "1px solid var(--hairline, #F0E6D0)",
+            border: "1px solid var(--borda)",
             borderRadius: "10px",
             maxWidth: "62ch",
           }}
@@ -302,12 +311,14 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
             <div
               key={f.id}
               style={{
-                border: `1.5px solid ${i === 0 ? "var(--gold)" : "var(--hairline, #F0E6D0)"}`,
+                border: `1.5px solid ${i === 0 ? "var(--gold)" : "var(--borda)"}`,
                 borderRadius: "12px",
                 overflow: "hidden",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
               }}
             >
+              {/* #F5F1E8 (a espera atrás da fotografia) está fora da
+                  paleta — fica literal e segue no relatório. */}
               <div style={{ position: "relative", aspectRatio: "4 / 3", backgroundColor: "#F5F1E8" }}>
                 <img
                   src={f.url_pequena}
@@ -315,13 +326,18 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
                 {i === 0 && (
+                  // O selo pousa sobre a FOTOGRAFIA: o véu claro é
+                  // literal (por baixo está conteúdo, não tema), por
+                  // isso o par inteiro fica preso ao claro — ouro do
+                  // tema sobre véu claro morreria no escuro (regra do
+                  // par, valores idênticos aos de sempre).
                   <span
                     style={{
                       position: "absolute", top: "8px", left: "8px",
                       fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.14em",
-                      textTransform: "uppercase", color: "var(--gold-dark)",
+                      textTransform: "uppercase", color: "#A07830",
                       backgroundColor: "rgba(255,253,246,0.94)",
-                      border: "1px solid var(--gold-light)",
+                      border: "1px solid #E8D5A3",
                       borderRadius: "999px", padding: "3px 9px",
                     }}
                   >
@@ -360,7 +376,7 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                   style={{
                     width: "100%", boxSizing: "border-box",
                     padding: "6px 8px", fontSize: "12px", fontFamily: "inherit",
-                    color: "var(--charcoal)", border: "1px solid var(--hairline, #F0E6D0)",
+                    color: "var(--charcoal)", border: "1px solid var(--borda)",
                     borderRadius: "7px", outline: "none",
                   }}
                 />
@@ -388,8 +404,10 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                         flex: 1, minHeight: "44px", padding: "5px 4px", fontSize: "10.5px",
                         fontFamily: "inherit", borderRadius: "999px", cursor: "pointer",
                         color: f.publicavel === e.valor ? e.cor : "var(--gray-mid)",
-                        backgroundColor: f.publicavel === e.valor ? "#FBF9F4" : "white",
-                        border: `1px solid ${f.publicavel === e.valor ? e.cor : "#E8DCC0"}`,
+                        // o lavado #FBF9F4 do escolhido fica literal
+                        // (par fora da paleta — ver PUBLICAVEL).
+                        backgroundColor: f.publicavel === e.valor ? "#FBF9F4" : "var(--superficie)",
+                        border: `1px solid ${f.publicavel === e.valor ? e.cor : "var(--aro)"}`,
                         opacity: f.publicavel === e.valor ? 1 : 0.75,
                       }}
                     >
@@ -410,8 +428,8 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
                         flex: 1, minHeight: "44px", padding: "5px 6px", fontSize: "11px",
                         fontFamily: "inherit", borderRadius: "999px", cursor: "pointer",
                         color: f.momento === m.valor ? "var(--gold-dark)" : "var(--gray-mid)",
-                        backgroundColor: f.momento === m.valor ? "#FEF9EC" : "white",
-                        border: `1px solid ${f.momento === m.valor ? "var(--gold)" : "#E8DCC0"}`,
+                        backgroundColor: f.momento === m.valor ? "var(--superficie-selo)" : "var(--superficie)",
+                        border: `1px solid ${f.momento === m.valor ? "var(--gold)" : "var(--aro)"}`,
                       }}
                     >
                       {m.label}
@@ -421,28 +439,33 @@ export default function FotografiasEvento({ submissao, reportarContagem }) {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "10px" }}>
                   <button onClick={() => mover(i, -1)} disabled={i === 0} title="Subir"
-                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === 0 ? 0.35 : 1 }}>
+                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--borda)", backgroundColor: "var(--superficie)", color: "var(--charcoal)", opacity: i === 0 ? 0.35 : 1 }}>
                     ↑
                   </button>
                   <button onClick={() => mover(i, 1)} disabled={i === fotos.length - 1} title="Descer"
-                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)", opacity: i === fotos.length - 1 ? 0.35 : 1 }}>
+                    style={{ ...botao, minHeight: "44px", padding: "10px 12px", fontSize: "12px", border: "1px solid var(--borda)", backgroundColor: "var(--superficie)", color: "var(--charcoal)", opacity: i === fotos.length - 1 ? 0.35 : 1 }}>
                     ↓
                   </button>
                   <span style={{ flex: 1 }} />
                   {aConfirmarApagar === f.id ? (
                     <>
                       <button onClick={() => apagar(f)}
+                        // --perigo-texto como fundo (papel trocado): no
+                        // escuro o token é rosa-claro e o branco perdia-se
+                        // — o par fica literal (branco sobre vinho lê-se
+                        // nos dois modos) e segue na lista. O cheio da
+                        // identidade seria #EF4444.
                         style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "none", backgroundColor: "#B91C1C", color: "white" }}>
                         Apagar
                       </button>
                       <button onClick={() => setAConfirmarApagar(null)}
-                        style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid var(--hairline, #F0E6D0)", backgroundColor: "white", color: "var(--charcoal)" }}>
+                        style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid var(--borda)", backgroundColor: "var(--superficie)", color: "var(--charcoal)" }}>
                         Não
                       </button>
                     </>
                   ) : (
                     <button onClick={() => setAConfirmarApagar(f.id)}
-                      style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid #FECACA", backgroundColor: "white", color: "#B91C1C" }}>
+                      style={{ ...botao, minHeight: "44px", padding: "5px 10px", fontSize: "11.5px", border: "1px solid var(--perigo-borda)", backgroundColor: "var(--superficie)", color: "var(--perigo-texto)" }}>
                       Apagar
                     </button>
                   )}

@@ -1,6 +1,8 @@
+import { useSyncExternalStore } from "react";
 import { NavLink } from "react-router-dom";
 import LogoDourado from "../LogoDourado";
 import { caminhoDoSeparador } from "../../lib/rotasAdmin";
+import { alternarTema, assinarTema, temaEfectivo } from "../../lib/tema";
 
 // ============================================================
 // Navegacao — a casca de navegação da app.
@@ -156,6 +158,24 @@ export function Icone({ nome, tamanho = 18 }) {
         <path {...t} d="M16.5 8.5 20 12l-3.5 3.5M10 12h10" />
       </>
     ),
+    // A lua e o sol do interruptor do tema. A lua é um QUARTO
+    // crescente de traço, não a meia-lua preenchida — essa já tem
+    // significado na casa («a meio») e não se empresta.
+    lua: (
+      <path
+        {...t}
+        d="M20 13.6A8.4 8.4 0 0110.4 4a7.2 7.2 0 109.6 9.6z"
+      />
+    ),
+    sol: (
+      <>
+        <circle {...t} cx="12" cy="12" r="3.6" />
+        <path
+          {...t}
+          d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.8 5.8l1.5 1.5M16.7 16.7l1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5"
+        />
+      </>
+    ),
     mais: (
       <>
         <circle cx="5" cy="12" r="1.6" fill="currentColor" />
@@ -270,9 +290,9 @@ function Contagem({ quantos }) {
         height: "18px",
         padding: "0 5px",
         borderRadius: "999px",
-        backgroundColor: "#FEF3E2",
-        border: "1px solid #F0D9B5",
-        color: "#92400E",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1px solid var(--aviso-borda)",
+        color: "var(--aviso-texto)",
         fontSize: "10px",
         fontWeight: "700",
         lineHeight: "16px",
@@ -299,7 +319,7 @@ function ItemNav({ item, ativo, onClick, contagem }) {
     boxSizing: "border-box",
     border: "none",
     textDecoration: "none",
-    backgroundColor: ativo ? "#FBF7EF" : "transparent",
+    backgroundColor: ativo ? "var(--superficie-quente)" : "transparent",
     color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
     transition: "all 0.15s",
   };
@@ -350,8 +370,8 @@ export function BadgeNaoLidas({ quantos, tamanho = 18 }) {
     <>
       <style>{`
         @keyframes dlm-badge-pulso {
-          0% { box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
-          100% { box-shadow: 0 0 0 8px rgba(201,168,76,0); }
+          0% { box-shadow: 0 0 0 0 rgba(var(--ouro-rgb), 0.5); }
+          100% { box-shadow: 0 0 0 8px rgba(var(--ouro-rgb), 0); }
         }
       `}</style>
       <span
@@ -364,7 +384,7 @@ export function BadgeNaoLidas({ quantos, tamanho = 18 }) {
           padding: "0 5px",
           borderRadius: "999px",
           backgroundColor: "var(--gold)",
-          color: "white",
+          color: "var(--texto-sobre-ouro)",
           fontSize: `${tamanho <= 16 ? 9 : 10.5}px`,
           fontWeight: "700",
           fontFamily: "Inter, sans-serif",
@@ -394,7 +414,7 @@ function ItemCaixaEntrada({ naoLidas, onClick }) {
         borderRadius: "10px",
         cursor: "pointer",
         textAlign: "left",
-        backgroundColor: naoLidas > 0 ? "#FFFDF6" : "transparent",
+        backgroundColor: naoLidas > 0 ? "var(--superficie-atenta)" : "transparent",
         border: "none",
         color: naoLidas > 0 ? "var(--gold-dark)" : "var(--gray-mid)",
         transition: "all 0.15s",
@@ -414,6 +434,40 @@ function ItemCaixaEntrada({ naoLidas, onClick }) {
       </span>
       <BadgeNaoLidas quantos={naoLidas} />
     </button>
+  );
+}
+
+// ------------------------------------------------------------
+// O interruptor do tema — um gesto, como «Sair», e mora na mesma
+// arrumação: o fundo da sidebar e da folha «Mais», onde já vivem
+// as coisas de configurar (Modelos, Importar). A casa não tem
+// ecrã de definições, e um interruptor sozinho não justifica
+// construir um.
+// O rótulo é «Aspecto» — a palavra que a casa já fixou para «o
+// temperamento de uma superfície» (fase A dos comunicados,
+// registo → aspecto; grafia da casa, pré-acordo). Fixo nos dois
+// modos de propósito: ao lado do «Sair», um rótulo que mudasse
+// («Modo escuro»/«Modo claro») lia-se como acção sem se saber se
+// dizia o estado ou o destino. Quem diz o estado é o ícone: a
+// lua convida ao escuro, o sol ao claro. (Decisão do Hélio,
+// 16/08.)
+// useSyncExternalStore e não useState: o tema vive fora do React
+// (lib/tema.js), e a sidebar e a folha «Mais» têm de ler o MESMO
+// valor sem se conhecerem.
+// ------------------------------------------------------------
+function ItemTema() {
+  const tema = useSyncExternalStore(assinarTema, temaEfectivo);
+  const escuro = tema === "escuro";
+  return (
+    <ItemNav
+      item={{
+        id: "__tema",
+        label: "Aspecto",
+        icone: escuro ? "sol" : "lua",
+      }}
+      ativo={false}
+      onClick={alternarTema}
+    />
   );
 }
 
@@ -451,8 +505,8 @@ export function SidebarNav({
       style={{
         width: "248px",
         flexShrink: 0,
-        backgroundColor: "white",
-        borderRight: "1px solid #F0E6D0",
+        backgroundColor: "var(--superficie)",
+        borderRight: "1px solid var(--borda)",
         height: "100vh",
         position: "sticky",
         top: 0,
@@ -499,7 +553,7 @@ export function SidebarNav({
       <div
         style={{
           marginTop: "auto",
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
           paddingTop: "10px",
         }}
       >
@@ -512,6 +566,7 @@ export function SidebarNav({
             contagem={contagens[item.id]}
           />
         ))}
+        <ItemTema />
         <ItemNav
           item={{ id: "__sair", label: "Sair", icone: "sair" }}
           ativo={false}
@@ -539,8 +594,8 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
         left: 0,
         right: 0,
         zIndex: 40,
-        backgroundColor: "white",
-        borderTop: "1px solid #F0E6D0",
+        backgroundColor: "var(--superficie)",
+        borderTop: "1px solid var(--borda)",
         display: "flex",
         padding: "8px 4px calc(8px + env(safe-area-inset-bottom))",
       }}
@@ -606,7 +661,7 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
         position: "fixed",
         inset: 0,
         zIndex: 45,
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "var(--cortina)",
         display: "flex",
         alignItems: "flex-end",
       }}
@@ -615,7 +670,7 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "18px 18px 0 0",
           padding: "10px 14px calc(18px + env(safe-area-inset-bottom))",
           boxShadow: "0 -6px 24px rgba(0,0,0,0.12)",
@@ -626,7 +681,7 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
             width: "38px",
             height: "4px",
             borderRadius: "999px",
-            backgroundColor: "#F0E6D0",
+            backgroundColor: "var(--borda)",
             margin: "0 auto 12px",
           }}
         />
@@ -644,11 +699,12 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
         ))}
         <div
           style={{
-            borderTop: "1px solid #F0E6D0",
+            borderTop: "1px solid var(--borda)",
             marginTop: "8px",
             paddingTop: "8px",
           }}
         >
+          <ItemTema />
           <ItemNav
             item={{ id: "__sair", label: "Sair", icone: "sair" }}
             ativo={false}

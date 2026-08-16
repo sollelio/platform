@@ -131,7 +131,10 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          backgroundColor: feito ? "var(--gold)" : aSeguir ? "white" : "#F1EBDD",
+          // O anel «a seguir» esvazia para o papel (o medalhão do piloto
+          // faz igual); #F1EBDD (bolinha sem vez) está fora da paleta —
+          // fica literal.
+          backgroundColor: feito ? "var(--gold)" : aSeguir ? "var(--superficie)" : "#F1EBDD",
           border: aSeguir ? "2px solid var(--gold)" : "none",
           transition: "background-color 300ms ease",
         }}
@@ -151,7 +154,7 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
               <path
                 d="M4.5 12.5l5 5 10-10"
                 fill="none"
-                stroke="#FFFFFF"
+                stroke="var(--texto-sobre-ouro)"
                 strokeWidth="3.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -163,6 +166,7 @@ function Passo({ rotulo, feito, aSeguir, data, onClick }) {
       <span
         style={{
           fontSize: "11px",
+          // #B0A88F (rótulo sem vez) está fora da paleta — fica literal.
           color: feito
             ? "var(--gray-mid)"
             : aSeguir
@@ -237,10 +241,10 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom, punho })
   return (
     <div
       style={{
-        backgroundColor: destaque ? "#FFFDF6" : "white",
+        backgroundColor: destaque ? "var(--superficie-atenta)" : "var(--superficie)",
         border: destaque
           ? "1.5px solid var(--gold)"
-          : "1px solid #F0E6D0",
+          : "1px solid var(--borda)",
         borderRadius: "14px",
         padding: "16px 20px",
         display: "grid",
@@ -249,10 +253,11 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom, punho })
           : "34px minmax(220px, 1fr) auto auto",
         gap: "18px",
         alignItems: "center",
-        boxShadow: destaque ? "0 4px 14px rgba(201,168,76,0.14)" : "none",
+        boxShadow: destaque ? "0 4px 14px rgba(var(--ouro-rgb), 0.14)" : "none",
       }}
     >
       {punho}
+      {/* #DCD3C0 (ícone adormecido) está fora da paleta — fica literal. */}
       <span style={{ color: adormecido ? "#DCD3C0" : "var(--gold)" }}>
         <Icone nome={icone} tamanho={22} />
       </span>
@@ -266,7 +271,7 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom, punho })
         >
           {titulo}
           {sufixo && (
-            <span style={{ fontSize: "12px", color: "#9B9B9B" }}> {sufixo}</span>
+            <span style={{ fontSize: "12px", color: "var(--texto-apagado)" }}> {sufixo}</span>
           )}
         </p>
         <p
@@ -276,7 +281,7 @@ function Linha({ icone, titulo, sufixo, descricao, passos, accoes, tom, punho })
             color: destaque
               ? "var(--gold-dark)"
               : adormecido
-                ? "#9B9B9B"
+                ? "var(--texto-apagado)"
                 : "var(--gray-mid)",
           }}
         >
@@ -318,7 +323,7 @@ const medidaBotao = (variante) => ({
   fontWeight: variante === "principal" ? "600" : "500",
   whiteSpace: "nowrap",
   ...(variante === "principal"
-    ? { boxShadow: "0 4px 12px rgba(201,168,76,0.30)" }
+    ? { boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)" }
     : {}),
 });
 
@@ -622,7 +627,7 @@ export default function DocumentosEvento({
               fontSize: "11px",
               padding: "4px 11px",
               borderRadius: "999px",
-              backgroundColor: "#FEF9EC",
+              backgroundColor: "var(--superficie-selo)",
               color: "var(--gold-dark)",
               border: "1px solid var(--gold-light)",
               fontWeight: "500",
@@ -746,8 +751,8 @@ export default function DocumentosEvento({
             style={{
               maxWidth: "640px",
               marginLeft: "48px",
-              backgroundColor: "#FEF3E2",
-              border: "1px solid #F0D9B5",
+              backgroundColor: "var(--aviso-fundo)",
+              border: "1px solid var(--aviso-borda)",
               borderRadius: "10px",
               padding: "12px 14px",
               margin: "-2px 0 9px 48px",
@@ -757,7 +762,7 @@ export default function DocumentosEvento({
               style={{
                 margin: "0 0 6px",
                 fontSize: "12.5px",
-                color: "#92400E",
+                color: "var(--aviso-texto)",
                 lineHeight: 1.6,
               }}
             >
@@ -775,8 +780,8 @@ export default function DocumentosEvento({
                   alignItems: "center",
                   gap: "10px",
                   flexWrap: "wrap",
-                  backgroundColor: "white",
-                  border: "1px solid #F0D9B5",
+                  backgroundColor: "var(--superficie)",
+                  border: "1px solid var(--aviso-borda)",
                   borderRadius: "9px",
                   padding: "8px 11px",
                   marginTop: "6px",
@@ -805,9 +810,9 @@ export default function DocumentosEvento({
                   disabled={aAdoptar === o.id}
                   style={{
                     marginLeft: "auto",
-                    border: "1px solid #F0D9B5",
-                    backgroundColor: "white",
-                    color: "#92400E",
+                    border: "1px solid var(--aviso-borda)",
+                    backgroundColor: "var(--superficie)",
+                    color: "var(--aviso-texto)",
                     fontWeight: "600",
                     fontSize: "11px",
                     padding: "5px 12px",
@@ -825,7 +830,7 @@ export default function DocumentosEvento({
                 style={{
                   margin: "6px 0 0",
                   fontSize: "11.5px",
-                  color: "#92400E",
+                  color: "var(--aviso-texto)",
                 }}
               >
                 … e mais {orfaosAdoptaveis.length - 3} em Formulários.
@@ -956,9 +961,9 @@ export default function DocumentosEvento({
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             margin: 0,
@@ -981,9 +986,10 @@ export default function DocumentosEvento({
             width: `${fantasma.w}px`,
             zIndex: 90,
             pointerEvents: "none",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             border: "1.5px solid var(--gold)",
             borderRadius: "14px",
+            // Sombra preta fica literal (não é nenhum dos dois tokens).
             boxShadow: "0 12px 32px rgba(0,0,0,0.16)",
             padding: "14px 20px",
             display: "flex",

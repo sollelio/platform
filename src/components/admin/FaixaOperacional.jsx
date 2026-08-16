@@ -82,7 +82,7 @@ export default function FaixaOperacional({ submissao, seccoes }) {
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         border: "1px solid var(--gold-light)",
         borderRadius: "14px",
         padding: "16px 20px",
@@ -119,7 +119,7 @@ export default function FaixaOperacional({ submissao, seccoes }) {
           {diaSeguinte && (
             <p style={sub}>
               dia seguinte possível:{" "}
-              <span style={{ color: "#166534", fontWeight: "600" }}>
+              <span style={{ color: "var(--sucesso-texto)", fontWeight: "600" }}>
                 {diaSeguinte}
               </span>
             </p>

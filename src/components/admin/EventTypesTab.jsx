@@ -124,11 +124,11 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             backgroundColor: "var(--gold)",
-            color: "white",
+            color: "var(--texto-sobre-ouro)",
             border: "none",
             cursor: "pointer",
             whiteSpace: "nowrap",
-            boxShadow: "0 4px 16px rgba(201,168,76,0.4)",
+            boxShadow: "0 4px 16px rgba(var(--ouro-rgb), 0.4)",
           }}
         >
           + Criar Tipo de Evento
@@ -139,9 +139,9 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
         <p
           style={{
             fontSize: "12px",
-            color: "#22C55E",
-            backgroundColor: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            color: "var(--sucesso)",
+            backgroundColor: "var(--sucesso-fundo)",
+            border: "1px solid var(--sucesso-borda)",
             borderRadius: "8px",
             padding: "10px 14px",
             marginBottom: "16px",
@@ -168,10 +168,10 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
             <div
               key={et.id}
               style={{
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 borderRadius: "14px",
                 padding: "18px 20px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+                boxShadow: "var(--sombra-cartao)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -212,7 +212,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                       fontSize: "10px",
                       padding: "4px 12px",
                       borderRadius: "999px",
-                      backgroundColor: "#FEF9EC",
+                      backgroundColor: "var(--superficie-selo)",
                       color: "var(--gold)",
                       border: "1px solid var(--gold-light)",
                       fontWeight: "600",
@@ -234,7 +234,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                     border: "1.5px solid var(--gold-light)",
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     color: "var(--gold)",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
@@ -251,8 +251,11 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                     fontWeight: "600",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
-                    border: "1.5px solid #FECACA",
-                    backgroundColor: "white",
+                    border: "1.5px solid var(--perigo-borda)",
+                    backgroundColor: "var(--superficie)",
+                    // O valor é o do --perigo-cheio, mas o PAPEL é texto —
+                    // no escuro esse token é vermelho de preenchimento,
+                    // escuro demais para letra. Fica literal e vai na lista.
                     color: "#EF4444",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
@@ -274,7 +277,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
             position: "fixed",
             inset: 0,
             zIndex: 150,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -284,7 +287,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "24px",
               maxWidth: "420px",
@@ -367,7 +370,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                   letterSpacing: "0.05em",
                   border: "none",
                   backgroundColor: "var(--gold)",
-                  color: "white",
+                  color: "var(--texto-sobre-ouro)",
                   cursor: "pointer",
                 }}
               >
@@ -417,7 +420,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                   border: "1.5px solid var(--gold)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   color: "var(--gold)",
                   cursor: "pointer",
                 }}
@@ -455,7 +458,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
             position: "fixed",
             inset: 0,
             zIndex: 150,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -465,7 +468,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "24px",
               maxWidth: "400px",
@@ -500,9 +503,11 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
               <p
                 style={{
                   fontSize: "12px",
+                  // Valor do --perigo-cheio em papel de texto (como no
+                  // botão Remover acima): fica literal e vai na lista.
                   color: "#EF4444",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "8px",
                   padding: "10px 14px",
                   margin: "0 0 16px 0",
@@ -529,7 +534,7 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                   fontSize: "13px",
                   border: "1.5px solid var(--gold-light)",
                   color: "var(--gray-mid)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   cursor: "pointer",
                 }}
               >
@@ -544,7 +549,12 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                   fontSize: "13px",
                   fontWeight: "600",
                   border: "none",
-                  backgroundColor: removendo ? "#FCA5A5" : "#EF4444",
+                  // #EF4444 é exactamente o papel e o valor do botão de
+                  // perigo cheio. O rosa #FCA5A5 do «A remover…» está
+                  // fora da paleta e fica literal (um botão a meio do
+                  // gesto não se apaga); vai na lista. O branco fica
+                  // literal nos dois modos, como no .acao--perigo-cheia.
+                  backgroundColor: removendo ? "#FCA5A5" : "var(--perigo-cheio)",
                   color: "white",
                   cursor: removendo ? "not-allowed" : "pointer",
                 }}

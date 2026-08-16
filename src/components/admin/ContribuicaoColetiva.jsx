@@ -45,7 +45,7 @@ import { Icone } from "./Navegacao";
 const rotuloMini = {
   fontSize: "10px",
   fontWeight: "600",
-  color: "#9B9B9B",
+  color: "var(--texto-apagado)",
   textTransform: "uppercase",
   letterSpacing: "0.14em",
   margin: "0 0 4px",
@@ -78,6 +78,9 @@ export function Taca({ pct, faisca, brinde, reduzir }) {
         <clipPath id="taca-interior">
           <path d="M17 32 C17 59 37 75 60 75 C83 75 103 59 103 32 Z" />
         </clipPath>
+        {/* Joia: os ouros do líquido, do reflexo e das faíscas são os
+            do claro de propósito — não seguem o tema (ouro brilha
+            sobre escuro, e a taça também vive na página pública). */}
         <linearGradient id="taca-ouro" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#E8D29A" />
           <stop offset="1" stopColor="#C9A84C" />
@@ -493,7 +496,7 @@ export default function ContribuicaoColetiva({
 
   const seccao = (conteudo) => (
     <div
-      style={{ borderTop: "1px solid #F0E6D0", marginTop: "22px", paddingTop: "20px" }}
+      style={{ borderTop: "1px solid var(--borda)", marginTop: "22px", paddingTop: "20px" }}
     >
       <p
         style={{
@@ -511,9 +514,9 @@ export default function ContribuicaoColetiva({
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             margin: "0 0 14px",
@@ -534,8 +537,8 @@ export default function ContribuicaoColetiva({
     return seccao(
       <div
         style={{
-          backgroundColor: "white",
-          border: "1px solid #F0E6D0",
+          backgroundColor: "var(--superficie)",
+          border: "1px solid var(--borda)",
           borderRadius: "14px",
           padding: "20px 24px",
         }}
@@ -582,7 +585,7 @@ export default function ContribuicaoColetiva({
                 borderRadius: "999px",
                 fontSize: "13px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
               }}
             >
               Ativar a contribuição coletiva
@@ -668,7 +671,7 @@ export default function ContribuicaoColetiva({
                 </button>
               </div>
             </div>
-            <p style={{ fontSize: "11px", color: "#9B9B9B", margin: "10px 0 0" }}>
+            <p style={{ fontSize: "11px", color: "var(--texto-apagado)", margin: "10px 0 0" }}>
               A meta vem pré-preenchida com o que falta receber do evento —
               ajusta-a se a campanha for só uma parte. O link partilhável
               nasce com a campanha, pronto a enviar.
@@ -685,8 +688,8 @@ export default function ContribuicaoColetiva({
   return seccao(
     <div
       style={{
-        backgroundColor: "white",
-        border: `1.5px solid ${concluida ? "var(--gold)" : "#F0E6D0"}`,
+        backgroundColor: "var(--superficie)",
+        border: `1.5px solid ${concluida ? "var(--gold)" : "var(--borda)"}`,
         borderRadius: "14px",
         padding: "20px 24px",
       }}
@@ -811,6 +814,8 @@ export default function ContribuicaoColetiva({
                 }}
                 title="Guardar meta"
                 className="icone-botao"
+                // #16A34A está fora da paleta (--sucesso é #22C55E) —
+                // fica literal e segue no relatório.
                 style={{ color: "#16A34A", fontSize: "13px", padding: "2px 5px" }}
               >
                 ✓
@@ -882,7 +887,7 @@ export default function ContribuicaoColetiva({
                 borderRadius: "999px",
                 fontSize: "12.5px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
               }}
             >
               ＋ Registar contribuição
@@ -919,7 +924,7 @@ export default function ContribuicaoColetiva({
                   }
                 }}
                 className="ligacao"
-                style={{ fontSize: "11.5px", color: "#B91C1C" }}
+                style={{ fontSize: "11.5px", color: "var(--perigo-texto)" }}
               >
                 Fechar
               </button>
@@ -928,6 +933,9 @@ export default function ContribuicaoColetiva({
             <button
               onClick={() => setAFechar(true)}
               className="ligacao"
+              // Bate com --texto-apagado, mas o token proíbe-se em
+              // clicáveis; harmonizar com o gray-mid dos vizinhos
+              // mudava o claro — fica literal e vai no relatório.
               style={{ fontSize: "11.5px", color: "#9B9B9B" }}
             >
               {concluida ? "Arquivar campanha" : "Fechar campanha"}
@@ -942,7 +950,7 @@ export default function ContribuicaoColetiva({
         style={{
           marginTop: "16px",
           padding: "12px 14px",
-          backgroundColor: "#FBF7EF",
+          backgroundColor: "var(--superficie-quente)",
           border: "1px solid var(--gold-light)",
           borderRadius: "10px",
         }}
@@ -1031,7 +1039,7 @@ export default function ContribuicaoColetiva({
                   }
                 }}
                 className="ligacao"
-                style={{ fontSize: "11.5px", color: "#B91C1C" }}
+                style={{ fontSize: "11.5px", color: "var(--perigo-texto)" }}
               >
                 Gerar novo
               </button>
@@ -1041,6 +1049,7 @@ export default function ContribuicaoColetiva({
               onClick={() => setARegenerar(true)}
               title="Revogar o link atual e gerar outro"
               className="ligacao"
+              // apagado em clicável — literal (ver «Fechar campanha»).
               style={{ fontSize: "11.5px", color: "#9B9B9B" }}
             >
               Gerar novo link
@@ -1075,6 +1084,8 @@ export default function ContribuicaoColetiva({
                 }}
                 title="Guardar"
                 className="icone-botao"
+                // o mesmo verde #16A34A fora da paleta — literal, no
+                // relatório.
                 style={{ color: "#16A34A", fontSize: "13px", padding: "2px 5px" }}
               >
                 ✓
@@ -1119,6 +1130,8 @@ export default function ContribuicaoColetiva({
             <div
               key={intencao.id}
               className={intencao.id === novaIntencao ? "linha-nova" : undefined}
+              // O fio #F1EAD6 está fora da paleta (--borda-leve é
+              // #F5ECD7) — fica literal e segue no relatório.
               style={{ borderTop: "1px solid #F1EAD6", padding: "8px 4px" }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1165,7 +1178,7 @@ export default function ContribuicaoColetiva({
                       <button
                         onClick={() => anularPromessa(intencao)}
                         className="ligacao"
-                        style={{ fontSize: "11.5px", color: "#B91C1C" }}
+                        style={{ fontSize: "11.5px", color: "var(--perigo-texto)" }}
                       >
                         Anular
                       </button>
@@ -1192,6 +1205,8 @@ export default function ContribuicaoColetiva({
                       <button
                         onClick={() => setAnulando(intencao.id)}
                         className="ligacao"
+                        // apagado em clicável — literal (ver «Fechar
+                        // campanha»).
                         style={{ fontSize: "11.5px", color: "#9B9B9B" }}
                       >
                         Anular
@@ -1203,7 +1218,7 @@ export default function ContribuicaoColetiva({
               {confirmando === intencao.id && (
                 <div
                   style={{
-                    backgroundColor: "#FBF7EF",
+                    backgroundColor: "var(--superficie-quente)",
                     border: "1px solid var(--gold-light)",
                     borderRadius: "10px",
                     padding: "12px",
@@ -1288,7 +1303,7 @@ export default function ContribuicaoColetiva({
       {formAberto && !concluida && (
         <div
           style={{
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
             border: "1px solid var(--gold-light)",
             borderRadius: "10px",
             padding: "14px",
@@ -1388,6 +1403,8 @@ export default function ContribuicaoColetiva({
                 alignItems: "center",
                 gap: "10px",
                 padding: "8px 4px",
+                // o mesmo fio #F1EAD6 fora da paleta — literal, no
+                // relatório.
                 borderTop: "1px solid #F1EAD6",
                 fontSize: "12.5px",
               }}
@@ -1433,7 +1450,7 @@ export default function ContribuicaoColetiva({
                   <button
                     onClick={() => apagar(g)}
                     className="ligacao"
-                    style={{ fontSize: "11.5px", color: "#B91C1C" }}
+                    style={{ fontSize: "11.5px", color: "var(--perigo-texto)" }}
                   >
                     Apagar
                   </button>
@@ -1443,7 +1460,7 @@ export default function ContribuicaoColetiva({
                   onClick={() => setGrupoParaApagar(g.chave)}
                   title="Apagar esta contribuição"
                   className="icone-botao icone-botao--perigo"
-                  style={{ color: "#B91C1C", padding: "4px 6px", flexShrink: 0 }}
+                  style={{ color: "var(--perigo-texto)", padding: "4px 6px", flexShrink: 0 }}
                 >
                   <Icone nome="lixo" tamanho={14} />
                 </button>
@@ -1456,7 +1473,7 @@ export default function ContribuicaoColetiva({
         <p
           style={{
             fontSize: "12px",
-            color: "#9B9B9B",
+            color: "var(--texto-apagado)",
             fontStyle: "italic",
             margin: "14px 0 0",
           }}

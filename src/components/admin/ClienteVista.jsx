@@ -63,9 +63,19 @@ const formatarData = (iso) => {
 
 const EASE = [0.22, 1, 0.36, 1];
 
+// O framer-motion resolve var(--…) ao animar — o tema entra também no
+// hover destes cartões.
 const cartaoVariants = {
-  rest: { backgroundColor: "#FFFFFF", borderColor: "#F0E6D0", y: 0 },
-  hover: { backgroundColor: "#FBF7EF", borderColor: "#E8D5A3", y: -1.5 },
+  rest: {
+    backgroundColor: "var(--superficie)",
+    borderColor: "var(--borda)",
+    y: 0,
+  },
+  hover: {
+    backgroundColor: "var(--superficie-quente)",
+    borderColor: "var(--ouro-suave)",
+    y: -1.5,
+  },
 };
 
 export default function ClienteVista({
@@ -190,7 +200,7 @@ export default function ClienteVista({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
             border: "1px solid var(--gold-light)",
             color: "var(--gold-dark)",
             fontFamily: "Playfair Display, serif",
@@ -249,6 +259,10 @@ export default function ClienteVista({
       {eventos.length === 0 ? (
         <div
           style={{
+            // #DFD3B8/#FCFBF7 estão fora da paleta — o par inteiro fica
+            // literal (ilha clara nos dois modos) e segue no relatório;
+            // os textos de dentro fixam-se no literal claro para nunca
+            // ficar letra clara sobre fundo claro no escuro.
             border: "1px dashed #DFD3B8",
             borderRadius: "14px",
             padding: "28px 24px",
@@ -260,7 +274,7 @@ export default function ClienteVista({
             style={{
               fontFamily: "Playfair Display, serif",
               fontSize: "17px",
-              color: "var(--charcoal)",
+              color: "#1A1A1A",
               margin: "0 0 6px",
             }}
           >
@@ -269,7 +283,7 @@ export default function ClienteVista({
           <p
             style={{
               fontSize: "12.5px",
-              color: "var(--gray-mid)",
+              color: "#6B6B6B",
               margin: "0 0 18px",
               lineHeight: 1.6,
             }}
@@ -319,10 +333,10 @@ export default function ClienteVista({
                 gap: "12px",
                 padding: "14px 16px",
                 borderRadius: "12px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
                 marginBottom: "10px",
                 cursor: "pointer",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+                boxShadow: "var(--sombra-cartao)",
               }}
             >
               <div style={{ minWidth: 0 }}>
@@ -385,7 +399,7 @@ export default function ClienteVista({
                     borderRadius: "50%",
                     border: "none",
                     background: "transparent",
-                    color: "#C4C4C4",
+                    color: "var(--traco-discreto)",
                     cursor: "pointer",
                   }}
                 >
@@ -411,7 +425,7 @@ export default function ClienteVista({
             padding: "14px",
             borderRadius: "12px",
             border: "1.5px solid var(--gold-light)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
           }}
         >
           <p
@@ -426,17 +440,19 @@ export default function ClienteVista({
           </p>
           <BotaoFase
             onClick={() => novoEvento("interessado")}
-            borda="#F0D9B5"
-            fundo="#FEF3E2"
-            cor="#B45309"
+            borda="var(--aviso-borda)"
+            fundo="var(--aviso-fundo)"
+            cor="var(--aviso)"
             titulo="🟡 Ainda a decidir"
             nota="Vai precisar de orçamento"
           />
           <BotaoFase
             onClick={() => novoEvento("cliente")}
+            // #BBE5C8 está fora da paleta (--sucesso-borda é #BBF7D0) —
+            // fica literal e segue no relatório de violações.
             borda="#BBE5C8"
-            fundo="#DCFCE7"
-            cor="#166534"
+            fundo="var(--sucesso-fundo-forte)"
+            cor="var(--sucesso-texto)"
             titulo="🟢 Já fechado"
             nota="A cliente confirmou o evento"
           />

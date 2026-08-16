@@ -115,7 +115,7 @@ export default function RemoverEventoModal({
         position: "fixed",
         inset: 0,
         zIndex: 150,
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "var(--cortina)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -125,11 +125,13 @@ export default function RemoverEventoModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           padding: "24px",
           maxWidth: "400px",
           width: "100%",
+          // Quase --sombra-flutuante (48px ≠ 28px de desfoque) —
+          // sombra preta fica literal.
           boxShadow: "0 8px 48px rgba(0,0,0,0.15)",
         }}
       >
@@ -175,6 +177,11 @@ export default function RemoverEventoModal({
               <div
                 style={{
                   fontSize: "12px",
+                  // O tinto #7F1D1D está fora da paleta (--perigo-texto
+                  // é #B91C1C) — o par inteiro fica literal: ilha clara
+                  // com letra escura nos dois modos, nunca letra escura
+                  // sobre fundo escuro. O fundo e a borda seguem com o
+                  // par; vai na lista para o Hélio.
                   color: "#7F1D1D",
                   backgroundColor: "#FEF2F2",
                   border: "1.5px solid #EF4444",
@@ -216,9 +223,9 @@ export default function RemoverEventoModal({
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#B91C1C",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  color: "var(--perigo-texto)",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "8px",
                   padding: "10px 14px",
                   margin: "0 0 10px 0",
@@ -240,9 +247,9 @@ export default function RemoverEventoModal({
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#92400E",
-                  backgroundColor: "#FEF3E2",
-                  border: "1px solid #F0D9B5",
+                  color: "var(--aviso-texto)",
+                  backgroundColor: "var(--aviso-fundo)",
+                  border: "1px solid var(--aviso-borda)",
                   margin: "0 0 10px 0",
                   borderRadius: "8px",
                   padding: "10px 14px",
@@ -257,9 +264,9 @@ export default function RemoverEventoModal({
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#92400E",
-                  backgroundColor: "#FEF3E2",
-                  border: "1px solid #F0D9B5",
+                  color: "var(--aviso-texto)",
+                  backgroundColor: "var(--aviso-fundo)",
+                  border: "1px solid var(--aviso-borda)",
                   margin: "0 0 10px 0",
                   borderRadius: "8px",
                   padding: "10px 14px",
@@ -287,6 +294,10 @@ export default function RemoverEventoModal({
           <p
             style={{
               fontSize: "12px",
+              // #EF4444 como TEXTO fica literal (padrão registado: o
+              // token deste valor é o perigo CHEIO, escuro demais para
+              // letra no modo escuro) — e o par fundo/borda fica com
+              // ele: ilha clara legível nos dois modos. Vai na lista.
               color: "#EF4444",
               backgroundColor: "#FEF2F2",
               border: "1px solid #FECACA",
@@ -309,7 +320,7 @@ export default function RemoverEventoModal({
               fontSize: "13px",
               border: "1.5px solid var(--gold-light)",
               color: "var(--gray-mid)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               cursor: "pointer",
             }}
           >
@@ -329,7 +340,12 @@ export default function RemoverEventoModal({
               fontSize: "13px",
               fontWeight: "600",
               border: "none",
-              backgroundColor: desativado ? "#FCA5A5" : "#EF4444",
+              // #EF4444 é exactamente o papel e o valor do botão de
+              // perigo cheio. O rosa #FCA5A5 do estado bloqueado está
+              // fora da paleta e fica literal; vai na lista. O branco
+              // fica literal nos dois modos (o escuro do cheio foi
+              // desenhado para letra branca).
+              backgroundColor: desativado ? "#FCA5A5" : "var(--perigo-cheio)",
               color: "white",
               cursor: desativado ? "not-allowed" : "pointer",
             }}

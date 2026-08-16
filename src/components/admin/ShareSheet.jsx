@@ -39,6 +39,9 @@ export default function ShareSheet({
             position: "fixed",
             inset: 0,
             zIndex: 60,
+            // O véu 0.5 não é a cortina da casa (0.35) — véu divergente
+            // fora do padrão registado: fica literal e segue no
+            // relatório.
             backgroundColor: "rgba(0,0,0,0.5)",
             display: "flex",
             alignItems: "flex-end",
@@ -52,7 +55,7 @@ export default function ShareSheet({
             exit={{ y: "100%" }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "20px 20px 0 0",
               padding: "24px 24px 40px",
               width: "100%",
@@ -66,6 +69,9 @@ export default function ShareSheet({
                 width: "40px",
                 height: "4px",
                 borderRadius: "999px",
+                // #E5E7EB é o valor de --neutro-borda, mas o papel do
+                // token é a borda dos estados neutros — a pega da folha
+                // fica literal e segue no relatório
                 backgroundColor: "#E5E7EB",
                 margin: "0 auto 20px",
               }}
@@ -92,7 +98,10 @@ export default function ShareSheet({
                 marginBottom: "24px",
               }}
             >
-              {/* WhatsApp */}
+              {/* WhatsApp — o verde #25D366 e o degradê do Instagram
+                  (abaixo) são MARCAS de terceiros, não tema: ficam
+                  literais, com o branco dos glifos também literal
+                  (regra do par; fill/stroke são atributos SVG). */}
               <button
                 onClick={() => {
                   const msg = encodeURIComponent(getShareMessage(shareTarget));
@@ -206,6 +215,11 @@ export default function ShareSheet({
                     width: "60px",
                     height: "60px",
                     borderRadius: "16px",
+                    // O par do mosaico fica literal: o repouso #F3F4F6
+                    // está fora da paleta (--neutro-fundo é #F9FAFB) e
+                    // o verde é preenchimento — a família sucesso não
+                    // tem «cheio» (no escuro --sucesso é verde de
+                    // texto e o ✓ branco perdia-se). Vai na lista.
                     backgroundColor:
                       copiedId === `msg-${shareTarget.id}`
                         ? "#22C55E"
@@ -245,7 +259,7 @@ export default function ShareSheet({
                     transition: "all 0.3s",
                     color:
                       copiedId === `msg-${shareTarget.id}`
-                        ? "#22C55E"
+                        ? "var(--sucesso)"
                         : "var(--charcoal)",
                   }}
                 >

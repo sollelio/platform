@@ -94,6 +94,7 @@ function LinhaPagamento({ pagamento, nova, onPedirApagar }) {
         alignItems: "center",
         gap: "10px",
         padding: "8px 0",
+        // #F1EAD6 (fio das linhas) está fora da paleta — fica literal.
         borderTop: "1px solid #F1EAD6",
         fontSize: "12px",
       }}
@@ -112,7 +113,7 @@ function LinhaPagamento({ pagamento, nova, onPedirApagar }) {
         title="Apagar este pagamento"
         className="icone-botao icone-botao--perigo"
         style={{
-          color: "#B91C1C",
+          color: "var(--perigo-texto)",
           padding: "4px 6px",
           flexShrink: 0,
         }}
@@ -135,7 +136,7 @@ function Numero({ rotulo, valor, texto, cor, rotuloCor }) {
         style={{
           margin: "0 0 4px",
           fontSize: "10px",
-          color: rotuloCor || "#9B9B9B",
+          color: rotuloCor || "var(--texto-apagado)",
           textTransform: "uppercase",
           letterSpacing: "0.14em",
         }}
@@ -214,6 +215,7 @@ function BarraDoQueEntrou({ total, pago, falta, previstos, pagamentos }) {
         style={{
           height: "5px",
           borderRadius: "999px",
+          // #F1EBDD (calha da barra) está fora da paleta — fica literal.
           backgroundColor: "#F1EBDD",
           overflow: "hidden",
         }}
@@ -264,7 +266,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         border: "1px solid var(--gold-light)",
         borderRadius: "10px",
         padding: "14px",
@@ -347,7 +349,7 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
           style={{
             gridColumn: "1 / -1",
             fontSize: "11px",
-            color: "#B91C1C",
+            color: "var(--perigo-texto)",
             margin: 0,
           }}
         >
@@ -461,9 +463,9 @@ function BlocoPrevisto({ previsto, pagamentosDoPrevisto, formularioAberto, novoI
             style={{
               fontSize: "11px",
               fontWeight: "600",
-              color: "#166534",
-              backgroundColor: "#DCFCE7",
-              border: "1px solid #BBF7D0",
+              color: "var(--sucesso-texto)",
+              backgroundColor: "var(--sucesso-fundo-forte)",
+              border: "1px solid var(--sucesso-borda)",
               borderRadius: "999px",
               padding: "3px 10px",
             }}
@@ -525,13 +527,13 @@ function PainelGuardaDia({ guarda, dataEvento, aForcar, onForcar, onVoltar }) {
   const linha = {
     fontSize: "13px",
     fontWeight: "700",
-    color: "#92400E",
+    color: "var(--aviso-texto)",
     lineHeight: 1.5,
     margin: "0 0 6px",
   };
   const corpo = {
     fontSize: "12.5px",
-    color: "#92400E",
+    color: "var(--aviso-texto)",
     lineHeight: 1.55,
     margin: "0 0 10px",
   };
@@ -544,16 +546,16 @@ function PainelGuardaDia({ guarda, dataEvento, aForcar, onForcar, onVoltar }) {
   };
   const btnCalmo = {
     ...btnBase,
-    border: "1.5px solid #F0D9B5",
-    backgroundColor: "white",
-    color: "#92400E",
+    border: "1.5px solid var(--aviso-borda)",
+    backgroundColor: "var(--superficie)",
+    color: "var(--aviso-texto)",
   };
 
   return (
     <div
       style={{
-        backgroundColor: "#FEF3E2",
-        border: "1.5px solid #F0D9B5",
+        backgroundColor: "var(--aviso-fundo)",
+        border: "1.5px solid var(--aviso-borda)",
         borderRadius: "12px",
         padding: "12px 14px",
         marginTop: "8px",
@@ -605,7 +607,7 @@ function PainelGuardaDia({ guarda, dataEvento, aForcar, onForcar, onVoltar }) {
                 ...btnBase,
                 border: "1.5px solid var(--gold)",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
               }}
             >
               {aForcar ? "A registar..." : "Registar na mesma"}
@@ -623,7 +625,7 @@ function PainelGuardaDia({ guarda, dataEvento, aForcar, onForcar, onVoltar }) {
             <p
               style={{
                 fontSize: "12px",
-                color: "#B91C1C",
+                color: "var(--perigo-texto)",
                 lineHeight: 1.5,
                 margin: "8px 0 0",
               }}
@@ -744,7 +746,7 @@ export default function PagamentosEvento({
           {aGerarPlano ? "A gerar..." : "Gerar plano de pagamento"}
         </button>
         {erroPlano && (
-          <p style={{ fontSize: "12px", color: "#B91C1C", margin: "10px 0 0" }}>
+          <p style={{ fontSize: "12px", color: "var(--perigo-texto)", margin: "10px 0 0" }}>
             {erroPlano}
           </p>
         )}
@@ -1029,19 +1031,20 @@ export default function PagamentosEvento({
           marginBottom: "18px",
           flexWrap: "wrap",
           alignItems: "flex-end",
-          backgroundColor: "white",
-          border: "1px solid #F0E6D0",
+          backgroundColor: "var(--superficie)",
+          border: "1px solid var(--borda)",
           borderRadius: "14px",
           padding: "20px 24px",
         }}
       >
         <Numero rotulo="Total" valor={total} />
-        <Numero rotulo="Recebido" valor={pago} cor="#166534" />
+        <Numero rotulo="Recebido" valor={pago} cor="var(--sucesso-texto)" />
+        {/* #B08A3C (rótulo «Falta») está fora da paleta — fica literal. */}
         <Numero
           rotulo={falta > 0 ? "Falta" : falta < 0 ? "Pago a mais" : "Estado"}
           valor={Math.abs(falta)}
           texto={falta === 0 ? "✓ Completo" : undefined}
-          cor={falta > 0 ? "var(--gold-dark)" : "#166534"}
+          cor={falta > 0 ? "var(--gold-dark)" : "var(--sucesso-texto)"}
           rotuloCor={falta > 0 ? "#B08A3C" : undefined}
         />
         {total > 0 && (
@@ -1075,7 +1078,7 @@ export default function PagamentosEvento({
             alignItems: "center",
             gap: "12px",
             flexWrap: "wrap",
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
             border: "1px solid var(--gold-light)",
             borderRadius: "12px",
             padding: "12px 16px",
@@ -1112,7 +1115,7 @@ export default function PagamentosEvento({
               style={{
                 width: "100%",
                 fontSize: "12px",
-                color: "#B91C1C",
+                color: "var(--perigo-texto)",
                 margin: 0,
               }}
             >
@@ -1223,7 +1226,7 @@ export default function PagamentosEvento({
       {MOSTRAR_GASTOS_DO_EVENTO && (
       <div
         style={{
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
           marginTop: "22px",
           paddingTop: "20px",
         }}
@@ -1240,6 +1243,10 @@ export default function PagamentosEvento({
         >
           Em preparação
         </p>
+        {/* #FCFBF7/#DFD3B8 estão fora da paleta — o par INTEIRO fica
+            literal (ilha clara com letra escura nos dois modos); o
+            título fixa o #1A1A1A para não herdar letra clara do tema
+            escuro sobre fundo claro. */}
         <div
           style={{
             flex: "1 1 260px",
@@ -1249,7 +1256,7 @@ export default function PagamentosEvento({
             backgroundColor: "#FCFBF7",
           }}
         >
-          <p style={{ fontSize: "13.5px", margin: "0 0 4px" }}>
+          <p style={{ fontSize: "13.5px", margin: "0 0 4px", color: "#1A1A1A" }}>
             Gastos do evento
           </p>
           <p
@@ -1275,7 +1282,7 @@ export default function PagamentosEvento({
             position: "fixed",
             inset: 0,
             zIndex: 150,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1285,11 +1292,12 @@ export default function PagamentosEvento({
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "24px",
               maxWidth: "380px",
               width: "100%",
+              // Sombra preta fica literal (48px ≠ 28px do --sombra-flutuante).
               boxShadow: "0 8px 48px rgba(0,0,0,0.15)",
             }}
           >
@@ -1315,9 +1323,9 @@ export default function PagamentosEvento({
               <p
                 style={{
                   fontSize: "12.5px",
-                  color: "#B91C1C",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  color: "var(--perigo-texto)",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "10px",
                   padding: "8px 12px",
                   margin: "0 0 14px",

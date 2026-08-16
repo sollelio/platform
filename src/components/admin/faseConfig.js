@@ -28,13 +28,20 @@ import { estadoFormularioDoEvento } from "../../lib/invites";
 import { FASE_LABEL, FASES_POS_SINAL } from "../../lib/fases";
 export { FASE_LABEL, FASES_POS_SINAL };
 
+// Cores de ESTADO da UI (pastilhas de fase). Só se traduziu ao token o
+// que coincide EXACTAMENTE com a tabela da identidade e no mesmo papel
+// (texto/fundo de estado); os pares fora da paleta ficam literais —
+// ilha clara com letra escura também no escuro — e seguem no relatório.
 export const FASE_COR = {
-  interessado: { bg: "#FEF3E2", cor: "#B45309" },
-  orcamento: { bg: "#FEF9C3", cor: "#854D0E" },
-  sinal: { bg: "#FFEDD5", cor: "#C2410C" },
-  cliente: { bg: "#DCFCE7", cor: "#166534" },
-  projecto: { bg: "#F3E8FF", cor: "#6B21A8" },
-  contrato: { bg: "#E0E7FF", cor: "#3730A3" },
+  interessado: { bg: "var(--aviso-fundo)", cor: "var(--aviso)" },
+  orcamento: { bg: "#FEF9C3", cor: "#854D0E" }, // amarelo fora da paleta
+  sinal: { bg: "#FFEDD5", cor: "#C2410C" }, // laranja fora da paleta
+  cliente: { bg: "var(--sucesso-fundo-forte)", cor: "var(--sucesso-texto)" },
+  projecto: { bg: "#F3E8FF", cor: "#6B21A8" }, // roxo fora da paleta
+  contrato: { bg: "#E0E7FF", cor: "#3730A3" }, // índigo fora da paleta
+  // O fundo #F3F4F6 está fora da paleta (--neutro-fundo é #F9FAFB) —
+  // o par INTEIRO fica literal (o #6B7280 até é --neutro-texto, mas
+  // não se parte o par).
   perdido: { bg: "#F3F4F6", cor: "#6B7280" },
 };
 
@@ -91,10 +98,37 @@ export const STATUS_OPTIONS = [
 ];
 
 export const STATUS_COLORS = {
-  Recebido: { bg: "#FEF9EC", color: "#C9A84C", border: "#E8D5A3" },
-  "Em Preparação": { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
-  Confirmado: { bg: "#F0FDF4", color: "#22C55E", border: "#BBF7D0" },
-  Concluído: { bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
+  // `textoActivo` é a letra de quem fica com `color` como FUNDO (a
+  // pastilha activa da Jornada): nos estados tematizados o branco
+  // morreria sobre os preenchimentos claros do modo escuro — o par
+  // certo é o do ouro (--texto-sobre-ouro, branco no claro na mesma);
+  // no azul congelado o fundo não muda, e o branco fica.
+  Recebido: {
+    bg: "var(--superficie-selo)",
+    color: "var(--ouro)",
+    border: "var(--ouro-suave)",
+    textoActivo: "var(--texto-sobre-ouro)",
+  },
+  // Azul fora da paleta da identidade — o trio fica literal e segue
+  // no relatório (ilha clara com letra azul nos dois modos).
+  "Em Preparação": {
+    bg: "#EFF6FF",
+    color: "#3B82F6",
+    border: "#BFDBFE",
+    textoActivo: "white",
+  },
+  Confirmado: {
+    bg: "var(--sucesso-fundo)",
+    color: "var(--sucesso)",
+    border: "var(--sucesso-borda)",
+    textoActivo: "var(--texto-sobre-ouro)",
+  },
+  Concluído: {
+    bg: "var(--neutro-fundo)",
+    color: "var(--neutro-texto)",
+    border: "var(--neutro-borda)",
+    textoActivo: "var(--texto-sobre-ouro)",
+  },
 };
 // ============================================================
 // ehLacunaDeFormulario — um evento que ainda NÃO tem formulário e

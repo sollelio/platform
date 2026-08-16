@@ -141,7 +141,9 @@ export const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  // Campo da MOLDURA (partilhado pelo gerador e pelo painel de
+  // deslocação) — segue o tema; a folha tem os campos dela.
+  backgroundColor: "var(--superficie)",
 };
 
 export const miniLabel = {

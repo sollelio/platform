@@ -100,7 +100,7 @@ function PastilhaEstado({ estado }) {
           <path
             d="M4.6 8.4l2.4 2.4 4.4-5"
             fill="none"
-            stroke="#FFFFFF"
+            stroke="var(--texto-sobre-ouro)"
             strokeWidth="1.7"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -119,12 +119,12 @@ function PastilhaEstado({ estado }) {
           width: "7px",
           height: "7px",
           borderRadius: "50%",
-          border: "1.5px solid #9B9B9B",
+          border: "1.5px solid var(--texto-apagado)",
           boxSizing: "border-box",
           flexShrink: 0,
         }}
       />
-      <span style={{ fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.16em", color: "#6B7280" }}>
+      <span style={{ fontSize: "9.5px", fontWeight: "700", letterSpacing: "0.16em", color: "var(--neutro-texto)" }}>
         {estado === "retirada" ? "RETIRADA" : "POR PUBLICAR"}
       </span>
     </span>
@@ -143,26 +143,26 @@ const OVERLINE = {
 };
 
 const SECCAO = {
-  backgroundColor: "white",
-  border: "1px solid #F0E6D0",
+  backgroundColor: "var(--superficie)",
+  border: "1px solid var(--borda)",
   borderRadius: "12px",
   padding: "18px 22px",
   marginTop: "14px",
 };
 
 const SECCAO_CENTRAL = {
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   border: "1.5px solid var(--gold-light)",
   borderRadius: "16px",
   padding: "26px 26px 24px",
   marginTop: "14px",
   textAlign: "center",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+  boxShadow: "var(--sombra-cartao)",
 };
 
 const SECCAO_DORMENTE = {
   ...SECCAO,
-  backgroundColor: "#FDFBF5",
+  backgroundColor: "var(--superficie-espera)",
   borderStyle: "dashed",
 };
 
@@ -177,7 +177,7 @@ const NOTA_DORMENTE = {
   margin: "6px 0 0",
   fontSize: "12.5px",
   fontStyle: "italic",
-  color: "#9B9B9B",
+  color: "var(--texto-apagado)",
   lineHeight: 1.6,
 };
 
@@ -198,7 +198,7 @@ const PASTILHA_REVER = {
   letterSpacing: "0.1em",
   textTransform: "uppercase",
   color: "var(--gold-dark)",
-  backgroundColor: "#FEF9EC",
+  backgroundColor: "var(--superficie-selo)",
   border: "1px solid var(--gold-light)",
   borderRadius: "999px",
   padding: "2px 8px",
@@ -246,9 +246,9 @@ function PilulasDoPercurso({ passos }) {
             padding: "5px 12px",
             borderRadius: "999px",
             whiteSpace: "nowrap",
-            border: `1.5px solid ${p.feito ? "var(--gold-light)" : p.activa ? "var(--gold)" : "#E8DCC0"}`,
-            color: p.feito ? "var(--gold-dark)" : p.activa ? "var(--charcoal)" : "#9B9B9B",
-            backgroundColor: p.feito ? "#FEF9EC" : p.activa ? "#FBF7EF" : "white",
+            border: `1.5px solid ${p.feito ? "var(--gold-light)" : p.activa ? "var(--gold)" : "var(--aro)"}`,
+            color: p.feito ? "var(--gold-dark)" : p.activa ? "var(--charcoal)" : "var(--texto-apagado)",
+            backgroundColor: p.feito ? "var(--superficie-selo)" : p.activa ? "var(--superficie-quente)" : "var(--superficie)",
             opacity: p.esmaecida ? 0.45 : 1,
           }}
         >
@@ -534,7 +534,7 @@ function PercursoComunicado({
           margin: "12px 0 0",
           maxWidth: "400px",
           boxSizing: "border-box",
-          backgroundColor: "#FBF7EF",
+          backgroundColor: "var(--superficie-quente)",
           border: "1px solid var(--gold-light)",
           borderRadius: "12px",
           padding: "13px 16px",
@@ -605,10 +605,10 @@ function PercursoComunicado({
             className="acao"
             style={{
               padding: "8px 14px",
-              border: "1px solid #FECACA",
+              border: "1px solid var(--perigo-borda)",
               borderRadius: "999px",
-              backgroundColor: "#FEF2F2",
-              color: "#DC2626",
+              backgroundColor: "var(--perigo-fundo)",
+              color: "var(--perigo)",
               fontSize: "12px",
               fontWeight: "600",
             }}
@@ -653,7 +653,7 @@ function PercursoComunicado({
           lineHeight: 1.3,
           fontWeight: "400",
           textWrap: "balance",
-          color: comunicado.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
+          color: comunicado.titulo?.trim() ? "var(--charcoal)" : "var(--texto-apagado)",
         }}
       >
         {comunicado.titulo?.trim() || "Sem título, por enquanto"}
@@ -667,6 +667,9 @@ function PercursoComunicado({
             display: "flex",
             alignItems: "center",
             gap: "8px",
+            // Par literal: #F4F4F2/#D9D9D4 estão fora da paleta (vão na
+            // lista de violações) — fundo, letra e anel ficam juntos nos
+            // cinzas claros: ilha clara legível nos dois modos.
             backgroundColor: "#F4F4F2",
             border: "1px solid #D9D9D4",
             borderRadius: "10px",
@@ -699,7 +702,7 @@ function PercursoComunicado({
             alignItems: "center",
             gap: "10px",
             marginTop: "16px",
-            backgroundColor: "#FEF9EC",
+            backgroundColor: "var(--superficie-selo)",
             border: "1px solid var(--gold-light)",
             borderRadius: "10px",
             padding: "10px 14px",
@@ -711,7 +714,7 @@ function PercursoComunicado({
             <path
               d="M4.6 8.4l2.4 2.4 4.4-5"
               fill="none"
-              stroke="#FFFFFF"
+              stroke="var(--texto-sobre-ouro)"
               strokeWidth="1.7"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -735,7 +738,7 @@ function PercursoComunicado({
             alignItems: "center",
             gap: "12px",
             marginTop: "16px",
-            backgroundColor: "#FEF9EC",
+            backgroundColor: "var(--superficie-selo)",
             border: "1px solid var(--gold-light)",
             borderRadius: "14px",
             padding: "15px 16px",
@@ -746,7 +749,7 @@ function PercursoComunicado({
             <path
               d="M4.6 8.4l2.4 2.4 4.4-5"
               fill="none"
-              stroke="#FFFFFF"
+              stroke="var(--texto-sobre-ouro)"
               strokeWidth="1.7"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -796,7 +799,7 @@ function PercursoComunicado({
               borderRadius: "12px",
               fontSize: "13.5px",
               fontWeight: "600",
-              boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+              boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
             }}
           >
             Rever a folha
@@ -847,7 +850,7 @@ function PercursoComunicado({
                 borderRadius: "12px",
                 fontSize: "13px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
               }}
             >
               Voltar a publicar
@@ -860,6 +863,8 @@ function PercursoComunicado({
       ) : estado === "por publicar" ? (
         activaIdx === 0 ? (
           <section style={SECCAO_DORMENTE}>
+            {/* #B9A97E (overline dormente) está fora da paleta — fica
+                literal e vai na lista de violações. */}
             <div style={{ ...OVERLINE, color: "#B9A97E" }}>2 · Publicar</div>
             <p style={NOTA_DORMENTE}>Abre com a folha revista e guardada.</p>
           </section>
@@ -873,13 +878,13 @@ function PercursoComunicado({
                   margin: "16px auto 0",
                   maxWidth: "400px",
                   boxSizing: "border-box",
-                  backgroundColor: "#FDFBF5",
-                  border: "1.5px dashed #E8DCC0",
+                  backgroundColor: "var(--superficie-espera)",
+                  border: "1.5px dashed var(--aro)",
                   borderRadius: "12px",
                   padding: "13px 16px",
                   fontSize: "12.5px",
                   fontStyle: "italic",
-                  color: "#9B9B9B",
+                  color: "var(--texto-apagado)",
                 }}
               >
                 — ainda sem endereço —
@@ -894,7 +899,7 @@ function PercursoComunicado({
                   borderRadius: "12px",
                   fontSize: "13.5px",
                   fontWeight: "600",
-                  boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                  boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                 }}
               >
                 Publicar a folha
@@ -922,7 +927,7 @@ function PercursoComunicado({
       )}
 
       {erro && (
-        <p role="alert" style={{ margin: "12px 0 0", fontSize: "12.5px", color: "#DC2626" }}>
+        <p role="alert" style={{ margin: "12px 0 0", fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro}
         </p>
       )}
@@ -977,6 +982,7 @@ function PercursoComunicado({
         </section>
       ) : (
         <section style={SECCAO_DORMENTE}>
+          {/* o mesmo #B9A97E fora de paleta — fica. */}
           <div style={{ ...OVERLINE, color: "#B9A97E" }}>3 · Quem recebe</div>
           <p style={NOTA_DORMENTE}>
             {retirada ? "Abre quando a folha voltar ao ar." : "Abre quando a folha tiver endereço."}
@@ -1071,7 +1077,7 @@ function PercursoComunicado({
                       borderRadius: "12px",
                       fontSize: "13.5px",
                       fontWeight: "600",
-                      boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+                      boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
                     }}
                   >
                     Enviar →
@@ -1094,6 +1100,9 @@ function PercursoComunicado({
                       borderRadius: "12px",
                       fontSize: "13.5px",
                       fontWeight: "600",
+                      // Par literal: o apagado #B0A68E está fora da paleta
+                      // (vai na lista de violações) e o par não se traduz
+                      // a meio — botão inerte igual nos dois modos.
                       backgroundColor: "#E8DCC0",
                       color: "#B0A68E",
                       cursor: "default",
@@ -1372,20 +1381,20 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
           color: var(--gray-mid);
         }
         .dlm-retirar:hover:not(:disabled) {
-          color: #DC2626;
-          background-color: #FEF2F2;
+          color: var(--perigo);
+          background-color: var(--perigo-fundo);
         }
         .dlm-cartao-com {
-          background-color: #fff;
-          border: 1px solid #F0E6D0;
+          background-color: var(--superficie);
+          border: 1px solid var(--borda);
         }
         .dlm-apagar-com:hover {
-          color: #DC2626;
-          background-color: #FEF2F2;
+          color: var(--perigo);
+          background-color: var(--perigo-fundo);
         }
         .dlm-cartao-com:hover {
           border-color: var(--gold-light);
-          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          box-shadow: var(--sombra-cartao);
         }
         .dlm-tab-com:hover:not(.dlm-tab-com--activa) {
           color: var(--charcoal);
@@ -1447,7 +1456,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                 gap: "22px",
                 marginTop: "12px",
                 marginBottom: "22px",
-                borderBottom: "1px solid #F0E6D0",
+                borderBottom: "1px solid var(--borda)",
               }}
             >
               {[
@@ -1530,7 +1539,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
               </div>
 
               {erroLista && (
-                <p role="alert" style={{ maxWidth: "640px", fontSize: "12.5px", color: "#DC2626", margin: "0 0 14px" }}>
+                <p role="alert" style={{ maxWidth: "640px", fontSize: "12.5px", color: "var(--perigo)", margin: "0 0 14px" }}>
                   {erroLista}{" "}
                   <button
                     onClick={carregar}
@@ -1543,7 +1552,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
               )}
 
               {erroApagar && (
-                <p role="alert" style={{ margin: "0 0 12px", fontSize: "12.5px", color: "#DC2626", maxWidth: "640px" }}>
+                <p role="alert" style={{ margin: "0 0 12px", fontSize: "12.5px", color: "var(--perigo)", maxWidth: "640px" }}>
                   {erroApagar}
                 </p>
               )}
@@ -1617,7 +1626,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                               style={{
                                 fontSize: "14.5px",
                                 fontWeight: c.titulo?.trim() ? "600" : "400",
-                                color: c.titulo?.trim() ? "var(--charcoal)" : "#9B9B9B",
+                                color: c.titulo?.trim() ? "var(--charcoal)" : "var(--texto-apagado)",
                                 fontStyle: c.titulo?.trim() ? "normal" : "italic",
                                 overflow: "hidden",
                                 whiteSpace: "nowrap",
@@ -1645,10 +1654,10 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                                 flex: "none",
                                 alignSelf: "center",
                                 padding: "8px 12px",
-                                border: "1px solid #FECACA",
+                                border: "1px solid var(--perigo-borda)",
                                 borderRadius: "999px",
-                                backgroundColor: "#FEF2F2",
-                                color: "#DC2626",
+                                backgroundColor: "var(--perigo-fundo)",
+                                color: "var(--perigo)",
                                 fontSize: "11.5px",
                                 fontWeight: "600",
                                 whiteSpace: "nowrap",
@@ -1673,7 +1682,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                                 border: "none",
                                 borderRadius: "8px",
                                 background: "transparent",
-                                color: "#C4C4C4",
+                                color: "var(--traco-discreto)",
                               }}
                             >
                               <svg
@@ -1711,7 +1720,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                               border: "none",
                               borderRadius: "8px",
                               background: "transparent",
-                              color: "#C4C4C4",
+                              color: "var(--traco-discreto)",
                               opacity: 0.45,
                             }}
                           >
@@ -1738,8 +1747,8 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                             margin: "8px 0 0",
                             fontSize: "11.5px",
                             color: "var(--gray-mid)",
-                            backgroundColor: "#FDFBF5",
-                            border: "1px solid #E8DCC0",
+                            backgroundColor: "var(--superficie-espera)",
+                            border: "1px solid var(--aro)",
                             borderRadius: "8px",
                             padding: "7px 10px",
                             lineHeight: 1.6,
@@ -1779,7 +1788,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
             position: "fixed",
             inset: 0,
             zIndex: 150,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1789,7 +1798,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "22px 24px",
               maxWidth: "460px",
@@ -1812,7 +1821,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
                 Começar de um modelo
               </p>
               {erroEscolhedor ? (
-                <p style={{ fontSize: "12px", color: "#DC2626", margin: "0 0 12px" }}>
+                <p style={{ fontSize: "12px", color: "var(--perigo)", margin: "0 0 12px" }}>
                   {erroEscolhedor}{" "}
                   <button
                     onClick={carregarModelosEscolha}
@@ -1879,7 +1888,7 @@ export default function ComunicadosTab({ rotaP1, rotaP2, aoNavegarRota }) {
             {/* Via 2: começar do zero */}
             <div
               style={{
-                border: "1.5px solid #F0E6D0",
+                border: "1.5px solid var(--borda)",
                 borderRadius: "12px",
                 padding: "16px",
                 marginBottom: "16px",

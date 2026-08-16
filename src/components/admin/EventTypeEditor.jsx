@@ -218,7 +218,7 @@ const inputBaseStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };
 const labelStyle = {
   fontSize: "11px",
@@ -243,6 +243,9 @@ const deleteIconBtnStyle = {
   background: "none",
   border: "none",
   cursor: "pointer",
+  // O valor é o do --perigo-cheio, mas o PAPEL aqui é texto/ícone —
+  // no escuro esse token é vermelho de preenchimento, escuro demais
+  // para letra. Fica literal (lê-se nos dois modos) e vai na lista.
   color: "#EF4444",
   padding: "6px",
   flexShrink: 0,
@@ -254,6 +257,11 @@ const confirmDeleteBtnStyle = {
   ...deleteIconBtnStyle,
   fontSize: "11px",
   fontWeight: "700",
+  // Par literal: #DC2626 é o valor de --perigo, mas o papel é botão
+  // CHEIO — no escuro esse token é salmão de texto e a letra branca
+  // deixava de se ler. O cheio da identidade é --perigo-cheio
+  // (#EF4444), outro valor; não se aproxima e segue no relatório.
+  // Branco sobre #DC2626 lê-se nos dois modos.
   backgroundColor: "#DC2626",
   color: "white",
   borderRadius: "8px",
@@ -423,7 +431,7 @@ function OptionsZone({
           fontWeight: "600",
           border: "1px solid var(--gold-light)",
           color: "var(--gold)",
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           cursor: "pointer",
         }}
       >
@@ -483,10 +491,10 @@ function FieldRow({
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         borderRadius: "12px",
         padding: "14px",
-        border: "1px solid #F0E6D0",
+        border: "1px solid var(--borda)",
       }}
     >
       <div
@@ -693,7 +701,7 @@ function StepCard({
       >
         <div
           style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             borderRadius: "12px",
             padding: "10px 14px",
             marginBottom: "10px",
@@ -752,11 +760,11 @@ function StepCard({
     >
       <div
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           padding: "18px",
           marginBottom: "16px",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+          boxShadow: "var(--sombra-cartao)",
           border: "1px solid var(--gold-light)",
         }}
       >
@@ -928,7 +936,7 @@ function StepCard({
             fontWeight: "600",
             border: "1.5px solid var(--gold)",
             color: "var(--gold)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             cursor: "pointer",
           }}
         >
@@ -1463,6 +1471,10 @@ export default function EventTypeEditor({
             <p
               style={{
                 fontSize: "12px",
+                // O âmbar #FEF3C7/#FDE68A está fora da família de aviso
+                // da identidade (#FEF3E2/#F0D9B5) — o par fica INTEIRO
+                // literal (ilha clara com letra escura nos dois modos,
+                // nunca letra clara sobre fundo claro) e vai na lista.
                 color: "#92400E",
                 backgroundColor: "#FEF3C7",
                 border: "1px solid #FDE68A",
@@ -1552,7 +1564,7 @@ export default function EventTypeEditor({
               {draggingPreview ? (
                 <div
                   style={{
-                    backgroundColor: "white",
+                    backgroundColor: "var(--superficie)",
                     borderRadius: "12px",
                     padding: "14px 18px",
                     boxShadow: "0 10px 32px rgba(0,0,0,0.2)",
@@ -1594,7 +1606,7 @@ export default function EventTypeEditor({
           style={{
             position: "sticky",
             bottom: 0,
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             borderTop: "1px solid var(--gold-light)",
             padding: "16px 20px",
           }}
@@ -1603,6 +1615,8 @@ export default function EventTypeEditor({
             <p
               style={{
                 fontSize: "12px",
+                // Mesmo caso do lápis de remover (deleteIconBtnStyle):
+                // valor do --perigo-cheio, papel de texto — fica literal.
                 color: "#EF4444",
                 margin: "0 0 10px 0",
                 textAlign: "right",
@@ -1622,7 +1636,7 @@ export default function EventTypeEditor({
                 fontSize: "13px",
                 border: "1.5px solid var(--gold-light)",
                 color: "var(--gray-mid)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 cursor: "pointer",
               }}
             >
@@ -1637,8 +1651,11 @@ export default function EventTypeEditor({
                 fontSize: "13px",
                 fontWeight: "600",
                 border: "none",
-                color: "white",
-                backgroundColor: saving ? "var(--gold-light)" : "var(--gold)",
+                color: "var(--texto-sobre-ouro)",
+                // O ouro pálido do «A gravar…» fica literal (mesma razão
+                // do botão Entrar do login): o token equivalente no escuro
+                // é tom de borda, e um botão a meio do gesto não se apaga.
+                backgroundColor: saving ? "#E8D5A3" : "var(--gold)",
                 cursor: saving ? "not-allowed" : "pointer",
               }}
             >

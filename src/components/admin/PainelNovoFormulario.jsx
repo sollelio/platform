@@ -128,12 +128,14 @@ function DadosCaptacao({ submissao }) {
                 style={{
                   flexShrink: 0,
                   border: "1px solid var(--gold-light)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   borderRadius: "999px",
                   padding: "3px 10px",
                   fontSize: "11px",
                   color:
-                    copiado === rotulo ? "#166534" : "var(--gold-dark)",
+                    copiado === rotulo
+                      ? "var(--sucesso-texto)"
+                      : "var(--gold-dark)",
                   cursor: "pointer",
                 }}
               >
@@ -345,8 +347,10 @@ export default function PainelNovoFormulario({
                 return (
                   <div
                     style={{
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       borderRadius: "16px",
+                      // Sombra preta fica literal (≠ --sombra-cartao);
+                      // no escuro é a borda dourada que separa.
                       boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
                       marginBottom: "20px",
                       border: "1px solid var(--gold-light)",
@@ -385,7 +389,7 @@ export default function PainelNovoFormulario({
                       {eventoContexto && (
                         <div
                           style={{
-                            backgroundColor: "#FBF7EF",
+                            backgroundColor: "var(--superficie-quente)",
                             border: "1px solid var(--gold-light)",
                             borderRadius: "10px",
                             padding: "12px 14px",
@@ -537,9 +541,9 @@ export default function PainelNovoFormulario({
                               <p
                                 style={{
                                   fontSize: "11.5px",
-                                  color: "#92400E",
-                                  backgroundColor: "#FEF3E2",
-                                  border: "1px solid #F0D9B5",
+                                  color: "var(--aviso-texto)",
+                                  backgroundColor: "var(--aviso-fundo)",
+                                  border: "1px solid var(--aviso-borda)",
                                   borderRadius: "8px",
                                   padding: "8px 12px",
                                   margin: "8px 0 0 0",
@@ -568,9 +572,9 @@ export default function PainelNovoFormulario({
                         <p
                           style={{
                             fontSize: "12px",
-                            color: "#92400E",
-                            backgroundColor: "#FEF3E2",
-                            border: "1px solid #F0D9B5",
+                            color: "var(--aviso-texto)",
+                            backgroundColor: "var(--aviso-fundo)",
+                            border: "1px solid var(--aviso-borda)",
                             borderRadius: "10px",
                             padding: "10px 14px",
                             margin: "0 0 16px 0",
@@ -675,33 +679,48 @@ export default function PainelNovoFormulario({
                               >
                                 ✕ remover
                               </button>
-                              <FormField
-                                field={{ ...field, required: false }}
-                                value={newInvite.valores[field.id]}
-                                onChange={(id, val) =>
-                                  handleChangeValorCampo(id, val)
-                                }
-                                error={newInviteErrors[field.id]}
-                                onClearError={(id) =>
-                                  setNewInviteErrors((prev) => {
-                                    const n = { ...prev };
-                                    delete n[id];
-                                    return n;
-                                  })
-                                }
-                              />
+                              {/* O FormField é peça PÚBLICA embutida no
+                                  admin (a mesma do formulário da cliente)
+                                  — as cores dele são as da vitrina e não
+                                  seguem o tema. A classe .papel reancora
+                                  os tokens ao claro dentro desta ilha: no
+                                  escuro, o painel escurece e o campo fica
+                                  como papel em cima da mesa (no claro a
+                                  classe é um no-op, valores idênticos). */}
+                              <div className="papel">
+                                <FormField
+                                  field={{ ...field, required: false }}
+                                  value={newInvite.valores[field.id]}
+                                  onChange={(id, val) =>
+                                    handleChangeValorCampo(id, val)
+                                  }
+                                  error={newInviteErrors[field.id]}
+                                  onClearError={(id) =>
+                                    setNewInviteErrors((prev) => {
+                                      const n = { ...prev };
+                                      delete n[id];
+                                      return n;
+                                    })
+                                  }
+                                />
+                              </div>
                               {/* O aviso da disputa vive colado ao campo
                                   que lhe dá origem — por baixo da Data
                                   do Evento, e só quando há rivais. */}
                               {campoAncoraDisputa &&
                                 field.id === campoAncoraDisputa.id &&
                                 (irmaosDia.length > 0 || falhouDia) && (
-                                  <AvisoDiaDisputado
-                                    dataISO={dataEscolhida}
-                                    irmaos={irmaosDia}
-                                    falhou={falhouDia}
-                                    estilo={{ marginTop: "8px" }}
-                                  />
+                                  <div className="papel">
+                                    {/* Peça pública partilhada — vai
+                                        dentro de .papel, como o
+                                        FormField acima. */}
+                                    <AvisoDiaDisputado
+                                      dataISO={dataEscolhida}
+                                      irmaos={irmaosDia}
+                                      falhou={falhouDia}
+                                      estilo={{ marginTop: "8px" }}
+                                    />
+                                  </div>
                                 )}
                             </div>
                           ))}
@@ -726,7 +745,7 @@ export default function PainelNovoFormulario({
                       style={{
                         padding: "16px 24px",
                         borderTop: "1px solid var(--gold-light)",
-                        backgroundColor: "#FBF7EF",
+                        backgroundColor: "var(--superficie-quente)",
                         borderRadius: "0 0 16px 16px",
                         flexShrink: 0,
                       }}
@@ -751,9 +770,9 @@ export default function PainelNovoFormulario({
                         <p
                           style={{
                             fontSize: "12.5px",
-                            color: "#B91C1C",
-                            backgroundColor: "#FEF2F2",
-                            border: "1px solid #FECACA",
+                            color: "var(--perigo-texto)",
+                            backgroundColor: "var(--perigo-fundo)",
+                            border: "1px solid var(--perigo-borda)",
                             borderRadius: "8px",
                             padding: "10px 12px",
                             margin: "0 0 12px",
@@ -786,7 +805,7 @@ export default function PainelNovoFormulario({
                             fontSize: "13px",
                             border: "1.5px solid var(--gold-light)",
                             color: "var(--gray-mid)",
-                            backgroundColor: "white",
+                            backgroundColor: "var(--superficie)",
                             cursor: "pointer",
                           }}
                         >
@@ -802,10 +821,14 @@ export default function PainelNovoFormulario({
                             fontSize: "13px",
                             fontWeight: "600",
                             cursor: "pointer",
+                            // O ouro pálido do «A criar…» fica literal
+                            // (mesma razão do botão Entrar do login): o
+                            // token equivalente no escuro é tom de borda,
+                            // e um botão a meio do gesto não se apaga.
                             backgroundColor: creatingInvite
-                              ? "var(--gold-light)"
+                              ? "#E8D5A3"
                               : "var(--gold)",
-                            color: "white",
+                            color: "var(--texto-sobre-ouro)",
                             border: "none",
                           }}
                         >

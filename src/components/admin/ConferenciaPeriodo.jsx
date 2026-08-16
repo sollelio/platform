@@ -23,10 +23,13 @@ import { FASES_POS_SINAL, FASE_LABEL } from "./faseConfig";
 // ============================================================
 
 const CORES = {
+  // O rosa #FFF8F8 da rutura está fora da paleta (não é a --perigo-fundo,
+  // #FEF2F2): o par fica literal por inteiro — ilha clara com letra
+  // escura nos dois modos. Segue no relatório.
   rutura: { fundo: "#FFF8F8", forte: "#DC2626" },
-  "sem-stock": { fundo: "#FFFDF6", forte: "var(--gold-dark)" },
-  "no-limite": { fundo: "#FFFDF6", forte: "var(--gold-dark)" },
-  ok: { fundo: "transparent", forte: "#166534" },
+  "sem-stock": { fundo: "var(--superficie-atenta)", forte: "var(--gold-dark)" },
+  "no-limite": { fundo: "var(--superficie-atenta)", forte: "var(--gold-dark)" },
+  ok: { fundo: "transparent", forte: "var(--sucesso-texto)" },
 };
 
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -94,7 +97,10 @@ function Saldo({ linha }) {
         textAlign: "right",
         fontVariantNumeric: "tabular-nums",
         fontWeight: linha.saldo < 0 ? "700" : "400",
-        color: linha.saldo < 0 ? "#DC2626" : "#166534",
+        // O saldo negativo vive sempre na linha de rutura — a ilha
+        // #FFF8F8 fora da paleta — por isso o vermelho fica literal;
+        // o positivo assenta em fundo tokenizado e segue o tema.
+        color: linha.saldo < 0 ? "#DC2626" : "var(--sucesso-texto)",
       }}
     >
       {linha.saldo > 0 ? `+${linha.saldo}` : `−${Math.abs(linha.saldo)}`}
@@ -230,10 +236,10 @@ export default function ConferenciaPeriodo({
           <div
             style={{
               display: "flex",
-              border: "1px solid #F0E6D0",
+              border: "1px solid var(--borda)",
               borderRadius: "10px",
               overflow: "hidden",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
             }}
           >
             {[
@@ -252,8 +258,8 @@ export default function ConferenciaPeriodo({
                     padding: "8px 14px",
                     fontSize: "12px",
                     border: "none",
-                    borderLeft: i === 0 ? "none" : "1px solid #F0E6D0",
-                    backgroundColor: "white",
+                    borderLeft: i === 0 ? "none" : "1px solid var(--borda)",
+                    backgroundColor: "var(--superficie)",
                     color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
                     fontWeight: ativo ? "600" : "400",
                     cursor: "pointer",
@@ -274,7 +280,7 @@ export default function ConferenciaPeriodo({
                       style={{
                         position: "absolute",
                         inset: 0,
-                        backgroundColor: "#FBF7EF",
+                        backgroundColor: "var(--superficie-quente)",
                       }}
                     />
                   )}
@@ -293,7 +299,7 @@ export default function ConferenciaPeriodo({
                 borderRadius: "10px",
                 border: "1.5px solid var(--gold)",
                 color: "var(--gold)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 fontSize: "12px",
                 fontWeight: "500",
                 cursor: "pointer",
@@ -334,9 +340,9 @@ export default function ConferenciaPeriodo({
         <p
           style={{
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "12px",
@@ -363,8 +369,8 @@ export default function ConferenciaPeriodo({
               key={e.submissionId}
               style={{
                 flex: "1 1 200px",
-                backgroundColor: "white",
-                border: "1px solid #F0E6D0",
+                backgroundColor: "var(--superficie)",
+                border: "1px solid var(--borda)",
                 borderRadius: "12px",
                 padding: "12px 16px",
               }}
@@ -396,7 +402,7 @@ export default function ConferenciaPeriodo({
               key={e.submissionId}
               style={{
                 flex: "1 1 200px",
-                backgroundColor: "#FFFDF6",
+                backgroundColor: "var(--superficie-atenta)",
                 border: "1.5px dashed var(--gold-light)",
                 borderRadius: "12px",
                 padding: "12px 16px",
@@ -436,8 +442,8 @@ export default function ConferenciaPeriodo({
             style={{
               fontSize: "12px",
               color: "var(--gray-mid)",
-              backgroundColor: "#FBF7EF",
-              border: "1px solid #F0E6D0",
+              backgroundColor: "var(--superficie-quente)",
+              border: "1px solid var(--borda)",
               borderRadius: "10px",
               padding: "9px 14px",
               marginBottom: "14px",
@@ -460,10 +466,10 @@ export default function ConferenciaPeriodo({
       {ruturas.length > 0 && (
         <div
           style={{
-            backgroundColor: "white",
-            border: "1px solid #FECACA",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "14px",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+            boxShadow: "var(--sombra-cartao)",
             overflow: "hidden",
             marginBottom: "20px",
           }}
@@ -475,7 +481,7 @@ export default function ConferenciaPeriodo({
               justifyContent: "space-between",
               gap: "12px",
               padding: "13px 18px",
-              backgroundColor: "#FEF2F2",
+              backgroundColor: "var(--perigo-fundo)",
             }}
           >
             <div>
@@ -493,7 +499,7 @@ export default function ConferenciaPeriodo({
                 fontFamily: "'Playfair Display', serif",
                 fontSize: "22px",
                 fontWeight: "700",
-                color: "#DC2626",
+                color: "var(--perigo)",
                 margin: 0,
                 lineHeight: 1,
               }}
@@ -510,6 +516,8 @@ export default function ConferenciaPeriodo({
                 justifyContent: "space-between",
                 gap: "12px",
                 padding: "11px 18px",
+                // #FDE7E7 não é a --perigo-borda (#FECACA) — fora da
+                // paleta, fica literal e segue no relatório.
                 borderTop: "1px solid #FDE7E7",
               }}
             >
@@ -524,7 +532,7 @@ export default function ConferenciaPeriodo({
                 style={{
                   fontSize: "13px",
                   fontWeight: "700",
-                  color: "#DC2626",
+                  color: "var(--perigo)",
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
@@ -545,9 +553,9 @@ export default function ConferenciaPeriodo({
             alignItems: "center",
             gap: "12px",
             fontSize: "12.5px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "12px",
@@ -560,7 +568,7 @@ export default function ConferenciaPeriodo({
             <button
               onClick={onTentarNovamente}
               className="ligacao"
-              style={{ fontSize: "12px", color: "#B91C1C" }}
+              style={{ fontSize: "12px", color: "var(--perigo-texto)" }}
             >
               Tentar novamente
             </button>
@@ -571,9 +579,9 @@ export default function ConferenciaPeriodo({
         <div
           style={{
             fontSize: "13px",
-            color: "#B91C1C",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FECACA",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
             borderRadius: "12px",
             padding: "20px 24px",
             textAlign: "center",
@@ -584,7 +592,7 @@ export default function ConferenciaPeriodo({
             <button
               onClick={onTentarNovamente}
               className="ligacao"
-              style={{ fontSize: "12.5px", color: "#B91C1C" }}
+              style={{ fontSize: "12.5px", color: "var(--perigo-texto)" }}
             >
               Tentar novamente
             </button>
@@ -600,8 +608,8 @@ export default function ConferenciaPeriodo({
           </div>
           <div
             style={{
-              backgroundColor: "white",
-              border: "1px solid #F0E6D0",
+              backgroundColor: "var(--superficie)",
+              border: "1px solid var(--borda)",
               borderRadius: "14px",
               padding: "14px 16px",
               display: "flex",
@@ -643,8 +651,8 @@ export default function ConferenciaPeriodo({
       ) : (
         <div
           style={{
-            backgroundColor: "white",
-            border: "1px solid #F0E6D0",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--borda)",
             borderRadius: "14px",
             overflowX: "auto",
           }}
@@ -709,9 +717,9 @@ export default function ConferenciaPeriodo({
                     justifyContent: "space-between",
                     height: "34px",
                     padding: "0 16px",
-                    backgroundColor: "#FBF7EF",
-                    borderBottom: "1px solid #F0E6D0",
-                    borderTop: "1px solid #F0E6D0",
+                    backgroundColor: "var(--superficie-quente)",
+                    borderBottom: "1px solid var(--borda)",
+                    borderTop: "1px solid var(--borda)",
                   }}
                 >
                   <span
@@ -738,6 +746,12 @@ export default function ConferenciaPeriodo({
                 {grupo.linhas.map((l) => (
                   <div
                     key={l.materialId}
+                    // A linha de rutura é ilha fora da paleta (#FFF8F8) —
+                    // a classe .papel reancora os tokens ao claro lá
+                    // dentro, para as células com var(--…) não ficarem
+                    // letra clara sobre rosa claro no escuro. Nos outros
+                    // estados a linha segue o tema; no claro é no-op.
+                    className={l.estado === "rutura" ? "papel" : undefined}
                     style={{
                       display: "grid",
                       gridTemplateColumns: gridColunas,
@@ -745,7 +759,7 @@ export default function ConferenciaPeriodo({
                       alignItems: "center",
                       minHeight: "40px",
                       padding: "6px 16px",
-                      borderBottom: "1px solid #F5ECD7",
+                      borderBottom: "1px solid var(--borda-leve)",
                       backgroundColor: CORES[l.estado].fundo,
                     }}
                   >
@@ -858,7 +872,7 @@ export default function ConferenciaPeriodo({
         <div
           style={{
             marginTop: "20px",
-            backgroundColor: "#FFFDF6",
+            backgroundColor: "var(--superficie-atenta)",
             border: "1.5px dashed var(--gold-light)",
             borderRadius: "14px",
             padding: "14px 18px",
@@ -897,7 +911,7 @@ export default function ConferenciaPeriodo({
                 justifyContent: "space-between",
                 gap: "12px",
                 padding: "7px 2px",
-                borderTop: "1px solid #F5ECD7",
+                borderTop: "1px solid var(--borda-leve)",
               }}
             >
               <span style={{ fontSize: "12.5px" }}>
@@ -908,7 +922,7 @@ export default function ConferenciaPeriodo({
                       display: "block",
                       fontSize: "9.5px",
                       fontWeight: "700",
-                      color: "#B45309",
+                      color: "var(--aviso)",
                     }}
                   >
                     ⚠ desativado — confirma antes de carregar
@@ -937,5 +951,5 @@ const cabecalho = {
   fontWeight: "600",
   letterSpacing: "0.14em",
   textTransform: "uppercase",
-  color: "#9B9B9B",
+  color: "var(--texto-apagado)",
 };

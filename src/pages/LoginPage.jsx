@@ -29,17 +29,17 @@ function Ornament({ small = false }) {
       <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
         <path
           d="M8 1.5 C6.2 1.5 4.5 3 4.5 5 C4.5 7 6.2 8.5 8 8.5 C9.8 8.5 11.5 7 11.5 5 C11.5 3 9.8 1.5 8 1.5Z"
-          stroke="#C9A84C"
+          stroke="var(--ouro)"
           strokeWidth="0.7"
           fill="none"
         />
         <path
           d="M1 5 L4.5 5 M11.5 5 L15 5"
-          stroke="#C9A84C"
+          stroke="var(--ouro)"
           strokeWidth="0.7"
         />
-        <circle cx="1" cy="5" r="0.9" fill="#C9A84C" />
-        <circle cx="15" cy="5" r="0.9" fill="#C9A84C" />
+        <circle cx="1" cy="5" r="0.9" fill="var(--ouro)" />
+        <circle cx="15" cy="5" r="0.9" fill="var(--ouro)" />
       </svg>
       <div
         style={{
@@ -60,7 +60,7 @@ function MailIcon() {
       height="18"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#C9A84C"
+      stroke="var(--ouro)"
       strokeWidth="1.4"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -77,7 +77,7 @@ function LockIcon() {
       height="18"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#C9A84C"
+      stroke="var(--ouro)"
       strokeWidth="1.4"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -201,9 +201,11 @@ function LoginConteudo() {
   const inputWrapperStyle = (hasError) => ({
     display: "flex",
     alignItems: "center",
+    // O vermelho de erro #F87171 (e o halo dele, abaixo) está fora da
+    // família de perigo da identidade — fica literal e segue no relatório.
     border: `1.5px solid ${hasError ? "#F87171" : "var(--gold-light)"}`,
     borderRadius: "10px",
-    backgroundColor: "white",
+    backgroundColor: "var(--superficie)",
     overflow: "hidden",
     transition: "all 0.2s",
     boxShadow: hasError ? "0 0 0 3px rgba(248,113,113,0.1)" : "none",
@@ -216,7 +218,7 @@ function LoginConteudo() {
     justifyContent: "center",
     alignSelf: "stretch",
     borderRight: "1px solid var(--gold-light)",
-    backgroundColor: "#FBF7EF",
+    backgroundColor: "var(--superficie-quente)",
     flexShrink: 0,
   };
 
@@ -228,7 +230,7 @@ function LoginConteudo() {
     fontSize: "15px",
     fontFamily: "Inter, sans-serif",
     color: "var(--charcoal)",
-    backgroundColor: "white",
+    backgroundColor: "var(--superficie)",
     minWidth: 0,
   };
 
@@ -363,7 +365,7 @@ function LoginConteudo() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
           style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             borderRadius: "20px",
             overflow: "hidden",
             boxShadow: "0 8px 48px rgba(0,0,0,0.08)",
@@ -381,6 +383,10 @@ function LoginConteudo() {
                     fontWeight: "600",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
+                    // #EF4444 como TEXTO de erro (aqui e nos cinco irmãos
+                    // abaixo) está fora do papel: na identidade é a cor do
+                    // botão de perigo CHEIO; texto de erro é #DC2626/#B91C1C.
+                    // Unificar mudava o claro — fica literal e na lista.
                     color: errors.email ? "#EF4444" : "var(--charcoal)",
                     display: "block",
                     marginBottom: "6px",
@@ -512,14 +518,14 @@ function LoginConteudo() {
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.25 }}
                     style={{
-                      backgroundColor: "#FEF2F2",
-                      border: "1px solid #FECACA",
+                      backgroundColor: "var(--perigo-fundo)",
+                      border: "1px solid var(--perigo-borda)",
                       borderRadius: "8px",
                       padding: "10px 14px",
                     }}
                   >
                     <p
-                      style={{ fontSize: "13px", color: "#DC2626", margin: 0 }}
+                      style={{ fontSize: "13px", color: "var(--perigo)", margin: 0 }}
                     >
                       ⚠ {errors.general}
                     </p>
@@ -532,8 +538,8 @@ function LoginConteudo() {
           {/* Footer creme */}
           <div
             style={{
-              backgroundColor: "#FBF7EF",
-              borderTop: "1px solid #F0E6D0",
+              backgroundColor: "var(--superficie-quente)",
+              borderTop: "1px solid var(--borda)",
               padding: "16px 28px",
               display: "flex",
               justifyContent: "flex-end",
@@ -549,12 +555,18 @@ function LoginConteudo() {
                 fontWeight: "600",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                backgroundColor: loading ? "var(--gold-light)" : "var(--gold)",
-                color: "white",
+                // O ouro pálido do estado «a carregar» fica literal: o
+                // token de hairline que lhe corresponde no escuro é uma
+                // borda escura, e um botão a meio do gesto não pode
+                // apagar-se. Pálido com letra escura lê-se nos dois modos.
+                backgroundColor: loading ? "#E8D5A3" : "var(--gold)",
+                color: "var(--texto-sobre-ouro)",
                 border: "none",
                 cursor: loading ? "not-allowed" : "pointer",
                 transition: "all 0.2s",
-                boxShadow: loading ? "none" : "0 4px 16px rgba(201,168,76,0.4)",
+                boxShadow: loading
+                  ? "none"
+                  : "0 4px 16px rgba(var(--ouro-rgb), 0.4)",
               }}
             >
               {loading ? "A entrar..." : "Entrar →"}

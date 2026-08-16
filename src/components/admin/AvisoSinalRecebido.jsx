@@ -77,7 +77,7 @@ export default function AvisoSinalRecebido({ evento, aoFechar, style }) {
   return (
     <div
       style={{
-        backgroundColor: "#FBF7EF",
+        backgroundColor: "var(--superficie-quente)",
         border: "1px solid var(--gold-light)",
         borderRadius: "12px",
         padding: "12px 16px",

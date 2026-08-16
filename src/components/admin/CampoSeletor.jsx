@@ -57,8 +57,8 @@ export default function CampoSeletor({ camposDisponiveis, onAdd }) {
           outline: "none",
           fontFamily: "Inter, sans-serif",
           boxSizing: "border-box",
-          backgroundColor: "white",
-          boxShadow: "0 0 0 3px rgba(201,168,76,0.08)",
+          backgroundColor: "var(--superficie)",
+          boxShadow: "0 0 0 3px rgba(var(--ouro-rgb), 0.08)",
         }}
       />
 
@@ -76,7 +76,7 @@ export default function CampoSeletor({ camposDisponiveis, onAdd }) {
               left: 0,
               right: 0,
               zIndex: 11,
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "10px",
               border: "1px solid var(--gold-light)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
@@ -112,16 +112,18 @@ export default function CampoSeletor({ camposDisponiveis, onAdd }) {
                     width: "100%",
                     padding: "10px 14px",
                     border: "none",
-                    borderBottom: "1px solid #F5ECD7",
-                    backgroundColor: "white",
+                    borderBottom: "1px solid var(--borda-leve)",
+                    backgroundColor: "var(--superficie)",
                     cursor: "pointer",
                     textAlign: "left",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#FBF7EF")
+                    (e.currentTarget.style.backgroundColor =
+                      "var(--superficie-quente)")
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "white")
+                    (e.currentTarget.style.backgroundColor =
+                      "var(--superficie)")
                   }
                 >
                   <span style={{ fontSize: "13px", color: "var(--charcoal)" }}>

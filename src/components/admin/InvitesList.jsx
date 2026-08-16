@@ -74,11 +74,15 @@ export default function InvitesList({
               boxShadow: "0 6px 20px rgba(0,0,0,0.08)",
             }}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "14px",
               padding: "18px 22px",
+              // Igual a --sombra-cartao, mas fica literal: o whileHover
+              // interpola esta sombra com um alvo literal, e o token no
+              // escuro muda de forma (anel, não sombra) — o regresso do
+              // hover saltava. Segue no relatório.
               boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-              borderLeft: `4px solid ${isPendente ? "var(--gold-light)" : "#22C55E"}`,
+              borderLeft: `4px solid ${isPendente ? "var(--gold-light)" : "var(--sucesso)"}`,
               cursor: "pointer",
               transition: "box-shadow 0.2s",
               display: "flex",
@@ -106,7 +110,7 @@ export default function InvitesList({
                   fontWeight: "700",
                   padding: "2px 10px",
                   borderRadius: "999px",
-                  backgroundColor: "#FEF9EC",
+                  backgroundColor: "var(--superficie-selo)",
                   color: "var(--gold)",
                   border: "1px solid var(--gold-light)",
                   textTransform: "uppercase",
@@ -163,9 +167,11 @@ export default function InvitesList({
                   fontSize: "11px",
                   padding: "4px 10px",
                   borderRadius: "999px",
-                  backgroundColor: isPendente ? "#FEF9EC" : "#F0FDF4",
-                  color: isPendente ? "var(--gold)" : "#22C55E",
-                  border: `1px solid ${isPendente ? "var(--gold-light)" : "#BBF7D0"}`,
+                  backgroundColor: isPendente
+                    ? "var(--superficie-selo)"
+                    : "var(--sucesso-fundo)",
+                  color: isPendente ? "var(--gold)" : "var(--sucesso)",
+                  border: `1px solid ${isPendente ? "var(--gold-light)" : "var(--sucesso-borda)"}`,
                   fontWeight: "500",
                   whiteSpace: "nowrap",
                 }}
@@ -188,7 +194,7 @@ export default function InvitesList({
                       padding: "6px 12px",
                       borderRadius: "8px",
                       border: "1px solid var(--gold-light)",
-                      backgroundColor: "#FEF9EC",
+                      backgroundColor: "var(--superficie-selo)",
                       color: "var(--gold)",
                       cursor: "pointer",
                       fontSize: "12px",
@@ -213,9 +219,9 @@ export default function InvitesList({
                       gap: "6px",
                       padding: "6px 12px",
                       borderRadius: "8px",
-                      border: "1px solid #FECACA",
-                      backgroundColor: "#FEF2F2",
-                      color: "#DC2626",
+                      border: "1px solid var(--perigo-borda)",
+                      backgroundColor: "var(--perigo-fundo)",
+                      color: "var(--perigo)",
                       cursor: "pointer",
                       fontSize: "12px",
                       fontWeight: "500",
@@ -224,6 +230,8 @@ export default function InvitesList({
                       whiteSpace: "nowrap",
                     }}
                   >
+                    {/* stroke é atributo SVG — var() não é válido em
+                        atributos de apresentação; fica literal */}
                     <svg
                       width="14"
                       height="14"

@@ -36,7 +36,7 @@ const microLabel = {
 };
 
 const cartao = {
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   borderRadius: "14px",
   padding: "18px",
   border: "1px solid var(--gold-light)",
@@ -198,7 +198,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                 borderRadius: "999px",
                 border: `1px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
                 color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
-                backgroundColor: ativo ? "#FBF7EF" : "white",
+                backgroundColor: ativo
+                  ? "var(--superficie-quente)"
+                  : "var(--superficie)",
                 opacity: i === 4 ? 0.5 : 1,
               }}
             >
@@ -231,7 +233,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
             fontFamily: "monospace",
             outline: "none",
             boxSizing: "border-box",
-            backgroundColor: "#FAFAF8",
+            backgroundColor: "var(--fundo)",
           }}
         />
         <div
@@ -252,7 +254,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
               fontWeight: "600",
               border: "1.5px solid var(--gold)",
               color: "var(--gold-dark)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               cursor: "pointer",
             }}
           >
@@ -274,10 +276,14 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
               fontSize: "13px",
               fontWeight: "600",
               border: "none",
-              backgroundColor: aValidar ? "var(--gold-light)" : "var(--gold)",
-              color: "white",
+              // O ouro pálido do «A validar…» fica literal (mesma razão
+              // do login e do painel de formulários): o token equivalente
+              // no escuro é tom de borda, e um botão a meio do gesto não
+              // se apaga.
+              backgroundColor: aValidar ? "#E8D5A3" : "var(--gold)",
+              color: "var(--texto-sobre-ouro)",
               cursor: aValidar ? "wait" : "pointer",
-              boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
+              boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.3)",
             }}
           >
             {aValidar ? "A validar..." : "Validar →"}
@@ -287,9 +293,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
           <p
             style={{
               fontSize: "12px",
-              color: "#DC2626",
-              backgroundColor: "#FEF2F2",
-              border: "1px solid #FECACA",
+              color: "var(--perigo)",
+              backgroundColor: "var(--perigo-fundo)",
+              border: "1px solid var(--perigo-borda)",
               borderRadius: "10px",
               padding: "8px 12px",
               margin: "12px 0 0 0",
@@ -328,7 +334,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
             {resultado.tiposDesconhecidos.length > 0 && (
               <div
                 style={{
-                  backgroundColor: "#FBF7EF",
+                  backgroundColor: "var(--superficie-quente)",
                   border: "1px solid var(--gold-light)",
                   borderRadius: "10px",
                   padding: "10px 14px",
@@ -373,11 +379,19 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
               return (
                 <div
                   key={c.chave}
+                  // O cartão com erro é uma ilha fora da paleta (#FFF9F9,
+                  // que não é a --perigo-fundo #FEF2F2) — segue no
+                  // relatório. A classe .papel reancora os tokens ao
+                  // claro dentro da ilha, para o nome do cliente e as
+                  // linhas de eventos (var(--charcoal)/var(--gray-mid))
+                  // não ficarem letra clara sobre rosa claro no escuro.
+                  // No claro é no-op; sem erro, o cartão segue o tema.
+                  className={comErro ? "papel" : undefined}
                   style={{
                     border: `1px solid ${comErro ? "#FECACA" : "var(--gold-light)"}`,
                     borderRadius: "12px",
                     marginBottom: "8px",
-                    backgroundColor: comErro ? "#FFF9F9" : "white",
+                    backgroundColor: comErro ? "#FFF9F9" : "var(--superficie)",
                     overflow: "hidden",
                   }}
                 >
@@ -446,11 +460,14 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                       </span>
                     </button>
                     {c.avisos.length > 0 && !comErro && (
-                      <span style={{ fontSize: "11px", color: "#B45309" }}>
+                      <span style={{ fontSize: "11px", color: "var(--aviso)" }}>
                         ⚠ {c.avisos.length}
                       </span>
                     )}
                     {comErro && (
+                      // Sobre a ilha #FFF9F9 (sempre: só aparece comErro),
+                      // o vermelho fica literal — o token no escuro é
+                      // salmão claro e apagava-se sobre o rosa claro.
                       <span style={{ fontSize: "11px", color: "#DC2626" }}>
                         ✕ {c.erros.length}
                       </span>
@@ -459,11 +476,16 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                   {aberto && (
                     <div
                       style={{
+                        // #F0EBE0 não é a --borda (#F0E6D0) — fora da
+                        // paleta, fica literal e segue no relatório.
                         borderTop: "1px solid #F0EBE0",
                         padding: "10px 14px 12px",
                         fontSize: "12px",
                       }}
                     >
+                      {/* Os erros vivem sempre na ilha #FFF9F9; os avisos
+                          tanto caem na ilha como no cartão tokenizado —
+                          na dúvida, ficam literais e seguem no relatório. */}
                       {c.erros.map((e, i) => (
                         <p key={`e${i}`} style={{ color: "#DC2626", margin: "0 0 4px 0" }}>
                           ✕ {e}
@@ -531,11 +553,15 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                     fontSize: "13px",
                     fontWeight: "600",
                     border: "none",
+                    // O ouro pálido do botão apagado/«A importar…» fica
+                    // literal (mesma razão do login e do painel de
+                    // formulários): o token equivalente no escuro é tom
+                    // de borda, e um botão a meio do gesto não se apaga.
                     backgroundColor:
                       aImportar || selecionados.length === 0
-                        ? "var(--gold-light)"
+                        ? "#E8D5A3"
                         : "var(--gold)",
-                    color: "white",
+                    color: "var(--texto-sobre-ouro)",
                     cursor:
                       aImportar || selecionados.length === 0
                         ? "not-allowed"
@@ -543,7 +569,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                     boxShadow:
                       aImportar || selecionados.length === 0
                         ? "none"
-                        : "0 4px 12px rgba(201,168,76,0.3)",
+                        : "0 4px 12px rgba(var(--ouro-rgb), 0.3)",
                   }}
                 >
                   {aImportar
@@ -569,9 +595,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#DC2626",
-                  backgroundColor: "#FEF2F2",
-                  border: "1px solid #FECACA",
+                  color: "var(--perigo)",
+                  backgroundColor: "var(--perigo-fundo)",
+                  border: "1px solid var(--perigo-borda)",
                   borderRadius: "10px",
                   padding: "10px 14px",
                   margin: 0,
@@ -630,7 +656,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                     key={`ok${i}`}
                     style={{
                       fontSize: "12px",
-                      color: "#166534",
+                      color: "var(--sucesso-texto)",
                       margin: "0 0 3px 0",
                     }}
                   >
@@ -647,7 +673,7 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
                     key={`f${i}`}
                     style={{
                       fontSize: "12px",
-                      color: "#DC2626",
+                      color: "var(--perigo)",
                       margin: "0 0 3px 0",
                     }}
                   >
@@ -683,16 +709,31 @@ const btnLigeiro = {
   fontSize: "12px",
   border: "1px solid var(--gold-light)",
   color: "var(--gray-mid)",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   cursor: "pointer",
 };
 
 function Pill({ texto, ok, aviso, erro }) {
   const cor = erro
-    ? { bg: "#FEF2F2", borda: "#FECACA", texto: "#DC2626", icone: "✕" }
+    ? {
+        bg: "var(--perigo-fundo)",
+        borda: "var(--perigo-borda)",
+        texto: "var(--perigo)",
+        icone: "✕",
+      }
     : aviso
-      ? { bg: "#FEF3E2", borda: "#F0D9B5", texto: "#B45309", icone: "⚠" }
-      : { bg: "#F0FDF4", borda: "#BBF7D0", texto: "#166534", icone: "✓" };
+      ? {
+          bg: "var(--aviso-fundo)",
+          borda: "var(--aviso-borda)",
+          texto: "var(--aviso)",
+          icone: "⚠",
+        }
+      : {
+          bg: "var(--sucesso-fundo)",
+          borda: "var(--sucesso-borda)",
+          texto: "var(--sucesso-texto)",
+          icone: "✓",
+        };
   return (
     <span
       style={{

@@ -274,14 +274,14 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
       {trancado && (
         <div
           style={{
-            backgroundColor: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            backgroundColor: "var(--sucesso-fundo)",
+            border: "1px solid var(--sucesso-borda)",
             borderRadius: "12px",
             padding: "13px 16px",
             marginBottom: "16px",
             fontSize: "12.5px",
             lineHeight: 1.65,
-            color: "#166534",
+            color: "var(--sucesso-texto)",
           }}
         >
           <strong style={{ fontWeight: 600 }}>
@@ -333,14 +333,14 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
           {prefill?.modeloDeCasal && contraentes.length < 2 && (
             <div
               style={{
-                backgroundColor: "#FEF3E2",
-                border: "1px solid #F0D9B5",
+                backgroundColor: "var(--aviso-fundo)",
+                border: "1px solid var(--aviso-borda)",
                 borderRadius: "10px",
                 padding: "12px 14px",
                 marginBottom: "12px",
                 fontSize: "12.5px",
                 lineHeight: 1.6,
-                color: "#92400E",
+                color: "var(--aviso-texto)",
               }}
             >
               Este é um evento de casal e o contrato vai sair com{" "}
@@ -353,11 +353,11 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
             <div
               key={c.uid}
               style={{
-                backgroundColor: "#FBF7EF",
+                backgroundColor: "var(--superficie-quente)",
                 borderRadius: "12px",
                 padding: "14px",
                 marginBottom: "10px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
               }}
             >
               <div
@@ -499,11 +499,11 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
             <div
               key={sec.uid}
               style={{
-                backgroundColor: "#FBF7EF",
+                backgroundColor: "var(--superficie-quente)",
                 borderRadius: "12px",
                 padding: "14px",
                 marginBottom: "10px",
-                border: "1px solid #F0E6D0",
+                border: "1px solid var(--borda)",
               }}
             >
               <div
@@ -619,7 +619,7 @@ export default function GerarContrato({ prefill = null, ativo = true }) {
         <div>
           <div
             style={{
-              backgroundColor: "#FBF7EF",
+              backgroundColor: "var(--superficie-quente)",
               borderRadius: "12px",
               padding: "18px",
               border: "1px solid var(--gold-light)",
@@ -734,8 +734,11 @@ function ContratoDocumento({
       .replace("{VALOR_EXTENSO}", valorExtenso ? valorExtenso : "___");
 
   return (
+    // A folha é papel e não escurece: o .papel reancora os tokens aos
+    // claros cá dentro (incluindo o gesto de assinar pela casa, que
+    // pousa EM CIMA da folha).
     <div
-      className="contrato-doc"
+      className="contrato-doc papel"
       style={{
         backgroundColor: "white",
         maxWidth: "760px",
@@ -1103,7 +1106,7 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };
 const miniLabel = {
   fontSize: "11px",
@@ -1124,7 +1127,7 @@ const miniLabelGold = {
 const linkRemover = {
   background: "none",
   border: "none",
-  color: "#DC2626",
+  color: "var(--perigo)",
   cursor: "pointer",
   fontSize: "12px",
 };
@@ -1146,7 +1149,7 @@ const btnAdd = {
   fontWeight: "600",
   border: "1.5px solid var(--gold)",
   color: "var(--gold)",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
   cursor: "pointer",
   marginBottom: "12px",
 };
@@ -1158,6 +1161,6 @@ const btnImprimir = {
   fontWeight: "600",
   border: "none",
   backgroundColor: "var(--gold)",
-  color: "white",
+  color: "var(--texto-sobre-ouro)",
   cursor: "pointer",
 };

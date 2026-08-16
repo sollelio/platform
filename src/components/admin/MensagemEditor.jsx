@@ -177,11 +177,11 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
       <style>{`
         .dlm-token {
           border: 1px solid var(--gold-light);
-          background-color: white;
+          background-color: var(--superficie);
           color: var(--gold-dark);
         }
         .dlm-token:hover {
-          background-color: #fbf7ef;
+          background-color: var(--superficie-quente);
           border-color: var(--gold);
         }
       `}</style>
@@ -194,7 +194,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
           alignItems: "center",
           gap: "12px",
           padding: "12px 20px",
-          borderBottom: "1px solid #F0E6D0",
+          borderBottom: "1px solid var(--borda)",
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -278,7 +278,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
               color: "var(--charcoal)",
               border: "1.5px solid var(--gold-light)",
               borderRadius: "12px",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               outline: "none",
               resize: "none",
               minHeight: "120px",
@@ -320,7 +320,10 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
 
           {/* ---- A pré: o balão de WhatsApp do desenho ---- */}
           <div style={{ marginTop: "28px", ...OVERLINE }}>{comoChega}</div>
+          {/* A cena é papel e não escurece: o .papel reancora os
+              tokens aos claros cá dentro. */}
           <div
+            className="papel"
             style={{
               marginTop: "12px",
               backgroundColor: "#ECE7DE",
@@ -423,10 +426,10 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
           alignItems: "center",
           gap: "12px",
           padding: "12px 20px",
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
         }}
       >
-        <div role="alert" style={{ flex: 1, minWidth: 0, fontSize: "12.5px", color: "#DC2626" }}>
+        <div role="alert" style={{ flex: 1, minWidth: 0, fontSize: "12.5px", color: "var(--perigo)" }}>
           {erro}
         </div>
         <button
@@ -455,7 +458,7 @@ export default function MensagemEditor({ comunicado, onFechar, onGuardado }) {
             borderRadius: "10px",
             fontSize: "12.5px",
             fontWeight: "600",
-            boxShadow: "0 4px 12px rgba(201,168,76,0.30)",
+            boxShadow: "0 4px 12px rgba(var(--ouro-rgb), 0.30)",
           }}
         >
           {guardado && (

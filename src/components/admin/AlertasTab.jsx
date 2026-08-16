@@ -163,7 +163,7 @@ function SeccaoTitulo({ titulo, subtitulo, contagem }) {
               fontSize: "11px",
               fontWeight: "700",
               color: "var(--gold-dark)",
-              backgroundColor: "#FEF9EC",
+              backgroundColor: "var(--superficie-selo)",
               border: "1px solid var(--gold-light)",
               borderRadius: "999px",
               padding: "1px 9px",
@@ -195,9 +195,9 @@ function EstadoBom({ titulo, texto }) {
       style={{
         textAlign: "center",
         padding: "32px 24px",
-        backgroundColor: "#F0FDF4",
+        backgroundColor: "var(--sucesso-fundo)",
         borderRadius: "16px",
-        border: "1px solid #BBF7D0",
+        border: "1px solid var(--sucesso-borda)",
       }}
     >
       <p style={{ fontSize: "28px", margin: "0 0 8px 0" }}>✓</p>
@@ -205,7 +205,7 @@ function EstadoBom({ titulo, texto }) {
         style={{
           fontSize: "14px",
           fontWeight: "600",
-          color: "#166534",
+          color: "var(--sucesso-texto)",
           margin: "0 0 4px 0",
           fontFamily: "Playfair Display, serif",
         }}
@@ -215,7 +215,7 @@ function EstadoBom({ titulo, texto }) {
       <p
         style={{
           fontSize: "13px",
-          color: "#166534",
+          color: "var(--sucesso-texto)",
           margin: 0,
           maxWidth: "360px",
           marginInline: "auto",
@@ -234,10 +234,14 @@ function EstadoBom({ titulo, texto }) {
 function ReposicaoCard({ alerta }) {
   const critico = alerta.severidade === "critico";
   const cor = critico
-    ? { borda: "#FECACA", fundo: "#FEF2F2", forte: "#DC2626" }
+    ? {
+        borda: "var(--perigo-borda)",
+        fundo: "var(--perigo-fundo)",
+        forte: "var(--perigo)",
+      }
     : {
         borda: "var(--gold-light)",
-        fundo: "#FEF9EC",
+        fundo: "var(--superficie-selo)",
         forte: "var(--gold-dark)",
       };
   const m = alerta.material;
@@ -252,10 +256,10 @@ function ReposicaoCard({ alerta }) {
         justifyContent: "space-between",
         gap: "12px",
         padding: "14px 16px",
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "12px",
         border: `1px solid ${cor.borda}`,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+        boxShadow: "var(--sombra-cartao)",
       }}
     >
       <div style={{ minWidth: 0 }}>
@@ -322,24 +326,26 @@ function AlertaCard({ alerta, tituloEvento }) {
   const cor = porDefinir || condicional
     ? {
         borda: "var(--gold-light)",
-        fundo: "#FEF9EC",
+        fundo: "var(--superficie-selo)",
         forte: "var(--gold-dark)",
-        tenue: "#FBF7EF",
+        tenue: "var(--superficie-quente)",
       }
     : {
-        borda: "#FECACA",
-        fundo: "#FEF2F2",
-        forte: "#DC2626",
+        borda: "var(--perigo-borda)",
+        fundo: "var(--perigo-fundo)",
+        forte: "var(--perigo)",
+        // #FFF5F5 está fora da tabela (a família perigo lava em
+        // #FEF2F2) — fica literal e vai na lista.
         tenue: "#FFF5F5",
       };
 
   return (
     <div
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--superficie)",
         borderRadius: "14px",
         border: `1px solid ${cor.borda}`,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+        boxShadow: "var(--sombra-cartao)",
         overflow: "hidden",
       }}
     >
@@ -506,7 +512,7 @@ function AlertaCard({ alerta, tituloEvento }) {
                     padding: "2px 7px",
                     marginLeft: "8px",
                     borderRadius: "999px",
-                    backgroundColor: "#FEF9EC",
+                    backgroundColor: "var(--superficie-selo)",
                     color: "var(--gold-dark)",
                     border: "1px solid var(--gold-light)",
                     whiteSpace: "nowrap",

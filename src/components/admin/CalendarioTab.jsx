@@ -22,6 +22,11 @@ const MESES = [
 ];
 
 // Cores por estado — mantém o mesmo padrão visual do resto da app
+// Esta paleta (e a RESERVA_COR abaixo) fica LITERAL: tem membros fora
+// da paleta da identidade (o azul de Em Preparação; o verde #15803D,
+// que não é o --sucesso-texto) e os trios revezam-se nas mesmas pills
+// e chips — tokenizar só uns partia o par no escuro. As pills ficam
+// ilhas claras de letra escura nos dois modos.
 const STATUS_CORES = {
   Recebido: { bg: "#FEF9EC", border: "#E8D5A3", texto: "#A07830" },
   "Em Preparação": { bg: "#EFF6FF", border: "#BFDBFE", texto: "#1D4ED8" },
@@ -210,7 +215,7 @@ export default function CalendarioTab({
               height: "36px",
               borderRadius: "50%",
               border: "1.5px solid var(--gold-light)",
-              background: "white",
+              background: "var(--superficie)",
               cursor: "pointer",
               fontSize: "16px",
               color: "var(--gold)",
@@ -242,7 +247,7 @@ export default function CalendarioTab({
               height: "36px",
               borderRadius: "50%",
               border: "1.5px solid var(--gold-light)",
-              background: "white",
+              background: "var(--superficie)",
               cursor: "pointer",
               fontSize: "16px",
               color: "var(--gold)",
@@ -261,7 +266,7 @@ export default function CalendarioTab({
             style={{
               fontSize: "12px",
               color: "var(--gray-mid)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "8px",
               padding: "6px 14px",
               border: "1px solid var(--gold-light)",
@@ -276,7 +281,7 @@ export default function CalendarioTab({
             style={{
               fontSize: "12px",
               color: "var(--gray-mid)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "8px",
               padding: "6px 14px",
               border: "1px solid var(--gold-light)",
@@ -291,7 +296,7 @@ export default function CalendarioTab({
             style={{
               fontSize: "12px",
               color: "var(--gray-mid)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "8px",
               padding: "6px 14px",
               border: "1px solid var(--gold-light)",
@@ -357,7 +362,7 @@ export default function CalendarioTab({
       {/* Grelha do calendário */}
       <div
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--superficie)",
           borderRadius: "16px",
           overflow: "hidden",
           boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
@@ -380,7 +385,7 @@ export default function CalendarioTab({
                 padding: "10px 0",
                 fontSize: "11px",
                 fontWeight: "700",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
               }}
@@ -394,6 +399,9 @@ export default function CalendarioTab({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {grid.map((dia, i) => {
             if (dia === null) {
+              // Célula vazia presa ao par das células do dia (o #FFFDF5
+              // fora-de-paleta, abaixo): tokenizar só estas partia a
+              // grelha ao meio no escuro — ficam literais juntas.
               return (
                 <div
                   key={`empty-${i}`}
@@ -432,6 +440,10 @@ export default function CalendarioTab({
                   borderRight: "1px solid #F0E6D0",
                   borderBottom: "1px solid #F0E6D0",
                   padding: "8px 6px",
+                  // #FFFDF5 não é o --superficie-atenta (#FFFDF6) —
+                  // fora da paleta, segue na lista de violações. Até
+                  // lá, a célula inteira (fundos, riscas, letras) fica
+                  // literal: ilha clara de letra escura no escuro.
                   backgroundColor:
                     temEventos || temReservas ? "#FFFDF5" : "white",
                   position: "relative",
@@ -464,11 +476,13 @@ export default function CalendarioTab({
                         fontSize: "12px",
                         fontWeight:
                           ehHoje || temEventos || temReservas ? "700" : "400",
+                        // Sobre o círculo var(--gold) o par é o token;
+                        // sobre a célula literal fixa-se nos claros.
                         color: ehHoje
-                          ? "white"
+                          ? "var(--texto-sobre-ouro)"
                           : temEventos || temReservas
-                            ? "var(--gold-dark)"
-                            : "var(--gray-mid)",
+                            ? "#A07830"
+                            : "#6B6B6B",
                       }}
                     >
                       {dia}
@@ -490,7 +504,7 @@ export default function CalendarioTab({
                       height: "20px",
                       borderRadius: "50%",
                       border: "1px solid var(--gold-light)",
-                      backgroundColor: "white",
+                      backgroundColor: "var(--superficie)",
                       color: "var(--gold)",
                       cursor: "pointer",
                       fontSize: "13px",
@@ -638,7 +652,8 @@ export default function CalendarioTab({
                       }}
                       style={{
                         fontSize: "9px",
-                        color: "var(--gold)",
+                        // sobre a célula literal — fixo no ouro claro
+                        color: "#C9A84C",
                         fontWeight: "700",
                         paddingLeft: "4px",
                         background: "none",
@@ -682,7 +697,7 @@ export default function CalendarioTab({
             position: "fixed",
             inset: 0,
             zIndex: 300,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -695,7 +710,7 @@ export default function CalendarioTab({
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               boxShadow: "0 16px 48px rgba(0,0,0,0.18)",
               border: "1px solid var(--gold-light)",
@@ -718,7 +733,7 @@ export default function CalendarioTab({
                 style={{
                   fontFamily: "Playfair Display, serif",
                   fontSize: "15px",
-                  color: "white",
+                  color: "var(--texto-sobre-ouro)",
                   margin: 0,
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
@@ -731,7 +746,7 @@ export default function CalendarioTab({
                 style={{
                   background: "none",
                   border: "none",
-                  color: "white",
+                  color: "var(--texto-sobre-ouro)",
                   fontSize: "18px",
                   cursor: "pointer",
                   lineHeight: 1,
@@ -812,6 +827,7 @@ export default function CalendarioTab({
                           fontSize: "10px",
                           padding: "1px 8px",
                           borderRadius: "999px",
+                          // par com os cores.* literais — fica branco
                           backgroundColor: "white",
                           color: cores.texto,
                           border: `1px solid ${cores.border}`,
@@ -862,6 +878,7 @@ export default function CalendarioTab({
                       fontSize: "10px",
                       padding: "1px 8px",
                       borderRadius: "999px",
+                      // par com a RESERVA_COR literal — fica branco
                       backgroundColor: "white",
                       color: RESERVA_COR.texto,
                       border: `1px dashed ${RESERVA_COR.border}`,
@@ -905,7 +922,7 @@ export default function CalendarioTab({
             position: "fixed",
             inset: 0,
             zIndex: 60,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "var(--cortina)",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -916,7 +933,7 @@ export default function CalendarioTab({
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "22px 20px",
               width: "100%",
@@ -968,15 +985,23 @@ export default function CalendarioTab({
               A data fica segura no funil como interessado (a vermelho na Agenda
               até o sinal entrar). Nome e tipo chegam — o resto é opcional.
             </p>
-            <CaptacaoForm
-              modoInterno
-              textoBotao="Criar reserva"
-              dataInicial={modalReserva.dataInicial}
-              onSubmetido={() => {
-                setModalReserva(null);
-                if (onDadosMudaram) onDadosMudaram();
-              }}
-            />
+            {/* O formulário de captação é peça PÚBLICA embutida no admin —
+                as cores dele são as da vitrina e não seguem o tema. A
+                classe .papel reancora os tokens ao claro dentro desta
+                ilha: no escuro, a moldura do modal escurece e o
+                formulário fica como papel em cima da mesa (no claro a
+                classe é um no-op, valores idênticos). */}
+            <div className="papel">
+              <CaptacaoForm
+                modoInterno
+                textoBotao="Criar reserva"
+                dataInicial={modalReserva.dataInicial}
+                onSubmetido={() => {
+                  setModalReserva(null);
+                  if (onDadosMudaram) onDadosMudaram();
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

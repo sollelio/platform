@@ -53,6 +53,8 @@ export default function SeletorPaleta({
 }) {
   const selecionadas = normalizarCores(value);
   const [mostrarPicker, setMostrarPicker] = useState(false);
+  // O valor inicial do picker é DADO (vira o hex guardado na paleta do
+  // evento), não tema — fica literal, mesmo sendo o ouro da casa.
   const [corTemp, setCorTemp] = useState("#C9A84C");
   const [nomeTemp, setNomeTemp] = useState("");
 
@@ -173,7 +175,7 @@ export default function SeletorPaleta({
             fontSize: "12px",
             fontWeight: "600",
             border: "1.5px dashed var(--gold-light)",
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
             color: "var(--gold)",
             cursor: "pointer",
           }}
@@ -190,7 +192,7 @@ export default function SeletorPaleta({
             padding: "12px",
             borderRadius: "12px",
             border: "1.5px solid var(--gold-light)",
-            backgroundColor: "#FBF7EF",
+            backgroundColor: "var(--superficie-quente)",
           }}
         >
           <input
@@ -234,7 +236,7 @@ export default function SeletorPaleta({
                 fontWeight: "600",
                 border: "none",
                 backgroundColor: "var(--gold)",
-                color: "white",
+                color: "var(--texto-sobre-ouro)",
                 cursor: "pointer",
               }}
             >
@@ -251,7 +253,7 @@ export default function SeletorPaleta({
                 borderRadius: "8px",
                 fontSize: "12px",
                 border: "1.5px solid var(--gold-light)",
-                backgroundColor: "white",
+                backgroundColor: "var(--superficie)",
                 color: "var(--gray-mid)",
                 cursor: "pointer",
               }}
@@ -319,6 +321,9 @@ function BolaCor({ cor, ativo, amostra, compact, onClick }) {
           height: `${amostra}px`,
           borderRadius: "50%",
           backgroundColor: cor.hex,
+          // A cor da amostra é DADO da paleta do evento — não se toca;
+          // o aro de 8% que a segura está fora da tabela e fica com
+          // ela (segue no relatório).
           border: ehBranco
             ? "1.5px solid var(--gold-light)"
             : "1.5px solid rgba(0,0,0,0.08)",
@@ -397,7 +402,7 @@ export function AmostraPaleta({ value }) {
               padding: "3px 10px 3px 4px",
               borderRadius: "999px",
               border: "1px solid var(--gold-light)",
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
             }}
           >
             <span
@@ -406,6 +411,8 @@ export function AmostraPaleta({ value }) {
                 height: "16px",
                 borderRadius: "50%",
                 backgroundColor: cor.hex,
+                // O mesmo aro de 8% da BolaCor sobre a amostra (DADO)
+                // — fica literal.
                 border: ehBranco
                   ? "1px solid var(--gold-light)"
                   : "1px solid rgba(0,0,0,0.08)",

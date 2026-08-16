@@ -34,7 +34,7 @@ const inputStyle = {
   outline: "none",
   fontFamily: "Inter, sans-serif",
   boxSizing: "border-box",
-  backgroundColor: "white",
+  backgroundColor: "var(--superficie)",
 };
 
 const miniLabel = {
@@ -99,7 +99,7 @@ export default function ConsultaDeslocacao({ onFechar }) {
         right: 0,
         width: "340px",
         maxWidth: "92vw",
-        background: "white",
+        background: "var(--superficie)",
         border: "1px solid var(--gold-light)",
         borderRadius: "16px",
         boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
@@ -167,7 +167,7 @@ export default function ConsultaDeslocacao({ onFechar }) {
             fontWeight: "600",
             border: "1.5px solid var(--gold)",
             color: carregando ? "var(--gray-mid)" : "var(--gold)",
-            backgroundColor: "white",
+            backgroundColor: "var(--superficie)",
             cursor: carregando || !morada.trim() ? "not-allowed" : "pointer",
             opacity: !morada.trim() && !carregando ? 0.6 : 1,
             whiteSpace: "nowrap",
@@ -187,12 +187,12 @@ export default function ConsultaDeslocacao({ onFechar }) {
             display: "flex",
             gap: "7px",
             alignItems: "flex-start",
-            background: "#FEF3E2",
-            border: "1px solid #F0D9B5",
+            background: "var(--aviso-fundo)",
+            border: "1px solid var(--aviso-borda)",
             borderRadius: "9px",
             padding: "9px 11px",
             margin: "10px 0 0",
-            color: "#92400E",
+            color: "var(--aviso-texto)",
             fontSize: "11.5px",
             lineHeight: 1.5,
           }}
@@ -244,16 +244,19 @@ export default function ConsultaDeslocacao({ onFechar }) {
               fontSize: "10.5px",
               fontWeight: "600",
               whiteSpace: "nowrap",
+              // Fundos fora da paleta (#FBF0D9 / #F3F1EC) — o par
+              // inteiro fica literal, fixado nos claros, para não
+              // ficar letra clara sobre fundo claro no escuro.
               ...(origem === "auto"
                 ? {
                     background: "#FBF0D9",
-                    border: "1px solid var(--gold-light)",
-                    color: "var(--gold-dark)",
+                    border: "1px solid #E8D5A3",
+                    color: "#A07830",
                   }
                 : {
                     background: "#F3F1EC",
                     border: "1px solid #DCD5C4",
-                    color: "var(--gray-mid)",
+                    color: "#6B6B6B",
                   }),
             }}
           >
@@ -284,8 +287,8 @@ export default function ConsultaDeslocacao({ onFechar }) {
               fontWeight: "600",
               border: "none",
               borderLeft: n === 4 ? "1.5px solid var(--gold-light)" : "none",
-              backgroundColor: nTrocos === n ? "var(--gold)" : "white",
-              color: nTrocos === n ? "white" : "var(--charcoal)",
+              backgroundColor: nTrocos === n ? "var(--gold)" : "var(--superficie)",
+              color: nTrocos === n ? "var(--texto-sobre-ouro)" : "var(--charcoal)",
               cursor: "pointer",
             }}
           >
@@ -299,7 +302,7 @@ export default function ConsultaDeslocacao({ onFechar }) {
           textAlign: "center",
           marginTop: "18px",
           paddingTop: "16px",
-          borderTop: "1px solid #F0E6D0",
+          borderTop: "1px solid var(--borda)",
         }}
       >
         <div

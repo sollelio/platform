@@ -28,7 +28,9 @@ export default function DeleteInviteModal({
             position: "fixed",
             inset: 0,
             zIndex: 60,
-            backgroundColor: "rgba(0,0,0,0.4)",
+            // Cortina unificada no token (decisão do Hélio, 16/08: um véu,
+            // um valor): este era mais um 0.4 divergente.
+            backgroundColor: "var(--cortina)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -42,11 +44,13 @@ export default function DeleteInviteModal({
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             style={{
-              backgroundColor: "white",
+              backgroundColor: "var(--superficie)",
               borderRadius: "16px",
               padding: "28px 24px",
               width: "100%",
               maxWidth: "380px",
+              // Quase --sombra-flutuante (40px ≠ 28px de desfoque) —
+              // sombra preta fica literal.
               boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
               textAlign: "center",
             }}
@@ -56,13 +60,15 @@ export default function DeleteInviteModal({
                 width: "52px",
                 height: "52px",
                 borderRadius: "50%",
-                backgroundColor: "#FEF2F2",
+                backgroundColor: "var(--perigo-fundo)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 margin: "0 auto 16px",
               }}
             >
+              {/* stroke é atributo SVG — var() não é válido em
+                  atributos de apresentação; fica literal */}
               <svg
                 width="24"
                 height="24"
@@ -109,7 +115,7 @@ export default function DeleteInviteModal({
                   fontWeight: "500",
                   border: "1.5px solid var(--gold-light)",
                   color: "var(--gray-mid)",
-                  backgroundColor: "white",
+                  backgroundColor: "var(--superficie)",
                   cursor: "pointer",
                 }}
               >
@@ -124,6 +130,11 @@ export default function DeleteInviteModal({
                   fontSize: "13px",
                   fontWeight: "600",
                   border: "none",
+                  // Par literal: #DC2626 é o valor de --perigo, mas o
+                  // papel aqui é botão CHEIO — no escuro esse token é
+                  // salmão claro e a letra branca deixava de se ler. O
+                  // cheio da identidade é --perigo-cheio (#EF4444), que
+                  // não coincide com este valor; segue no relatório.
                   color: "white",
                   backgroundColor: "#DC2626",
                   cursor: "pointer",
