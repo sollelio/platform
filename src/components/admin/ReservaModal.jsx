@@ -63,8 +63,15 @@ export default function ReservaModal({
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dataEvento || "")) return undefined;
     let cancelado = false;
     const temporizador = setTimeout(async () => {
-      const lista = await irmaosDoDia(dataEvento, reserva?.submission_id);
-      if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+      // 104 · `[]` é resposta; a falha marca-se, não se confunde com ela.
+      try {
+        const lista = await irmaosDoDia(dataEvento, reserva?.submission_id);
+        if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+      } catch (e) {
+        console.error("Não foi possível verificar a disputa do dia:", e);
+        if (!cancelado)
+          setDisputaDia({ data: dataEvento, irmaos: [], falhou: true });
+      }
     }, 350);
     return () => {
       cancelado = true;
@@ -74,9 +81,12 @@ export default function ReservaModal({
 
   // Os irmãos VÁLIDOS para a data que está no campo agora — sem a
   // própria reserva (em edição, ela viria na lista como se fosse rival).
-  const irmaosDia = (
-    disputaDia && disputaDia.data === dataEvento ? disputaDia.irmaos : []
-  ).filter((i) => !(i.ehReserva && reserva && i.id === reserva.id));
+  const daDataActual = disputaDia && disputaDia.data === dataEvento;
+  const irmaosDia = (daDataActual ? disputaDia.irmaos : []).filter(
+    (i) => !(i.ehReserva && reserva && i.id === reserva.id),
+  );
+  // A consulta desta data não chegou ao fim (104).
+  const falhouDia = !!daDataActual && !!disputaDia.falhou;
 
   const guardar = async () => {
     if (!nomeCliente.trim()) {
@@ -266,10 +276,11 @@ export default function ReservaModal({
           {/* O aviso da disputa — NUNCA bloqueia: a reserva cria-se na
               mesma (o dia só muda de mãos no registo do sinal). Fica
               logo por baixo do campo da data, a que ele responde. */}
-          {irmaosDia.length > 0 && (
+          {(irmaosDia.length > 0 || falhouDia) && (
             <AvisoDiaDisputado
               dataISO={dataEvento}
               irmaos={irmaosDia}
+              falhou={falhouDia}
               estilo={{ margin: "-4px 0 14px" }}
             />
           )}

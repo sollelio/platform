@@ -650,6 +650,12 @@ function FormConteudo() {
       // Grava o erro real + as respostas na BD: permite investigar a
       // causa e recuperar o que o cliente preencheu, sem depender de
       // prints ou da consola do browser dele.
+      // SEM tenantSlug, e de propósito: esta porta resolve a casa pelo
+      // CÓDIGO do convite, não por slug, e no momento da falha pode nem
+      // haver convite válido. A função cai no tenant_actual(), que sem
+      // sessão é null — a linha fica sem casa, e continua a ser
+      // diagnóstico válido. Perder o erro por não saber de quem é seria
+      // perder justamente o que se queria ver (106).
       registarErroFormulario({
         origem: "onboarding",
         erro: e,

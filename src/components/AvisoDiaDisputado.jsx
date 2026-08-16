@@ -16,6 +16,19 @@ import { FASE_LABEL } from "../lib/fases";
 // `irmaos` é a lista de irmaosDoDia (lib/disputaDia): eventos vivos da
 // data + reservas provisórias. Uma reserva sem evento no funil não tem
 // fase — apresenta-se como o que é.
+//
+// 104 · `falhou` é o TERCEIRO estado: a consulta não chegou ao fim.
+// Antes era indistinguível de «não há disputa» — a lib devolvia [] e o
+// banner não aparecia, e quem marcava um dia já disputado não era
+// avisada. Diz-se, e diz-se mais BAIXO: o âmbar é o mesmo (o vermelho
+// está reservado ao dia tomado, que é o que exige atenção a sério), mas
+// sem o ⚠ e sem o peso do título, porque isto não é um alerta — é uma
+// ausência de informação.
+//
+// E não se oferece saída. Não é ela que resolve uma falha de rede, e um
+// «tenta novamente» ao lado convidava a carregar num botão que
+// provavelmente falha outra vez. Informa-se e sai-se da frente: nada
+// aqui trava a criação, pela mesma regra do banner da disputa.
 // ============================================================
 
 // Os meses à mão, como base.js e disputaDia.js (cópia deliberada — a
@@ -33,7 +46,31 @@ const diaPorExtenso = (iso) => {
   return `${d} de ${MESES[m - 1]}`;
 };
 
-export default function AvisoDiaDisputado({ dataISO, irmaos, estilo }) {
+export default function AvisoDiaDisputado({ dataISO, irmaos, falhou, estilo }) {
+  if (falhou) {
+    return (
+      <div
+        style={{
+          backgroundColor: "#FEF3E2",
+          border: "1px solid #F0D9B5",
+          borderRadius: "12px",
+          padding: "12px 14px",
+          ...estilo,
+        }}
+      >
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "#92400E",
+            margin: 0,
+            lineHeight: 1.55,
+          }}
+        >
+          Não foi possível verificar se este dia já tem outro evento.
+        </p>
+      </div>
+    );
+  }
   const nomes = irmaos
     .map(
       (i) =>

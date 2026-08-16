@@ -1706,14 +1706,26 @@ lado de cá. Trinta e três ficheiros liam-na de constantes em JavaScript.
   o previa: «o dia do segundo negócio, a camada entra ali sem reescrever
   nada». **Fechada pela 099** — os campos vêm de `tenants` pelo
   Provider; o que fica no ficheiro é a omissão e a FORMA.
-- **Chaves de texto ainda únicas GLOBALMENTE**: `app_config.chave`,
-  `event_types.nome`, `avaliacao_eixos.chave`, `questionario_grupos.chave`.
-  A segunda casa que quiser um tipo «Casamento» leva erro de constraint.
-- **`form_errors` aceita insert anónimo sem limite** — o caminho mais
-  fácil para encher os 500 MB do plano gratuito.
-- **Sem autoria**: não há `criado_por` em lado nenhum e
-  `respostas_autoria` grava `'cliente'` como texto fixo, não um `user_id`.
-  Duas contas dão dois logins, não histórico de quem fez o quê.
+- **🔴 BLOQUEIA O SEGUNDO CLIENTE — o `tenant_actual()` devolve a casa
+  mais antiga, e as escritas caem na casa errada sem erro nenhum.** É a
+  última que resta: a 102 resolveu as chaves únicas, e esta é a que
+  sobrou. Com membership em duas casas, o `tenant_actual()` — que serve
+  de default a todas as colunas `tenant_id` — devolve a mais antiga. Não
+  dá erro, não dá aviso: o registo entra, e entra no sítio errado. A
+  correcção é o tenant vir do PEDIDO e não da função, como o próprio
+  comentário dela diz («quando isso passar a acontecer a sério, o tenant
+  tem de vir do pedido, não daqui»).
+  Enquanto o Hélio for o único com duas memberships, o defeito está
+  contido — mas é ele que faz do segundo cliente um risco, não um passo.
+- ~~**Chaves de texto ainda únicas GLOBALMENTE**~~ — **fechada pela
+  102.**
+- ~~**`form_errors` aceita insert anónimo sem limite**~~ — **fechada
+  pela 106**: `tenant_id`, política de escrita só para quem tem casa, e
+  travão de 20 por hora.
+- ~~**Sem autoria**: não há `criado_por` em lado nenhum~~ — **fechada
+  pela 105**: quinze tabelas com `criado_por` e `default auth.uid()`.
+  Fica de pé só a segunda metade: o `respostas_autoria` continua a gravar
+  `'cliente'` como texto fixo, não um `user_id`.
 - **Os nomes de máquina continuam a dizer `dlm_` e `captacao_`** — 43 das
   56 funções levam o nome da primeira casa, e a palavra abandonada a 29/07
   vive nas RPCs. Renomeia-se numa migração própria, com invólucros, nunca
@@ -1993,3 +2005,189 @@ e muda o suficiente por dentro.
   A varredura é trabalho a sério: 56 funções com comentários densos,
   muitos a explicar escolhas que nunca chegaram ao documento. Fica como
   pendência PRÓPRIA, não a meio de outra coisa.
+
+## O registo de erros passa por função (106b · 16/08/2026)
+
+A 106 deu casa à `form_errors` (`tenant_id`, `respostas_ate`) e fechou-lhe
+o insert anónimo. Fecha-se a pendência aberta na 099: «`form_errors`
+aceita insert anónimo sem limite — o caminho mais fácil para encher os
+500 MB do plano gratuito.»
+
+- **16/08/2026 — Um `false` do travão NÃO é erro.** A
+  `registar_erro_formulario` devolve boolean e responde `false` quando a
+  casa já registou 20 erros nesta hora. É o limite a fazer o que foi
+  posto para fazer: vai para a consola e a vida segue. Tratá-lo como
+  falha punha o registo de erros a gerar erros, que é a única forma de
+  esta peça piorar o que veio remediar.
+- **16/08/2026 — O fire-and-forget mantém-se, e agora tem duas saídas
+  silenciosas.** A excepção (rede, política) e o travão. Nenhuma lança,
+  nenhuma bloqueia: quem está do outro lado já está a ver uma mensagem
+  de erro, e não se piora o momento por causa do diagnóstico.
+- **16/08/2026 — Um erro SEM casa continua a ser diagnóstico válido.** A
+  captação passa o `tenantSlug` porque a casa vem do endereço (093); o
+  formulário de convite passa null, porque resolve a casa pelo CÓDIGO e
+  no momento da falha pode nem haver convite válido. Aí a função cai no
+  `tenant_actual()`, que sem sessão é null, e a linha fica órfã. É o
+  desenho: perder o erro por não saber de quem é seria perder justamente
+  o que se queria ver.
+- **16/08/2026 — O painel do admin não muda uma linha, e ganha o
+  escopo.** O `getErrosFormulario` continua a ler a tabela directamente
+  — ali há sessão, e a RLS da 106 filtra pela casa de quem pergunta. O
+  que era uma lista global passou a ser a lista da casa sem código
+  nenhum a mudar. Verificado que as seis colunas que o painel desenha
+  (`origem`, `mensagem`, `detalhe`, `contexto`, `respostas`,
+  `created_at`) continuam todas de pé.
+- **16/08/2026 — Terceira migração desta série a correr à frente do
+  frontend, e o custo foi SILÊNCIO.** O insert directo passou a dar
+  42501 e o `catch` do fire-and-forget engolia-o: a partir da migração,
+  nenhum erro de formulário chegou à base, e o mecanismo desenhado para
+  não falhar em voz alta foi exactamente o que escondeu a avaria. As
+  três (100, 105, 106) confirmam a mesma regra por três caminhos —
+  resposta que muda de forma, coluna removida, política apertada.
+  A lição nova é a do sítio: **onde o código já engole erros de
+  propósito, uma migração não se sente. Esses sítios precisam de ser
+  verificados à mão depois de cada migração, porque não se queixam.**
+- **16/08/2026 — Nem toda a divergência entre duas escritas justifica
+  uma transação.** A 104 ensinou a preferir «tudo numa transação no
+  servidor», e a lição é boa — mas não é uma regra a aplicar de olhos
+  fechados. O critério é uma balança de dois pratos:
+  **o custo de TRADUZIR a lógica** contra **o custo da DIVERGÊNCIA**.
+  · `formulario_submeter` (104) pesou para a transação: dois `update`
+    triviais de traduzir, e a divergência era uma reserva que ficava por
+    converter em SILÊNCIO, para aparecer semanas depois.
+  · `sincronizarPrevistos` (hoje) pesa para o contrário: é uma máquina
+    de estados com quatro ramos, cada um a resolver um bug que já
+    aconteceu — plano não-standard que se recusa a adivinhar, parcelas
+    com pagamentos ligados, descrições que acompanham a proporção, o
+    total minúsculo a colapsar numa parcela só. Traduzir isso para
+    PL/pgSQL é arriscar traduzir mal uma regra de DINHEIRO, e o que se
+    ganhava era evitar uma divergência que já é visível e reversível.
+  A pergunta certa não é «isto devia ser atómico?» — quase tudo devia.
+  É: **o risco da cura é menor do que o da doença?**
+- **16/08/2026 — Um comentário que aponta para trabalho futuro faz
+  alguém tentá-lo.** A primeira versão do comentário no
+  `guardarValorAcordado` dizia que «a correcção a sério é de servidor» —
+  e isso é um convite a que a próxima pessoa faça exactamente o que aqui
+  se decidiu não fazer. Uma hipótese avaliada e recusada regista-se como
+  RECUSADA, com a razão, não como pendência. Regra que fica: no código,
+  a diferença entre «ainda não fizemos» e «decidimos não fazer» tem de
+  estar escrita — a segunda protege-se sozinha, a primeira não.
+- **16/08/2026 — Um aviso que não nomeia o botão e o sítio não é um
+  aviso.** Mandar «carregue em Gerar plano» a quem está noutro separador
+  é mandá-la procurar. O texto nomeia o separador (Pagamentos) e o botão
+  pelo rótulo exacto («Gerar plano de pagamento»), e trata por TU, como
+  todo o backoffice — o portal é que fala por você.
+- **16/08/2026 — A prática que fica: depois de cada migração, percorrer
+  à mão os caminhos que engolem erros.** Não os testes — os testes
+  passam, porque o código faz o que sempre fez. É preciso ir ver se a
+  linha chegou à base. São poucos e sabem-se de cor; a lista está na
+  varredura abaixo.
+- **16/08/2026 — Nem todo o catch silencioso é problema, e o critério é
+  o que fica por saber.** Três grupos, e só um é risco:
+  **(1) engole e PERDE** — a escrita falha, ninguém sabe, e o que se
+  perdeu não volta;
+  **(2) engole e DEGRADA À VISTA** — a lista fica vazia, o campo em
+  branco, alguém nota; chato, mas denuncia-se sozinho;
+  **(3) engole por bom motivo e sem custo** — o dedupe da captação
+  dentro do `formulario_submeter`: se falha, cria-se contacto novo, que
+  é o comportamento aceitável.
+  Varrido o `src/` inteiro com este crivo: a esmagadora maioria dos
+  catches é do grupo 2 (levam `setErro`, `onErroGravacao`, `setErroAccao`
+  — chegam ao ecrã) ou do 3 (leituras de rótulos, com o comentário a
+  dizer que degradam). Do grupo 1 restam DOIS, abaixo.
+
+### Os dois catches do grupo 1 (varredura de 16/08/2026)
+
+Não têm correcção decidida — ficam nomeados, que é o que faltava.
+
+- **`clientes.js:253` — o plano de pagamento fica no valor VELHO, e os
+  números continuam plausíveis.** O `guardarValorAcordado` grava o
+  `valor_acordado` e depois chama o `sincronizarPrevistos` dentro de um
+  try/catch que só faz `console.error`. Se essa segunda escrita falhar,
+  o valor acordado é o novo e o plano é o antigo — e é exactamente o bug
+  que o sincronizador foi escrito para corrigir: «a Nádia confirmava
+  metade do acordado no ecrã e a BD registava o valor velho».
+  **O que se perde:** não são dados, é a CORRECÇÃO do dinheiro. Um plano
+  desactualizado não parece avariado — parece um plano.
+  **Recupera-se?** Sim, pelo botão «Gerar plano de pagamento». Mas nada
+  dizia a ninguém que era preciso carregar nele, e era aí que este caso
+  era do grupo 1: o que se perdia não era o dado, era o SABER.
+  **16/08/2026 — Corrigido com o AVISO, e a transação foi recusada.**
+  O `guardarValorAcordado` devolve `planoDesactualizado` e o gerador de
+  orçamento põe-no no ecrã. A alternativa — as duas escritas numa RPC,
+  o padrão da `formulario_submeter` — foi posta e recusada: ver a regra
+  logo abaixo. Não fica trabalho em aberto aqui.
+- **`fotografias.js:138` — o ficheiro fica no balde e ninguém sabe onde
+  está.** A linha de `evento_fotografias` é apagada primeiro; a seguir
+  apagam-se os ficheiros do Storage, dentro de um catch que só avisa na
+  consola. O comentário assume-o («A linha saiu, mas ficaram ficheiros
+  por apagar»).
+  **O que se perde:** o CAMINHO. Apagada a linha, nada no sistema sabe
+  que aqueles ficheiros existem — ficam lixo inalcançável, para sempre.
+  **Recupera-se?** Não por dentro da aplicação. E encosta a uma
+  preocupação já registada: os 500 MB do plano gratuito.
+  Nota: aqui não se perdem dados — acumula-se peso. É a mesma família
+  («falha que não se queixa») com custo diferente.
+  **16/08/2026 — Fica como está, deliberadamente.** A correcção óbvia
+  seria apagar o ficheiro ANTES da linha — e isso inverte o risco em vez
+  de o resolver: passaria a haver linhas a apontar para ficheiros que já
+  não existem, que é pior (a folha mostra uma fotografia partida em vez
+  de nada). Espera pelo dia em que o Storage doer.
+
+O arquétipo deste grupo era o `form_errors`, e esse fechou-se na 106b.
+Foi ele que deu o crivo.
+
+### O quinto fallback, e a lição que ele traz (16/08/2026)
+
+- **16/08/2026 — O `disputaDia.js` era a 104 por terminar.** Tinha o
+  mesmo padrão com outro nome: um `ehEsquemaEmFalta` próprio, com seis
+  códigos (tabela, coluna e função), a traduzir «a 083 ainda não correu»
+  em `null`/`[]` silenciosos. Escapou à limpeza por eu ter procurado
+  pelo NOME (`ehFuncaoRpcEmFalta`) em vez do padrão.
+  Aqui o silêncio custava um AVISO: o vazio é indistinguível de «não há
+  disputa», e quem marcasse um dia já disputado deixava de ser avisada.
+  Grupo 1, e o mais caro dos que se encontraram.
+- **16/08/2026 — O vazio FICA; o vazio-por-falha é que sai.** `[]` do
+  `irmaosDoDia` e `null` do `estadoDoDia` são o caso normal — a maioria
+  dos dias não tem disputa nenhuma. O que se removeu foi o vazio a
+  fazer-se passar por resposta quando a pergunta nem chegou ao fim. É a
+  mesma distinção da 100: «não há» e «não sei» pedem coisas diferentes.
+- **16/08/2026 — Tirar um catch obriga a olhar para quem chama.** Três
+  dos quatro chamadores faziam `await irmaosDoDia(...)` dentro de um
+  `setTimeout` sem `try`: deixar lançar dava rejeição não tratada e o
+  MESMO silêncio, agora com um erro na consola por cima. Ganharam
+  `catch` e um `falhou: true` no estado. Regra: um `throw` novo numa lib
+  é uma mudança de contrato — verifica-se chamador a chamador.
+- **16/08/2026 — «Não foi possível verificar se este dia já tem outro
+  evento.» Ponto final, sem oferecer solução.** Não há gesto útil a
+  sugerir: não é a Nádia que resolve uma falha de rede, e um «tenta
+  novamente» ao lado convidava a carregar num botão que provavelmente
+  falha outra vez.
+  **Âmbar, nunca vermelho** — o vermelho está reservado ao dia tomado,
+  que é o que exige atenção a sério. E mais baixo do que o aviso da
+  disputa: sem o ⚠ e sem o peso do título, porque **não é um alerta, é
+  uma ausência de informação**.
+  **E não bloqueia nada.** Ela continua a criar o evento, a reserva ou o
+  formulário. A regra da casa é «sugere-se, nunca se executa»; aqui nem
+  sugerir dá, portanto só se informa e sai-se da frente.
+- **16/08/2026 — Não se constrói moldura para uma frase.** Os três
+  ecrãs já partilhavam o `AvisoDiaDisputado` — o mesmo âmbar, na raiz de
+  `components/` para a captação pública lhe poder chegar. O estado novo
+  entrou lá, como terceiro caso do componente que já existia: uma
+  alteração, três sítios servidos.
+
+### 🔎 Procurar pelo MECANISMO, não pelo nome (16/08/2026)
+
+Duas vezes na mesma semana, e por isso fica escrito:
+
+- A varredura da 104 procurou `ehFuncaoRpcEmFalta` e não o PADRÃO «se a
+  peça não existir, faz por passos». O `disputaDia.js` tinha o padrão
+  com outro nome e sobreviveu.
+- O `revoke all ... from public` das migrações 097/100 procurou revogar
+  a PUBLIC e não a metade que interessava: o `anon` recebia o grant por
+  `alter default privileges`, e o revoke passava ao lado sem falhar.
+
+Nos dois casos procurou-se o SINTOMA conhecido em vez da FORMA do
+problema — e nos dois o defeito sobreviveu por estar escrito de outra
+maneira. Ao varrer, a pergunta é «que forma tem isto?», nunca «como é
+que se chamava da última vez».

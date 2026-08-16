@@ -578,9 +578,21 @@ export default function GerarOrcamento({
                   setErroAcao(null);
                   setAGuardarValor(true);
                   try {
-                    await guardarValorAcordado(prefill.submissionId, total);
+                    const { planoDesactualizado } = await guardarValorAcordado(
+                      prefill.submissionId,
+                      total,
+                    );
                     setValorGuardado(true);
                     if (onDadosMudaram) onDadosMudaram();
+                    // O valor ficou mesmo guardado — por isso o «✓» acima
+                    // acende — mas o plano não acompanhou. Dizem-se as
+                    // duas coisas, que as duas são verdade, e nomeia-se o
+                    // botão e o sítio: mandar procurar não é avisar.
+                    if (planoDesactualizado) {
+                      setErroAcao(
+                        "O valor ficou guardado, mas o plano de pagamento não actualizou. Abre os Pagamentos do evento e carrega em «Gerar plano de pagamento».",
+                      );
+                    }
                   } catch (e) {
                     console.error(e);
                     setErroAcao(

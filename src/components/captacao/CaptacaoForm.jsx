@@ -103,17 +103,26 @@ export default function CaptacaoForm({
   }, [tenantSlug]);
 
   // Consulta a disputa quando a data muda — com um debounce leve (o
-  // input de data dispara a meio da escrita). Se a migração 083 ainda
-  // não correu, irmaosDoDia devolve [] em silêncio e o aviso
-  // simplesmente não existe — degradação graciosa da casa.
+  // input de data dispara a meio da escrita).
+  //
+  // 104 · A lib deixou de engolir: `[]` é resposta («não há disputa»),
+  // uma falha é outra coisa e chega aqui como excepção. Marca-se
+  // `falhou` em vez de a confundir com o vazio — sem isto, não conseguir
+  // perguntar e não haver rival nenhum eram a mesma coisa no ecrã.
   useEffect(() => {
     if (!modoInterno || !/^\d{4}-\d{2}-\d{2}$/.test(dataEvento || "")) {
       return undefined;
     }
     let cancelado = false;
     const temporizador = setTimeout(async () => {
-      const lista = await irmaosDoDia(dataEvento);
-      if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+      try {
+        const lista = await irmaosDoDia(dataEvento);
+        if (!cancelado) setDisputaDia({ data: dataEvento, irmaos: lista || [] });
+      } catch (e) {
+        console.error("Não foi possível verificar a disputa do dia:", e);
+        if (!cancelado)
+          setDisputaDia({ data: dataEvento, irmaos: [], falhou: true });
+      }
     }, 350);
     return () => {
       cancelado = true;
@@ -123,8 +132,11 @@ export default function CaptacaoForm({
 
   // Os irmãos VÁLIDOS para a data que está no campo agora — [] se a
   // consulta guardada for de outra data (ou não houver nenhuma).
-  const irmaosDia =
-    disputaDia && disputaDia.data === dataEvento ? disputaDia.irmaos : [];
+  const daDataActual = disputaDia && disputaDia.data === dataEvento;
+  const irmaosDia = daDataActual ? disputaDia.irmaos : [];
+  // A consulta desta data não chegou ao fim (104) — diz-se, em vez de
+  // deixar o silêncio passar por «não há disputa».
+  const falhouDia = !!daDataActual && !!disputaDia.falhou;
 
   // Nº de convidados: obrigatório na porta PÚBLICA — o orçamento
   // depende da lotação — EXCEPTO quando o pedido é SÓ o cenário
@@ -345,6 +357,9 @@ export default function CaptacaoForm({
       registarErroFormulario({
         origem: "captacao",
         erro: err,
+        // A casa vem do endereço (093) e esta página tem-na: sem ela o
+        // erro fica sem dono e não se sabe de quem era o pedido perdido.
+        tenantSlug,
         contexto: { modoInterno: !!modoInterno, eventTypeId },
         respostas: {
           nome,
@@ -554,10 +569,11 @@ export default function CaptacaoForm({
       {/* O aviso da disputa — NUNCA bloqueia: a criação segue na mesma
           (o dia só muda de mãos no registo do sinal, não aqui). Fica
           logo por baixo do campo da data, a que ele responde. */}
-      {modoInterno && irmaosDia.length > 0 && (
+      {modoInterno && (irmaosDia.length > 0 || falhouDia) && (
         <AvisoDiaDisputado
           dataISO={dataEvento}
           irmaos={irmaosDia}
+          falhou={falhouDia}
           estilo={{ margin: "-4px 0 14px" }}
         />
       )}

@@ -202,13 +202,25 @@ export default function PainelNovoFormulario({
     if (!dataEscolhida) return undefined;
     let cancelado = false;
     const temporizador = setTimeout(async () => {
-      const lista = await irmaosDoDia(dataEscolhida, alvoAExcluir);
-      if (!cancelado)
-        setDisputaDia({
-          data: dataEscolhida,
-          alvo: alvoAExcluir,
-          irmaos: lista || [],
-        });
+      // 104 · `[]` é resposta; a falha marca-se, não se confunde com ela.
+      try {
+        const lista = await irmaosDoDia(dataEscolhida, alvoAExcluir);
+        if (!cancelado)
+          setDisputaDia({
+            data: dataEscolhida,
+            alvo: alvoAExcluir,
+            irmaos: lista || [],
+          });
+      } catch (e) {
+        console.error("Não foi possível verificar a disputa do dia:", e);
+        if (!cancelado)
+          setDisputaDia({
+            data: dataEscolhida,
+            alvo: alvoAExcluir,
+            irmaos: [],
+            falhou: true,
+          });
+      }
     }, 350);
     return () => {
       cancelado = true;
@@ -217,12 +229,13 @@ export default function PainelNovoFormulario({
   }, [dataEscolhida, alvoAExcluir]);
 
   // Os irmãos VÁLIDOS para a data e o alvo que estão no painel agora.
-  const irmaosDia =
+  const daDataActual =
     disputaDia &&
     disputaDia.data === dataEscolhida &&
-    disputaDia.alvo === alvoAExcluir
-      ? disputaDia.irmaos
-      : [];
+    disputaDia.alvo === alvoAExcluir;
+  const irmaosDia = daDataActual ? disputaDia.irmaos : [];
+  // A consulta desta data não chegou ao fim (104).
+  const falhouDia = !!daDataActual && !!disputaDia.falhou;
   // ------------------------------------------------------------
   // As mutações do rascunho vivem AQUI, num sítio só.
   //
@@ -682,10 +695,11 @@ export default function PainelNovoFormulario({
                                   do Evento, e só quando há rivais. */}
                               {campoAncoraDisputa &&
                                 field.id === campoAncoraDisputa.id &&
-                                irmaosDia.length > 0 && (
+                                (irmaosDia.length > 0 || falhouDia) && (
                                   <AvisoDiaDisputado
                                     dataISO={dataEscolhida}
                                     irmaos={irmaosDia}
+                                    falhou={falhouDia}
                                     estilo={{ marginTop: "8px" }}
                                   />
                                 )}

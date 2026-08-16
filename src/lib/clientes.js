@@ -226,9 +226,34 @@ export const submeterFormulario = async (invite, payload) => {
 // pagamentos ligados ao valor novo (o insert-once antigo deixava o
 // plano preso ao primeiro valor: a Nádia confirmava metade do acordado
 // no ecrã e a BD registava o valor velho). Uma falha aqui não deve
-// impedir o valor de ficar guardado (é a acção que a Nádia estava
-// mesmo a fazer); o painel de pagamentos sabe recuperar (botão
-// "Gerar plano") se isto falhar silenciosamente.
+// impedir o valor de ficar guardado — é a acção que a Nádia estava
+// mesmo a fazer.
+//
+// ⚠ DUAS ESCRITAS, E A SEGUNDA PODE FALHAR SOZINHA. Se falhar, o valor
+// acordado é o novo e o plano é o antigo: os números continuam
+// plausíveis, e um plano desactualizado não parece avariado — parece um
+// plano. É o bug de cima a voltar pela porta das traseiras.
+//
+// Até aqui isso morria num console.error. Agora DIZ-SE: devolve-se
+// `planoDesactualizado` e quem chama põe o aviso no ecrã. O botão
+// «Gerar plano de pagamento» sempre soube recuperar; o que faltava era
+// alguém dizer que era preciso carregar nele.
+//
+// ⛔ NÃO passar isto a uma transação no servidor — a hipótese foi posta
+// e RECUSADA (16/08/2026). Parecia o padrão da formulario_submeter, e
+// não é: ali eram dois update triviais, aqui o sincronizarPrevistos é
+// uma máquina de estados com quatro ramos, e cada um resolve um bug que
+// já aconteceu — o plano não-standard que se recusa a adivinhar, as
+// parcelas com pagamentos já ligados, a descrição que acompanha a
+// proporção («Sinal (50%)» a dizer 60% era o texto a mentir), o total
+// minúsculo a colapsar numa parcela só.
+//
+// Traduzir isso para PL/pgSQL para ganhar uma transação é arriscar
+// traduzir mal uma regra de DINHEIRO — e o que se ganhava era evitar
+// uma divergência que já é visível (o aviso acima) e reversível (o
+// botão). O risco da cura é maior do que a doença.
+//
+// Devolve { evento, planoDesactualizado }.
 export const guardarValorAcordado = async (submissionId, valor) => {
   const v = Number(valor);
   if (!submissionId || !Number.isFinite(v)) {
@@ -247,6 +272,7 @@ export const guardarValorAcordado = async (submissionId, valor) => {
     .select()
     .single();
   if (error) throw error;
+  let planoDesactualizado = false;
   if (v > 0) {
     try {
       await sincronizarPrevistos(submissionId, v, data.data_evento);
@@ -255,9 +281,10 @@ export const guardarValorAcordado = async (submissionId, valor) => {
         "sincronizarPrevistos falhou após guardarValorAcordado:",
         e,
       );
+      planoDesactualizado = true;
     }
   }
-  return data;
+  return { evento: data, planoDesactualizado };
 };
 
 // Marca (ou desmarca) o pagamento final de um evento — a Nádia
