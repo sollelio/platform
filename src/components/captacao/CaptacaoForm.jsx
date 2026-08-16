@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   submeterCaptacao,
   getTiposParaCaptacao,
+  getTiposParaCaptacaoInterna,
   MAX_IMAGENS_REFERENCIA,
 } from "../../lib/captacao";
 import { supabase } from "../../lib/supabase";
@@ -99,8 +100,14 @@ export default function CaptacaoForm({
   const inputImagens = useRef(null);
 
   useEffect(() => {
-    getTiposParaCaptacao(tenantSlug).then(setTipos);
-  }, [tenantSlug]);
+    // Duas portas para a mesma lista: com slug, a pública (RPC da
+    // 093); no modo interno não há slug — vai pela sessão autenticada
+    // (regressão da 093: sem esta porta, o admin ficava sem modelos).
+    (modoInterno
+      ? getTiposParaCaptacaoInterna()
+      : getTiposParaCaptacao(tenantSlug)
+    ).then(setTipos);
+  }, [tenantSlug, modoInterno]);
 
   // Consulta a disputa quando a data muda — com um debounce leve (o
   // input de data dispara a meio da escrita).

@@ -2517,6 +2517,34 @@ que se chamava da última vez».
   e não achada razão registada, mas unificá-lo é decisão de identidade
   visual, não de tema.
 
+- **16/08/2026 — O segundo teste a quente: os campos e o vermelho do
+  erro.** O formulário de novo pedido no escuro tinha a letra
+  invisível ao escrever e os erros quase ilegíveis. A causa,
+  confirmada antes de mexer: os campos NÃO vão buscar cor ao sistema
+  — o preflight do Tailwind manda `input/textarea/select` HERDAR a
+  cor do texto, nos dois modos por igual. Onde a árvore é tokenizada
+  isso resolve sozinho (os campos do admin sobre `--superficie`
+  sempre estiveram bem no escuro: 14.75:1); parte-se onde um fundo
+  claro fica LITERAL e a letra herdada segue o tema — os campos
+  brancos do CaptacaoForm, peça pública, montados sem `.papel` no
+  Início e no Funil (o do Calendário já estava embrulhado): letra
+  creme #F1ECE1 sobre campo branco, 1.18:1. A correcção foi acabar o
+  padrão registado, não inventar outro: `.papel` nos dois modais em
+  falta. Uma rede CSS global («no escuro, todo o campo leva
+  --texto») foi avaliada e recusada: os campos já herdam
+  SIMETRICAMENTE nos dois modos, e uma regra só-escuro dava a um
+  campo papéis diferentes conforme o modo — pior do que o problema.
+  E o vermelho de erro ganhou o par que faltava: `--perigo-vivo`,
+  claro `#EF4444` exacto (nenhum pixel muda — é o valor que lá
+  estava pinado), escuro `#F27E72`, convergindo com o `--perigo`
+  como o ouro convergiu: qualquer vermelho AA sobre castanho vive
+  nesta claridade, e um segundo salmão quase igual seria cor a mais.
+  Dá 5.7–7.2:1 em todas as superfícies escuras (os pins ficavam a
+  4.0–4.6, e o #DC2626 a 3.1–3.9). Consumidores: login ×6,
+  EventTypeEditor ×2, EventTypesTab ×2. As ilhas completas de erro
+  (ReservaModal, RemoverEventoModal, Importar, Conferência — vermelho
+  com fundo claro preso ao par) ficam: já se liam nos dois modos.
+
 - **Pendências desta decisão:** as três listas em
   `docs/listas-modo-escuro.md` (cores que não coube traduzir;
   violações de identidade encontradas e não corrigidas; ficheiros onde
@@ -2636,3 +2664,97 @@ de promover (a lição do «procurar pelo mecanismo»: metade dos achados
 antigos estava atropelada). Três falsos desaparecimentos vieram de
 espelho incompleto do repositório — confirmados contra o disco antes
 de virarem pendência.
+
+## A casa no endereço — o desenho aprovado (108 · 16/08/2026)
+
+A decisão base é do prompt-108 (a casa vem do endereço, no admin como
+no público; sem seletor; membership múltipla não se proíbe). O desenho
+do lado do servidor foi proposto pelo assistente sobre o levantamento
+validado (11 defaults, 4 funções, zero políticas, zero frontend
+directo) e aprovado com três emendas do Hélio. O SQL é do Hélio;
+o frontend espera que a migração corra.
+
+- **As peças:** `tenant_do_pedido(p_slug)` — slug da rota + membership
+  confirmada + casa activa → id, ou NULL (compõe com coalesce; cada
+  escrita decide a sua falha). O guard da `tenant_actual()`: duas ou
+  mais memberships activas → `raise 'CASA_AMBIGUA'` — converte o modo
+  de falhar de «mente» para «parte», e protege os onze defaults e
+  qualquer queda esquecida. `identidade_da_minha_casa(p_slug)` com
+  três respostas (activa → identidade; minha mas suspensa →
+  identidade + estado 'suspensa' — o ecrã que explica, a fechar a
+  pendência da 104; alheia/inexistente → 'desconhecida' → ecrã «este
+  endereço não é teu»). `as_minhas_casas()` para o redirect dos URLs
+  antigos. `set not null` em `event_types.tenant_id` (dados reais sem
+  nenhum NULL; um NULL seria lixo INVISÍVEL — a RLS e a porta pública
+  nunca o mostram — não feature).
+
+- **O bug de hoje no `captacao_submeter` (achado da proposta):** o
+  ramo com slug resolve por `tenant_por_slug` SEM membership — uma
+  sessão autenticada com o slug de outra casa cria lá um interessado.
+  Passa a: com sessão, o slug resolve por `tenant_do_pedido` e NULL →
+  `raise 'CASA_ERRADA'`; sem sessão, como hoje.
+
+- **16/08/2026 — Emenda do Hélio: `registar_erro_formulario` leva
+  membership TAMBÉM.** O argumento «é só um log» falha porque o log
+  carrega a coluna `respostas` — o formulário da cliente. Um log na
+  casa errada é dados pessoais na casa errada, que é o que a 106
+  existiu para impedir. Mesmo padrão do `captacao_submeter`: com
+  sessão, membership verificada; sem sessão, `tenant_por_slug` como
+  hoje (o caminho público fica).
+
+- **16/08/2026 — Como o `CASA_AMBIGUA` chega ao ecrã (verificado no
+  código):** um default que rebenta aborta o INSERT; o PostgREST
+  devolve o erro com `message: "CASA_AMBIGUA"` (código P0001) e o
+  supabase-js entrega-o em `error.message`; as libs fazem `throw
+  error` e cada ecrã mostra a SUA frase genérica — ou seja, sem
+  trabalho de frontend o sintoma é mesmo «erro ao gravar» sem porquê
+  (a captação é a excepção: imprime o detalhe entre parênteses,
+  CaptacaoForm:378). Decidido: (1) o raise leva
+  `using hint = 'A sessão pertence a mais do que uma casa; abra o
+  endereço da casa certa.'` — a frase viaja em `error.hint` mesmo
+  onde ninguém traduz; (2) o frontend ganha um helper único de
+  tradução dos code-words da casa (CASA_AMBIGUA, CASA_ERRADA,
+  CASA_DESCONHECIDA…), a entrar no PRIMEIRO lote do frontend da 108 —
+  antes do teste de staging com duas casas, que é quando o guard pode
+  disparar a sério.
+
+- **16/08/2026 — Emenda do Hélio: o caminho 2 (frontend envia
+  `tenant_id` em cada insert) NÃO é bloqueio nem urgência.** Faz-se
+  por lotes, ao ritmo que der: a rede endurecida já impede a mentira
+  — com o guard, uma escrita ou vai explícita ou parte alto; nunca
+  cai calada na casa errada. Quem pegar nisto não o trate como
+  incêndio.
+
+- **16/08/2026 — Segundo achado da mesma família, corrigido já no
+  frontend: o modo interno ficou sem os modelos na 093.** O
+  `getTiposParaCaptacao` passou a exigir slug (RPC
+  `tipos_de_evento_publicos`) e sem slug devolve `[]`; os três modais
+  internos de novo pedido (Início, Funil, Calendário) não têm slug
+  nenhum, por isso o select dos tipos desapareceu e o formulário
+  degradou para texto livre — em silêncio, desde a 093 (o checklist
+  da migração testava o submeter interno, não o select). Um pedido
+  registado assim fica SEM `eventTypeId` (só `tipoOutro` por
+  extenso): sem modelo, sem formulário do tipo. A correcção é uma
+  porta de DENTRO ao lado da pública: `getTiposParaCaptacaoInterna()`
+  em `lib/captacao.js`, select autenticado com a MESMA projecção e
+  ordem da RPC (id, nome, por nome), entregue pela RLS da casa (091)
+  — o padrão que o admin já usa (invites, comunicados). O
+  CaptacaoForm escolhe a porta pelo `modoInterno`. Vale verificar se
+  algum interessado criado pelo admin desde a 093 ficou sem modelo
+  (`event_type_id is null` com o tipo escrito por extenso nas
+  respostas).
+
+### Pendências desta decisão
+
+- `getTiposParaCaptacaoInterna` (captação pelo admin) devolve os
+  modelos de TODAS as casas da sessão — com uma membership é a casa
+  certa; no dia das duas, passa a filtrar pela casa do endereço
+  (sítio marcado no código com ⚠ 108).
+- O redirect dos URLs antigos (`/admin/inicio` → `/admin/:casa/…`)
+  **sai no dia da segunda casa** — condição escrita, como mandado; até
+  lá redireciona para a única casa da pessoa (via `as_minhas_casas`).
+- O helper de tradução dos code-words no frontend — primeiro lote da
+  108, antes do teste de staging.
+- O frontend da 108 inteiro (rotas com `:casa`, CasaProvider pela
+  rota, os três RPC a enviar o slug, ecrã do «endereço não é teu» e o
+  ecrã da casa suspensa) — **só depois de a migração do Hélio correr.**

@@ -32,6 +32,7 @@ candidatas a unificar nos tokens de sombra, decisão tua.
 - Cartão comErro do Importar `#FFF9F9` e linha de rutura da Conferência `#FFF8F8` — com `.papel` condicional para o texto tokenizado não morrer lá dentro
 - Célula do dia do Calendário (`#FFFDF5` + grelha), caixa «Ainda sem eventos» (ClienteVista), pastilhas `#FBF9F4` (Avaliações, Fotografias), banda «folha retirada» (ComunicadosTab), cena WhatsApp do MensagemEditor (`#ECE7DE`, cenografia), aviso do predefinido (EventTypeEditor), botão «É deste» (FormulariosOrfaos), chips auto/manual (ConsultaDeslocacao, PainelDeslocacao), régua/tramado do PainelDeslocacao, cartão «Gastos» (Pagamentos), toggle Perdidos (FunilBoard), estado «ok»/«vazio» (MateriaisInventario), mosaico Copiar (ShareSheet), ilha `#7F1D1D` (RemoverEventoModal), par verde (ReservaModal)
 - EnvBanner por inteiro (alarme de ambiente — a moldura vermelha grita igual nos dois modos)
+- O CaptacaoForm embutido no admin (peça pública, campos brancos) — `.papel` nos TRÊS modais de novo pedido. **Correcção pós-teste (16/08): Início e Funil montavam-no SEM o embrulho** — a letra herdada clara caía nos campos brancos (1.18:1) e o erro #DC2626 caía no castanho do modal (3.6:1): a regressão de contraste vista no ecrã. O do Calendário estava certo desde a migração.
 
 **Estados de gesto presos ao claro (padrão, 7 sítios):** «A criar…/A
 guardar…/A validar…/A gravar…» com `#E8D5A3` — o token equivalente no
@@ -40,7 +41,7 @@ PainelNovoFormulario, MensagensSheet, EventTypeEditor, MaterialModalRico,
 ImportarTab ×2, ReservaModal).
 
 **Papel trocado no claro — traduzir mudava pixels, fica literal e na lista 2:**
-- `#EF4444` como TEXTO de erro (login ×6, EventTypeEditor ×2, EventTypesTab ×2, RemoverEventoModal)
+- `#EF4444` como TEXTO de erro — **resolvido 16/08 com token próprio**: `--perigo-vivo` (claro #EF4444 exacto, nenhum pixel muda; escuro #F27E72, convergindo com o --perigo como o ouro convergiu — 5.7–7.2:1 AA em todas as superfícies escuras) no login ×6, EventTypeEditor ×2 e EventTypesTab ×2. ReservaModal e RemoverEventoModal NÃO entraram: aí o erro é ilha completa (fundo #FEF2F2 preso ao par) e já se lia nos dois modos.
 - `#DC2626` como botão/badge CHEIO (FunilBoard, DeleteInviteModal, MaterialModalRico, ReservaModal, OperacionalTab)
 - `#166534` e `#B91C1C` como FUNDOS de gesto (PortalDoClienteSheet ×4, FotografiasEvento, ReservaModal `#92400E`)
 - `#9B9B9B` em coisas que se CLICAM (pega do ComunicadoEditor, ContribuicaoColetiva ×3)
@@ -99,7 +100,7 @@ identidade visual, não de tema.
 
 **Regras da casa já violadas no claro (não repetidas no escuro):**
 - `#9B9B9B` em clicáveis (pega do ComunicadoEditor, setas da ContribuicaoColetiva)
-- `#EF4444`-como-texto e `#DC2626`-como-cheio (papéis trocados dentro da própria família)
+- `#EF4444`-como-texto (desde 16/08 com nome próprio, --perigo-vivo — o claro não mudou e a troca de papéis na família continua à vista) e `#DC2626`-como-cheio (papéis trocados dentro da própria família)
 
 ---
 

@@ -1008,15 +1008,24 @@ export default function InicioTab({
             >
               Transcreve o que a pessoa te disse na conversa.
             </p>
-            <CaptacaoForm
-              modoInterno
-              textoBotao="Registar pedido"
-              onSubmetido={() => {
-                setNovoInteressado(false);
-                if (onDadosMudaram) onDadosMudaram();
-                if (onNavegar) onNavegar("clientes");
-              }}
-            />
+            {/* O formulário de captação é peça PÚBLICA embutida no admin —
+                as cores dele são as da vitrina (campos brancos) e não
+                seguem o tema. Sem o .papel, no escuro a letra herdada
+                clara caía sobre o campo branco e não se via nada
+                (regressão vista no ecrã, 16/08). A classe reancora os
+                tokens ao claro, como no mesmo modal do CalendarioTab;
+                no claro é um no-op, valores idênticos. */}
+            <div className="papel">
+              <CaptacaoForm
+                modoInterno
+                textoBotao="Registar pedido"
+                onSubmetido={() => {
+                  setNovoInteressado(false);
+                  if (onDadosMudaram) onDadosMudaram();
+                  if (onNavegar) onNavegar("clientes");
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

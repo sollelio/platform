@@ -383,17 +383,20 @@ function LoginConteudo() {
                     fontWeight: "600",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    // #EF4444 como TEXTO de erro (aqui e nos cinco irmãos
-                    // abaixo) está fora do papel: na identidade é a cor do
-                    // botão de perigo CHEIO; texto de erro é #DC2626/#B91C1C.
-                    // Unificar mudava o claro — fica literal e na lista.
-                    color: errors.email ? "#EF4444" : "var(--charcoal)",
+                    // O erro-como-texto (aqui e nos cinco irmãos abaixo)
+                    // tem token próprio desde 16/08: --perigo-vivo, claro
+                    // #EF4444 exacto (nenhum pixel muda), escuro #F27E72
+                    // — o literal ficava a 4.0–4.6:1 sobre castanho e
+                    // falhava AA. Ver o registo do modo escuro.
+                    color: errors.email ? "var(--perigo-vivo)" : "var(--charcoal)",
                     display: "block",
                     marginBottom: "6px",
                   }}
                 >
                   Email{" "}
-                  {errors.email && <span style={{ color: "#EF4444" }}>*</span>}
+                  {errors.email && (
+                    <span style={{ color: "var(--perigo-vivo)" }}>*</span>
+                  )}
                 </label>
                 <div style={inputWrapperStyle(!!errors.email)}>
                   <div style={iconStyle}>
@@ -421,7 +424,7 @@ function LoginConteudo() {
                       transition={{ duration: 0.2 }}
                       style={{
                         fontSize: "12px",
-                        color: "#EF4444",
+                        color: "var(--perigo-vivo)",
                         margin: 0,
                         display: "flex",
                         alignItems: "center",
@@ -443,14 +446,16 @@ function LoginConteudo() {
                     fontWeight: "600",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
-                    color: errors.password ? "#EF4444" : "var(--charcoal)",
+                    color: errors.password
+                      ? "var(--perigo-vivo)"
+                      : "var(--charcoal)",
                     display: "block",
                     marginBottom: "6px",
                   }}
                 >
                   Password{" "}
                   {errors.password && (
-                    <span style={{ color: "#EF4444" }}>*</span>
+                    <span style={{ color: "var(--perigo-vivo)" }}>*</span>
                   )}
                 </label>
                 <div style={inputWrapperStyle(!!errors.password)}>
@@ -495,7 +500,7 @@ function LoginConteudo() {
                       transition={{ duration: 0.2 }}
                       style={{
                         fontSize: "12px",
-                        color: "#EF4444",
+                        color: "var(--perigo-vivo)",
                         margin: 0,
                         display: "flex",
                         alignItems: "center",

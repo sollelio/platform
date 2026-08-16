@@ -179,3 +179,32 @@ export const getTiposParaCaptacao = async (tenantSlug) => {
   }
   return data || [];
 };
+
+// Os MESMOS tipos, pela porta de DENTRO — o modo interno, a casa a
+// registar um pedido no próprio admin. Aqui não há slug nem faz
+// falta: a sessão é autenticada e a RLS por casa (091) entrega só os
+// modelos da casa da sessão — o padrão das outras leituras do admin
+// (invites, comunicados). Mesma projecção e mesma ordem que a porta
+// pública: as duas portas têm de mostrar a mesma lista.
+//
+// Nasceu de uma regressão da 093: a porta pública passou a exigir
+// slug, o modo interno não tem nenhum, e o select dos tipos
+// desapareceu em silêncio — o formulário degradava para texto livre
+// e o pedido interno ficava sem modelo (eventTypeId a null).
+//
+// ⚠ 108: com duas memberships isto devolve os modelos das duas casas
+// misturados. Quando a casa vier do endereço, este sítio passa a
+// filtrar pela casa pedida (pendência registada no desenho da 108).
+export const getTiposParaCaptacaoInterna = async () => {
+  const { data, error } = await supabase
+    .from("event_types")
+    .select("id, nome")
+    .order("nome");
+  // Como na porta pública: sem tipos o formulário degrada para texto
+  // livre — a leitura nunca trava um pedido.
+  if (error) {
+    console.error("Sem tipos de evento no modo interno", error);
+    return [];
+  }
+  return data || [];
+};

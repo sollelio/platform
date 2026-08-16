@@ -53,6 +53,8 @@
   --perigo-fundo: #fef2f2;
   --perigo-borda: #fecaca;
   --perigo-cheio: #ef4444; /* botão de perigo cheio */
+  --perigo-vivo: #ef4444; /* erro vivo como TEXTO (login, remover): no claro
+                             coincide com o cheio; os papéis separam no escuro */
   --sucesso: #22c55e;
   --sucesso-texto: #166534;
   --sucesso-fundo: #f0fdf4;
@@ -142,6 +144,11 @@
     --perigo-fundo: #301715;
     --perigo-borda: #5c2620;
     --perigo-cheio: #c63a31; /* letra branca: 5.2:1 (no claro era 3.8) */
+    --perigo-vivo: #f27e72; /* no escuro o erro-como-texto converge com o
+                               --perigo, como o ouro convergiu: um vermelho
+                               AA sobre castanho vive nesta claridade, e um
+                               segundo salmão quase igual seria cor a mais.
+                               5.7–7.2:1 em todas as superfícies escuras */
     --sucesso: #57c97c;
     --sucesso-texto: #8fdca8;
     --sucesso-fundo: #152a1b;
@@ -215,6 +222,7 @@
   --perigo-fundo: #fef2f2;
   --perigo-borda: #fecaca;
   --perigo-cheio: #ef4444;
+  --perigo-vivo: #ef4444;
   --sucesso: #22c55e;
   --sucesso-texto: #166534;
   --sucesso-fundo: #f0fdf4;

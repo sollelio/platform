@@ -243,10 +243,10 @@ const deleteIconBtnStyle = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  // O valor é o do --perigo-cheio, mas o PAPEL aqui é texto/ícone —
-  // no escuro esse token é vermelho de preenchimento, escuro demais
-  // para letra. Fica literal (lê-se nos dois modos) e vai na lista.
-  color: "#EF4444",
+  // Erro/remoção como texto-ícone: token próprio desde 16/08
+  // (--perigo-vivo, claro #EF4444 exacto — nenhum pixel muda; escuro
+  // #F27E72, o literal falhava AA sobre castanho).
+  color: "var(--perigo-vivo)",
   padding: "6px",
   flexShrink: 0,
 };
@@ -1616,8 +1616,8 @@ export default function EventTypeEditor({
               style={{
                 fontSize: "12px",
                 // Mesmo caso do lápis de remover (deleteIconBtnStyle):
-                // valor do --perigo-cheio, papel de texto — fica literal.
-                color: "#EF4444",
+                // erro como texto → --perigo-vivo (claro idêntico).
+                color: "var(--perigo-vivo)",
                 margin: "0 0 10px 0",
                 textAlign: "right",
               }}

@@ -253,10 +253,10 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
                     letterSpacing: "0.05em",
                     border: "1.5px solid var(--perigo-borda)",
                     backgroundColor: "var(--superficie)",
-                    // O valor é o do --perigo-cheio, mas o PAPEL é texto —
-                    // no escuro esse token é vermelho de preenchimento,
-                    // escuro demais para letra. Fica literal e vai na lista.
-                    color: "#EF4444",
+                    // Remover como texto: token próprio desde 16/08
+                    // (--perigo-vivo, claro #EF4444 exacto; escuro
+                    // #F27E72 — o literal falhava AA sobre castanho).
+                    color: "var(--perigo-vivo)",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
                   }}
@@ -503,9 +503,9 @@ export default function EventTypesTab({ eventTypes, loading, onRefetch }) {
               <p
                 style={{
                   fontSize: "12px",
-                  // Valor do --perigo-cheio em papel de texto (como no
-                  // botão Remover acima): fica literal e vai na lista.
-                  color: "#EF4444",
+                  // Erro como texto (como no botão Remover acima):
+                  // --perigo-vivo, claro idêntico, escuro AA.
+                  color: "var(--perigo-vivo)",
                   backgroundColor: "var(--perigo-fundo)",
                   border: "1px solid var(--perigo-borda)",
                   borderRadius: "8px",
