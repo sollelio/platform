@@ -8,7 +8,7 @@ import CaptacaoForm from "../captacao/CaptacaoForm";
 import ErrosFormulario from "./ErrosFormulario";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
 import ConsultaData from "./ConsultaData";
-import { useCasa } from "../CasaProvider";
+import { useNomeDoUtilizador } from "../../lib/autoria";
 import { Icone } from "./Navegacao";
 
 // ============================================================
@@ -77,12 +77,16 @@ export default function InicioTab({
   onNavegar,
   onDadosMudaram,
 }) {
-  const casa = useCasa();
-  // A saudação trata a titular pelo PRIMEIRO nome, como quem fala com
-  // ela — «Boa tarde, Nádia», não «Boa tarde, Nádia Schultz». Sem
-  // titular registada, a saudação fica sozinha em vez de acabar numa
-  // vírgula pendurada.
-  const tratamento = (casa.titular || "").trim().split(" ")[0];
+  // 105 · Quem se saúda é QUEM ENTROU, não a titular da casa. Eram a
+  // mesma pessoa enquanto havia uma conta só; com duas, o Hélio abria o
+  // painel e era tratado por Nádia.
+  //
+  // Pelo PRIMEIRO nome, como quem fala com ela — «Boa tarde, Nádia», não
+  // «Boa tarde, Nádia Schultz». Sem nome (ainda a chegar, ou a RPC sem
+  // resposta), a saudação fica sozinha em vez de acabar numa vírgula
+  // pendurada — que é o que já se via com a casa suspensa, e lê bem.
+  const nomeDeQuemEntrou = useNomeDoUtilizador();
+  const tratamento = (nomeDeQuemEntrou || "").trim().split(" ")[0];
   const [novoInteressado, setNovoInteressado] = useState(false);
   const [consultaAberta, setConsultaAberta] = useState(false);
   const [consultaDataAberta, setConsultaDataAberta] = useState(false);

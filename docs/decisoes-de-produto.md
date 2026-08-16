@@ -1763,7 +1763,15 @@ frontend; o resto está em `docs/prompt-100-casa-desconhecida.md`.
   usado, o IBAN vinha da constante, e nada disto dava erro: com uma casa
   só, a omissão e a verdade são iguais ao pixel. Regra que fica: **uma
   migração que muda a FORMA da resposta não pode correr antes de o
-  frontend a saber ler** — não parte nada, só mente. Ficou também um
+  frontend a saber ler** — não parte nada, só mente.
+  **Estendida a 16/08 pela 105b**, que foi o segundo caso da série: uma
+  migração que REMOVE uma coluna também não pode correr à frente. E o
+  custo subiu de degrau — o envelope da 100 mentia na leitura, a coluna
+  removida da 105 partiu a ESCRITA (criar uma nota dava 42703). A forma
+  benigna desta família é a que mente em silêncio; a maligna é a que
+  perde o que a pessoa acabou de escrever. As duas se evitam pela mesma
+  ordem: primeiro o frontend sabe ler o novo, depois a migração corre.
+  Ficou também um
   `SEM_CASA` chamado sem estar definido, que o eslint apanhou como
   `no-undef` e teria sido um `ReferenceError` à primeira resposta
   `desconhecida`.
@@ -1894,3 +1902,94 @@ problema por baixo.
   abrir — como desenhado. No admin, a Nádia entra e o sistema fica sem
   marca; a saudação passa a «Boa noite» sem nome, o que é aceitável.
   Fecha a dívida de «a 103 nunca foi exercitada».
+## A autoria chega ao ecrã (105b · 16/08/2026)
+
+A 105 pôs `criado_por` em quinze tabelas, com `default auth.uid()`, e
+trocou o `notas_evento.autor` (texto) por um uuid. Fecha-se assim a
+pendência «Sem autoria» aberta na 099. Do lado de cá muda pouco à vista
+e muda o suficiente por dentro.
+
+- **16/08/2026 — O autor NÃO se envia do browser.** O `criado_por`
+  preenche-se com o `default auth.uid()`; mandá-lo daqui seria deixar o
+  cliente dizer quem escreveu, que é justamente o que a coluna existe
+  para impedir. O `criarNota` deixou de o incluir no insert.
+- **16/08/2026 — Sem nome, não há autor — não há nome cravado.** Um
+  `nome_do_autor()` a devolver null é resposta legítima em três casos:
+  linha antiga sem autor, autor de OUTRA casa (a função só responde de
+  quem partilha casa), ou a rede. Nos três, a nota mostra-se sem autor e
+  a etiqueta desaparece com ele. É a regra da 100 aplicada às pessoas:
+  assinar o trabalho de alguém com o nome de outra pessoa é pior do que
+  não assinar.
+- **16/08/2026 — Quem se saúda é quem ENTROU, não a titular da casa.**
+  Eram a mesma pessoa enquanto havia uma conta só; com duas, o Hélio
+  abria o painel e era tratado por Nádia. A saudação passou de
+  `casa.titular` para `nome_do_utilizador()`.
+- **16/08/2026 — PRIMEIRO NOME onde se cumprimenta, nome INTEIRO onde se
+  identifica uma linha.** São perguntas diferentes e a resposta certa a
+  uma é a errada à outra: uma SAÚDA, a outra DESAMBIGUA. A saudação do
+  Início é o único sítio onde a aplicação fala COM a pessoa em vez de
+  falar de trabalho, e ali o nome inteiro soa a formulário — «Boa tarde,
+  Nádia», não «Boa tarde, Nádia Schultz». Na autoria de uma nota é ao
+  contrário: o nome existe para dizer qual das pessoas escreveu aquilo,
+  e no dia em que uma equipa tiver duas Marias é ali que isso importa,
+  não na saudação.
+  A casa já tinha este instinto, e está escrito — mas não aqui. Está no
+  corpo do `dlm_portal_ver_interno`, no ramo `nome_como = 'primeiro'`:
+
+  > «Sofia R.» — o nome próprio inteiro e a inicial do último, que é o
+  > meio-termo entre reconhecível e exposta. Num casal ficam os dois
+  > nomes próprios, porque é assim que eles se apresentam.
+
+  A escolha é da cliente (`completo`, `primeiro` ou `anonimo`, 066) e a
+  conta faz-se no servidor de propósito — fazê-la no browser obrigava a
+  mandar o nome inteiro para a página, e quem escolheu «sem nome» ficava
+  com ele a viajar na resposta na mesma. A regra de hoje é a mesma
+  pergunta vista do lado de dentro: até onde chega um nome depende de
+  para que serve mostrá-lo.
+- **16/08/2026 — Memória de módulo, não um Provider.** O nome de quem
+  tem sessão lê-se num sítio só e o dos autores é por uuid, não por
+  árvore: um Provider teria de carregar um Map e quem lê passava-lhe o
+  uuid na mesma. O CasaProvider existe porque a identidade se lê em
+  trinta sítios; a autoria lê-se em dois.
+- **16/08/2026 — A memória tem de morrer com a sessão.** Entrar e sair
+  NÃO recarrega a página — o `sessao.js` ouve o `onAuthStateChange` e a
+  árvore continua montada. Sem limpar, a saudação tratava o segundo
+  utilizador pelo nome do primeiro e os nomes de autores de uma casa
+  ficavam à vista da seguinte. Limpa-se comparando o uuid, não o evento:
+  o `TOKEN_REFRESHED` chega de hora a hora com o mesmo utilizador e não
+  deve deitar fora memória boa.
+- **16/08/2026 — Um nulo não se guarda em cache.** Guardá-lo faria de
+  uma falha de rede de um segundo um nome calado para o resto da sessão.
+  Um autor de outra casa volta a perguntar e volta a receber nulo — uma
+  chamada barata num caso raro, preferível ao contrário.
+- **16/08/2026 — Segunda migração a correr à frente do frontend, e desta
+  vez o custo era ESCRITA.** O `criarNota` continuava a mandar a coluna
+  `autor` no insert; assim que a 105 a removeu, criar uma nota passou a
+  dar 42703. Não era só a apresentação partida — era a gravação. Foi
+  encontrado a sondar a base antes de mexer, não por alguém dar por ele
+  a usar a aplicação. Ver a lição gémea na 100 (o envelope), e a regra
+  que as duas fecham.
+- **16/08/2026 — As quinze colunas ficam a preencher-se em silêncio.**
+  Mostrar autoria fora das notas é decisão de produto por tomar; a base
+  guarda-a desde já para o dia em que for.
+
+### Pendências desta decisão
+
+- **`nome_do_autor()` é uma chamada por autor distinto.** Com duas
+  contas na casa é irrelevante. Se um dia houver equipa, uma lista longa
+  de notas passa a fazer uma chamada por pessoa — nessa altura pede uma
+  função que aceite um array de uuids, não mais memória do lado de cá.
+- **⚠ Há decisões deste documento espalhadas por comentários de função,
+  e é preciso trazê-las.** A regra dos nomes acima quase foi registada a
+  citar de memória, como se já cá estivesse; a frase existia, mas dentro
+  do `dlm_portal_ver_interno`. O mesmo comentário guarda uma segunda
+  decisão que também não está aqui — a de que a conta do nome se faz no
+  SERVIDOR, para o nome inteiro nunca viajar até à página de quem
+  escolheu «sem nome».
+  Este ficheiro diz de si próprio que é a fonte e que o chat não conta.
+  Isso só é verdade se cá estiver tudo, e uma decisão que só vive num
+  comentário de função é uma decisão à espera de ser esquecida — está
+  registada onde ninguém a procura.
+  A varredura é trabalho a sério: 56 funções com comentários densos,
+  muitos a explicar escolhas que nunca chegaram ao documento. Fica como
+  pendência PRÓPRIA, não a meio de outra coisa.

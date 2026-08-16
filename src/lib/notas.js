@@ -66,7 +66,13 @@ export const getNotas = async (submissionId) => {
   return data || [];
 };
 
-export const criarNota = async (submissionId, { tipo, corpo, autor = null }) => {
+// 105 · O autor NÃO se envia. A coluna `autor` (texto) desapareceu e o
+// `criado_por` que a substituiu preenche-se sozinho, com o
+// `default auth.uid()` — mandá-lo daqui seria deixar o browser dizer
+// quem escreveu, que é precisamente o que a coluna existe para não
+// permitir. Até aqui o parâmetro viajava sempre a null e o insert
+// passou a dar 42703 assim que a migração correu.
+export const criarNota = async (submissionId, { tipo, corpo }) => {
   const texto = (corpo || "").trim();
   if (!submissionId) throw new Error("Falta o evento.");
   if (!texto) throw new Error("Escreve alguma coisa antes de guardar.");
@@ -76,7 +82,6 @@ export const criarNota = async (submissionId, { tipo, corpo, autor = null }) => 
       submission_id: submissionId,
       tipo: tipo || "interna",
       corpo: texto,
-      autor,
     })
     .select()
     .single();
@@ -138,7 +143,7 @@ export function construirHistorico({
       origem: "nota",
       tipo: n.tipo,
       corpo: n.corpo,
-      autor: n.autor,
+      criadoPor: n.criado_por,
       quando: n.created_at,
       notaId: n.id,
     });

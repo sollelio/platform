@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MarcaCruz } from "./marcas";
-import { useCasa } from "../CasaProvider";
+import { useNomeDeAutor } from "../../lib/autoria";
 import {
   TIPOS_NOTA,
   tipoNota,
@@ -128,7 +128,11 @@ function LinhaSistema({ entrada }) {
 
 // O que ela escreveu: cartão, com o tipo e o autor.
 function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
-  const casa = useCasa();
+  // 105 · O nome do autor vem por uuid, e pode não vir: linha antiga
+  // sem autor, ou autor de outra casa (a RPC devolve null de propósito).
+  // Sem nome, a nota mostra-se SEM autor — nunca com um cravado, que
+  // seria assinar o trabalho de alguém com o nome de outra pessoa.
+  const autor = useNomeDeAutor(entrada.criadoPor);
   const t = tipoNota(entrada.tipo);
   const interna = entrada.tipo === "interna";
 
@@ -168,9 +172,11 @@ function CartaoNota({ entrada, aApagar, onPedirApagar, onCancelar, onApagar }) {
           >
             {t.label}
           </span>
-          <span style={{ fontSize: "11.5px", color: "#9B9B9B" }}>
-            {interna ? "só eu vejo" : entrada.autor || casa.titular}
-          </span>
+          {(interna || autor) && (
+            <span style={{ fontSize: "11.5px", color: "#9B9B9B" }}>
+              {interna ? "só eu vejo" : autor}
+            </span>
+          )}
           <div style={{ flex: 1 }} />
           {aApagar ? (
             <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
