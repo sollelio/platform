@@ -2282,6 +2282,19 @@ que se chamava da última vez».
   tokens verdadeiros (viviam do fallback; único sobrevivente: dentro
   da folha do contrato, onde tanto faz).
 
+- **16/08/2026 — A joia tem um limite: a atmosfera não sobrevive fora
+  do creme.** No teste a quente, o halo de champanhe e o raio do
+  LogoDourado — luz desenhada para se dissolver no fundo claro —
+  liam-se sobre escuro como borrão, não como joalharia. No escuro
+  apagam-se (classe `.logo-atmosfera`, regra em
+  `html[data-tema="escuro"]` no index.css): as letras douradas com as
+  suas sombras, as pérolas e a poeira seguram o logo sozinhas. O
+  componente é partilhado com as vitrinas, por isso o corte é pelo
+  atributo do tema — nas páginas públicas nada muda, nem um pixel no
+  claro. A regra que fica: joia é o que tem corpo próprio (metal,
+  pérola, faísca); atmosfera que só existe para se fundir com o fundo
+  segue o fundo.
+
 - **16/08/2026 — As três respostas que fecharam a varredura.** (1) Os
   véus 0.28 das gavetas e 0.5 do ShareSheet ficam: uma gaveta e uma
   folha de partilha não são o mesmo papel que uma cortina modal — não

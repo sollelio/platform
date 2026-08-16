@@ -250,6 +250,16 @@
     background-color: #d24339;
     border-color: #d24339;
   }
+
+  /* O halo de champanhe e o raio do logótipo (LogoDourado) são luz
+     desenhada para se dissolver em CREME: sobre escuro deixam de ser
+     joalharia e passam a borrão (visto no ecrã, 16/08). Apagam-se —
+     as letras douradas com as suas sombras, as pérolas e a poeira
+     aguentam o logo sozinhas. Componente partilhado com as vitrinas:
+     sem o atributo, esta regra não existe. */
+  html[data-tema="escuro"] .logo-atmosfera {
+    display: none;
+  }
 }
 
 * {

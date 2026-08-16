@@ -11,7 +11,7 @@ portão (esbuild + eslint + build) verde entre todos, eslint 70 → 70
 **Joias — o ouro desenhado para brilhar, não para seguir tema:**
 - Gradientes dos medalhões (`#E8D5A3 → #C9A84C → #A07830`) — CentroNotificacoes ×3, toast incluído
 - A Taça da contribuição (`#E8D29A/#C9A84C/#F3E5BB/#E3C878`) — partilhada com a página pública
-- O LogoDourado inteiro (halos champanhe, poeira, brilhos) — a poeira estava atrelada à ponte `var(--gold)` e foi presa a `#C9A84C` para a joia ficar inteira
+- O LogoDourado (poeira, brilhos, sombras douradas) — a poeira estava atrelada à ponte `var(--gold)` e foi presa a `#C9A84C` para a joia ficar inteira. **Correcção pós-teste (Hélio, 16/08): o halo de champanhe e o raio NÃO sobreviveram ao ecrã escuro** — eram luz desenhada para se dissolver em creme e liam-se como borrão; apagam-se no escuro via classe `.logo-atmosfera` + regra em `html[data-tema="escuro"]` (componente partilhado: nas vitrinas o atributo nunca existe e nada muda). As letras, as pérolas e a poeira seguram o logo sozinhas.
 - O shimmer do toast `rgba(232,213,163,0.45)` — é luz a varrer; funciona nos dois modos
 
 **Véus sobre conteúdo (fotografia/imagem — não é tema):**

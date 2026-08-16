@@ -61,8 +61,15 @@ export default function LogoDourado({
   if (!animar) {
     return (
       <div style={{ position: "relative", display: "inline-block" }}>
+        {/* .logo-atmosfera: o halo (e o raio, em baixo) são luz desenhada
+            para se dissolver em CREME — sobre escuro leem-se como borrão,
+            não como joalharia (visto no ecrã, 16/08). A classe deixa o
+            index.css apagá-los SÓ quando html[data-tema="escuro"] está
+            posto; nas vitrinas públicas o atributo nunca existe e este
+            componente desenha exactamente o que sempre desenhou. */}
         <span
           aria-hidden="true"
+          className="logo-atmosfera"
           style={{
             position: "absolute",
             top: "50%",
@@ -98,6 +105,7 @@ export default function LogoDourado({
           "by luxury events" (texto escuro pede fundo claro) */}
       <motion.span
         aria-hidden="true"
+        className="logo-atmosfera"
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.1, ease: EASE_LUXO }}
@@ -122,6 +130,7 @@ export default function LogoDourado({
       {raio && (
       <motion.span
         aria-hidden="true"
+        className="logo-atmosfera"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, rotate: 360 }}
         transition={{
