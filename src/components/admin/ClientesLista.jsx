@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getClientes } from "../../lib/clientes";
-import { caminhoDoContacto } from "../../lib/rotasAdmin";
+import { useRotas } from "../../lib/rotasAdmin";
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import FunilBoard from "./FunilBoard";
 import { Icone } from "./Navegacao";
@@ -134,6 +134,7 @@ export default function ClientesLista({
   aoConsumirVerPerdidos,
 }) {
   const navigate = useNavigate();
+  const rotas = useRotas();
   const [searchParams, setSearchParams] = useSearchParams();
   const vistaDoUrl = searchParams.get("vista");
   const vista =
@@ -209,8 +210,8 @@ export default function ClientesLista({
     const vivos = (c.submissions || []).filter((e) => e.fase !== "perdido");
     navigate(
       vivos.length === 1
-        ? `/evento/${vivos[0].id}`
-        : caminhoDoContacto(c.id),
+        ? rotas.evento(vivos[0].id)
+        : rotas.contacto(c.id),
     );
   };
 
@@ -451,7 +452,7 @@ export default function ClientesLista({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(caminhoDoContacto(c.id));
+                    navigate(rotas.contacto(c.id));
                   }}
                   title="Ficha da cliente"
                   aria-label={`Ficha de ${c.nome}`}

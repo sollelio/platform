@@ -55,8 +55,15 @@ export const uploadImagemReferencia = async (file) => {
 // tenant_por_slug(). Nunca se envia um uuid de casa daqui — um uuid
 // vindo do browser é um pedido para escrever na casa alheia.
 //
-// tenantSlug null = modo interno: a Nádia cria o interessado a partir
-// do admin, tem sessão, e a função cai no tenant_actual().
+// 108 · O MODO INTERNO TAMBÉM MANDA O SLUG. Mandava `null`, e a função
+// caía no `tenant_actual()` — que com duas memberships escolhia a casa
+// mais antiga em silêncio, e o interessado nascia na casa errada. Agora
+// o slug vem da rota do backoffice (/admin/:casa/…) e o servidor
+// confirma-o contra a membership: CASA_ERRADA se não for de quem pede.
+//
+// Um `null` que ainda chegue aqui já não escolhe casa nenhuma — para em
+// CASA_AMBIGUA. É a conversão que a 108 fez por toda a parte: de
+// «mente» para «parte».
 //
 // O rollback manual desapareceu com a 093: o insert do cliente e o do
 // evento passaram a viver na mesma transação dentro da função. Se o
@@ -180,31 +187,28 @@ export const getTiposParaCaptacao = async (tenantSlug) => {
   return data || [];
 };
 
-// Os MESMOS tipos, pela porta de DENTRO — o modo interno, a casa a
-// registar um pedido no próprio admin. Aqui não há slug nem faz
-// falta: a sessão é autenticada e a RLS por casa (091) entrega só os
-// modelos da casa da sessão — o padrão das outras leituras do admin
-// (invites, comunicados). Mesma projecção e mesma ordem que a porta
-// pública: as duas portas têm de mostrar a mesma lista.
+// ============================================================
+// getTiposParaCaptacaoInterna MORREU AQUI (108) — e vale a pena dizer
+// porquê, porque a razão dela era boa.
 //
-// Nasceu de uma regressão da 093: a porta pública passou a exigir
-// slug, o modo interno não tem nenhum, e o select dos tipos
-// desapareceu em silêncio — o formulário degradava para texto livre
-// e o pedido interno ficava sem modelo (eventTypeId a null).
+// A 093 pôs slug obrigatório na porta pública dos modelos. O modo
+// interno não tinha slug nenhum, por isso o select dos tipos
+// desapareceu — em silêncio, durante semanas — e os pedidos que a
+// Nádia criava ficavam sem modelo. A correcção foi abrir uma porta de
+// DENTRO ao lado da pública: um select autenticado, entregue pela RLS
+// da casa (091).
 //
-// ⚠ 108: com duas memberships isto devolve os modelos das duas casas
-// misturados. Quando a casa vier do endereço, este sítio passa a
-// filtrar pela casa pedida (pendência registada no desenho da 108).
-export const getTiposParaCaptacaoInterna = async () => {
-  const { data, error } = await supabase
-    .from("event_types")
-    .select("id, nome")
-    .order("nome");
-  // Como na porta pública: sem tipos o formulário degrada para texto
-  // livre — a leitura nunca trava um pedido.
-  if (error) {
-    console.error("Sem tipos de evento no modo interno", error);
-    return [];
-  }
-  return data || [];
-};
+// Só que a RLS da casa entrega TODAS as casas da sessão. Com uma
+// membership é a casa certa; com duas, misturava os modelos das duas —
+// e ficou registado como pendência «⚠ 108», com a condição escrita:
+// «quando a casa vier do endereço, este sítio passa a filtrar pela
+// casa pedida».
+//
+// A condição cumpriu-se. O modo interno tem slug — vem da rota do
+// backoffice — e com slug a porta pública faz exactamente o que é
+// preciso: mesma projecção, mesma ordem, filtrada pelo tenant do slug.
+// A porta de dentro deixou de ter razão de existir, e duas portas para
+// a mesma lista era justamente o que as fazia divergir.
+//
+// Quem procurar o nome: é `getTiposParaCaptacao(slug)` aqui em cima.
+// ============================================================

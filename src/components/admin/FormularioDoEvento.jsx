@@ -14,6 +14,7 @@ import {
   pontePedidoFormulario,
   ROTULO_NOTAS,
 } from "../../lib/pontePedido";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 
 // ============================================================
 // FormularioDoEvento — a bancada da ponte: compor o formulário de UM
@@ -287,6 +288,7 @@ export default function FormularioDoEvento({
       console.error("Erro ao criar o formulário:", e);
       setErros({
         geral:
+          traduzirErroDaCasa(e) ||
           "Não foi possível criar o formulário. Verifique a ligação e tente novamente.",
       });
     }

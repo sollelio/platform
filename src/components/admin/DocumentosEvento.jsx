@@ -10,6 +10,7 @@ import { abrirQuestionarioComoCliente } from "../../lib/camposFormulario";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { Icone } from "./Navegacao";
 import { Esqueleto } from "./acabamento";
+import { useRotas } from "../../lib/rotasAdmin";
 
 // ============================================================
 // DocumentosEvento — o separador Documentos da página do evento.
@@ -463,6 +464,7 @@ export default function DocumentosEvento({
     [aoMover, aoLargar],
   );
 
+  const rotas = useRotas();
   const submissionId = submissao?.id;
 
   useEffect(() => {
@@ -639,7 +641,7 @@ export default function DocumentosEvento({
         }
         accoes={
           <button
-            onClick={() => window.open(`/briefing/${submissionId}`, "_blank")}
+            onClick={() => window.open(rotas.briefing(submissionId), "_blank")}
             className={classeBotao("ouro")}
             style={medidaBotao("ouro")}
           >

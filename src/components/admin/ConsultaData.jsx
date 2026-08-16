@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useRotas } from "../../lib/rotasAdmin";
 import { Icone } from "./Navegacao";
 import { FASE_LABEL } from "./faseConfig";
 import { estadoDoDia, irmaosDoDia } from "../../lib/disputaDia";
@@ -385,6 +386,7 @@ function Resposta({ resultado, navigate }) {
 }
 
 function LinhaIrmao({ ev, navigate }) {
+  const rotas = useRotas();
   // fase null = reserva provisória sem evento no funil — chama-se pelo
   // nome verdadeiro, não por uma fase que não tem.
   const rotuloFase = ev.ehReserva
@@ -482,7 +484,7 @@ function LinhaIrmao({ ev, navigate }) {
       {!ev.ehReserva && (
         <button
           type="button"
-          onClick={() => navigate(`/evento/${ev.id}`)}
+          onClick={() => navigate(rotas.evento(ev.id))}
           style={{
             flexShrink: 0,
             border: "none",

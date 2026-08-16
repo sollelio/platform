@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRotas } from "../../lib/rotasAdmin";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import {
@@ -25,6 +26,7 @@ import { fundirCampos } from "../../lib/briefingEdicao";
 import { codigoErroRpc } from "../../lib/rpc";
 import { getPagamentosEvento } from "../../lib/pagamentos";
 import { documentosDoEvento } from "../../lib/documentos";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 
 // ============================================================
 // SubmissionDrawer — painel lateral de detalhes de um evento.
@@ -86,6 +88,7 @@ export default function SubmissionDrawer({
   const [pagamentosDoEvento, setPagamentosDoEvento] = useState(null);
   const [docsDoEvento, setDocsDoEvento] = useState(null);
   const navigate = useNavigate();
+  const rotas = useRotas();
 
   // Guia interativo — a dica visual (sublinhado + hover) sozinha não
   // estava a ser óbvia o suficiente; isto aponta mesmo para o campo, uma
@@ -215,7 +218,7 @@ export default function SubmissionDrawer({
   // Contactos, funil, Agenda, notificações).
   const abrirFormulario = () => {
     if (formularioSubmetido || convitesPorChegar) return;
-    navigate(`/evento/${selected.id}/documentos`, {
+    navigate(rotas.evento(selected.id, "documentos"), {
       state: { realce: { alvo: "formulario", n: Date.now() } },
     });
   };
@@ -256,7 +259,7 @@ export default function SubmissionDrawer({
     // (realce) consigo, e o separador aterra com a parcela/linha em
     // evidência. A EventoPage consome o state uma única vez.
     const ir = (aba, alvo) => () =>
-      navigate(`/evento/${selected.id}/${aba}`, {
+      navigate(rotas.evento(selected.id, aba), {
         state: { realce: { alvo, n: Date.now() } },
       });
     const porMapa = {
@@ -421,13 +424,13 @@ export default function SubmissionDrawer({
                 // onde é preciso procurar outra vez o evento que já está
                 // aberto à frente.
                 else if (id === "preparacao")
-                  navigate(`/evento/${selected.id}/materiais`, {
+                  navigate(rotas.evento(selected.id, "materiais"), {
                     state: { realce: { alvo: "ficha", n: Date.now() } },
                   });
                 // O sinal regista-se na aba Pagamentos — o mesmo destino
                 // do irComGesto da ficha, para as duas réguas concordarem.
                 else if (id === "sinal")
-                  navigate(`/evento/${selected.id}/pagamentos`, {
+                  navigate(rotas.evento(selected.id, "pagamentos"), {
                     state: { realce: { alvo: "sinal", n: Date.now() } },
                   });
               }}
@@ -487,7 +490,7 @@ export default function SubmissionDrawer({
                 trabalho: daqui vai-se para onde o trabalho se faz. */}
             <div style={{ display: "flex", gap: "8px" }}>
               <button
-                onClick={() => navigate(`/evento/${selected.id}`)}
+                onClick={() => navigate(rotas.evento(selected.id))}
                 className="acao acao--ouro"
                 style={{
                   flex: 1,
@@ -583,7 +586,7 @@ function DataEventoEditor({ submissao, campoData, onSaved }) {
       setErro(
         codigoErroRpc(e) === "EVENTO_EM_FALTA"
           ? "Este evento já não existe — fecha o painel e recarrega a página."
-          : "Não guardou — tenta outra vez.",
+          : traduzirErroDaCasa(e) || "Não guardou — tenta outra vez.",
       );
     }
   };
@@ -744,7 +747,10 @@ function ClassificacaoTipo({ submissao, eventTypes, onSaved, onModeloCriado }) {
       if (onSaved) onSaved({ ...submissao, event_type_id: idFinal });
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível associar. Verifica a ligação e tenta novamente.");
+      setErro(
+        traduzirErroDaCasa(e) ||
+          "Não foi possível associar. Verifica a ligação e tenta novamente.",
+      );
     }
     setAGuardar(false);
   };

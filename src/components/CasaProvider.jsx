@@ -22,6 +22,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { comOmissao, SEM_CASA } from "../lib/casa";
+import { EstadoDaCasaContext } from "./casaContexto";
 
 const CasaContext = createContext(comOmissao(null));
 
@@ -29,6 +30,14 @@ export const useCasa = () => useContext(CasaContext);
 
 export default function CasaProvider({ chave, carregar, children }) {
   const [casa, setCasa] = useState(() => comOmissao(null));
+  // A resposta guarda-se COM a chave a que pertence, e o estado
+  // deriva-se da comparação. Podia ser um `setEstado(null)` no início
+  // do efeito — mas isso é mexer em estado durante o efeito, e o que
+  // se quer aqui não é apagar nada: é dizer que a resposta que lá está
+  // era de OUTRA casa, e por isso não vale para esta. Trocar de casa
+  // não pode deixar o ecrã da suspensa em cima da casa seguinte.
+  const [resposta, setResposta] = useState(null);
+  const estado = resposta?.chave === chave ? resposta.estado : null;
 
   // `carregar` é uma função nova a cada render de quem nos usa; pô-la
   // nas dependências recarregaria em ciclo. A ref dá-nos sempre a
@@ -41,8 +50,17 @@ export default function CasaProvider({ chave, carregar, children }) {
     let cancelado = false;
     carregarRef.current().then((r) => {
       if (cancelado) return;
-      // Três respostas, três destinos (100).
+      setResposta({ chave, estado: r?.estado || "sem-resposta" });
+      // Quatro respostas, e só duas mexem na moldura (100 + 108).
       if (r?.estado === "conhecida") {
+        setCasa(comOmissao(r.casa));
+        return;
+      }
+      // SUSPENSA veste a casa na mesma (108). Não é contradição com a
+      // regra de baixo: a casa é mesmo de quem pergunta, e o ecrã que
+      // lhe explica a suspensão tem de a poder nomear. O que ela não
+      // faz é deixar entrar — disso trata a porta, não o Provider.
+      if (r?.estado === "suspensa") {
         setCasa(comOmissao(r.casa));
         return;
       }
@@ -64,5 +82,11 @@ export default function CasaProvider({ chave, carregar, children }) {
     };
   }, [chave]);
 
-  return <CasaContext.Provider value={casa}>{children}</CasaContext.Provider>;
+  return (
+    <CasaContext.Provider value={casa}>
+      <EstadoDaCasaContext.Provider value={estado}>
+        {children}
+      </EstadoDaCasaContext.Provider>
+    </CasaContext.Provider>
+  );
 }

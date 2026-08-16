@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAvaliacoes } from "../../lib/avaliacao";
+import { useRotas } from "../../lib/rotasAdmin";
 import { Esqueleto } from "./acabamento";
 
 // ============================================================
@@ -52,6 +53,7 @@ const ESTADO_FOTO = {
 };
 
 export default function AvaliacoesTab() {
+  const rotas = useRotas();
   const [lista, setLista] = useState([]);
   const [estado, setEstado] = useState("a-carregar");
 
@@ -220,8 +222,8 @@ export default function AvaliacoesTab() {
                     <Link
                       to={
                         foto
-                          ? `/evento/${a.submission_id}/fotografias`
-                          : `/evento/${a.submission_id}`
+                          ? rotas.evento(a.submission_id, "fotografias")
+                          : rotas.evento(a.submission_id)
                       }
                       style={{
                         fontSize: "12px", color: "var(--gold-dark)",

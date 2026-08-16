@@ -8,9 +8,10 @@ import {
 } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { traduzirErroDaCasa } from "../lib/errosDaCasa";
 import { TITULO_BACKOFFICE } from "../lib/casa";
 import { useCasa } from "../components/CasaProvider";
-import { caminhoDoContacto, caminhoDoSeparador } from "../lib/rotasAdmin";
+import { useRotas } from "../lib/rotasAdmin";
 import {
   extrairDadosCliente,
   getEventoCompleto,
@@ -53,7 +54,7 @@ import DocumentosEvento from "../components/admin/DocumentosEvento";
 import FichaEvento from "../components/admin/FichaEvento";
 
 // ============================================================
-// EventoPage — /evento/:id/:aba?
+// EventoPage — /evento/:casa/:id/:aba?
 //
 // A casa própria do evento, a entidade mais rica do sistema e a única
 // que até aqui vivia emprestada num painel lateral de 400 px.
@@ -526,6 +527,8 @@ function BannerDisputaDia({
 
 export default function EventoPage() {
   const { id, aba } = useParams();
+  // Os caminhos deste ecrã já vêm atados à casa da rota (108).
+  const rotas = useRotas();
   const navigate = useNavigate();
   const location = useLocation();
   const casa = useCasa();
@@ -589,7 +592,7 @@ export default function EventoPage() {
   }, [location, navigate]);
 
   // O separador do browser reafirma o título INTERNO no arranque: quem
-  // chega directo a /evento/:id (favorito, link colado) não pode ficar
+  // chega directo a /evento/:casa/:id (favorito, link colado) não pode ficar
   // com o título público que o portal tenha deixado. O AdminPage já o
   // repõe via notificacoes.js; esta é a outra porta de entrada.
   useEffect(() => {
@@ -995,7 +998,7 @@ export default function EventoPage() {
       <div style={{ display: "flex", backgroundColor: "var(--cream)", minHeight: "100vh" }}>
         <SidebarNav
           activeTab="clientes"
-          onNavegar={(tab) => navigate(caminhoDoSeparador(tab))}
+          onNavegar={(tab) => navigate(rotas.separador(tab))}
           onSair={async () => {
             await supabase.auth.signOut();
             navigate("/admin/login", { replace: true });
@@ -1032,7 +1035,7 @@ export default function EventoPage() {
         <div>
           <p style={{ margin: "0 0 10px" }}>Este evento já não existe.</p>
           <button
-            onClick={() => navigate(caminhoDoSeparador("clientes"))}
+            onClick={() => navigate(rotas.separador("clientes"))}
             className="ligacao"
             style={{
               color: "var(--gold-dark)",
@@ -1074,7 +1077,7 @@ export default function EventoPage() {
   // Mudar de separador não mexe na edição: ela fica onde estava, e a
   // Visão geral encontra-a intacta quando se voltar.
   const irParaAba = (novaAba) => {
-    navigate(`/evento/${id}/${novaAba}`, { replace: false });
+    navigate(rotas.evento(id, novaAba), { replace: false });
   };
 
   // "Editar" abre o briefing todo em campos de escrita; o mesmo botão,
@@ -1120,8 +1123,8 @@ export default function EventoPage() {
     const origemCliente = location.state?.origemCliente;
     const caminho =
       tab === "clientes" && origemCliente
-        ? caminhoDoContacto(origemCliente)
-        : caminhoDoSeparador(tab);
+        ? rotas.contacto(origemCliente)
+        : rotas.separador(tab);
     const destino = { caminho, state: extra || null };
     if (porGuardar > 0) {
       setSaidaPendente(destino);
@@ -1148,7 +1151,11 @@ export default function EventoPage() {
     } catch (erro) {
       console.error(erro);
       setSubmissao(anterior);
-      setErroAccao(erro.message || "Não foi possível mudar o estado.");
+      setErroAccao(
+        traduzirErroDaCasa(erro) ||
+          erro.message ||
+          "Não foi possível mudar o estado.",
+      );
     }
   };
 
@@ -1165,21 +1172,21 @@ export default function EventoPage() {
     if (doAcompanhamento) {
       if (submissionId === id) setPedidoAcompanhamento(true);
       else
-        navigate(`/evento/${submissionId}`, {
+        navigate(rotas.evento(submissionId), {
           state: { abrirAcompanhamento: true },
         });
       return;
     }
     if (tipo === "questionario_entregue") {
-      if (submissionId !== id) navigate(`/evento/${submissionId}`);
+      if (submissionId !== id) navigate(rotas.evento(submissionId));
       return;
     }
     if (tipo === "avaliacao_recebida") {
-      navigate(caminhoDoSeparador("avaliacoes"));
+      navigate(rotas.separador("avaliacoes"));
       return;
     }
     // Captação e restantes: a ficha deles vive no drawer dos Contactos.
-    navigate(caminhoDoSeparador("clientes"));
+    navigate(rotas.separador("clientes"));
   };
 
   // Abrir do toast leva ao sítio que o próprio aviso promete.
@@ -1193,22 +1200,22 @@ export default function EventoPage() {
       // viaja com a mesma promessa que a Caixa de Entrada faz.
       if (mesmoEvento) setPedidoAcompanhamento(true);
       else
-        navigate(`/evento/${n.submission_id}`, {
+        navigate(rotas.evento(n.submission_id), {
           state: { abrirAcompanhamento: true },
         });
       return;
     }
     if (n.tipo === "questionario_entregue") {
       if (!mesmoEvento && n.submission_id)
-        navigate(`/evento/${n.submission_id}`);
+        navigate(rotas.evento(n.submission_id));
       return;
     }
     if (n.tipo === "avaliacao_recebida") {
-      navigate(caminhoDoSeparador("avaliacoes"));
+      navigate(rotas.separador("avaliacoes"));
       return;
     }
     // Captação e restantes: a casa deles é a Caixa de Entrada.
-    navigate(caminhoDoSeparador("inicio"), {
+    navigate(rotas.separador("inicio"), {
       state: { notifDestaque: n.id },
     });
   };
@@ -1225,7 +1232,7 @@ export default function EventoPage() {
       preparacao: { aba: "materiais", alvo: "ficha" },
     }[etapaId];
     if (!destino) return;
-    navigate(`/evento/${id}/${destino.aba}`, {
+    navigate(rotas.evento(id, destino.aba), {
       state: { realce: { alvo: destino.alvo, n: Date.now() } },
     });
   };
@@ -1272,7 +1279,7 @@ export default function EventoPage() {
           onAba={irParaAba}
           onVoltar={() => voltarAoAdmin("clientes")}
           onRecuperar={() => voltarAoAdmin("clientes", { verPerdidos: id })}
-          onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
+          onImprimir={() => window.open(rotas.briefing(id), "_blank")}
           onEditar={alternarEdicao}
           editando={aEditar}
           edicaoNoutroSeparador={aEditar && activeAba !== "visao-geral"}
@@ -1331,7 +1338,7 @@ export default function EventoPage() {
                     : s,
                 )
               }
-              onAbrirRival={(rivalId) => navigate(`/evento/${rivalId}`)}
+              onAbrirRival={(rivalId) => navigate(rotas.evento(rivalId))}
             />
           )}
           {visitadas.has("visao-geral") && (
@@ -1353,7 +1360,7 @@ export default function EventoPage() {
                     ...normalizeSubmission(atualizada),
                   }))
                 }
-                onImprimir={() => window.open(`/briefing/${id}`, "_blank")}
+                onImprimir={() => window.open(rotas.briefing(id), "_blank")}
               />
             </Painel>
           )}
@@ -1400,7 +1407,7 @@ export default function EventoPage() {
                 onContagem={(n) => reportarContagem("documentos", n)}
                 onGerarDocumento={(evento, tipoDoc) =>
                   navigate(
-                    `${caminhoDoSeparador("orcamentos")}/${evento.id}/${tipoDoc}`,
+                    `${rotas.separador("orcamentos")}/${evento.id}/${tipoDoc}`,
                   )
                 }
                 onVerFormulario={() => {

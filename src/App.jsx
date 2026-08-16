@@ -22,7 +22,9 @@ import EventoPage from "./pages/EventoPage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
 import CasaProvider from "./components/CasaProvider";
-import { casaDaSessao } from "./lib/identidadeCasa";
+import PortaDaCasa, { EnderecoSemCasa } from "./components/PortaDaCasa";
+import { casaDoBackoffice } from "./lib/identidadeCasa";
+import { casaDoCaminho } from "./lib/rotasAdmin";
 
 // Lê as variáveis de ambiente
 // Lista explícita, e não `!== "production"`: se PROD um dia se esquecer da
@@ -67,13 +69,39 @@ function DestinoDesconhecido() {
 //
 // O ProtectedRoute subiu para cá com ela: estava escrito três vezes a
 // dizer o mesmo.
+//
+// ── 108 · A CASA VEM DA ROTA ─────────────────────────────────
+//
+// O `chave="sessao"` era literalmente a pergunta errada: mandava a
+// base escolher entre as memberships de quem entrou. Agora a chave é
+// a CASA do endereço, e trocar de casa recarrega a identidade — que é
+// exactamente para o que a chave existe (ver o comentário do
+// CasaProvider).
+//
+// A casa lê-se do CAMINHO e não do `useParams`, e não é gosto: uma
+// rota-molde sem caminho próprio não vê os parâmetros das filhas.
+// Dar-lhe caminho próprio obrigaria a três moldes (/admin, /evento,
+// /briefing) e remontava o Provider a cada salto do painel para um
+// evento — o desperdício que a 099 veio acabar.
+//
+// Um caminho sem casa (os favoritos antigos da Nádia) devolve null, e
+// aí a área não abre: resolve-se primeiro o endereço.
 // ============================================================
 function AreaAutenticada() {
+  const { pathname } = useLocation();
+  const slug = casaDoCaminho(pathname);
+
   return (
     <ProtectedRoute>
-      <CasaProvider chave="sessao" carregar={casaDaSessao}>
-        <Outlet />
-      </CasaProvider>
+      {slug ? (
+        <CasaProvider chave={slug} carregar={() => casaDoBackoffice(slug)}>
+          <PortaDaCasa>
+            <Outlet />
+          </PortaDaCasa>
+        </CasaProvider>
+      ) : (
+        <EnderecoSemCasa />
+      )}
     </ProtectedRoute>
   );
 }
@@ -138,19 +166,31 @@ function App() {
             :p1 e :p2 ficam declarados desde já para os níveis que vêm
             a seguir (/admin/contactos/:clienteId,
             /admin/documentos/:id/:tipo, /admin/logistica/:vista)
-            entrarem sem mexer outra vez na árvore. */}
+            entrarem sem mexer outra vez na árvore.
+
+            108 · A CASA É O PRIMEIRO SEGMENTO, e os que vêm a seguir
+            ficam todos OPCIONAIS — não para admitir endereços a meio,
+            mas para os ANTIGOS ainda encostarem a estes moldes. É a
+            AreaAutenticada que os distingue (casaDoCaminho, em
+            lib/rotasAdmin.js): /admin/inicio encosta aqui com
+            casa="inicio", e «inicio» é vocabulário nosso, não nome de
+            casa nenhuma — logo, endereço antigo, logo redirect. A
+            alternativa era declarar as formas antigas em rotas irmãs,
+            que empatam no ranking do react-router com estas e deixavam
+            a escolha à ORDEM de declaração: verdade frágil, e por
+            escrever. */}
           <Route element={<AreaAutenticada />}>
             <Route
-              path="/admin/:separador/:p1?/:p2?"
+              path="/admin/:casa/:separador?/:p1?/:p2?"
               element={<AdminPage />}
             />
             {/* A casa própria do evento. A aba vai no URL para cada área
               ter link directo e posição de scroll própria. */}
-            <Route path="/evento/:id/:aba?" element={<EventoPage />} />
+            <Route path="/evento/:casa/:id?/:aba?" element={<EventoPage />} />
             {/* 094 · O briefing saiu da rua. Era público com o uuid a fazer
               de chave; com várias casas, um uuid vale em qualquer sessão. A
               Nádia chega por link do admin, onde já tem sessão. */}
-            <Route path="/briefing/:id" element={<BriefingPage />} />
+            <Route path="/briefing/:casa/:id?" element={<BriefingPage />} />
           </Route>
           {/* A página pública da contribuição coletiva — por token
             aleatório e revogável, leitura via RPC (034), sem login. */}

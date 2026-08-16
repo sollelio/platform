@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MarcaCruz } from "./marcas";
 import { useNomeDeAutor } from "../../lib/autoria";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import {
   TIPOS_NOTA,
   tipoNota,
@@ -348,7 +349,11 @@ export default function NotasEvento({
         // A tabela pode ainda não existir (migração 029 por correr) —
         // o percurso derivado continua a valer, por isso mostra-se o
         // que há em vez de um ecrã vazio.
-        setErro(e.message || "Não foi possível carregar as notas.");
+        setErro(
+          traduzirErroDaCasa(e) ||
+            e.message ||
+            "Não foi possível carregar as notas.",
+        );
         setCarregado(true);
       }
     })();
@@ -395,7 +400,9 @@ export default function NotasEvento({
       return true;
     } catch (e) {
       console.error(e);
-      setErro(e.message || "Não foi possível guardar a nota.");
+      setErro(
+        traduzirErroDaCasa(e) || e.message || "Não foi possível guardar a nota.",
+      );
       return false;
     } finally {
       setAGuardar(false);
@@ -408,7 +415,9 @@ export default function NotasEvento({
       setNotas((atuais) => atuais.filter((n) => n.id !== notaId));
     } catch (e) {
       console.error(e);
-      setErro(e.message || "Não foi possível apagar a nota.");
+      setErro(
+        traduzirErroDaCasa(e) || e.message || "Não foi possível apagar a nota.",
+      );
     } finally {
       setPorApagar(null);
     }

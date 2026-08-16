@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import {
   submeterCaptacao,
   getTiposParaCaptacao,
-  getTiposParaCaptacaoInterna,
   MAX_IMAGENS_REFERENCIA,
 } from "../../lib/captacao";
 import { supabase } from "../../lib/supabase";
 import { registarErroFormulario } from "../../lib/errosForm";
 import { irmaosDoDia } from "../../lib/disputaDia";
 import AvisoDiaDisputado from "../AvisoDiaDisputado";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
+import { useRotas } from "../../lib/rotasAdmin";
 
 // ============================================================
 // CaptacaoForm — os campos da captação, PARTILHADOS entre:
@@ -65,6 +66,28 @@ export default function CaptacaoForm({
   onProgresso,
   registarSubmeter,
 }) {
+  const rotas = useRotas();
+  // ------------------------------------------------------------
+  // A CASA DO PEDIDO — e de onde vem cada uma.
+  //
+  // PÚBLICO: do endereço /interesse/:slug, que chega por prop. É a
+  // porta da 093, e não há sessão para confirmar coisa nenhuma.
+  //
+  // INTERNO (108): da ROTA do backoffice. Até aqui ia `null` e o
+  // servidor caía no `tenant_actual()` — que com duas memberships
+  // escolhia a mais antiga em SILÊNCIO, e o interessado nascia na casa
+  // errada. Agora o slug viaja, e o `captacao_submeter` confirma-o
+  // contra a membership (recusa com CASA_ERRADA se não for de quem
+  // pede).
+  //
+  // Vem da rota e NÃO por prop, de propósito: são três modais a montar
+  // este mesmo formulário (Início, Funil, Agenda). Um quarto que
+  // aparecesse sem a passar repetia à letra a regressão da 093 — o
+  // select dos modelos desapareceu em silêncio, durante semanas,
+  // porque ninguém se lembrou de passar o slug.
+  // ------------------------------------------------------------
+  const casaDoPedido = modoInterno ? rotas.casa || null : tenantSlug;
+
   const [tipos, setTipos] = useState([]);
   const [nome, setNome] = useState("");
   const [contacto, setContacto] = useState("");
@@ -100,14 +123,23 @@ export default function CaptacaoForm({
   const inputImagens = useRef(null);
 
   useEffect(() => {
-    // Duas portas para a mesma lista: com slug, a pública (RPC da
-    // 093); no modo interno não há slug — vai pela sessão autenticada
-    // (regressão da 093: sem esta porta, o admin ficava sem modelos).
-    (modoInterno
-      ? getTiposParaCaptacaoInterna()
-      : getTiposParaCaptacao(tenantSlug)
-    ).then(setTipos);
-  }, [tenantSlug, modoInterno]);
+    // UMA porta para a lista, agora que as duas bocas têm slug (108).
+    // Eram duas — a pública com slug e uma de dentro sem ele — e a de
+    // dentro devolvia os modelos de TODAS as casas da sessão. Ver o
+    // obituário dela em lib/captacao.js.
+    //
+    // ⚠ A REDE, e a lição que a paga: sem slug esta chamada devolve
+    // [] e o formulário degrada para texto livre — foi assim que o
+    // select dos modelos desapareceu na 093 e ninguém deu por isso
+    // durante semanas. Se um modal novo montar isto fora de
+    // /admin/:casa, o aviso sai aqui em vez de o silêncio voltar.
+    if (modoInterno && !casaDoPedido) {
+      console.error(
+        "CaptacaoForm em modo interno sem casa na rota: o select dos modelos vai ficar vazio.",
+      );
+    }
+    getTiposParaCaptacao(casaDoPedido).then(setTipos);
+  }, [casaDoPedido, modoInterno]);
 
   // Consulta a disputa quando a data muda — com um debounce leve (o
   // input de data dispara a meio da escrita).
@@ -325,7 +357,7 @@ export default function CaptacaoForm({
           mensagem,
           ficheiros,
         },
-        tenantSlug,
+        casaDoPedido,
       );
       if (
         modoInterno &&
@@ -364,9 +396,12 @@ export default function CaptacaoForm({
       registarErroFormulario({
         origem: "captacao",
         erro: err,
-        // A casa vem do endereço (093) e esta página tem-na: sem ela o
-        // erro fica sem dono e não se sabe de quem era o pedido perdido.
-        tenantSlug,
+        // A casa vem do endereço — o público da 093, o interno da 108.
+        // Sem ela o erro fica sem dono e não se sabe de quem era o
+        // pedido perdido. E o log carrega as RESPOSTAS: um log na casa
+        // errada é dados pessoais na casa errada (emenda do Hélio,
+        // 16/08), que é o que a 106 existiu para impedir.
+        tenantSlug: casaDoPedido,
         contexto: { modoInterno: !!modoInterno, eventTypeId },
         respostas: {
           nome,
@@ -382,10 +417,19 @@ export default function CaptacaoForm({
           mensagem,
         },
       });
-      const detalhe = err?.message ? ` (${err.message})` : "";
-      setErroGeral(
-        `Não foi possível enviar o pedido. Verifica a ligação e tenta novamente.${detalhe}`,
-      );
+      // O detalhe entre parênteses ficou — é o que permite diagnosticar
+      // uma falha de rede sem pedir a consola a ninguém. O que saiu foi
+      // o CODE-WORD cru: «CASA_ERRADA» não é português, e era o que
+      // aparecia a quem submetesse com o slug de outra casa (108).
+      const daCasa = traduzirErroDaCasa(err);
+      if (daCasa) {
+        setErroGeral(daCasa);
+      } else {
+        const detalhe = err?.message ? ` (${err.message})` : "";
+        setErroGeral(
+          `Não foi possível enviar o pedido. Verifica a ligação e tenta novamente.${detalhe}`,
+        );
+      }
     }
     setEnviando(false);
   };

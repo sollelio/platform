@@ -18,17 +18,23 @@
 //
 // A 100 mudou a FORMA da resposta: as portas devolvem {estado, casa} e
 // dizem o que sabem, em vez de um objecto ou null. Aqui traduz-se isso
-// nas TRÊS respostas que o lado de cá precisa de distinguir.
+// nas respostas que o lado de cá precisa de distinguir.
 // ============================================================
 
 import { supabase } from "./supabase";
 
-// ---------- As três respostas ----------
-// Duas vêm da base: «conhecida», com a casa dentro, e «desconhecida»,
-// que é resposta legítima e não falha — a porta perguntou e não há casa
-// nenhuma naquele endereço.
+// ---------- As respostas ----------
+// Duas vêm da base desde a 100: «conhecida», com a casa dentro, e
+// «desconhecida», que é resposta legítima e não falha — a porta
+// perguntou e não há casa nenhuma naquele endereço.
 //
-// A terceira é nossa: quando a pergunta não chega ao fim, não há
+// A 108 trouxe a terceira, e só a porta do backoffice a dá:
+// «suspensa» — a casa é de quem pergunta, mas está fechada. Vem COM a
+// identidade dentro, de propósito: o ecrã que explica precisa de dizer
+// de quem é a casa que parou. É o contrário da desconhecida, que não
+// veste nada.
+//
+// A última é nossa: quando a pergunta não chega ao fim, não há
 // resposta. Antes da 100 as três chegavam como o mesmo `null` e a
 // distinção morria neste ficheiro — e «não há casa» e «não deu para
 // perguntar» pedem coisas opostas, porque uma delas apaga a marca.
@@ -40,6 +46,8 @@ const pedir = async (rpc, args) => {
     if (error) throw error;
     if (data?.estado === "conhecida" && data.casa)
       return { estado: "conhecida", casa: data.casa };
+    if (data?.estado === "suspensa" && data.casa)
+      return { estado: "suspensa", casa: data.casa };
     if (data?.estado === "desconhecida") return { estado: "desconhecida" };
     // Um envelope que não se reconhece é uma porta por migrar, não uma
     // casa que não existe. Cai em «sem resposta» de propósito: apagar a
@@ -89,5 +97,37 @@ export const casaPorCodigo = (codigo) =>
     ? pedir("identidade_por_codigo", { p_codigo: codigo })
     : naoPerguntado();
 
-// O backoffice. Aqui há sessão, e a casa vem dela.
-export const casaDaSessao = () => pedir("identidade_da_minha_casa", {});
+// O backoffice. A casa vem do ENDEREÇO (108) — a sessão já não a
+// escolhe, só confirma que é de quem entrou.
+//
+// A porta antiga (`identidade_da_minha_casa()` sem argumentos) lia a
+// membership mais antiga e devolvia-a como se fosse «a» casa. Com uma
+// membership por pessoa acertava sempre; com duas, escolhia — em
+// silêncio, que é o modo de falhar que a 108 veio fechar.
+//
+// Sem slug não se pergunta: é o /admin antigo, ainda a caminho da casa
+// certa, e uma pergunta sem endereço voltaria a pedir à base que
+// adivinhasse.
+export const casaDoBackoffice = (slug) =>
+  slug ? pedir("identidade_da_minha_casa", { p_slug: slug }) : naoPerguntado();
+
+// ---------- As casas de quem entrou ----------
+// Só para o redirect dos endereços antigos: uma casa → vai-se para
+// lá; mais do que uma → o redirect não adivinha, e a escolha faz-se
+// por navegação (nunca por seletor persistente — a casa activa
+// invisível é o problema que a 108 resolve).
+//
+// TRÊS respostas outra vez, e pela mesma razão: `null` é «não deu para
+// perguntar», `[]` é «esta conta não tem casa nenhuma», e uma lista é
+// uma lista. Um `[]` a fazer de falha mandaria quem entrou para o ecrã
+// errado sempre que a rede tossisse.
+export const asMinhasCasas = async () => {
+  try {
+    const { data, error } = await supabase.rpc("as_minhas_casas");
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("identidade (as_minhas_casas):", e);
+    return null;
+  }
+};

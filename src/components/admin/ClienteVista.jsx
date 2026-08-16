@@ -8,7 +8,8 @@ import {
 import { FASE_LABEL, FASE_COR } from "./faseConfig";
 import { Icone } from "./Navegacao";
 import RemoverEventoModal from "./RemoverEventoModal";
-import { caminhoDoSeparador } from "../../lib/rotasAdmin";
+import { useRotas } from "../../lib/rotasAdmin";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import { Esqueleto } from "./acabamento";
 
 // ============================================================
@@ -85,12 +86,19 @@ export default function ClienteVista({
 }) {
   const { p1: clienteId } = useParams();
   const navigate = useNavigate();
+  const rotas = useRotas();
 
   const [cliente, setCliente] = useState(null);
   const [estado, setEstado] = useState("a-carregar");
   const [perguntandoFase, setPerguntandoFase] = useState(false);
   const [criandoEvento, setCriandoEvento] = useState(false);
   const [eventoParaRemover, setEventoParaRemover] = useState(null);
+  // «+ Novo evento» falhava em SILÊNCIO: o catch tinha só um
+  // console.error, o botão voltava ao normal e não aparecia evento
+  // nenhum. Com o guard da 108 é o caso mais provável de todos — uma
+  // sessão com duas casas rebenta aqui com CASA_AMBIGUA —, e um erro
+  // que não se vê é indistinguível de um clique que não pegou.
+  const [erroCriar, setErroCriar] = useState(null);
 
   // Sem reset para "a-carregar" a cada chamada, de propósito: o
   // esqueleto é o estado INICIAL (e a vista remonta a cada cliente,
@@ -129,6 +137,7 @@ export default function ClienteVista({
   const novoEvento = async (fase) => {
     setCriandoEvento(true);
     setPerguntandoFase(false);
+    setErroCriar(null);
     try {
       await createEventoParaCliente(clienteId, { fase });
       await carregar();
@@ -138,6 +147,10 @@ export default function ClienteVista({
       if (onDadosMudaram) onDadosMudaram();
     } catch (e) {
       console.error(e);
+      setErroCriar(
+        traduzirErroDaCasa(e) ||
+          "Não foi possível criar o evento. Verifique a ligação e tente novamente.",
+      );
     }
     setCriandoEvento(false);
   };
@@ -318,7 +331,7 @@ export default function ClienteVista({
               // — o mesmo trabalho que o atalho de um clique poupou à
               // ida, devolvido na volta.
               onClick={() =>
-                navigate(`/evento/${ev.id}`, {
+                navigate(rotas.evento(ev.id), {
                   state: { origemCliente: clienteId },
                 })
               }
@@ -412,6 +425,23 @@ export default function ClienteVista({
       )}
 
       {/* ---- Criar mais um ---- */}
+      {erroCriar && (
+        <p
+          style={{
+            fontSize: "12.5px",
+            color: "var(--perigo-texto)",
+            backgroundColor: "var(--perigo-fundo)",
+            border: "1px solid var(--perigo-borda)",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            margin: "10px 0 0",
+            lineHeight: 1.55,
+          }}
+        >
+          ⚠ {erroCriar}
+        </p>
+      )}
+
       {criandoEvento && (
         <p style={{ fontSize: "12.5px", color: "var(--gray-mid)" }}>
           A criar o evento…
@@ -504,9 +534,10 @@ export default function ClienteVista({
 }
 
 function VoltarAosClientes() {
+  const rotas = useRotas();
   return (
     <Link
-      to={caminhoDoSeparador("clientes")}
+      to={rotas.separador("clientes")}
       replace
       style={{
         display: "inline-flex",

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import {
   registarPagamento,
   apagarPagamento,
@@ -258,7 +259,11 @@ function FormularioPagamento({ sugestaoValor, onCancelar, onGuardar }) {
     try {
       await onGuardar({ valor, data, metodo, contribuinte, notas });
     } catch (e) {
-      setErro(e.message || "Não foi possível guardar. Tenta novamente.");
+      setErro(
+        traduzirErroDaCasa(e) ||
+          e.message ||
+          "Não foi possível guardar. Tenta novamente.",
+      );
     }
     setAGuardar(false);
   };

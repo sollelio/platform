@@ -2744,17 +2744,136 @@ o frontend espera que a migração corra.
   (`event_type_id is null` com o tipo escrito por extenso nas
   respostas).
 
-### Pendências desta decisão
+- **16/08/2026 — As rotas com a casa (frente 1 do 108b), feito.** Três
+  peças, e o que as decidiu:
 
-- `getTiposParaCaptacaoInterna` (captação pelo admin) devolve os
-  modelos de TODAS as casas da sessão — com uma membership é a casa
-  certa; no dia das duas, passa a filtrar pela casa do endereço
-  (sítio marcado no código com ⚠ 108).
+  · **A casa lê-se do CAMINHO, não do `useParams`.** A
+  `AreaAutenticada` é rota-molde sem caminho próprio (099) e uma
+  rota-molde assim não vê os parâmetros das filhas. Dar-lhe caminho
+  obrigaria a três moldes (/admin, /evento, /briefing) e remontava o
+  CasaProvider a cada salto do painel para um evento — o desperdício
+  que a 099 veio acabar. Fica `casaDoCaminho(pathname)`, em
+  `lib/rotasAdmin.js`, que já era o único sítio onde o URL se traduz.
+
+  · **Os endereços antigos distinguem-se pelo VOCABULÁRIO, não pela
+  forma.** `/admin/documentos/<id>` e `/admin/<casa>/<separador>` têm
+  a mesma forma; o que os separa é que «documentos» é palavra nossa.
+  A alternativa (declarar as formas antigas em rotas irmãs) empatava
+  no ranking do react-router e deixava a escolha à ORDEM de
+  declaração — verdade frágil e por escrever. ⚠ **Consequência:** os
+  doze slugs de separador mais os dois já-válidos são palavras
+  RESERVADAS para nomes de casa. Um uuid no lugar da casa também se
+  reconhece pela forma, e é o que faz `/evento/<uuid>/documentos`
+  ainda encontrar o caminho de volta.
+
+  · **A porta explica, não fecha.** O `PortaDaCasa` desenha os ecrãs
+  da suspensa e da desconhecida, mas deixa passar enquanto a resposta
+  não chega — quem fecha é a base (uma casa que não é nossa não
+  devolve linha nenhuma). Segurar o admin à espera da RPC atrasava as
+  quatro buscas de arranque em todas as visitas para desenhar melhor
+  o caso raro.
+
+  · **Efeito colateral resolvido: o login deixou de perguntar pela
+  casa.** Chamava `identidade_da_minha_casa()` e a resposta era sempre
+  «desconhecida» — tinha de ser, porque o formulário só se desenha
+  quando não há sessão. Passou a vestir `SEM_CASA` directamente:
+  desenha o mesmo, e deixa de piscar a identidade de omissão enquanto
+  uma pergunta com resposta conhecida ia e voltava. Era o último
+  chamador da versão sem argumentos, que **já pode cair**.
+
+- **16/08/2026 — Os ecrãs e o helper dos code-words (frentes 2 e 3),
+  feito. Frases aprovadas pelo Hélio.** Cinco ecrãs (casa suspensa,
+  endereço que não é seu, conta sem casa, escolha entre casas, e a
+  rede que não respondeu), todos com o texto num bloco `COPIA` único
+  em `components/PortaDaCasa.jsx`.
+
+  O helper é `lib/errosDaCasa.js`, e o desenho tem duas escolhas que
+  vale a pena não desfazer:
+
+  · **Devolve `null` quando o erro não é da casa**, para se encaixar à
+  frente da cadeia que cada ecrã já tinha
+  (`traduzirErroDaCasa(e) || e.message || "frase genérica"`). O
+  `e.message` do meio fica onde estava de propósito: muitas vezes já é
+  uma frase legível que a `lib/` compôs a traduzir uma constraint pelo
+  NOME. Engoli-la para pôr uma genérica no lugar era uma perda.
+
+  · **O que é code-word decide-se pela FORMA
+  (`MAIÚSCULAS_COM_UNDERSCORE`), não pela lista.** A lista diz quais
+  sabemos dizer melhor; a forma garante que nenhum code-word chega ao
+  ecrã como está — inclusive um que o servidor ganhe amanhã e que
+  ninguém se lembre de acrescentar. Sem frase nossa cai no `hint` do
+  servidor, e só depois numa recusa sem explicação (com o code-word a
+  ir para a consola).
+
+  Ligado em quinze sítios: os nove que mostravam `e.message` cru (e
+  portanto o code-word por extenso), a captação (que o imprimia entre
+  parênteses), e as portas de CRIAR — formulário nas duas portas,
+  comunicado, modelo de evento, gravar e associar no drawer.
+
+- **16/08/2026 — Silêncio fechado: «+ Novo evento» na ficha da
+  cliente.** O `catch` do `novoEvento` (ClienteVista) tinha só um
+  `console.error`: o botão voltava ao normal e não aparecia evento
+  nenhum. Com o guard da 108 passa a ser o caso mais provável de todos
+  — uma sessão com duas casas rebenta exactamente ali — e um erro que
+  não se vê é indistinguível de um clique que não pegou.
+
+- **16/08/2026 — Os RPC com a casa (frente 4), na parte que é
+  frontend.** Dois dos três, e o terceiro fica escrito por baixo.
+
+  · **`captacao_submeter` e `registar_erro_formulario`** passam a levar
+  o slug no modo interno. **A casa vem da ROTA, não por prop**, e é a
+  escolha que importa: são TRÊS modais a montar o mesmo `CaptacaoForm`
+  (Início, Funil, Agenda) e um quarto que aparecesse sem a passar
+  repetia à letra a regressão da 093. O `console.error` que grita
+  quando o modo interno não encontra casa na rota é a rede que essa
+  regressão pagou.
+
+  · **`getTiposParaCaptacaoInterna` morreu, e a pendência dela
+  fechou-se de borla.** A condição escrita era «quando a casa vier do
+  endereço, este sítio passa a filtrar pela casa pedida» — cumpriu-se.
+  Com slug, a porta PÚBLICA já faz exactamente isso (mesma projecção,
+  mesma ordem, filtrada pelo tenant do slug), e a porta de dentro só
+  existia porque não havia slug. Duas portas para a mesma lista era o
+  que as fazia divergir.
+
+### Pendências desta decisão
 - O redirect dos URLs antigos (`/admin/inicio` → `/admin/:casa/…`)
   **sai no dia da segunda casa** — condição escrita, como mandado; até
   lá redireciona para a única casa da pessoa (via `as_minhas_casas`).
-- O helper de tradução dos code-words no frontend — primeiro lote da
-  108, antes do teste de staging.
-- O frontend da 108 inteiro (rotas com `:casa`, CasaProvider pela
-  rota, os três RPC a enviar o slug, ecrã do «endereço não é teu» e o
-  ecrã da casa suspensa) — **só depois de a migração do Hélio correr.**
+  A partir da segunda, o mesmo endereço mostra o ecrã de escolha, e a
+  escolha faz-se por LIGAÇÃO — o que fica é o endereço novo, nunca um
+  estado guardado que decida por nós da próxima vez.
+- `identidade_da_minha_casa()` **sem argumentos já não tem chamadores**
+  no `src/` — pode ser apagada (é SQL, é do Hélio).
+- 🔴 **`dlm_dia_estado` — BLOQUEADO NO SQL, e é do Hélio.** A
+  assinatura viva (096) é `(p_data date, p_excluir uuid, p_tenant
+  uuid)`, e a casa resolve-se por `coalesce(p_tenant, tenant do
+  p_excluir, tenant_actual())`. Duas consequências no dia da segunda
+  casa: (1) a única chamada SEM `p_excluir` — o popover «Consulta da
+  data» (`ConsultaData`) — cai no `tenant_actual()` e passa a rebentar
+  com `CASA_AMBIGUA`; (2) o frontend NÃO pode tapar isso mandando
+  `p_tenant`, porque é um uuid vindo do browser, sem verificação de
+  membership, numa função SECURITY DEFINER — quem o forjasse lia o
+  estado do dia e o **nome da cliente rival** de outra casa. O que
+  falta é um `p_tenant_slug text` resolvido por `tenant_do_pedido`
+  (que confirma a membership), à frente do coalesce e sem mexer no
+  resto. Enquanto não existir, o frontend fica como está: parte alto,
+  não mente.
+- **As leituras que ainda misturam casas** (mesma família do
+  `getTiposParaCaptacaoInterna`, mas sem porta pública equivalente):
+  `irmaosDoDia` (`lib/disputaDia.js`) é um select entregue pela RLS,
+  que devolve TODAS as casas da sessão — o painel da disputa do dia,
+  na ficha do evento e nos modais internos, mostraria irmãos de outra
+  casa. Com uma membership está certo; no dia das duas, filtra-se.
+- **O `traduzirErroDaCasa` está ligado às portas de CRIAR e a todos os
+  sítios que mostravam `e.message` cru — não aos ~100 `catch` que
+  mostram só uma frase genérica.** Esses continuam a engolir o
+  code-word (e o `hint` com ele). Não é dívida escondida: a maioria
+  não é caminho de escrita, e a regra para quem lá voltar é uma linha
+  — prefixar a cadeia com `traduzirErroDaCasa(e) ||`.
+- **O registo da captação pública é FORMAL e o formulário trata por
+  tu.** As frases aprovadas dizem «Recarregue», «Abra o endereço»; o
+  `CaptacaoForm` diz «Verifica a ligação e tenta novamente». Só o
+  `CASA_DESCONHECIDA` (slug mau no endereço público) e o
+  `NOME_OBRIGATORIO` lá chegam, e ambos são raros — mas o desencontro
+  fica escrito em vez de resolvido por invenção.

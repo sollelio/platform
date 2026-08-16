@@ -26,12 +26,21 @@ import { supabase } from "./supabase";
 // saber disto; vai para a consola e a vida segue.
 //
 // A CASA vem por `p_tenant_slug`, o padrão da 093 — quem a sabe passa-a.
-// A captação sabe (tem o slug no endereço); o formulário de convite não,
-// porque resolve a casa pelo CÓDIGO. Aí vai null, a função cai no
-// `tenant_actual()`, que sem sessão também é null, e a linha fica sem
-// casa. É o comportamento desenhado: um erro sem casa identificada
-// continua a ser diagnóstico válido, e perdê-lo por não saber de quem é
-// seria perder justamente o que se queria ver.
+// A captação sabe: no público pelo /interesse/:slug, e desde a 108
+// também no INTERNO, pela rota do backoffice. O formulário de convite
+// não sabe, porque resolve a casa pelo CÓDIGO. Aí vai null, a função
+// cai no `tenant_actual()`, que sem sessão também é null, e a linha
+// fica sem casa. É o comportamento desenhado: um erro sem casa
+// identificada continua a ser diagnóstico válido, e perdê-lo por não
+// saber de quem é seria perder justamente o que se queria ver.
+//
+// ⚠ 108 · Com sessão, o slug passou a ser VERIFICADO contra a
+// membership (emenda do Hélio, 16/08): o argumento «é só um log» não
+// se aguenta porque o log carrega a coluna `respostas` — o formulário
+// da cliente. Um log na casa errada é dados pessoais na casa errada.
+// Um slug alheio não rebenta: vira log SEM casa, que continua a ser
+// diagnóstico válido — o registo de erros nunca pode ser a causa de um
+// erro.
 // ============================================================
 
 // Serializa um erro (Error de JS ou erro do Supabase/PostgREST) num

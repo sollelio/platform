@@ -124,6 +124,16 @@ atrapalhar, o caminho é decisão registada, nunca excepção calada.
 - **Os ids internos dos separadores do backoffice nunca mudam.** O
   URL humano traduz-se num único sítio (`lib/rotasAdmin.js`) — o
   histórico e os links dependem dos ids.
+- **A casa do backoffice vem do ENDEREÇO, e nunca de estado
+  guardado.** `/admin/:casa/…`, `/evento/:casa/…`, `/briefing/:casa/…`
+  — sem seletor e sem variável de módulo: uma «casa activa» invisível
+  é o que faz escritas caírem no sítio errado sem ninguém reparar.
+  Quem compõe um caminho passa a casa (ou usa o `useRotas()`, que a lê
+  da rota uma vez).
+- **Os slugs de separador são palavras RESERVADAS para nomes de
+  casa.** É o vocabulário de `lib/rotasAdmin.js` que distingue
+  `/admin/documentos` (endereço antigo) de `/admin/<casa>/…` — uma
+  casa chamada «agenda» ou «contactos» punha o redirect em ciclo.
 - **Nos documentos, a BD é a fonte e o localStorage é espelho.**
   Lê-se BD-primeiro; o espelho nunca é apagado pelo módulo.
 - **A chave de telefone do dedupe são os últimos 9 dígitos, em TRÊS

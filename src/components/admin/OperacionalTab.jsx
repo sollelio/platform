@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { caminhoDoSeparador } from "../../lib/rotasAdmin";
+import { useRotas } from "../../lib/rotasAdmin";
 import { motion } from "framer-motion";
 import { getMateriais } from "../../lib/materiais";
 import {
@@ -54,6 +54,7 @@ export default function OperacionalTab({
   eventosPorChegar = false,
 }) {
   const { p1 } = useParams();
+  const rotas = useRotas();
   const navigate = useNavigate();
   const subTab = SUB_VISTAS.includes(p1) ? p1 : SUB_VISTA_POR_OMISSAO;
 
@@ -61,17 +62,17 @@ export default function OperacionalTab({
   // corrige-se para a vista por omissão, sem deixar rasto no histórico.
   useEffect(() => {
     if (p1 !== subTab) {
-      navigate(`${caminhoDoSeparador("operacional")}/${subTab}`, {
+      navigate(`${rotas.separador("operacional")}/${subTab}`, {
         replace: true,
       });
     }
-  }, [p1, subTab, navigate]);
+  }, [p1, subTab, navigate, rotas]);
 
   // replace, como o toggle Lista/Funil: as três vistas são LADOS desta
   // secção, não passos de uma viagem — o «voltar» não deve ter de
   // desfazer três cliques antes de sair da Logística.
   const setSubTab = (v) =>
-    navigate(`${caminhoDoSeparador("operacional")}/${v}`, { replace: true });
+    navigate(`${rotas.separador("operacional")}/${v}`, { replace: true });
 
   // Dados para os alertas — carregados AQUI (uma vez) e partilhados entre
   // o badge da sub-navegação e a vista AlertasTab, para não duplicar

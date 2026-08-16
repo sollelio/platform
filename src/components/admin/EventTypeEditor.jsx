@@ -23,6 +23,7 @@ import {
   updateEventType,
   getQuestionarioGrupos,
 } from "../../lib/eventTypes";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 
 const TYPE_OPTIONS = [
   { value: "text", label: "Texto curto" },
@@ -1383,7 +1384,7 @@ export default function EventTypeEditor({
       onSaved(tipo);
     } catch (e) {
       console.error(e);
-      setErro("Ocorreu um erro ao gravar. Tenta novamente.");
+      setErro(traduzirErroDaCasa(e) || "Ocorreu um erro ao gravar. Tenta novamente.");
     }
     setSaving(false);
   };

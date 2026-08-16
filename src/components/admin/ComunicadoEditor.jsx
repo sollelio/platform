@@ -10,6 +10,7 @@ import {
   subirImagemFolha,
 } from "../../lib/comunicados";
 import { realce } from "../../lib/realce";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 
 // ============================================================
 // ComunicadoEditor — a folha de um comunicado a ser escrita.
@@ -535,7 +536,10 @@ export default function ComunicadoEditor({ comunicado, inicial, onFechar, onGuar
       timerGuardado.current = setTimeout(() => onGuardado(rec), 900);
     } catch (e) {
       console.error(e);
-      setErroRede("Não foi possível guardar a folha. Tente outra vez.");
+      setErroRede(
+        traduzirErroDaCasa(e) ||
+          "Não foi possível guardar a folha. Tente outra vez.",
+      );
     } finally {
       setAGuardar(false);
     }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import {
   getCampanha,
   ativarCampanha,
@@ -408,7 +409,11 @@ export default function ContribuicaoColetiva({
       setValor("");
       setMetodo("");
     } catch (e) {
-      setErro(e.message || "Não foi possível registar. Tenta novamente.");
+      setErro(
+        traduzirErroDaCasa(e) ||
+          e.message ||
+          "Não foi possível registar. Tenta novamente.",
+      );
     }
     setARegistar(false);
   };
@@ -465,7 +470,11 @@ export default function ContribuicaoColetiva({
           "Esta promessa já tinha sido confirmada ou anulada noutro separador — nada foi registado em dobro.",
         );
       } else {
-        setErro(e.message || "Não foi possível confirmar. Tenta novamente.");
+        setErro(
+          traduzirErroDaCasa(e) ||
+            e.message ||
+            "Não foi possível confirmar. Tenta novamente.",
+        );
       }
     }
     setAConfirmar(false);
@@ -654,7 +663,11 @@ export default function ContribuicaoColetiva({
                       setMensagem("");
                       setComoContribuir("");
                     } catch (e) {
-                      setErro(e.message || "Não foi possível ativar.");
+                      setErro(
+                        traduzirErroDaCasa(e) ||
+                          e.message ||
+                          "Não foi possível ativar.",
+                      );
                     }
                     setAAtivar(false);
                   }}
@@ -808,7 +821,7 @@ export default function ContribuicaoColetiva({
                         "Já existe outra campanha ativa deste evento — fecha essa primeiro. A meta voltou ao valor anterior.",
                       );
                     } else {
-                      setErro(e.message || "Meta inválida.");
+                      setErro(traduzirErroDaCasa(e) || e.message || "Meta inválida.");
                     }
                   }
                 }}

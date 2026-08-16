@@ -1,12 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
-import {
-  SEPARADOR_POR_OMISSAO,
-  caminhoDeSlugAntigo,
-  caminhoDoSeparador,
-  idDoSlug,
-} from "../lib/rotasAdmin";
+import { SEPARADOR_POR_OMISSAO, idDoSlug, useRotas } from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
+import { traduzirErroDaCasa } from "../lib/errosDaCasa";
 import { useCasa } from "../components/CasaProvider";
 import {
   createInvite,
@@ -119,6 +115,9 @@ export default function AdminPage() {
   // devolve null e cai no Início — a navegação nunca deve ser o sítio
   // onde um erro de escrita se manifesta como ecrã em branco.
   const { separador, p1, p2 } = useParams();
+  // Os caminhos deste ecrã já vêm atados à casa da rota (108) — ver
+  // lib/rotasAdmin.js.
+  const rotas = useRotas();
   const idDoSeparador = idDoSlug(separador);
   const activeTab = idDoSeparador || SEPARADOR_POR_OMISSAO;
   // Pedido "mostra-me os perdidos do funil" — vem da pílula «Recuperar
@@ -239,7 +238,7 @@ export default function AdminPage() {
     // vive em notificacoes.js, com o porquê de cada tipo.
     if (TIPOS_DO_ACOMPANHAMENTO.includes(tipo)) {
       setNotifAberto(false);
-      navigate(`/evento/${submissionId}`, {
+      navigate(rotas.evento(submissionId), {
         state: { abrirAcompanhamento: true },
       });
       return;
@@ -247,13 +246,13 @@ export default function AdminPage() {
     // As respostas lêem-se na própria página do evento.
     if (tipo === "questionario_entregue") {
       setNotifAberto(false);
-      navigate(`/evento/${submissionId}`);
+      navigate(rotas.evento(submissionId));
       return;
     }
     // A avaliação vive no separador Avaliações.
     if (tipo === "avaliacao_recebida") {
       setNotifAberto(false);
-      navigate(caminhoDoSeparador("avaliacoes"));
+      navigate(rotas.separador("avaliacoes"));
       return;
     }
     let ev = submissions.find((s) => s.id === submissionId);
@@ -301,7 +300,7 @@ export default function AdminPage() {
   // passo de uma viagem, e o «voltar» deve desfazê-lo.
   const navegarPara = (tab) => {
     handleNavegar(tab);
-    navigate(caminhoDoSeparador(tab));
+    navigate(rotas.separador(tab));
   };
 
   // Abre o formulário para a irmã preencher ela própria —
@@ -331,7 +330,7 @@ export default function AdminPage() {
   // sítios a fazer a mesma coisa por caminhos diferentes.
   const handleGerarDocumento = (submissao, tipoDoc) => {
     setSelected(null);
-    navigate(`${caminhoDoSeparador("orcamentos")}/${submissao.id}/${tipoDoc}`);
+    navigate(`${rotas.separador("orcamentos")}/${submissao.id}/${tipoDoc}`);
   };
 
   // ------------------------------------------------------------
@@ -368,7 +367,7 @@ export default function AdminPage() {
       // cai na lista, e o URL tem de cair com ele — senão a barra de
       // endereço fica a anunciar um documento que não está aberto.
       if (docEventoId && !docTipo) {
-        navigate(caminhoDoSeparador("orcamentos"), { replace: true });
+        navigate(rotas.separador("orcamentos"), { replace: true });
       }
       return;
     }
@@ -411,7 +410,7 @@ export default function AdminPage() {
           // Volta à lista em vez de deixar o ecrã eternamente "a
           // preparar": ela fica com o aviso à vista E com um sítio onde
           // continuar.
-          navigate(caminhoDoSeparador("orcamentos"), { replace: true });
+          navigate(rotas.separador("orcamentos"), { replace: true });
           return;
         }
         const dados = await getDadosParaDocumento(evento, eventTypes);
@@ -437,7 +436,7 @@ export default function AdminPage() {
   // existe isolado.
   const handleAbrirDocumentoDaLista = (doc) => {
     navigate(
-      `${caminhoDoSeparador("orcamentos")}/${doc.submission_id}/${doc.tipo}`,
+      `${rotas.separador("orcamentos")}/${doc.submission_id}/${doc.tipo}`,
     );
   };
 
@@ -475,7 +474,7 @@ export default function AdminPage() {
       );
       return;
     }
-    navigate(`/evento/${reserva.submission_id}/documentos`, {
+    navigate(rotas.evento(reserva.submission_id, "documentos"), {
       state: { realce: { alvo: "formulario", n: Date.now() } },
     });
   };
@@ -663,6 +662,7 @@ export default function AdminPage() {
       console.error("Erro ao criar o formulário:", e);
       setNewInviteErrors({
         geral:
+          traduzirErroDaCasa(e) ||
           "Não foi possível criar o formulário. Verifique a ligação e tente novamente.",
       });
     }
@@ -806,7 +806,9 @@ export default function AdminPage() {
       setErroEstado(null);
     } catch (e) {
       console.error(e);
-      setErroEstado(e.message || "Não foi possível mudar o estado.");
+      setErroEstado(
+        traduzirErroDaCasa(e) || e.message || "Não foi possível mudar o estado.",
+      );
     }
   };
 
@@ -876,8 +878,8 @@ export default function AdminPage() {
       {!idDoSeparador && (
         <Navigate
           to={
-            caminhoDeSlugAntigo(separador, p1, p2) ||
-            caminhoDoSeparador(SEPARADOR_POR_OMISSAO)
+            rotas.slugAntigo(separador, p1, p2) ||
+            rotas.separador(SEPARADOR_POR_OMISSAO)
           }
           replace
         />
@@ -1012,8 +1014,8 @@ export default function AdminPage() {
             aoNavegarRota={(sub, opts) =>
               navigate(
                 sub
-                  ? `${caminhoDoSeparador("comunicados")}/${sub}`
-                  : caminhoDoSeparador("comunicados"),
+                  ? `${rotas.separador("comunicados")}/${sub}`
+                  : rotas.separador("comunicados"),
                 opts,
               )
             }
@@ -1210,7 +1212,7 @@ export default function AdminPage() {
               eventTypes={eventTypes}
               invites={invites}
               aCarregar={eventosPorChegar || convitesPorChegar}
-              onAbrirEvento={(ev) => navigate(`/evento/${ev.id}/documentos`)}
+              onAbrirEvento={(ev) => navigate(rotas.evento(ev.id, "documentos"))}
             />
 
             {/* Lista de convites — o estado do que EXISTE. Um formulário
@@ -1324,7 +1326,7 @@ export default function AdminPage() {
             <button
               className="no-print"
               onClick={() =>
-                navigate(caminhoDoSeparador("orcamentos"), { replace: true })
+                navigate(rotas.separador("orcamentos"), { replace: true })
               }
               style={{
                 marginBottom: "16px",
@@ -1351,7 +1353,7 @@ export default function AdminPage() {
               contexto={documentoContexto}
               onTrocarTipo={(t) =>
                 navigate(
-                  `${caminhoDoSeparador("orcamentos")}/${docEventoId}/${t}`,
+                  `${rotas.separador("orcamentos")}/${docEventoId}/${t}`,
                   { replace: true },
                 )
               }
@@ -1361,7 +1363,7 @@ export default function AdminPage() {
                   ? // A casa própria do evento — não o drawer: o botão é
                     // anterior à EventoPage e ficou a apontar ao painel
                     // lateral quando o evento ganhou página a sério.
-                    () => navigate(`/evento/${documentoContexto.submissionId}`)
+                    () => navigate(rotas.evento(documentoContexto.submissionId))
                   : null
               }
             />

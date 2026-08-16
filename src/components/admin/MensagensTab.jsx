@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { MensagensConteudo } from "./MensagensSheet";
-import { caminhoDoSeparador } from "../../lib/rotasAdmin";
+import { useRotas } from "../../lib/rotasAdmin";
 
 // ============================================================
 // MensagensTab — a biblioteca de mensagens-tipo como separador
@@ -14,6 +14,7 @@ import { caminhoDoSeparador } from "../../lib/rotasAdmin";
 // ============================================================
 
 export default function MensagensTab() {
+  const rotas = useRotas();
   return (
     <motion.div
       key="tab-mensagens"
@@ -60,7 +61,7 @@ export default function MensagensTab() {
         Para dizer uma coisa a muitos de uma vez, a folha com endereço
         próprio vive nos{" "}
         <Link
-          to={caminhoDoSeparador("comunicados")}
+          to={rotas.separador("comunicados")}
           style={{
             color: "var(--gold-dark)",
             textDecorationColor: "var(--gold-light)",

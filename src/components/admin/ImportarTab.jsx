@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { adaptadorJSON } from "../../lib/importacao/adaptadores";
+import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import { normalizarPlano } from "../../lib/importacao/normalizar";
 import { validarPlano } from "../../lib/importacao/validar";
 import { executarPlano } from "../../lib/importacao/executar";
@@ -111,7 +112,9 @@ export default function ImportarTab({ eventTypes = [], onModelosCriados }) {
       if (rel.modelosCriados > 0 && onModelosCriados) onModelosCriados();
     } catch (e) {
       console.error(e);
-      setRelatorio({ falhaGeral: e.message || "Falha inesperada." });
+      setRelatorio({
+        falhaGeral: traduzirErroDaCasa(e) || e.message || "Falha inesperada.",
+      });
     }
     setProgresso(null);
     setAImportar(false);

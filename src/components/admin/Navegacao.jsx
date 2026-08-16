@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { NavLink } from "react-router-dom";
 import LogoDourado from "../LogoDourado";
-import { caminhoDoSeparador } from "../../lib/rotasAdmin";
+import { useRotas } from "../../lib/rotasAdmin";
 import { alternarTema, assinarTema, temaEfectivo } from "../../lib/tema";
 
 // ============================================================
@@ -307,6 +307,7 @@ function Contagem({ quantos }) {
 }
 
 function ItemNav({ item, ativo, onClick, contagem }) {
+  const rotas = useRotas();
   const estilo = {
     display: "flex",
     alignItems: "center",
@@ -343,7 +344,7 @@ function ItemNav({ item, ativo, onClick, contagem }) {
   if (ehSeparador(item.id)) {
     return (
       <NavLink
-        to={caminhoDoSeparador(item.id)}
+        to={rotas.separador(item.id)}
         replace
         onClick={onClick}
         style={estilo}
@@ -581,6 +582,7 @@ export function SidebarNav({
 // BARRA INFERIOR — telemóvel
 // ------------------------------------------------------------
 export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
+  const rotas = useRotas();
   const maisAtivo = IDS_NO_MAIS.includes(activeTab);
   const itens = [
     ...NAV_PRINCIPAL.map((n) => ({ ...n, acao: (ev) => onNavegar(n.id, ev) })),
@@ -633,7 +635,7 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
         return ehSeparador(item.id) ? (
           <NavLink
             key={item.id}
-            to={caminhoDoSeparador(item.id)}
+            to={rotas.separador(item.id)}
             replace
             onClick={item.acao}
             style={estilo}

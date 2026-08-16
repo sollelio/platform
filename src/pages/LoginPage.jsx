@@ -4,9 +4,7 @@ import { supabase } from "../lib/supabase";
 import { destinoDepoisDoLogin, useSessao } from "../lib/sessao";
 import { motion, AnimatePresence } from "framer-motion";
 import flores from "../assets/flores.webp";
-import CasaProvider, { useCasa } from "../components/CasaProvider";
-import { casaDaSessao } from "../lib/identidadeCasa";
-import { NOME_PRODUTO } from "../lib/casa";
+import { NOME_PRODUTO, SEM_CASA } from "../lib/casa";
 
 function Ornament({ small = false }) {
   return (
@@ -127,30 +125,31 @@ function FlowerDecoration() {
   );
 }
 
-// O login é rota IRMÃ da protegida, e por isso tem Provider próprio —
-// não pode herdar o da AreaAutenticada, que vive do outro lado da porta
-// que este ecrã existe para abrir.
+// O login é rota IRMÃ da protegida, e por isso nunca herdou o Provider
+// da AreaAutenticada — vive do outro lado da porta que este ecrã existe
+// para abrir.
 //
-// A consequência é honesta e fica dita: quem ainda não entrou não tem
-// sessão, a RPC devolve null e o ecrã veste a identidade de omissão. É
-// o que deve acontecer — a porta de entrada é do PRODUTO, não de uma
-// casa; saber de que casa é alguém antes de ele se identificar era
-// exactamente o que a 093 proibiu.
+// Até à 108 tinha Provider próprio a chamar a RPC da identidade, e a
+// resposta era SEMPRE a mesma: «desconhecida». Tinha de ser — o
+// formulário só se desenha quando não há sessão (com sessão, o
+// `Navigate` daqui a baixo leva logo para dentro), e sem sessão a RPC
+// não tem de quem falar. Com a casa a vir do endereço, o /admin/login
+// nem endereço de casa tem para lhe dar.
+//
+// Por isso a ausência passou a ser dita em vez de perguntada: o ecrã
+// veste SEM_CASA. Desenha exactamente o mesmo — e deixa de piscar a
+// identidade de omissão enquanto uma pergunta com resposta conhecida
+// ia e voltava.
 export default function LoginPage() {
-  return (
-    <CasaProvider chave="sessao" carregar={casaDaSessao}>
-      <LoginConteudo />
-    </CasaProvider>
-  );
+  return <LoginConteudo />;
 }
 
 function LoginConteudo() {
-  // Sem sessão a RPC responde «desconhecida», e é isso que ela deve
-  // responder — de que casa é alguém não se sabe antes de a pessoa se
-  // identificar (093). Por isso este ecrã veste o PRODUTO no título e
-  // deixa cair a linha de marca e o slogan, que são da casa: emprestá-
-  // los ao produto seria a mesma mentira em sentido contrário.
-  const casa = useCasa();
+  // De que casa é alguém não se sabe antes de a pessoa se identificar
+  // (093). Por isso este ecrã veste o PRODUTO no título e deixa cair a
+  // linha de marca e o slogan, que são da casa: emprestá-los ao
+  // produto seria a mesma mentira em sentido contrário.
+  const casa = SEM_CASA;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
