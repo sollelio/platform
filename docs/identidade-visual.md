@@ -1,7 +1,31 @@
 # Do Luxo à Mesa — identidade visual
 
 Guia para desenhar sem acesso ao código. Tudo o que aqui está foi
-extraído do produto real, tal como ele é hoje.
+extraído do produto real, tal como ele era a **30/07/2026**.
+
+> ## ⚠ Desactualizado em dois pontos (nota de 18/08/2026)
+>
+> O guia continua a valer para o REGISTO — a linguagem, os dois
+> registos, o movimento, a hierarquia. O que envelheceu foi a cor e o
+> dono dela:
+>
+> **1 · Entrou o MODO ESCURO (16/08/2026), e este guia não o conhece.**
+> Os hexadecimais aqui listados são hoje os valores do tema CLARO. A
+> lista viva são as ~139 custom properties do `:root` de
+> `src/index.css`, cada família com par claro/escuro; o interruptor é
+> `src/lib/tema.js` (`data-tema="escuro"` no `<html>`, só nas rotas do
+> backoffice). Superfícies de impressão não escurecem — classe
+> `.papel`. Ver `docs/prompt-dark-mode.md` e
+> `docs/listas-modo-escuro.md`.
+>
+> **2 · A identidade deixou de ser da APP e passou a ser da CASA
+> (migração 097).** Nome, titular, morada, NIF, IBAN, MBWay, foro,
+> domínio, WhatsApp, logótipo, linha de actividade, linha «by» e slogan
+> vivem na tabela `tenants` e chegam ao frontend por `useCasa()`. O que
+> continua a ser da plataforma — e por isso ficou de fora da 097 — é a
+> **paleta, as tipografias e a letra da assinatura**: são sistema de
+> desenho, não dados de cliente. Quem desenhar para uma casa nova mexe
+> nos dados; quem desenhar o produto mexe aqui.
 
 **A casa numa frase:** produção e aluguer de decoração para eventos
 de luxo, em Portugal — o material sai de casa, veste o evento e volta.

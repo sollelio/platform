@@ -1,4 +1,22 @@
-# Guião do dia da publicação
+# Guião do dia da publicação — **das migrações 036 a 047 (27/07/2026)**
+
+> ## ⚠ Isto é o REGISTO de uma publicação, não um guião vivo (nota de 18/08/2026)
+>
+> O ficheiro descreve o dia em que se publicaram as migrações **036 a
+> 047**, com os dados e as pendências desse dia («o par da Brenda», o
+> re-teste do 1C). A cadeia vai hoje até à **108**. **Não o siga como
+> lista de tarefas.**
+>
+> O que nele continua a valer é o MÉTODO, e vale a pena ler por isso:
+> migrações antes do deploy quando são seguras com o código antigo no
+> ar, cada uma corrida no SQL editor com a deteção conferida à mão,
+> TEST primeiro e produção depois, idempotência provada por correr
+> duas vezes.
+>
+> **O que este ficheiro torna evidente é que não há processo de
+> publicação escrito em lado nenhum** — há o registo de um dia. Quem
+> repensar a infra-estrutura tem aqui o melhor ponto de partida que
+> existe, e a lacuna a fechar.
 
 O caminho de TEST (develop) para PRODUÇÃO, pela ordem certa. Da 036 à
 046, cada migração já foi corrida 2× em TEST (idempotência provada). A

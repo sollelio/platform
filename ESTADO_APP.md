@@ -1,6 +1,7 @@
 # ESTADO_APP.md — levantamento do estado actual
 
-**Data do levantamento:** 12/08/2026 · **Ramo:** develop · **Working tree:** contém alterações por commitar (ver git status).
+**Levantamento original:** 12/08/2026 · **Ramo:** develop
+**Revisão parcial:** 18/08/2026 (ver «Duas vintages» já a seguir)
 
 Relatório de LEITURA, feito para servir de base ao planeamento de um módulo
 novo. Nada foi alterado: sem edições de código, sem commits, sem migrações
@@ -13,6 +14,42 @@ grafia e acentuação. Onde um facto não pôde ser confirmado, está dito.
 O estado da BD (que migrações estão mesmo aplicadas, que políticas vivem
 no painel do Supabase) NÃO é observável a partir do repositório: essas
 secções dizem o que o repositório declara, não o que a base tem.
+
+---
+
+## ⚠ DUAS VINTAGES — leia isto antes de confiar num número de linha
+
+Este ficheiro tem dois levantamentos por dentro, e misturá-los dá respostas
+erradas. **As secções e blocos marcados `[rev. 18/08/2026]` foram
+reverificados contra o código dessa data. Tudo o resto é de 12/08/2026 e
+NÃO foi reverificado.**
+
+O que aconteceu entre as duas datas foi a entrada da espinha multi-casa no
+frontend (migrações 097 a 108). Isso mexeu em três coisas de uma vez —
+as rotas, a identidade e o isolamento por casa — e por isso o que ficou
+por rever é sobretudo **contagem de linhas**: os ficheiros `src/App.jsx`,
+`src/pages/AdminPage.jsx`, `src/pages/EventoPage.jsx` e
+`src/lib/rotasAdmin.js` cresceram, e as referências `ficheiro:linha` das
+secções não marcadas apontam para linhas que se deslocaram. **Os
+NOMES (funções, ficheiros, políticas, colunas) continuam válidos; os
+NÚMEROS não.**
+
+| secção | vintage | porquê |
+|---|---|---|
+| 1. ROTAS | **rev. 18/08** | reescrita: a casa entrou no endereço (108) |
+| 2.1 Rota da página de evento | **rev. 18/08** | `/evento/:casa/:id/:aba?` |
+| 4.0 `tenants` · `memberships` | **novo 18/08** | faltavam por inteiro |
+| 5.0 A camada multi-casa | **novo 18/08** | a 5.1 descrevia o mundo pré-091 |
+| 5.3 (e) uuid-como-chave | **corrigido 18/08** | a 094 revogou o anon nas três funções |
+| 7. MIGRAÇÕES | **rev. 18/08** | contagem, cadeia com saltos, «últimas cinco» |
+| 11. DESIGN SYSTEM — abertura e (a) | **rev. 18/08** | entrou o modo escuro (6 tokens → ~139) |
+| 14. IDENTIDADE E MULTI-CASA (frontend) | **novo 18/08** | camada que não existia no levantamento |
+| 2.2–2.5, 3, 4.1–4.35, 5.1–5.5, 6, 8–10, 11(b)–(f), 12–13 | 12/08 | não reverificadas |
+
+**Não é a mesma coisa que estar errado.** Uma secção de 12/08 continua a
+ser o melhor mapa que existe daquilo que descreve; o que ela não sabe é o
+que a 108 mudou por baixo. Onde havia contradição de FACTO — e não só de
+número de linha — está corrigido em bloco marcado, no sítio.
 
 ## Índice
 
@@ -29,31 +66,73 @@ secções dizem o que o repositório declara, não o que a base tem.
 11. [DESIGN SYSTEM](#11-design-system)
 12. [EQUIPA](#12-equipa)
 13. [DIVERGÊNCIAS](#13-divergências)
+14. [IDENTIDADE E MULTI-CASA (frontend)](#14-identidade-e-multi-casa-frontend) · *novo 18/08*
 
 ---
 
 ## 1. ROTAS
 
-Todo o encaminhamento vive num único ficheiro: `src/App.jsx` (130 linhas; `BrowserRouter` aberto em `src/App.jsx:53`, `<Routes>` em `src/App.jsx:60-125`). Não existe outro ficheiro de rotas — `src/main.jsx` (10 linhas) só monta `<App />` dentro de `<StrictMode>`; não há `createBrowserRouter` em lado nenhum de `src/`.
+> **[rev. 18/08/2026]** Secção reescrita. A casa entrou no endereço (108) e
+> a área autenticada passou a ser uma rota-molde (099). O que aqui estava
+> descrevia o router de 12/08.
+
+Todo o encaminhamento vive num único ficheiro: `src/App.jsx` (`BrowserRouter` no topo de `App()`, `<Routes>` a seguir). Não existe outro ficheiro de rotas — `src/main.jsx` (10 linhas) só monta `<App />` dentro de `<StrictMode>`; não há `createBrowserRouter` em lado nenhum de `src/`.
 
 Do lado do alojamento, o *fallback* de SPA é `public/_redirects` (conteúdo literal: `/*    /index.html   200`, padrão Netlify), acompanhado de `public/_headers` com `Cache-Control` imutável para `/assets/*` e `max-age=0, must-revalidate` para `/*`.
 
-**Faixa de ambiente:** No `.env` do repositório, `VITE_APP_ENV=test` (linha 3) faz aparecer a faixa `<EnvBanner />` (`src/App.jsx:27`, `src/App.jsx:59`). O interruptor de manutenção que existia antes do router (`VITE_SITE_LOCKED` no `.env` + `src/pages/MaintenancePage.jsx`) foi **removido a 14/08/2026** — o router é agora incondicional.
+**Faixa de ambiente:** No `.env` do repositório, `VITE_APP_ENV=test` faz aparecer a faixa `<EnvBanner />`. O interruptor de manutenção que existia antes do router (`VITE_SITE_LOCKED` + `src/pages/MaintenancePage.jsx`) foi **removido a 14/08/2026** — o router é agora incondicional.
+
+### A forma da árvore (o que mudou, e porquê importa)
+
+Há **três anéis**, e a ordem entre eles é a arquitectura:
+
+1. **Públicas** — sem sessão, cada uma com o seu segredo (código, slug, token).
+2. **`/admin/login`** — rota IRMÃ da protegida, nunca filha: um login atrás da porta que ele próprio abre dá ciclo infinito de redireccionamento a quem tem a sessão expirada.
+3. **`<AreaAutenticada>`** — rota-molde **sem caminho próprio** (099), que embrulha as três páginas de dentro. Faz três coisas por ordem: `ProtectedRoute` (há sessão?) → `CasaProvider` (que casa é esta?) → `PortaDaCasa` (o endereço é mesmo dela?). Só depois `<Outlet />`.
+
+A rota-molde não tem caminho próprio de propósito: um `CasaProvider` por página fazia três pedidos da MESMA casa e recomeçava-o a cada salto do painel para um evento; um Provider à volta das `Routes` todas punha as páginas públicas a perguntar por uma sessão que não têm.
+
+**Consequência que se paga:** uma rota-molde sem caminho não vê os parâmetros das filhas, por isso a `AreaAutenticada` **lê a casa do `pathname`**, com `casaDoCaminho()` (`src/lib/rotasAdmin.js`), e não do `useParams`.
 
 | path | componente (ficheiro) | pública/autenticada | notas |
 |---|---|---|---|
-| `/` | `src/pages/FormEntryPage.jsx` | pública | `src/App.jsx:61`. Ecrã do código de acesso. Pré-preenche a partir de `?codigo=` (`src/pages/FormEntryPage.jsx:120-127`); em caso de código válido grava `sessionStorage.setItem("dlm_invite", …)` (`src/pages/FormEntryPage.jsx:145`) e navega para `/formulario` (`src/pages/FormEntryPage.jsx:146`). |
-| `/formulario` | `src/pages/FormPage.jsx` | pública | `src/App.jsx:62`. Sem guarda de rota; guarda **dentro da página**: `src/pages/FormPage.jsx:397-414` — sem `sessionStorage["dlm_invite"]` faz `navigate("/")`, e também se o modelo não tiver `steps` (ausente, não-array, ou array vazio). |
-| `/interesse` | `src/pages/CaptacaoPage.jsx` | pública | `src/App.jsx:65`. Comentário em `src/App.jsx:63-64`: «Porta pública do funil: o formulário de captação de interessados (sem código de acesso, fricção zero)». |
-| `/admin/login` | `src/pages/LoginPage.jsx` | pública | `src/App.jsx:71`. Rota **irmã** da protegida, de propósito (comentário `src/App.jsx:66-70`). Com sessão já viva redirecciona: `if (sessao) return <Navigate to={destino} replace />` (`src/pages/LoginPage.jsx:234`), com `destino = destinoDepoisDoLogin(localizacao)` (`src/pages/LoginPage.jsx:140`; função em `src/lib/sessao.js:48-52`). Entrada por `supabase.auth.signInWithPassword` (`src/pages/LoginPage.jsx:161`). |
-| `/admin` | — (redirecionamento) | pública (é só um `Navigate`) | `src/App.jsx:74`: `<Navigate to="/admin/inicio" replace />`. |
-| `/admin/:separador/:p1?/:p2?` | `src/pages/AdminPage.jsx` | **autenticada** | `src/App.jsx:86-93`, envolvida em `<ProtectedRoute>`. Backoffice inteiro numa só rota; a tradução slug↔id do separador está em `src/lib/rotasAdmin.js` (`SLUG_POR_ID`, `src/lib/rotasAdmin.js:28-41`). Slug desconhecido → `<Navigate>` interno para `caminhoDeSlugAntigo(...)` ou `caminhoDoSeparador(SEPARADOR_POR_OMISSAO)` (`src/pages/AdminPage.jsx:874-882`). |
-| `/evento/:id/:aba?` | `src/pages/EventoPage.jsx` | **autenticada** | `src/App.jsx:96-103`, envolvida em `<ProtectedRoute>`. |
-| `/briefing/:id` | `src/pages/BriefingPage.jsx` | pública | `src/App.jsx:104`. **Sem `ProtectedRoute`** e sem token: lê por `id` (uuid) via `supabase.rpc("formulario_briefing", { p_id: id })` (`src/pages/BriefingPage.jsx:472`) e `supabase.rpc("briefing_materiais", { p_id: id })` (`src/pages/BriefingPage.jsx:503`). Ambas as RPC são `SECURITY DEFINER` com `grant execute … to anon, authenticated` (`docs/migracoes/020_rpcs_formularios_publicos.sql:358`; `docs/migracoes/031_briefing_materiais.sql:55`). |
-| `/contribuir/:token` | `src/pages/ContribuirPage.jsx` | pública | `src/App.jsx:107`. Ver secção 6. |
+| `/` | `src/pages/FormEntryPage.jsx` | pública | Ecrã do código de acesso. Pré-preenche a partir de `?codigo=`; em caso de código válido grava `sessionStorage.setItem("dlm_invite", …)` e navega para `/formulario`. |
+| `/formulario` | `src/pages/FormPage.jsx` | pública | Sem guarda de rota; guarda **dentro da página** — sem `sessionStorage["dlm_invite"]` faz `navigate("/")`, e também se o modelo não tiver `steps`. |
+| `/interesse/:slug` | `src/pages/CaptacaoPage.jsx` | pública | A casa vem do endereço desde a 093. Porta pública do funil, sem código de acesso. |
+| `/interesse` | — (redirecionamento) | pública | `<Navigate to="/interesse/doluxoamesa" replace />`. Mantém vivos os links do Instagram e do site; **sai no dia da segunda casa**. |
+| `/admin/login` | `src/pages/LoginPage.jsx` | pública | Rota **irmã** da protegida. Com sessão já viva redirecciona (`destinoDepoisDoLogin`, `src/lib/sessao.js`). Entrada por `supabase.auth.signInWithPassword`. **[rev. 18/08]** Deixou de ter `CasaProvider`: veste `SEM_CASA` directamente — sem sessão a RPC da identidade responde sempre «desconhecida», e o formulário só se desenha quando não há sessão. |
+| `/admin` | — (redirecionamento) | pública (é só um `Navigate`) | `<Navigate to="/admin/inicio" replace />` — que é um endereço ANTIGO, e portanto passa pela resolução descrita abaixo. |
+| `/admin/:casa/:separador?/:p1?/:p2?` | `src/pages/AdminPage.jsx` | **autenticada** | Dentro de `<AreaAutenticada>`. Backoffice inteiro numa só rota; a tradução slug↔id do separador está em `src/lib/rotasAdmin.js` (`SLUG_POR_ID`). Slug desconhecido → `<Navigate>` interno para `rotas.slugAntigo(...)` ou `rotas.separador(SEPARADOR_POR_OMISSAO)`. |
+| `/evento/:casa/:id?/:aba?` | `src/pages/EventoPage.jsx` | **autenticada** | Dentro de `<AreaAutenticada>`. |
+| `/briefing/:casa/:id?` | `src/pages/BriefingPage.jsx` | **autenticada** | **[rev. 18/08 — correcção de facto, não de linha]** O levantamento de 12/08 dizia «pública, sem `ProtectedRoute`». Já não é verdade desde a **094** («o briefing saiu da rua»): era público com o uuid a fazer de chave, e com várias casas um uuid vale em qualquer sessão. A Nádia chega por link do admin, onde já tem sessão. E a 094 fechou as duas pontas: além da rota, fez `revoke execute … from anon` em `formulario_briefing(uuid)`, `briefing_materiais(uuid)` e `dlm_fase_avancar_ate(uuid, text)` (`docs/migracoes/094_o_briefing_sai_da_rua.sql:19-21`). **A secção 5.3 deste ficheiro, de 12/08, ainda lista essas três como perímetro anónimo — não estão.** |
+| `/contribuir/:token` | `src/pages/ContribuirPage.jsx` | pública | Ver secção 6. |
 | `/acompanhar/:token/:vista?/:sub?` | `src/pages/PortalPage.jsx` | pública | `src/App.jsx:118`. Ver secção 6. Valores literais de `:vista` tratados em `src/pages/PortalPage.jsx`: `"avaliar"` (:502), `"questionario"` (:516), `"sinal"` (:537), `"documentos"` (:556); sem `:vista` desenha a jornada. `:sub` chega aos filhos: na área dos documentos vai como `tipo={sub}` (`src/pages/PortalPage.jsx:568`) e vale `orcamento` / `contrato` / `proposta` (`src/components/portal/DocumentosVista.jsx:803`, `["orcamento", "contrato", "proposta"].map(...)`; assinatura em `DocumentosVista.jsx:1390`); na área do formulário (slug `questionario`) vale `"responder"` ou `"respostas"` (`src/components/portal/QuestionarioVista.jsx:122`). |
 | `/comunicado/:token` | `src/pages/ComunicadoPage.jsx` | pública | `src/App.jsx:123`. Ver secção 6. |
 | `*` | `DestinoDesconhecido`, definida em `src/App.jsx:44-49` | pública | Fallback/404. |
+
+### Como um endereço ANTIGO encontra a casa **[rev. 18/08/2026]**
+
+`/admin/documentos/<id>/contrato` e `/admin/<casa>/<separador>/<p1>` têm a
+MESMA forma. O que os distingue não é o número de segmentos — é o
+**vocabulário**, e o vocabulário é nosso:
+
+- `casaDoCaminho(pathname)` (`src/lib/rotasAdmin.js`) devolve `null` quando
+  o primeiro segmento a seguir ao prefixo é um slug de separador (os doze
+  de `SLUG_POR_ID` + os dois de `SLUG_ANTIGO`) ou tem forma de uuid.
+- `null` → a `AreaAutenticada` desenha `<EnderecoSemCasa>`
+  (`src/components/PortaDaCasa.jsx`), que chama `as_minhas_casas()`:
+  **uma** casa → `<Navigate replace>` para o mesmo caminho com a casa lá
+  dentro (`caminhoComCasa`), preservando query e sub-caminhos; **zero** →
+  ecrã «esta conta ainda não tem casa»; **duas ou mais** → ecrã de escolha
+  por LIGAÇÃO (nunca seletor persistente).
+
+**⚠ Consequência arquitectural, registada em `docs/invariantes.md`: os
+catorze slugs de separador são palavras RESERVADAS para nomes de casa.**
+Uma casa chamada «agenda» ou «contactos» punha o redirect em ciclo.
+
+A alternativa descartada foi declarar as formas antigas em rotas irmãs:
+empatam no ranking do react-router e a escolha ficava dependente da ORDEM
+de declaração — verdade frágil e por escrever.
 
 ### Mecanismo exacto de protecção
 
@@ -67,7 +146,9 @@ Não há guarda no servidor ao nível da rota (é uma SPA); a guarda de rota é 
 - `useSessao` está em `src/lib/sessao.js:18-42`: estado inicial `undefined`, `supabase.auth.getSession()` (`src/lib/sessao.js:24`) e subscrição a `supabase.auth.onAuthStateChange` (`src/lib/sessao.js:31`).
 - O destino pós-login vem de `destinoDepoisDoLogin(localizacao)` (`src/lib/sessao.js:48-52`): usa `localizacao.state.from.pathname` + `search`, ou `/admin` se não houver.
 
-Só duas rotas usam `ProtectedRoute`: `/admin/:separador/:p1?/:p2?` e `/evento/:id/:aba?` (`grep -rn "ProtectedRoute" src/` só devolve `src/App.jsx:13,89,91,99,101` e o próprio ficheiro). A protecção real dos dados está na base (RLS `to authenticated`, ex.: `docs/migracoes/049_portal_do_cliente_fase1.sql:74-79`), não no router.
+**[rev. 18/08/2026]** O `ProtectedRoute` é agora chamado **uma só vez**, dentro da `AreaAutenticada` (`src/App.jsx`) — estava escrito três vezes a dizer o mesmo, e a 099 subiu-o. Cobre as três páginas de dentro: admin, evento e briefing.
+
+A protecção real dos dados **não está no router**: está na base, e desde a 091 tem duas camadas em vez de uma — `to authenticated` (quem entrou) **e** `tenant_isolamento` (de que casa é a linha). Ver 5.0.
 
 ### Fallback e redirecionamentos
 
@@ -86,10 +167,10 @@ Só duas rotas usam `ProtectedRoute`: `/admin/:separador/:p1?/:p2?` e `/evento/:
 
 | item | valor |
 |---|---|
-| Rota | `path="/evento/:id/:aba?"` — `src/App.jsx:97` (elemento `<Route>` completo em `src/App.jsx:96-103`, com `<EventoPage />` dentro de `<ProtectedRoute>`, `:99-101`) |
-| Ficheiro da página | `src/pages/EventoPage.jsx` (1604 linhas) |
-| Aba predefinida | `const ABA_PREDEFINIDA = "visao-geral"` — `src/pages/EventoPage.jsx:81`; fallback em `:620` (`const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;`) |
-| Navegação entre abas | `irParaAba` → `navigate(\`/evento/${id}/${novaAba}\`, { replace: false })` — `src/pages/EventoPage.jsx:1074-1076` |
+| Rota | **[rev. 18/08/2026]** `path="/evento/:casa/:id?/:aba?"` — `src/App.jsx`, dentro da rota-molde `<AreaAutenticada>` (que já traz `ProtectedRoute` + `CasaProvider` + `PortaDaCasa`) |
+| Ficheiro da página | `src/pages/EventoPage.jsx` |
+| Aba predefinida | `const ABA_PREDEFINIDA = "visao-geral"`; fallback `const activeAba = ABAS.some((a) => a.id === aba) ? aba : ABA_PREDEFINIDA;` |
+| Navegação entre abas | **[rev. 18/08/2026]** `irParaAba` → `navigate(rotas.evento(id, novaAba), { replace: false })`. Os `/evento/${id}` compostos à mão desapareceram dos dezassete sítios que os escreviam: o caminho compõe-se em `src/lib/rotasAdmin.js` (`caminhoDoEvento`), e os ecrãs pedem-no ao hook `useRotas()`, que lê a casa da rota uma vez. |
 | Montagem | persistente: uma aba visitada fica montada e esconde-se com `display:none` (componente `Painel`, `className="painel-aba"`, `src/pages/EventoPage.jsx:94-103`; conjunto `visitas`/`visitadas`, `:642-654`) |
 
 ### 2.2 Lista ordenada das abas
@@ -443,11 +524,74 @@ Legenda da última coluna: **[a]** copy visível · **[b]** identificador de có
 
 ## 4. SCHEMA
 
-Base: Supabase/Postgres. Todo o SQL do repositório vive em `docs/migracoes/` (não há ficheiros `.sql` fora dessa pasta). A cadeia numerada vai de `020_rpcs_formularios_publicos.sql` a `088_as_imagens_do_cliente_no_projecto.sql` (69 ficheiros, sem saltos), mais três ficheiros fora da cadeia (`form_errors.sql`, `limpeza_dados_teste.sql`, `semear-comunicado-condicoes.sql`) e dois de inventário só-leitura (`inventario_pre_lote2.sql`, `inventario_fecho_duplicados.sql` — ambos só `select`).
+Base: Supabase/Postgres. Todo o SQL do repositório vive em `docs/migracoes/` (não há ficheiros `.sql` fora dessa pasta).
+
+> **[rev. 18/08/2026]** A cadeia numerada vai agora de `020_rpcs_formularios_publicos.sql` a **`108_a_casa_vem_do_endereco.sql`**: **88 ficheiros numerados**, mais cinco fora da cadeia (`form_errors.sql`, `limpeza_dados_teste.sql`, `semear-comunicado-condicoes.sql` e os dois de inventário só-leitura `inventario_pre_lote2.sql` / `inventario_fecho_duplicados.sql`) — **93 no total**. **Há dois saltos**: não existe `099` (o número foi gasto num prompt de frontend, `docs/prompt-099-identidade.md`) nem `104`. Há um `103b` a seguir ao `103`.
+>
+> **As tabelas 4.1 a 4.32 abaixo NÃO listam a coluna `tenant_id`**, que a 090 acrescentou a dez delas e a 091 à décima primeira. Ver 4.0.
 
 **Tabelas anteriores à pasta de migrações** (criadas no painel Supabase; **não existe** `create table` para elas em lado nenhum do repo): `clientes`, `submissions`, `invites`, `reservas`, `event_types`, `materiais`, `evento_materiais`, `mensagens_tipo`, `documentos`, `app_config`. A lista aparece no array de `021_rls_bloquear_anon.sql:34-44`, que tem **onze** nomes — os dez acima mais `form_errors`, que **não** é anterior às migrações (nasce em `docs/migracoes/form_errors.sql:11-19`). Para as dez, as colunas abaixo são **reconstruídas** a partir dos `alter table`, dos `insert`/`update` das RPC e do uso em `src/lib/*.js` — cada tabela diz explicitamente o que é reconstrução.
 
 Etiquetas **[eventos]**, **[contactos]**, **[materiais]**, **[pagamentos]**: são anotação deste relatório para agrupar famílias de tabelas — **não existem** como conceito no código. **[materiais]** cobre `materiais` + `evento_materiais`; **[pagamentos]** cobre `pagamentos`, `pagamentos_previstos`, `campanhas`, `campanha_intencoes`.
+
+---
+
+### 4.0 `public.tenants` e `public.memberships` — A CASA **[novo 18/08/2026]**
+
+**Faltavam por inteiro no levantamento de 12/08.** São a raiz de que tudo o
+resto pende desde a 090, e sem elas as secções 4 e 5 descrevem um sistema
+de uma casa só.
+
+**`public.tenants`** — uma casa, isto é, a empresa de eventos que usa o
+gestor. *(A Sollelio — o fabricante — **não** é um tenant. Está dito no
+`comment on table`.)* Nasce em `090_o_primeiro_tenant.sql:30-46`; a
+identidade entra na **097** (`097_a_identidade_entra_na_base.sql:37-48`).
+
+| coluna | tipo | notas |
+|---|---|---|
+| `id` | uuid PK | `default gen_random_uuid()` |
+| `slug` | text **unique not null** | **é o que vai no URL** (`/admin/:casa`, `/interesse/:slug`). CHECK `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` |
+| `nome` | text not null | «Do Luxo à Mesa» |
+| `prefixo` | text **unique not null** | o prefixo dos códigos de convite (`DLM-WK6Q-49TE`). Era literal no código; passou a dado. CHECK `^[A-Z]{2,6}$` — **letras, sem dígitos** |
+| `locale` | text not null | `pt-PT` por omissão; `pt-BR` muda vocabulário e formatos, não a língua |
+| `moeda` | text not null | `EUR` |
+| `estado` | text not null | CHECK `activo` · `suspenso` · `encerrado`. **Não é decorativo:** a 103 fá-lo fechar o portal, a 097 a identidade, e `tenants_do_utilizador()` só devolve casas activas |
+| `criado_em` | timestamptz not null | |
+| **identidade (097)** | text, todas nullable | `titular`, `morada`, `nif`, `iban`, `mbway`, `foro`, `dominio`, `whatsapp`, `logo_url`, `linha_actividade`, `linha_by`, `slogan` — os treze campos que o frontend lê por `useCasa()` (ver secção 14) |
+
+**`public.memberships`** — quem entra em que casa
+(`090_o_primeiro_tenant.sql:60-72`). Tabela de junção, e **não** uma coluna
+em `auth.users`, porque a mesma pessoa pode administrar duas casas.
+
+| coluna | tipo | notas |
+|---|---|---|
+| `user_id` | uuid → `auth.users(id)` ON DELETE CASCADE | |
+| `tenant_id` | uuid → `public.tenants(id)` ON DELETE CASCADE | |
+| `papel` | text not null default `'dono'` | CHECK `dono` · `gestor` · `equipa`. **Existe e não é usado:** hoje há uma conta só, e desenhar hierarquia para uma pessoa era inventar requisitos. Está lá para acrescentá-la depois não obrigar a mexer nas políticas. Cruzar com a secção 12 (EQUIPA) |
+| `criado_em` | timestamptz not null | |
+| PK | `(user_id, tenant_id)` | composta — torna impossível duplicar a relação |
+| índice | `memberships_tenant_idx (tenant_id)` | |
+
+#### Onde é que a casa vive nas outras tabelas
+
+**Três formas, e só três** (a doutrina está no cabeçalho da 091):
+
+- **RAIZ — tem coluna `tenant_id` própria.** Onze tabelas: `submissions`,
+  `clientes`, `materiais`, `event_types`, `app_config`, `avaliacao_eixos`,
+  `mensagens_tipo`, `comunicados`, `comunicado_modelos`, `invites`
+  (090:117-126) e `questionario_grupos` (091:59-70, ficou de fora da 090
+  por não ter ligação nenhuma até `submissions`).
+- **FOLHA — o tenant vem por ligação já existente**, quase sempre
+  `submission_id`. Dar coluna própria a uma folha criava uma segunda fonte
+  de verdade para a mesma pergunta, e com ela a hipótese de divergirem sem
+  ninguém dar por isso.
+- **FOLHA DE SEGUNDO GRAU** — `portal_actos` e `portal_verificacoes` não
+  tocam em `submissions`; chegam lá por `portal_publicacoes` e
+  `portal_acessos`.
+
+`not null` em dez raízes na 090 (090:162-170), em `questionario_grupos` na
+091, e em `event_types` só na **108** (108:403) — ficara nullable para
+admitir «modelos da plataforma» que nunca foram escritos.
 
 ---
 
@@ -1272,9 +1416,98 @@ A **056** (`056_storage_sem_listagem_anonima.sql:44-72`) apaga dinamicamente tod
 
 ## 5. RLS
 
-Fonte: varrimento de `docs/migracoes/` (74 ficheiros `.sql`). Todas as linhas citadas são relativas à raiz do repo.
+Fonte: varrimento de `docs/migracoes/`. Todas as linhas citadas são relativas à raiz do repo.
 
-### 5.1 Tabela por tabela
+---
+
+### 5.0 A CAMADA MULTI-CASA **[novo 18/08/2026]** — leia antes da 5.1
+
+> **⚠ A secção 5.1, de 12/08, descreve o mundo ANTERIOR à migração 091.**
+> Ela diz, tabela a tabela, `using (true)` — e isso deixou de ser verdade
+> em **15/08/2026**. As linhas que ela cita continuam a existir nos
+> ficheiros que cita; o que mudou é que a 091 **apagou essas políticas e
+> pôs outras no lugar**. Leia a 5.1 como história do desenho, não como
+> estado actual das políticas.
+
+**O `using (true)` não era desleixo — era a regra certa para uma casa só.**
+A RLS servia de portão entre quem entrou e quem não entrou, e mais nada era
+preciso. O que mudou não foi a qualidade da regra: foi o número de casas.
+
+#### O motor
+
+```sql
+create or replace function public.tenants_do_utilizador()
+returns setof uuid language sql stable security definer
+set search_path = public as $$
+  select m.tenant_id from public.memberships m
+    join public.tenants t on t.id = m.tenant_id
+   where m.user_id = auth.uid() and t.estado = 'activo';
+$$;
+```
+(`090_o_primeiro_tenant.sql`) — `revoke all … from public` + `grant execute
+… to authenticated`. Repare-se no `t.estado = 'activo'`: **suspender uma
+casa esvazia-lhe a RLS**, o que é o comportamento certo e é também a razão
+de existir o ecrã da casa suspensa (ver secção 14) — sem ele, a Nádia via
+todas as listas vazias e nada a explicar porquê.
+
+**⚠ INVARIANTE (registado em `docs/invariantes.md`): nas políticas,
+`tenants_do_utilizador()` entra sempre como `(select …)`.** Sem os
+parênteses o planeador chama a função linha a linha.
+
+#### As políticas de hoje — 091
+
+**Duas convenções de nome, e só duas** (a base tinha três à mistura):
+`tenant_isolamento` para o que separa casas, `publico_*` para o que o anon
+pode fazer. Também isto é invariante escrito.
+
+**31 políticas `tenant_isolamento`**, todas `for all to authenticated`:
+
+| forma | política | tabelas |
+|---|---|---|
+| **raiz** | `using/with check (tenant_id in (select public.tenants_do_utilizador()))` | `submissions`, `clientes`, `materiais`, `app_config`, `avaliacao_eixos`, `mensagens_tipo`, `comunicados`, `comunicado_modelos`, `invites`, `questionario_grupos` |
+| **raiz, excepção** | `using (tenant_id is null or tenant_id in (select …))` · `with check (tenant_id in (select …))` | `event_types` — lê-se o global e o da casa; **escreve-se só na casa**. O `with check` sem o `is null` é o que impede alguém de criar um modelo global por acidente, que apareceria a todas as casas de uma vez. *(A 108 pôs a coluna `not null`, o que fecha o ramo `is null` pelos dados.)* |
+| **folha** (por `submission_id`) | `using/with check (exists (select 1 from submissions s where s.id = <tabela>.submission_id and s.tenant_id in (select …)))` | `avaliacoes`, `campanhas`, `documentos`, `evento_fotografias`, `evento_materiais`, `notas_evento`, `notificacoes`, `pagamentos`, `pagamentos_previstos`, `portal_acessos`, `portal_publicacoes`, `portal_sinal_confirmacoes`, `questionario_pedidos`, `respostas_autoria`, `reservas`, `comunicado_destinatarios`, `campanha_intencoes`, `portal_condicoes_lidas` |
+| **folha de 2.º grau** | idem, mas por `portal_publicacoes` / `portal_acessos` | `portal_verificacoes`, `portal_actos` |
+
+**Políticas `publico_*` (o anon):** `publico_regista_erros` em
+`form_errors` (INSERT) e `publico_le_tipos_de_evento` em `event_types`
+(SELECT). Mais `equipa_le_erros` em `form_errors`.
+
+#### As dívidas que a 091 declarou não pagar — e onde foram pagas
+
+A 091 escreveu no cabeçalho três dívidas conhecidas. Vale a pena saber que
+**todas fecharam**, porque é o género de nota que envelhece mal:
+
+| dívida declarada na 091 | fechada em |
+|---|---|
+| a política anon de `event_types` lê TUDO (o formulário de entrada não tem âncora de onde derivar a casa) | **093** — o slug entra no endereço; `tipos_de_evento_publicos(p_tenant_slug)` |
+| chaves de texto únicas GLOBALMENTE (`app_config.chave`, `event_types.nome`, `avaliacao_eixos.chave`, `questionario_grupos.chave`) — a segunda casa que quisesse um tipo «Casamento» levava erro | **102** (`102_a_mesma_chave_em_casas_diferentes.sql`) |
+| três funções que recebem uuid e estão abertas ao anon (RLS não as trava — SECURITY DEFINER ignora políticas por definição) | **094** — `revoke … from anon` nas três (ver 5.3) |
+
+#### A escrita: a casa que já não se adivinha
+
+`tenant_actual()` é o `default` de coluna de onze tabelas (092). Até à 108
+fazia `limit 1` sobre as memberships: com uma devolvia a certa, **com duas
+devolvia a mais antiga, em silêncio**. A 108 converteu-a de «mente» para
+«parte»:
+
+- zero memberships → `NULL` (o caso do anon, desenhado);
+- uma → essa;
+- **duas ou mais → `raise 'CASA_AMBIGUA'`**, com a frase em `error.hint`.
+
+E abriu a porta certa ao lado: **`tenant_do_pedido(p_slug)`** — o slug da
+rota, confirmado contra a membership, ou `NULL`. Devolve `NULL` e não
+excepção de propósito: uma LEITURA de casa alheia deve dar vazio, uma
+ESCRITA deve parar, e quem chama é que decide qual é.
+
+**⚠ O caminho 2 está por fazer, e é deliberado:** o frontend ainda não
+envia `tenant_id` explícito em cada insert (~13 sítios em 8 tabelas). Não é
+urgência — com o guard, uma escrita ou vai explícita ou parte alto; nunca
+cai calada na casa errada.
+
+---
+
+### 5.1 Tabela por tabela — **⚠ estado PRÉ-091 (12/08/2026)**
 
 **Bloco base — migração `021_rls_bloquear_anon.sql`.** Um `do $$ ... $$` (linhas 30-79) percorre o array `tabelas` (linhas 33-45, 11 nomes) e, para cada tabela que exista: activa RLS (`021:54`), **apaga TODAS as políticas pré-existentes** (`021:56-62`) e cria uma só (`021:64-66`). Depois — já fora do ciclo, e por isso a salvo do `drop` — acrescenta duas excepções nominais (`021:70-78`). O cabeçalho declara explicitamente que **não mexe em grants**: «grants/roles: o RLS por si já nega; não mexemos em grants» (`021:23`), e que não mexe em storage: «o bucket "referencias" mantém upload público — o formulário /interesse precisa dele» (`021:21-22`).
 
@@ -1365,7 +1598,21 @@ Existem **quatro segredos distintos**, cada um com o seu guarda:
 - Coluna `token text unique` (`079:43`, «null enquanto não for publicada»), gerada por `dlm_token_comunicado()` (`079:89`), com `set search_path = public, extensions` (nota `079:197-202`: a função é chamada por `dlm_comunicado_publicar`, que corre como INVOKER). `revoke all ... from public` (`079:189`) + `grant execute ... to authenticated` (`079:203`).
 - `dlm_comunicado_ver(p_token text)` (definer, `085:930-963`): `where token = p_token and publicado_em is not null` (`079:943-944`), depois `if not found or r.retirado_em is not null or (r.expira_em is not null and r.expira_em < now()) then return jsonb_build_object('estado','terminado')` (`085:946-950`). Faz `update ... set n_acessos = n_acessos + 1` (`085:952`) e devolve **apenas** `estado, titulo, subtitulo, saudacao, registo, blocos` (projecção explícita, `085:954-961` — nunca a linha inteira).
 
-**(e) O uuid como chave** — duas funções fogem ao padrão do token opaco:
+**(e) O uuid como chave** — duas funções fugiam ao padrão do token opaco:
+
+> **[rev. 18/08/2026] ⚠ ESTE PARÁGRAFO (e) DEIXOU DE DESCREVER O PERÍMETRO
+> ANÓNIMO — e é a correcção mais importante deste ficheiro.**
+> A migração **094 · «O briefing sai da rua»** fez
+> `revoke execute … from anon` nas três funções que aceitavam um uuid como
+> chave: `formulario_briefing(uuid)`, `briefing_materiais(uuid)` e
+> `dlm_fase_avancar_ate(uuid, text)`
+> (`docs/migracoes/094_o_briefing_sai_da_rua.sql:19-21`). A razão está no
+> cabeçalho dela: «com várias casas, um uuid vale em qualquer sessão».
+> A rota `/briefing` mudou-se na mesma altura para dentro da área
+> autenticada (ver secção 1).
+> **O que fica abaixo descreve o desenho ORIGINAL das duas funções (a
+> projecção, o comentário de origem), que continua exacto — mas elas já
+> não respondem ao anon.**
 - `formulario_briefing(p_id uuid)` (definer, `020:334-346`): `where s.id = p_id`, devolve `jsonb_build_object('submission', to_jsonb(s), 'event_type', to_jsonb(et))` — a submission **inteira** (`020:340-342`). Comentário `020:332-333`: «O id (uuid não adivinhável) é a chave de acesso, como sempre foi — mas deixa de ser preciso SELECT anónimo à tabela inteira.»
 - `briefing_materiais(p_id uuid)` (definer, `031:24-52`): `where em.submission_id = p_id`, projecção explícita de campos (`031:33-44`). Comentário `031:20-21`: «Um id de evento só revela a ficha desse evento — a mesma superfície que a folha já revela.»
 
@@ -1579,27 +1826,77 @@ select replace(replace(encode(gen_random_bytes(24), 'base64'), '+', '-'), '/', '
 
 ## 7. MIGRAÇÕES
 
-**Pasta:** `docs/migracoes/` — 74 ficheiros `.sql`: **69 migrações numeradas** (`020` … `088`, sequência contínua sem saltos) + **5 ficheiros não numerados**.
+> **[rev. 18/08/2026]** Contagem, cadeia e «últimas cinco» refeitas.
 
-A cadeia **começa em `020_rpcs_formularios_publicos.sql`**: as migrações 001–019 **não existem** no repositório. Isto está registado em `docs/levantamento-comunicados.md:43` — «**A migração 015 não está no repositório** — `docs/migracoes/` começa em `020_rpcs_formularios_publicos.sql`».
+**Pasta:** `docs/migracoes/` — **93 ficheiros `.sql`: 88 numerados + 5 não numerados.**
 
-**Última migração existente no repo: `088`.**
+A cadeia **começa em `020_rpcs_formularios_publicos.sql`**: as migrações 001–019 **não existem** no repositório. Isto está registado em `docs/levantamento-comunicados.md:43`.
+
+**Já não é contínua.** Há **dois saltos** e um sufixo:
+
+| anomalia | porquê |
+|---|---|
+| não existe **`099`** | o número foi gasto num prompt de frontend — `docs/prompt-099-identidade.md` (a `AreaAutenticada` e o `CasaProvider`), que não tem SQL |
+| não existe **`104`** | idem: a 104 é uma decisão/pendência de frontend (o vazio silencioso da casa suspensa), fechada pela 108 |
+| existe **`103b`** | `103b_a_porta_principal_do_portal.sql`, a seguir ao `103` |
+
+**Última migração existente no repo: `108_a_casa_vem_do_endereco.sql`.**
+
+### O arco 090–108 — a espinha multi-casa
+
+É o bloco que define a arquitectura de hoje, e lê-se melhor junto:
+
+| # | Ficheiro | O que faz |
+|---|---|---|
+| 090 | `090_o_primeiro_tenant.sql` | Cria `tenants` e `memberships`; `tenant_id` em dez raízes; carimba tudo como Do Luxo à Mesa. **Não muda comportamento nenhum** — de propósito. |
+| 091 | `091_politicas_por_tenant.sql` | O fim do `using (true)`: 31 políticas `tenant_isolamento`. É a que dá sentido à anterior. |
+| 092 | `092_o_tenant_por_omissao.sql` | `tenant_actual()` como `default` de coluna em onze tabelas. |
+| 093 | `093_a_casa_vem_do_endereco.sql` | O slug no endereço público (`/interesse/:slug`), `tenant_por_slug`, chaves de texto por casa. |
+| 094 | `094_o_briefing_sai_da_rua.sql` | `revoke … from anon` nas três funções com uuid-como-chave. |
+| 095 · 096 | disputa do dia | 095 apaga a versão de 2 argumentos do `dlm_dia_estado`; 096 repõe o portal, deduzindo a casa do `p_excluir`. |
+| 097 | `097_a_identidade_entra_na_base.sql` | Os treze campos de identidade em `tenants`. |
+| 098 | `098_a_identidade_tem_porta_propria.sql` | As portas públicas da identidade. |
+| 100 | `100_a_desconhecida_nao_empresta_marca.sql` | As respostas passam a `{estado, casa}`: `conhecida` · `desconhecida`. Uma casa desconhecida deixa de vestir a marca da primeira. |
+| 101 · 102 | `101_o_revoke_que_nao_revoka.sql` · `102_a_mesma_chave_em_casas_diferentes.sql` | Fecho de grants; unicidade por casa. |
+| 103 · 103b | casa suspensa | Suspender uma casa **fecha o portal**, não só despe a marca. |
+| 105 · 106 · 107 | `105_quem_fez_isto.sql` · `106_o_erro_do_formulario.sql` · `107_o_que_a_varredura_encontrou.sql` | Autoria; `form_errors` ganha casa e retenção; varredura dos comentários de função. |
+| **108** | `108_a_casa_vem_do_endereco.sql` | `tenant_do_pedido(p_slug)`; `tenant_actual()` PARA com `CASA_AMBIGUA`; `identidade_da_minha_casa(p_slug)` com três respostas; `as_minhas_casas()`; membership verificada no `captacao_submeter` e no `registar_erro_formulario`; `event_types.tenant_id set not null`. |
 
 ### As últimas cinco (ficheiro + o que fazem, lido do cabeçalho)
 
 | # | Ficheiro | O que faz (cabeçalho) |
 |---|---|---|
-| 084 | `docs/migracoes/084_a_promessa_quebrada_no_portal.sql` | «UM DELTA, e mais nada: no `estado_do_dia`, quando o dia está `'tomado'` E o PRÓPRIO evento tem `dia_guardado_ate >= current_date`, sai `{estado:'tomado', promessa_quebrada:true}`» — para o portal da preterida mostrar as desculpas da casa. |
-| 085 | `docs/migracoes/085_saudacao_explicita_e_portal_explicito.sql` | Cinco partes: colunas `saudacao` em `comunicados` e `comunicado_modelos`; migração de dados (extrair a saudação de abertura); coluna `no_portal` em `comunicado_destinatarios` + backfill; `dlm_portal_ver` reescrita por inteiro. «A saudação deixa de derivar da vírgula» e «a presença no portal deixa de ser efeito colateral do carimbo `enviado`». |
-| 086 | `docs/migracoes/086_o_contrato_a_vista.sql` | «O véu morre, e o código morre com ele» — `dlm_portal_ver_documento` e `dlm_portal_documentos` reescritas (contrato sai inteiro, `velado=false`, `precisa_codigo=false`); o CHECK `portal_actos_tem_prova` morre; `dlm_portal_acto` reescrita sem o bloco de `precisa_codigo` no `'assinou'`. |
-| 087 | `docs/migracoes/087_a_mesa_do_bolo.sql` | `update public.avaliacao_eixos set servicos = array_append(servicos, 'Mesa do bolo') where chave = 'bolo' and not ('Mesa do bolo' = any(servicos));` — «"Mesa do bolo da noiva" passa a "Mesa do bolo"». |
-| 088 | `docs/migracoes/088_as_imagens_do_cliente_no_projecto.sql` | Traz a troca `imagem ← imagemCliente` para DENTRO de `dlm_portal_publicar`: «as `seccoes` do instantâneo derivam SEMPRE dos dados frescos que a própria RPC lê, atomicamente — e sobrepõem o que quer que o `p_extra` traga». |
+| 103b | `docs/migracoes/103b_a_porta_principal_do_portal.sql` | A porta principal do portal, a seguir ao fecho da casa suspensa. |
+| 105 | `docs/migracoes/105_quem_fez_isto.sql` | Autoria dos actos. |
+| 106 | `docs/migracoes/106_o_erro_do_formulario.sql` | `form_errors` ganha `tenant_id` e `respostas_ate`; o INSERT anónimo directo deixa de passar — a porta é `registar_erro_formulario`. |
+| 107 | `docs/migracoes/107_o_que_a_varredura_encontrou.sql` | Correcções vindas da varredura dos comentários de função (ver `docs/decisoes-de-produto.md`, «A varredura dos comentários de função»). |
+| 108 | `docs/migracoes/108_a_casa_vem_do_endereco.sql` | Ver o quadro acima. **Já corrida em staging e produção** (registado em `docs/prompt-108b-rotas-com-casa.md`). |
 
 ### Aplicadas na BD?
 
 ⚠ **Não tenho acesso à base de dados.** Nada abaixo afirma que uma migração foi aplicada — só reporto o que os ficheiros e as decisões dizem sobre o que está **por correr**.
 
-**Migrações declaradas PENDENTES de correr** (fonte: `docs/decisoes-de-produto.md`):
+> **[rev. 18/08/2026]** O quadro abaixo é de 12/08 e refere-se às 085–088.
+> **Não foi reverificado** — nenhuma entrada posterior de
+> `docs/decisoes-de-produto.md` diz que correram, o que não prova que não
+> tenham corrido.
+>
+> **⚠ Este é o ponto mais fraco de todo o ficheiro, e não é por descuido:
+> o repositório NÃO SABE que migrações estão aplicadas.** O que existe é
+> um rasto de pendências espalhado por prosa — «pendente de o Hélio correr
+> no SQL editor», dito em vinte sítios diferentes, em datas diferentes, sem
+> nada que as feche. As **070** e **071** aparecem como pendentes num
+> registo de 04/08 e nunca mais são mencionadas; as **085–088** aparecem a
+> 12/08; a **108** é a única com estado positivo declarado («já correu em
+> staging e produção», `docs/prompt-108b-rotas-com-casa.md`).
+>
+> **Para quem for repensar a infra-estrutura: é aqui que uma tabela
+> `schema_migrations` (ou o `supabase migration` a sério) paga o bilhete.**
+> Enquanto o estado da BD só viver na cabeça de uma pessoa e em prosa, a
+> resposta a «isto está aplicado?» custa uma conversa em vez de uma
+> consulta.
+
+**Migrações declaradas PENDENTES de correr** (fonte: `docs/decisoes-de-produto.md`, 12/08/2026):
 
 | Migração | Onde está registada a pendência | Texto |
 |---|---|---|
@@ -2010,9 +2307,39 @@ Regras: o marcador abraça o texto (`*assim*`, nunca `* assim *`), não salta li
 
 ## 11. DESIGN SYSTEM
 
+> **[rev. 18/08/2026 — só este bloco de abertura e o (a)]** Entre 12/08 e
+> 16/08 entrou o **modo escuro**, e com ele a maior mudança de design
+> system desde o início. **Os números de 12/08 abaixo estão todos
+> desactualizados**, e a afirmação «6 custom properties» passou a ser
+> **139**. As subsecções (b) a (f) não foram reverificadas.
+>
+> O que existe hoje:
+>
+> - **`src/index.css` — 909 linhas, ~139 custom properties.** Os tokens
+>   claros no `:root`; os escuros num bloco que responde ao
+>   `prefers-color-scheme` **e** ao atributo explícito.
+> - **`src/lib/tema.js` — o interruptor.** O tema é preferência de
+>   **PESSOA, não de casa**: vive no `localStorage`
+>   (`dlm.backoffice.tema`), sem migração e sem `app_config`. Na omissão
+>   segue o sistema; ao primeiro toque passa a escolha explícita.
+> - **O atributo é `data-tema="escuro"` no `<html>`**, e **só nas rotas do
+>   backoffice** (`rotaDoBackoffice`: `/admin` e `/evento`). As vitrinas
+>   públicas nunca o recebem, por isso os tokens ficam lá sempre claros.
+> - **`.papel` — a folha que nunca escurece.** Fronteira que reancora os
+>   tokens aos valores claros dentro das superfícies de impressão
+>   (orçamento, contrato, proposta, pré-visualizações). **⚠ Contrato
+>   escrito no próprio CSS: token novo no `:root` ⇒ valor claro repetido
+>   dentro do `.papel`.** O `/briefing` fica deliberadamente fora do
+>   modo escuro pela mesma razão — é superfície de papel.
+> - **⚠ O guião de arranque do `index.html` repete a lógica em miniatura**
+>   (não pode importar módulos). Quem mudar a chave, o atributo ou as
+>   rotas, muda **nos dois sítios**.
+> - Documentos próprios do arco: `docs/prompt-dark-mode.md` e
+>   `docs/listas-modo-escuro.md`.
+
 **Não existe um ficheiro único de design system.** Não há `design-system.js`, `tokens.js`, `theme.js` nem equivalente em `src/`; os únicos ficheiros `.css` de toda a aplicação são dois. O que existe é:
 
-- `src/index.css` (712 linhas) — 6 custom properties, a camada de interacção por classes, as animações e os `prefers-reduced-motion`;
+- `src/index.css` (**909** linhas) — os tokens de cor, a camada de interacção por classes, as animações e os `prefers-reduced-motion`;
 - `src/lib/tour.css` (76 linhas) — tematização do `driver.js`, isolada por `.dlm-tour-popover`;
 - `src/components/portal/base.js` (251 l.) — helpers de tipografia (`overline`, `playfair`), `HACHURA`, datas e dinheiro;
 - `src/components/portal/pecas.jsx` (231 l.), `documentos-pecas.jsx` (610 l.), `questionario-pecas.jsx` (414 l.), `divisoes.jsx` (594 l.) — as peças do registo público;
@@ -2024,7 +2351,17 @@ Tudo o resto são valores literais escritos em cada sítio de uso.
 
 ### (a) TOKENS DE COR
 
-**As únicas CSS custom properties definidas** — `src/index.css:9-16`:
+> **[rev. 18/08/2026] ⚠ O quadro abaixo já NÃO é a lista completa.** Era a
+> lista completa a 12/08 (seis tokens); o modo escuro trouxe-a a ~139, em
+> famílias (`--superficie*`, `--texto*`, `--perigo*`, `--aviso*`,
+> `--sucesso*`, `--borda*`, `--esqueleto-*`, `--ouro-rgb`…), cada uma com
+> par claro/escuro. **A lista viva é o `:root` de `src/index.css`** — e é
+> lá que tem de ser lida, porque um token novo obriga também a repetir o
+> valor claro dentro do `.papel`.
+>
+> Os seis abaixo continuam a existir e continuam a ser os mais usados.
+
+**As CSS custom properties de 12/08/2026** — `src/index.css:9-16`:
 
 | Token | Valor | Usos em `src/` |
 |---|---|---|
@@ -2350,3 +2687,63 @@ A doutrina está escrita na migração das notas: «RLS — mesmo padrão da mig
 | aba «O pedido» não existir | `EventoPage.jsx:69-78` | `glossario.md:553-558` (é «arquitectura de dados e fluxo — projeto próprio», não pendência de nomes) |
 
 ---
+
+## 14. IDENTIDADE E MULTI-CASA (frontend) **[novo 18/08/2026]**
+
+Camada que **não existia** no levantamento de 12/08 e que hoje é a espinha
+do lado de cá. Sete ficheiros, e cada um responde a uma pergunta.
+
+| ficheiro | a pergunta a que responde |
+|---|---|
+| `src/lib/casa.js` | **a FORMA da identidade** — a omissão, `SEM_CASA`, e as derivações (`logoDe`, `siteDe`, `linkWhatsAppCasa`, as assinaturas). Não tem valores de negócio: esses vivem na tabela `tenants` desde a 097 |
+| `src/lib/identidadeCasa.js` | **as PORTAS** — uma função por porta (`casaPorSlug`, `casaPorTokenDePortal`, `casaPorCodigo`, `casaDoBackoffice`, `asMinhasCasas`). Nenhuma adivinha: a página SABE que chave tem |
+| `src/components/CasaProvider.jsx` | **a identidade na árvore** (`useCasa()`), com a CHAVE a mandar recarregar |
+| `src/components/casaContexto.js` | **o ESTADO da identidade** (`useEstadoDaCasa()`), em ficheiro `.js` gémeo por causa de `react-refresh/only-export-components` |
+| `src/components/PortaDaCasa.jsx` | **os ecrãs**: casa suspensa, endereço que não é seu, conta sem casa, escolha entre casas, rede sem resposta. Todo o texto num bloco `COPIA` único |
+| `src/lib/rotasAdmin.js` | **a composição de URLs** — id↔slug do separador, a casa no caminho, `casaDoCaminho`, `caminhoComCasa`, e o hook `useRotas()` |
+| `src/lib/errosDaCasa.js` | **os code-words ditos por extenso** (`traduzirErroDaCasa`) |
+
+### As quatro respostas da identidade
+
+`identidade_da_minha_casa(p_slug)` (108) responde três; a quarta é do lado
+de cá, e a distinção entre elas é o desenho todo:
+
+| resposta | quem a dá | o que o frontend faz |
+|---|---|---|
+| `conhecida` | base | veste a casa; `<Outlet />` |
+| `suspensa` | base (108) | **veste a casa NA MESMA** — o ecrã que explica precisa de a nomear — mas não deixa entrar |
+| `desconhecida` | base (100) | **despe a moldura** (`SEM_CASA`): nome, logótipo, domínio e contacto desaparecem em vez de serem emprestados à primeira casa |
+| `sem-resposta` | **nosso** | mantém a que lá está: uma folha com o cabeçalho de ontem é melhor do que uma folha sem cabeçalho |
+
+**⚠ A distinção que custa se se perder:** «não há casa» e «não deu para
+perguntar» pedem coisas OPOSTAS — uma apaga a marca, a outra preserva-a.
+Antes da 100 as três chegavam como o mesmo `null`.
+
+### O que a porta NÃO faz
+
+`PortaDaCasa` deixa passar enquanto a resposta não chega (`estado === null`).
+**Não é a fechadura — é a explicação da fechadura.** Quem fecha é a RLS: uma
+casa que não é nossa não devolve linha nenhuma. Segurar o admin à espera da
+RPC atrasaria as quatro buscas de arranque em todas as visitas para desenhar
+melhor o caso raro.
+
+### O que ainda mistura casas (pendências com condição escrita)
+
+Com uma membership por pessoa está tudo certo. **No dia da segunda:**
+
+| sítio | o que acontece | estado |
+|---|---|---|
+| `estadoDoDia(data)` sem `excluirId` (`ConsultaData.jsx`) | `dlm_dia_estado` cai no `tenant_actual()` → **rebenta com `CASA_AMBIGUA`** | 🔴 bloqueado: falta `p_tenant_slug` na função (é SQL). Mandar `p_tenant uuid` do browser não serve — SECURITY DEFINER sem verificação de membership deixaria ler o dia e o **nome da cliente rival** de outra casa |
+| `irmaosDoDia` (`lib/disputaDia.js`) | select entregue pela RLS → devolve **todas as casas da sessão**; o painel da disputa mostraria irmãos de outra casa | por filtrar |
+| ~13 inserts em 8 tabelas | ainda contam com o `default tenant_actual()` | **não é urgência**: com o guard da 108, ou vão explícitos ou param alto — nunca caem calados na casa errada |
+| redirect de `/admin/inicio` | deixa de poder adivinhar | já tratado: passa ao ecrã de escolha |
+| `/interesse` sem slug | idem | redirect fixo para `doluxoamesa`, **sai no dia da segunda casa** |
+
+### Invariantes que esta camada acrescentou
+
+Estão em `docs/invariantes.md`, secção «Frontend»:
+
+- A casa do backoffice vem do ENDEREÇO, e nunca de estado guardado.
+- Os slugs de separador são palavras RESERVADAS para nomes de casa.
+- (já lá estava) Os ids internos dos separadores nunca mudam; a tradução
+  vive num sítio só.

@@ -594,6 +594,30 @@ string** — aplica-se a regra de SQL da casa (idempotente, teste primeiro, depo
 > cadeia. (A mesma lógica vale para o token `{LINK_INTERESSE}` dos modelos de mensagem, que
 > está guardado na base: quando se mudar, **aceitar os dois tokens**, não migrar à força.)
 
+**5 · «Casa» não está aqui, e já é a palavra mais usada do produto.** *(nota de
+18/08/2026 — lacuna registada, não decidida.)*
+
+Entre 15 e 18/08 o sistema deixou de servir uma empresa e passou a servir várias, e a
+palavra escolhida para isso foi **casa** — não «tenant», não «cliente», não «conta».
+Está no código (`src/lib/casa.js`, `CasaProvider`, `casaDoCaminho`, `tenants_do_utilizador`),
+nas migrações (090 a 108), nos invariantes, e agora também **à vista da Nádia**, nos
+ecrãs aprovados a 16/08: «Esta casa está suspensa», «Qual das casas?».
+
+E já colide com um sentido que este glossário usa noutro sítio: «a **casa** da cliente»,
+«a **casa** própria do evento» — no sentido de *o sítio onde uma coisa vive*. São dois
+trabalhos para uma palavra, que é exactamente o que a secção «O princípio que resolve
+quase tudo» diz para não fazer.
+
+> **O que falta decidir, com a Nádia:** se «casa» fica com os dois sentidos (e um deles
+> se renomeia), e se ela lê «casa» como a empresa dela ou como uma divisão do ecrã. As
+> quatro palavras de máquina — `tenant`, `tenants`, `memberships`, `tenant_id` — **ficam
+> quietas** de qualquer forma: são nomes de tabela e de coluna, e a regra de ouro
+> aplica-se.
+
+**Nota sobre a pendência 4, acima:** `/interesse` já tem a casa no endereço
+(`/interesse/:slug`, migração 093) e o `/interesse` nu redirecciona — exactamente o
+padrão que a pendência 4 prescreve. O redirect **sai no dia da segunda casa**.
+
 ---
 
 ## Como manter isto vivo
