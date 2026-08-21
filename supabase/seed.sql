@@ -1,0 +1,15 @@
+-- =============================================================================
+-- Sollelio — local seed (supabase/seed.sql)
+--
+-- Referenced by [db.seed].sql_paths in supabase/config.toml and executed by
+-- `supabase db reset` after the migration chain, LOCAL instances only.
+--
+-- Intentionally a no-op for the legacy production baseline: no customer data,
+-- no tenant or membership rows, no auth users, no secrets are seeded. The legacy
+-- migrations (docs/migracoes/, e.g. 062, 066, 090) inserted reference rows
+-- directly in the remote projects; those rows are environment data and are NOT
+-- reproduced here.
+--
+-- Deterministic demo fixtures will be designed together with the Sollelio v2
+-- domain model and added in a later step.
+-- =============================================================================
