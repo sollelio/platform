@@ -41,8 +41,9 @@ insert into public.platform_operators (user_id, platform_role) values
   ('a0000000-0000-4000-8000-000000000001', 'admin'),
   ('a0000000-0000-4000-8000-000000000003', 'support');
 
+-- members.manage is seeded by the core permission catalogue migration; only
+-- the test-only probe permission is inserted here.
 insert into public.permissions (key, area, description) values
-  ('members.manage', 'members', 'manage members and roles'),
   ('perm.sup',       'test',    'support-path probe');
 
 insert into public.roles (id, organization_id, key, name) values

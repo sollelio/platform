@@ -32,8 +32,7 @@ insert into public.organizations (id, slug, name, status, access_code_prefix, lo
   ('b0000000-0000-4000-8000-000000000001', 'org-a', 'Org A', 'active', 'ORGA', 'pt-PT', 'EUR', 'Europe/Lisbon'),
   ('b0000000-0000-4000-8000-000000000003', 'org-c', 'Org C', 'active', 'ORGC', 'pt-PT', 'EUR', 'Europe/Lisbon');
 
-insert into public.permissions (key, area, description) values
-  ('members.manage', 'members', 'manage members and roles');
+-- members.manage is seeded by the core permission catalogue migration.
 insert into public.roles (id, organization_id, key, name) values
   ('d0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'manager', 'Manager');
 insert into public.role_permissions (role_id, permission_key) values

@@ -262,8 +262,14 @@ select ok(exists(select 1 from supabase_migrations.schema_migrations where versi
   'history contains the legacy baseline 20260821024034');
 select ok(exists(select 1 from supabase_migrations.schema_migrations where version = '20260822112333'),
   'history contains the A2 foundation 20260822112333');
-select is((select count(*) from supabase_migrations.schema_migrations), 2::bigint,
-  'history contains exactly the two migrations');
+-- The total migration count is deliberately NOT asserted: later migrations
+-- must be able to extend the chain without breaking this suite. Only the
+-- presence of the two migrations this suite verifies is required.
+select is(
+  (select count(*) from supabase_migrations.schema_migrations
+    where version in ('20260821024034', '20260822112333')),
+  2::bigint,
+  'both required migrations are present exactly once');
 
 select * from finish();
 rollback;

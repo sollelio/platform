@@ -41,11 +41,10 @@ insert into public.platform_operators (user_id, platform_role) values
   ('a0000000-0000-4000-8000-00000000000d', 'support'),
   ('a0000000-0000-4000-8000-000000000009', 'support');
 
+-- organization.read, organization.manage, members.manage and audit.read are
+-- seeded by the core permission catalogue migration; only the test-only probe
+-- permissions are inserted here.
 insert into public.permissions (key, area, description) values
-  ('organization.read',   'organization', 'read organization data'),
-  ('organization.manage', 'organization', 'manage organization data'),
-  ('members.manage',      'members',      'manage members and roles'),
-  ('audit.read',          'audit',        'read audit events'),
   ('perm.test',           'test',         'membership-path probe'),
   ('perm.sup',            'test',         'support-path probe');
 
