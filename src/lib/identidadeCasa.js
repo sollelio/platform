@@ -22,6 +22,7 @@
 // ============================================================
 
 import { supabase } from "./supabase";
+import { comOrganizacao } from "./identidadeBackoffice";
 
 // ---------- As respostas ----------
 // Duas vêm da base desde a 100: «conhecida», com a casa dentro, e
@@ -108,8 +109,35 @@ export const casaPorCodigo = (codigo) =>
 // Sem slug não se pergunta: é o /admin antigo, ainda a caminho da casa
 // certa, e uma pergunta sem endereço voltaria a pedir à base que
 // adivinhasse.
-export const casaDoBackoffice = (slug) =>
-  slug ? pedir("identidade_da_minha_casa", { p_slug: slug }) : naoPerguntado();
+// O id da organização vem SÓ por aqui — e por isso não vai em nenhuma
+// das portas acima. `tenant_do_pedido` confirma o slug contra a
+// membership de quem pergunta e devolve NULL se a casa não existir,
+// estiver suspensa, ou não for dele: o endereço sozinho nunca
+// autoriza nada. A pergunta é separada, e não uma alteração à
+// identidade, precisamente para a projecção pública ficar intacta.
+const organizacaoDaCasa = async (slug) => {
+  try {
+    const { data, error } = await supabase.rpc("tenant_do_pedido", {
+      p_slug: slug,
+    });
+    if (error) throw error;
+    return data ?? null;
+  } catch (e) {
+    // Falha fechada: a identidade segue sem id, o backoffice legado não
+    // dá por nada, e a Equipa fica escondida em vez de meio aberta.
+    console.error("identidade (tenant_do_pedido):", e);
+    return null;
+  }
+};
+
+export const casaDoBackoffice = async (slug) => {
+  if (!slug) return naoPerguntado();
+  const resposta = await pedir("identidade_da_minha_casa", { p_slug: slug });
+  // Só se pergunta o id quando há casa conhecida para o vestir: uma
+  // suspensa ou desconhecida sai daqui exactamente como entrou.
+  if (resposta.estado !== "conhecida") return resposta;
+  return comOrganizacao(resposta, await organizacaoDaCasa(slug));
+};
 
 // ---------- As casas de quem entrou ----------
 // Só para o redirect dos endereços antigos: uma casa → vai-se para
