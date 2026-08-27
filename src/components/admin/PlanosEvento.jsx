@@ -4,7 +4,9 @@ import { listStaffMembers } from "../../lib/staff";
 import { listEventTasks } from "../../lib/eventTasks";
 import { listEventAssignments } from "../../lib/assignments";
 import { getTeamInstructions } from "../../lib/planos";
-import { formatarPlanoTexto, planosDoEvento } from "../../lib/planoFormato";
+import { planosDoEvento } from "../../lib/planoFormato";
+import { descarregarPlanoPdf } from "../../lib/planoPdf";
+import { useCasa } from "../CasaProvider";
 
 // ============================================================
 // OS PLANOS INDIVIDUAIS DE UM EVENTO.
@@ -17,9 +19,15 @@ import { formatarPlanoTexto, planosDoEvento } from "../../lib/planoFormato";
 // tenha respondido o que tiver respondido à consulta. Os avisos de
 // disponibilidade vivem na aba das Tarefas e não impedem nada aqui.
 //
-// O que importa é o botão de copiar: o plano vai à mão, por WhatsApp.
-// «Copiado» só se afirma depois de a cópia ACONTECER — afirmar sucesso
-// punha a Nádia a colar nada numa conversa.
+// A entrega é um PDF, um por pessoa e por evento. Texto colado numa
+// conversa afunda-se: passadas duas semanas ninguém o encontra, e a
+// pessoa que precisa dele está a trabalhar. Um ficheiro guarda-se,
+// reencaminha-se e reabre-se — e é o mesmo plano, gerado na hora a
+// partir do que está agora.
+//
+// O formatador de texto continua em planoFormato.js, com os seus
+// testes: é lógica pura e útil, e apagá-la por já não ter botão seria
+// deitar fora o que prova que o plano está certo.
 // ============================================================
 
 const cartao = {
@@ -55,10 +63,14 @@ export default function PlanosEvento({
   resumoDoEvento,
   onContagem,
 }) {
+  // A identidade da casa é o cabeçalho da folha. Vai por campos
+  // escolhidos (ver marcaDaCasa) — a casa do backoffice leva o id da
+  // organização, e o papel não é sítio para ele.
+  const casa = useCasa();
   const [planos, setPlanos] = useState([]);
   const [aCarregar, setACarregar] = useState(true);
   const [erro, setErro] = useState(null);
-  const [copiado, setCopiado] = useState(null);
+  const [descarregado, setDescarregado] = useState(null);
   const [semIndicacoes, setSemIndicacoes] = useState(false);
 
   const buscar = useCallback(async () => {
@@ -108,16 +120,16 @@ export default function PlanosEvento({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscar]);
 
-  const copiar = async (plano) => {
+  const descarregar = async (plano) => {
     try {
-      await navigator.clipboard.writeText(formatarPlanoTexto(plano));
+      await descarregarPlanoPdf(plano, { casa });
       setErro(null);
-      setCopiado(plano.pessoa.id);
-      setTimeout(() => setCopiado(null), 2500);
+      setDescarregado(plano.pessoa.id);
+      setTimeout(() => setDescarregado(null), 2500);
     } catch (e) {
       console.error(e);
       setErro(
-        "Não foi possível copiar automaticamente. Selecciona o texto do plano e copia à mão.",
+        "Não foi possível gerar o PDF. Tenta outra vez, ou copia o texto do plano.",
       );
     }
   };
@@ -152,8 +164,9 @@ export default function PlanosEvento({
               lineHeight: 1.55,
             }}
           >
-            Um plano por pessoa escalada neste evento. Copia e envia por
-            WhatsApp.
+            Um plano por pessoa escalada neste evento. Descarrega o PDF e
+            envia-o — um ficheiro guarda-se, o texto de uma conversa
+            perde-se.
             {semIndicacoes && (
               <>
                 {" "}
@@ -203,7 +216,7 @@ export default function PlanosEvento({
                   </p>
                   <button
                     className="acao acao--ouro"
-                    onClick={() => copiar(plano)}
+                    onClick={() => descarregar(plano)}
                     style={{
                       padding: "8px 16px",
                       borderRadius: "10px",
@@ -211,7 +224,9 @@ export default function PlanosEvento({
                       fontWeight: 500,
                     }}
                   >
-                    {copiado === plano.pessoa.id ? "✓ Copiado" : "Copiar plano"}
+                    {descarregado === plano.pessoa.id
+                      ? "✓ Descarregado"
+                      : "Descarregar PDF"}
                   </button>
                 </div>
 
