@@ -6,6 +6,7 @@ import { FASES_POS_SINAL } from "./faseConfig";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import CaptacaoForm from "../captacao/CaptacaoForm";
 import ErrosFormulario from "./ErrosFormulario";
+import AlertasEquipa from "./AlertasEquipa";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
 import ConsultaData from "./ConsultaData";
 import { useNomeDoUtilizador } from "../../lib/autoria";
@@ -738,6 +739,13 @@ export default function InicioTab({
               </div>
             ))
           )}
+          {/* A Equipa tem fila própria: um aviso de que falta gente a
+            três dias não pode cair fora do corte dos seis por causa de
+            um orçamento por enviar. */}
+          <AlertasEquipa
+            submissions={submissions}
+            onAbrirEvento={onAbrirEvento}
+          />
         </div>
 
         {/* Esta semana — mini-agenda dos próximos 7 dias */}

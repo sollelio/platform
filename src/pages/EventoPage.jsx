@@ -10,6 +10,10 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { traduzirErroDaCasa } from "../lib/errosDaCasa";
 import { TITULO_BACKOFFICE } from "../lib/casa";
+import {
+  permissoesDasAtribuicoes,
+  permissoesDasTarefas,
+} from "../lib/permissoes";
 import { useCasa } from "../components/CasaProvider";
 import { useRotas } from "../lib/rotasAdmin";
 import {
@@ -50,6 +54,8 @@ import VisaoGeralEvento from "../components/admin/VisaoGeralEvento";
 import FotografiasEvento from "../components/admin/FotografiasEvento";
 import PagamentosEvento from "../components/admin/PagamentosEvento";
 import NotasEvento from "../components/admin/NotasEvento";
+import TarefasEvento from "../components/admin/TarefasEvento";
+import PlanosEvento from "../components/admin/PlanosEvento";
 import DocumentosEvento from "../components/admin/DocumentosEvento";
 import FichaEvento from "../components/admin/FichaEvento";
 
@@ -77,6 +83,15 @@ const ABAS = [
   // telemóvel — quer-se chegar a um sítio e largar as fotografias.
   { id: "fotografias", label: "Fotografias" },
   { id: "pagamentos", label: "Pagamentos" },
+  // O trabalho que o evento exige: o quê, quando, que capacidade e
+  // quantas pessoas no mínimo. Aba própria e não secção da Visão geral
+  // porque é a lista de onde sai a consulta de disponibilidade, e
+  // porque se escreve num momento diferente do briefing.
+  { id: "tarefas", label: "Tarefas" },
+  // O plano de cada pessoa escalada, pronto a copiar para o WhatsApp.
+  // Aba própria e não secção das Tarefas: as Tarefas são onde se decide,
+  // isto é onde se envia — momentos diferentes, gestos diferentes.
+  { id: "planos", label: "Planos" },
   { id: "notas", label: "Notas" },
 ];
 
@@ -532,6 +547,38 @@ export default function EventoPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const casa = useCasa();
+  // A mesma pergunta que o RLS faz. Serve só para não abrir uma aba que
+  // daria um ecrã vazio — a segurança é a política, não isto.
+  const [permTarefas, setPermTarefas] = useState({
+    podeLer: false,
+    podeGerir: false,
+  });
+  useEffect(() => {
+    let vivo = true;
+    if (!casa?.id) return;
+    permissoesDasTarefas(casa.id).then((p) => {
+      if (vivo) setPermTarefas(p);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [casa?.id]);
+  // Escalar tem chave própria: quem escreve as tarefas do evento não
+  // decide por isso quem as faz.
+  const [permEscala, setPermEscala] = useState({
+    podeLer: false,
+    podeGerir: false,
+  });
+  useEffect(() => {
+    let vivo = true;
+    if (!casa?.id) return;
+    permissoesDasAtribuicoes(casa.id).then((p) => {
+      if (vivo) setPermEscala(p);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [casa?.id]);
 
   const [submissao, setSubmissao] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
@@ -1462,6 +1509,41 @@ export default function EventoPage() {
             </Painel>
           )}
 
+          {visitadas.has("tarefas") && (
+            <Painel visivel={activeAba === "tarefas"}>
+              {permTarefas.podeLer ? (
+                <TarefasEvento
+                  organizationId={casa?.id}
+                  submissionId={id}
+                  dataEvento={submissao?.data_evento}
+                  estadoEvento={submissao?.status}
+                  podeGerir={permTarefas.podeGerir}
+                  podeEscalar={permEscala.podeGerir}
+                  onContagem={(n) => reportarContagem("tarefas", n)}
+                />
+              ) : (
+                <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
+                  Não tens acesso às tarefas operacionais nesta casa.
+                </p>
+              )}
+            </Painel>
+          )}
+          {visitadas.has("planos") && (
+            <Painel visivel={activeAba === "planos"}>
+              {permEscala.podeLer ? (
+                <PlanosEvento
+                  organizationId={casa?.id}
+                  submissionId={id}
+                  resumoDoEvento={resumoEvento}
+                  onContagem={(n) => reportarContagem("planos", n)}
+                />
+              ) : (
+                <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
+                  Não tens acesso aos planos da equipa nesta casa.
+                </p>
+              )}
+            </Painel>
+          )}
           {visitadas.has("notas") && (
             <Painel visivel={activeAba === "notas"}>
               <NotasEvento

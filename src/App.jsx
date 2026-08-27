@@ -17,6 +17,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import BriefingPage from "./pages/BriefingPage";
 import ContribuirPage from "./pages/ContribuirPage";
 import PortalPage from "./pages/PortalPage";
+import DisponibilidadePage from "./pages/DisponibilidadePage";
 import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
 import CaptacaoPage from "./pages/CaptacaoPage";
@@ -214,6 +215,18 @@ function App() {
             dlm_comunicado_ver (079), concedida só ao anon; retirada,
             expirada e inexistente dão a mesma cortina, de propósito. */}
           <Route path="/comunicado/:token" element={<ComunicadoPage />} />
+          {/* A porta de UMA pessoa da equipa para UMA consulta de
+            disponibilidade — sem conta e sem palavra-passe, por token
+            opaco e revogável, leitura pela RPC staff_consultation_view.
+            🔴 Nem o id da casa, nem o do evento, nem o da pessoa entram
+            no URL ou saem na projecção: a pessoa vê apenas as tarefas
+            compatíveis com o que sabe fazer, e um evento sem nada para
+            ela não aparece. Ligação errada, revogada, consulta fechada
+            e eventos todos passados dão a mesma cortina. */}
+          <Route
+            path="/disponibilidade/:token"
+            element={<DisponibilidadePage />}
+          />
           <Route path="*" element={<DestinoDesconhecido />} />
         </Routes>
       </MotionConfig>

@@ -29,6 +29,8 @@ const NAV_GESTAO = [
   { id: "comunicados", label: "Envios", icone: "comunicados" },
   { id: "dashboard", label: "Dashboard", icone: "dashboard" },
   { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
+  { id: "equipa", label: "Equipa", icone: "equipa" },
+  { id: "consultas", label: "Disponibilidades", icone: "consultas" },
 ];
 
 const NAV_CONFIG = [
@@ -37,6 +39,17 @@ const NAV_CONFIG = [
 ];
 
 const IDS_NO_MAIS = [...NAV_GESTAO, ...NAV_CONFIG].map((n) => n.id);
+
+// ------------------------------------------------------------
+// Separadores que a sessão não pode ver.
+//
+// Esconder não é segurança — a segurança é o RLS e o has_permission da
+// base. Isto evita apenas mostrar uma porta que, ao ser aberta, daria
+// um ecrã vazio. Por omissão não esconde nada: um módulo novo tem de
+// pedir para ser escondido, nunca o contrário.
+// ------------------------------------------------------------
+const visiveis = (itens, ocultar) =>
+  ocultar?.length ? itens.filter((i) => !ocultar.includes(i.id)) : itens;
 
 // ------------------------------------------------------------
 // Ícones de linha fina (herdam a cor do texto via currentColor)
@@ -56,6 +69,22 @@ export function Icone({ nome, tamanho = 18 }) {
         <path {...t} d="M5.5 10v10h13V10" />
       </>
     ),
+      consultas: (
+        <>
+        <rect {...t} x="3.5" y="5" width="17" height="15" rx="2.5" />
+        <path {...t} d="M3.5 9.5h17" />
+        <path {...t} d="M8 3.5v3M16 3.5v3" />
+        <path {...t} d="M8.5 15.5l2 2 4.5-4.5" />
+        </>
+      ),
+      equipa: (
+        <>
+        <circle {...t} cx="9" cy="8.5" r="3" />
+        <path {...t} d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+        <path {...t} d="M16 6.2a3 3 0 0 1 0 5.6" />
+        <path {...t} d="M17.5 14.8c1.9.6 3 2.4 3 4.7" />
+        </>
+      ),
     contactos: (
       <>
         <circle {...t} cx="9" cy="8" r="3.2" />
@@ -498,6 +527,7 @@ export function SidebarNav({
   onSair,
   naoLidas = 0,
   onAbrirNotificacoes,
+  ocultar = [],
   // { [idDoSeparador]: número } — contagens discretas ao lado dos itens.
   contagens = {},
 }) {
@@ -541,7 +571,7 @@ export function SidebarNav({
       ))}
 
       <TituloSeccao>Gestão</TituloSeccao>
-      {NAV_GESTAO.map((item) => (
+      {visiveis(NAV_GESTAO, ocultar).map((item) => (
         <ItemNav
           key={item.id}
           item={item}
@@ -558,7 +588,7 @@ export function SidebarNav({
           paddingTop: "10px",
         }}
       >
-        {NAV_CONFIG.map((item) => (
+        {visiveis(NAV_CONFIG, ocultar).map((item) => (
           <ItemNav
             key={item.id}
             item={item}
@@ -655,7 +685,7 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
 // ------------------------------------------------------------
 // FOLHA "MAIS" — telemóvel
 // ------------------------------------------------------------
-export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = {} }) {
+export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = {}, ocultar = [] }) {
   return (
     <div
       onClick={onFechar}
@@ -687,7 +717,7 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
             margin: "0 auto 12px",
           }}
         />
-        {[...NAV_GESTAO, ...NAV_CONFIG].map((item) => (
+        {visiveis([...NAV_GESTAO, ...NAV_CONFIG], ocultar).map((item) => (
           <ItemNav
             key={item.id}
             item={item}

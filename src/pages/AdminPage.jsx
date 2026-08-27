@@ -5,6 +5,10 @@ import { supabase } from "../lib/supabase";
 import { traduzirErroDaCasa } from "../lib/errosDaCasa";
 import { useCasa } from "../components/CasaProvider";
 import {
+  permissoesDaEquipa,
+  permissoesDasConsultas,
+} from "../lib/permissoes";
+import {
   createInvite,
   ehFormularioOrfao,
   getEventTypes,
@@ -27,6 +31,8 @@ import {
   updateStatus,
 } from "../lib/clientes";
 import EventTypesTab from "../components/admin/EventTypesTab";
+import EquipaTab from "../components/admin/EquipaTab";
+import ConsultasTab from "../components/admin/ConsultasTab";
 import SubmissionDrawer from "../components/admin/SubmissionDrawer";
 import DashboardTab from "../components/admin/DashboardTab";
 import ClientesLista from "../components/admin/ClientesLista";
@@ -81,6 +87,46 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AdminPage() {
   const location = useLocation();
   const casa = useCasa();
+
+  // ── A EQUIPA (MVP operacional) ────────────────────────────────
+  // O módulo só aparece a quem tem a chave. A pergunta é a mesma que o
+  // RLS faz; aqui serve só para não mostrar uma porta que daria um
+  // ecrã vazio. Enquanto a resposta não chega, a entrada fica
+  // escondida — mostrar e retirar seria pior do que aparecer tarde.
+  const [permEquipa, setPermEquipa] = useState({
+    podeLer: false,
+    podeGerir: false,
+  });
+  useEffect(() => {
+    let vivo = true;
+    if (!casa?.id) return;
+    permissoesDaEquipa(casa.id).then((p) => {
+      if (vivo) setPermEquipa(p);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [casa?.id]);
+  // As consultas de disponibilidade têm chave própria: quem lê a equipa
+  // não passa a poder perguntar disponibilidade a ninguém por isso.
+  const [permConsultas, setPermConsultas] = useState({
+    podeLer: false,
+    podeGerir: false,
+  });
+  useEffect(() => {
+    let vivo = true;
+    if (!casa?.id) return;
+    permissoesDasConsultas(casa.id).then((p) => {
+      if (vivo) setPermConsultas(p);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [casa?.id]);
+  const separadoresOcultos = [
+    ...(permEquipa.podeLer ? [] : ["equipa"]),
+    ...(permConsultas.podeLer ? [] : ["consultas"]),
+  ];
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   // ------------------------------------------------------------
@@ -890,6 +936,7 @@ export default function AdminPage() {
           Telemóvel: cabeçalho fino + barra inferior (+ folha Mais). */}
       {ehDesktop ? (
         <SidebarNav
+          ocultar={separadoresOcultos}
           contagens={contagensDoMenu}
           activeTab={activeTab}
           onNavegar={handleNavegar}
@@ -1279,6 +1326,28 @@ export default function AdminPage() {
           />
         )}
 
+        {activeTab === "equipa" &&
+          (permEquipa.podeLer ? (
+            <EquipaTab
+              organizationId={casa?.id}
+              podeGerir={permEquipa.podeGerir}
+            />
+          ) : (
+            <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
+              Não tens acesso à Equipa nesta casa.
+            </p>
+          ))}
+        {activeTab === "consultas" &&
+          (permConsultas.podeLer ? (
+            <ConsultasTab
+              organizationId={casa?.id}
+              podeGerir={permConsultas.podeGerir}
+            />
+          ) : (
+            <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
+              Não tens acesso às Disponibilidades nesta casa.
+            </p>
+          ))}
         {activeTab === "tiposEvento" && (
           <EventTypesTab
             eventTypes={eventTypes}
@@ -1384,6 +1453,7 @@ export default function AdminPage() {
       )}
       {!ehDesktop && maisAberto && (
         <SheetMais
+          ocultar={separadoresOcultos}
           contagens={contagensDoMenu}
           activeTab={activeTab}
           onNavegar={handleNavegar}

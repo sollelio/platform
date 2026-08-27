@@ -55,6 +55,8 @@ const SLUG_POR_ID = {
   dashboard: "dashboard",
   avaliacoes: "avaliacoes",
   tiposEvento: "modelos-evento",
+  equipa: "equipa",
+  consultas: "disponibilidades",
   importar: "importar-clientes",
 };
 
