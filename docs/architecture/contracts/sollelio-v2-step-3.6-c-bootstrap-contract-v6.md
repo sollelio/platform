@@ -501,12 +501,19 @@ and the A2 check holds for both admitted statuses.
 `pg_timezone_names` by the `organizations_time_zone_valid` trigger. Legacy
 `tenants` has **no** time-zone column, so there is nothing to map from.
 
-This contract approves **one** time zone, for **one** existing tenant, as an
-explicit keyed mapping — not a default, not a COALESCE, not a fallback:
+This contract approves **one** time zone, for the **two** existing tenants — one
+in staging, one in production — as an explicit keyed mapping, not a default, not
+a COALESCE, not a fallback:
 
-| legacy `tenants.id` | `organizations.time_zone` |
-|---|---|
-| `cb563908-7939-494e-bbe4-1e83af4d693a` | `Europe/Lisbon` |
+| legacy `tenants.id` | environment | `organizations.time_zone` |
+|---|---|---|
+| `cb563908-7939-494e-bbe4-1e83af4d693a` | staging | `Europe/Lisbon` |
+| `7d0d3cb9-4395-47fd-a81c-6b4622685b82` | production | `Europe/Lisbon` |
+
+The production entry was added on 2026-08-28, when the production preflight's
+P13 audit found the live tenant absent from the map. Adding a *known* tenant
+does not weaken the gate: the lookup stays literal and closed, and any tenant
+outside these two still aborts.
 
 Requirements on the eventual migration:
 
@@ -1700,9 +1707,11 @@ runner-dependent.
 * **legacy integrity**: the four §10.2 fingerprints over the synthetic rows
   are identical before and after the replay (the local expression of P16);
 * **`estado='suspenso'` maps to `suspended`** and does **not** abort (D4).
-  Because the D1 map is keyed by tenant id and holds exactly one entry, this
-  case cannot be a *second* tenant — that would abort at P13 first. It is
-  therefore asserted in its own savepoint: roll back to the pre-seed state,
+  The D1 map now holds two entries, one per environment, so "a second tenant
+  aborts at P13" is no longer what makes this safe — a second *mapped* tenant
+  would pass. What keeps the case honest is that it re-seeds **the same** tenant
+  id rather than introducing another one, which is what the savepoint below
+  does. It is therefore asserted in its own savepoint: roll back to the pre-seed state,
   re-seed **the same mapped tenant UUID** with `estado='suspenso'`, replay,
   and assert `organizations.status = 'suspended'` plus
   `has_permission(org, k) = false` for all four keys and

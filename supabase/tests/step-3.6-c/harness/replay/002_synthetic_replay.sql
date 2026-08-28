@@ -428,10 +428,10 @@ select is((select count(*) from public.app_config), 2::bigint,
 
 -- ---------------------------------------------------------------------------
 -- D4 · suspenso maps to suspended and does NOT abort.
--- Because the D1 map is keyed by tenant id and holds exactly one entry, this
--- cannot be a second tenant — that would abort at P13 first. So: roll back to
--- the pre-replay state, re-seed THE SAME mapped tenant id with estado =
--- 'suspenso', replay, and assert.
+-- The D1 map holds two entries since 2026-08-28 (staging and production), so
+-- "a second tenant would abort at P13" no longer carries this case. What does
+-- is re-seeding THE SAME mapped tenant id rather than adding another: roll back
+-- to the pre-replay state, set estado = 'suspenso' on it, replay, and assert.
 -- ROLLBACK TO SAVEPOINT, never RELEASE: release would keep every change made
 -- since the savepoint and leave the mapped UUID occupied (contract §15.3 F5).
 -- ---------------------------------------------------------------------------
@@ -454,6 +454,47 @@ select ok(not public.has_permission((select id from public.organizations), k),
 select is(public.access_mode((select id from public.organizations)), 'none',
   'D4: access_mode is none for a suspended organization');
 select pg_temp.become_owner();
+
+-- ---------------------------------------------------------------------------
+-- D1 · the SECOND mapped tenant — production. Added 2026-08-28.
+--
+-- The map is closed, so a positive case is needed per entry: proving the
+-- staging id maps proves nothing about the production one. Same shape as D4:
+-- roll back, re-key the same synthetic rows to the production UUID, replay,
+-- and assert P13 accepts it and the time zone lands.
+-- ---------------------------------------------------------------------------
+rollback to savepoint before_replay;
+
+-- Re-key in the order the foreign keys allow: the children point at
+-- tenants(id) and neither FK cascades on UPDATE, so the rows are parked,
+-- the parent is re-keyed, and they are put back pointing at the new id.
+create temporary table _rekey_m on commit drop as
+  select * from public.memberships;
+create temporary table _rekey_c on commit drop as
+  select * from public.app_config;
+delete from public.app_config;
+delete from public.memberships;
+
+update public.tenants set id = '7d0d3cb9-4395-47fd-a81c-6b4622685b82'
+ where id = 'cb563908-7939-494e-bbe4-1e83af4d693a';
+
+insert into public.memberships (user_id, tenant_id, papel, criado_em)
+select user_id, '7d0d3cb9-4395-47fd-a81c-6b4622685b82', papel, criado_em from _rekey_m;
+insert into public.app_config (chave, valor, descricao, updated_at, tenant_id, criado_por)
+select chave, valor, descricao, updated_at,
+       '7d0d3cb9-4395-47fd-a81c-6b4622685b82', criado_por from _rekey_c;
+
+\ir ../../../../migrations/20260825103955_v2_legacy_organization_rbac_bootstrap.sql
+
+select is((select count(*) from public.organizations), 1::bigint,
+  'D1b: P13 accepts the production tenant and the bootstrap completes');
+select is((select id from public.organizations),
+          '7d0d3cb9-4395-47fd-a81c-6b4622685b82'::uuid,
+  'D1b: the production tenant id is preserved into organizations');
+select is((select time_zone from public.organizations), 'Europe/Lisbon',
+  'D1b: the production tenant maps to Europe/Lisbon');
+select is((select status from public.organizations), 'active',
+  'D1b: and it is active, like the staging case');
 
 -- ---------------------------------------------------------------------------
 -- nothing in this suite constrains unrelated future migrations

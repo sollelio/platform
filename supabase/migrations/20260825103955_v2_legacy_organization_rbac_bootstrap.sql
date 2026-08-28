@@ -383,7 +383,8 @@ DECLARE
         SELECT count(*) FROM public.tenants t
          WHERE t.id NOT IN (
              SELECT tz.tenant_id FROM (VALUES
-                 ('cb563908-7939-494e-bbe4-1e83af4d693a'::uuid, 'Europe/Lisbon')
+                 ('cb563908-7939-494e-bbe4-1e83af4d693a'::uuid, 'Europe/Lisbon'),
+                 ('7d0d3cb9-4395-47fd-a81c-6b4622685b82'::uuid, 'Europe/Lisbon')
              ) AS tz(tenant_id, time_zone)));
 BEGIN
     IF v_bad <> 0 THEN
@@ -472,7 +473,8 @@ JOIN (VALUES
         ('suspenso', 'suspended')
      ) AS sm(estado, status) ON sm.estado = t.estado
 JOIN (VALUES
-        ('cb563908-7939-494e-bbe4-1e83af4d693a'::uuid, 'Europe/Lisbon')
+        ('cb563908-7939-494e-bbe4-1e83af4d693a'::uuid, 'Europe/Lisbon'),
+        ('7d0d3cb9-4395-47fd-a81c-6b4622685b82'::uuid, 'Europe/Lisbon')
      ) AS tz(tenant_id, time_zone) ON tz.tenant_id = t.id;
 
 -- §2.3 · public.memberships -> public.organization_memberships.
