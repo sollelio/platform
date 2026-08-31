@@ -280,6 +280,7 @@ export default function ConsultasTab({ organizationId, podeGerir }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {consultas.map((c) => {
             const fechada = Boolean(c.closed_at);
+            const temRespostas = c.responderam > 0;
             const ocupada = aGuardar === `consulta:${c.id}`;
             return (
               <div key={c.id} style={{ ...cartao, opacity: fechada ? 0.65 : 1 }}>
@@ -316,6 +317,30 @@ export default function ConsultasTab({ organizationId, podeGerir }) {
                           fechada
                         </span>
                       )}
+                      <span
+                        style={{
+                          fontSize: "10.5px",
+                          fontFamily: "inherit",
+                          letterSpacing: "0.04em",
+                          whiteSpace: "nowrap",
+                          marginLeft: "8px",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          color: temRespostas
+                            ? "var(--sucesso)"
+                            : "var(--texto-suave)",
+                          backgroundColor: temRespostas
+                            ? "var(--sucesso-fundo)"
+                            : "transparent",
+                          border: `1px solid ${
+                            temRespostas ? "var(--sucesso-borda)" : "var(--borda)"
+                          }`,
+                        }}
+                      >
+                        {temRespostas
+                          ? `${c.responderam} de ${c.destinatarios.length} responderam`
+                          : "sem respostas"}
+                      </span>
                     </p>
                     <p
                       style={{

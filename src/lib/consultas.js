@@ -51,22 +51,47 @@ export const mensagemDaRecusa = (erro) =>
 // ---------- Leitura ----------
 
 export const listConsultations = async (organizationId) => {
-  const { data, error } = await supabase
-    .from("staff_consultations")
-    .select(
-      "id, organization_id, title, notes, created_at, closed_at, closed_reason, " +
-        "staff_consultation_events ( slot, submission_id ), " +
-        "staff_consultation_recipients ( id, staff_member_id, token, revoked_at )",
-    )
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false });
+  const [{ data, error }, { data: respostas, error: erroRespostas }] =
+    await Promise.all([
+      supabase
+        .from("staff_consultations")
+        .select(
+          "id, organization_id, title, notes, created_at, closed_at, closed_reason, " +
+            "staff_consultation_events ( slot, submission_id ), " +
+            "staff_consultation_recipients ( id, staff_member_id, token, revoked_at )",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("staff_availability_responses")
+        .select(
+          "recipient_id, " +
+            "staff_consultation_recipients!inner ( consultation_id, staff_member_id )",
+        )
+        .eq("organization_id", organizationId),
+    ]);
   if (error) throw error;
+  if (erroRespostas) throw erroRespostas;
+
+  // Contam-se PESSOAS, não respostas: quem responde a tres tarefas continua a
+  // ser uma pessoa que respondeu. Assim o numero nunca ultrapassa o das
+  // ligacoes, que e o que a lista mostra ao lado.
+  const responderam = new Map();
+  for (const r of respostas ?? []) {
+    const ligacao = r.staff_consultation_recipients;
+    if (!ligacao) continue;
+    const chave = ligacao.consultation_id;
+    if (!responderam.has(chave)) responderam.set(chave, new Set());
+    responderam.get(chave).add(ligacao.staff_member_id);
+  }
+
   return (data ?? []).map((c) => ({
     ...c,
     eventos: [...(c.staff_consultation_events ?? [])].sort(
       (a, b) => a.slot - b.slot,
     ),
     destinatarios: c.staff_consultation_recipients ?? [],
+    responderam: responderam.get(c.id)?.size ?? 0,
   }));
 };
 

@@ -22,6 +22,31 @@ import {
   updateEventTask,
 } from "../../lib/eventTasks";
 
+// Varias consultas do mesmo evento tendem a repetir o titulo — sao tentativas
+// da mesma pessoa no mesmo dia. Sem a data em que foram criadas e sem saber
+// quantas pessoas ja responderam, ficam indistinguiveis no selector e nao ha
+// como adivinhar qual e a que interessa.
+const rotuloDaConsulta = (c) => {
+  // Com a hora, e nao so o dia: tentativas seguidas nascem todas no mesmo dia
+  // e sem a hora voltavam a ficar iguais umas as outras.
+  const criada = c.created_at
+    ? new Date(c.created_at).toLocaleString("pt-PT", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  return [
+    c.title,
+    criada,
+    c.closed_at ? "fechada" : null,
+    c.responderam > 0 ? `${c.responderam} responderam` : "sem respostas",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
 // ============================================================
 // AS TAREFAS DO EVENTO.
 //
@@ -422,8 +447,7 @@ export default function TarefasEvento({
           </span>
           {consultas.length === 1 ? (
             <span style={{ fontSize: "12.5px", color: "var(--texto)" }}>
-              {escolhida?.title}
-              {escolhida?.closed_at ? " (fechada)" : ""}
+              {escolhida ? rotuloDaConsulta(escolhida) : ""}
             </span>
           ) : (
             <>
@@ -445,8 +469,7 @@ export default function TarefasEvento({
               >
                 {consultas.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.title}
-                    {c.closed_at ? " (fechada)" : ""}
+                    {rotuloDaConsulta(c)}
                   </option>
                 ))}
               </select>

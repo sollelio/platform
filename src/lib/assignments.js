@@ -47,17 +47,43 @@ export const listConsultationsForEvent = async (
   organizationId,
   submissionId,
 ) => {
-  const { data, error } = await supabase
-    .from("staff_consultation_events")
-    .select(
-      "consultation_id, staff_consultations!inner ( id, title, created_at, closed_at )",
-    )
-    .eq("organization_id", organizationId)
-    .eq("submission_id", submissionId);
+  const [{ data, error }, { data: respostas, error: erroRespostas }] =
+    await Promise.all([
+      supabase
+        .from("staff_consultation_events")
+        .select(
+          "consultation_id, staff_consultations!inner ( id, title, created_at, closed_at )",
+        )
+        .eq("organization_id", organizationId)
+        .eq("submission_id", submissionId),
+      supabase
+        .from("staff_availability_responses")
+        .select(
+          "recipient_id, " +
+            "staff_consultation_recipients!inner ( consultation_id, staff_member_id )",
+        )
+        .eq("organization_id", organizationId),
+    ]);
   if (error) throw error;
+  if (erroRespostas) throw erroRespostas;
+
+  // Quantas PESSOAS responderam a cada consulta. Serve so para o selector
+  // conseguir distinguir a consulta que vale das que ficaram por responder;
+  // as respostas em si continuam a vir de listConsultationAnswers, uma
+  // consulta de cada vez.
+  const responderam = new Map();
+  for (const r of respostas ?? []) {
+    const ligacao = r.staff_consultation_recipients;
+    if (!ligacao) continue;
+    const chave = ligacao.consultation_id;
+    if (!responderam.has(chave)) responderam.set(chave, new Set());
+    responderam.get(chave).add(ligacao.staff_member_id);
+  }
+
   return (data ?? [])
     .map((r) => r.staff_consultations)
     .filter(Boolean)
+    .map((c) => ({ ...c, responderam: responderam.get(c.id)?.size ?? 0 }))
     .sort((a, b) => {
       // determinista: mais recente primeiro, e o id desempata para que
       // duas consultas criadas no mesmo instante não troquem de lugar
