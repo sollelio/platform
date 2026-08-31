@@ -753,7 +753,7 @@ export default function EventoPage() {
         // lista de convites vazia, e a Jornada concluía «formulário por
         // criar» num evento que já tinha um respondido. Uma leitura que
         // falhou tem de parecer uma falha, não uma ausência.
-        const [evento, modelos, { data: convites }, pagamentos, fotos] =
+        const [evento, modelos, { data: convites }, pagamentos, fotos, tarefas, escalados] =
           await Promise.all([
             getEventoCompleto(id),
             getEventTypes(),
@@ -771,6 +771,24 @@ export default function EventoPage() {
               .from("evento_fotografias")
               .select("id", { count: "exact", head: true })
               .eq("submission_id", id),
+            // As tarefas activas, pelo mesmo motivo: o número da aba não pode
+            // depender de alguém lá ter entrado primeiro.
+            supabase
+              .from("event_tasks")
+              .select("id", { count: "exact", head: true })
+              .eq("submission_id", id)
+              .eq("is_active", true),
+            // Os planos são um por PESSOA escalada, não um por atribuição, por
+            // isso não dá para contar com head: contam-se as pessoas distintas.
+            // É a mesma leitura que a aba faz — o RLS trata da casa, e quem não
+            // tem a chave da Equipa recebe zero linhas e fica sem etiqueta.
+            supabase
+              .from("event_task_assignments")
+              .select(
+                "staff_member_id, event_tasks!inner ( submission_id, is_active )",
+              )
+              .eq("event_tasks.submission_id", id)
+              .eq("event_tasks.is_active", true),
           ]);
         if (cancelado) return;
         if (!evento) {
@@ -784,6 +802,15 @@ export default function EventoPage() {
         // Sem afirmar «0» quando a contagem em si falhou.
         if (fotos && !fotos.error) {
           reportarContagem("fotografias", fotos.count || 0);
+        }
+        if (tarefas && !tarefas.error) {
+          reportarContagem("tarefas", tarefas.count || 0);
+        }
+        if (escalados && !escalados.error) {
+          reportarContagem(
+            "planos",
+            new Set((escalados.data ?? []).map((a) => a.staff_member_id)).size,
+          );
         }
         setEstado("pronto");
       } catch (erro) {
