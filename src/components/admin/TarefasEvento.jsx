@@ -619,6 +619,7 @@ export default function TarefasEvento({
                   <EquipaDaTarefa
                     tarefa={t}
                     compativeis={compativeisDa(t)}
+                    membros={membros}
                     atribuicoes={atribuicoes}
                     consultadas={consultadas}
                     respostas={respostas}

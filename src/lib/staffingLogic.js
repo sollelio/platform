@@ -68,19 +68,29 @@ export const estadoDaPessoa = ({ pessoa, tarefa, consultadas, respostas }) => {
 export const posicaoDaTarefa = ({
   tarefa,
   compativeis,
+  membros,
   atribuicoes,
   consultadas,
   respostas,
 }) => {
+  // Quem JÁ ESTÁ escalado resolve-se contra a equipa inteira, nunca contra
+  // os compatíveis. A função exigida é um portão à ENTRADA (Bloco 5): tirar
+  // depois a função a alguém não desfaz o que ela ficou a fazer. Resolver
+  // aqui pelos compatíveis fazia a atribuição desaparecer do ecrã sem
+  // desaparecer da base — e ninguém a conseguia retirar.
+  const todos = membros ?? compativeis;
   const daTarefa = atribuicoes.filter((a) => a.event_task_id === tarefa.id);
   const escalados = daTarefa
     .map((a) => {
-      const pessoa = compativeis.find((p) => p.id === a.staff_member_id);
+      const pessoa = todos.find((p) => p.id === a.staff_member_id);
       if (!pessoa) return null;
       return {
         ...estadoDaPessoa({ pessoa, tarefa, consultadas, respostas }),
         pessoa,
         atribuicaoId: a.id,
+        // já não tem a função que esta tarefa exige — mostra-se, para a
+        // Nádia decidir; não se esconde
+        semAFuncao: !compativeis.some((p) => p.id === a.staff_member_id),
       };
     })
     .filter(Boolean);

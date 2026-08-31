@@ -80,6 +80,7 @@ function Chip({ estado }) {
 export default function EquipaDaTarefa({
   tarefa,
   compativeis,
+  membros,
   atribuicoes,
   consultadas,
   respostas,
@@ -91,6 +92,7 @@ export default function EquipaDaTarefa({
   const pos = posicaoDaTarefa({
     tarefa,
     compativeis,
+    membros,
     atribuicoes,
     consultadas,
     respostas,
@@ -169,9 +171,9 @@ export default function EquipaDaTarefa({
             style={{ display: "flex", flexDirection: "column", gap: "6px" }}
           >
             {pos.escalados.map((e) => {
-              const conflito = pos.conflitos.some(
-                (c) => c.pessoa.id === e.pessoa.id,
-              );
+              const conflito =
+                pos.conflitos.some((c) => c.pessoa.id === e.pessoa.id) ||
+                e.semAFuncao;
               const ocupado = aGuardar === `retirar:${e.atribuicaoId}`;
               return (
                 <div
@@ -209,6 +211,22 @@ export default function EquipaDaTarefa({
                         }}
                       >
                         inactiva
+                      </span>
+                    )}
+                    {/* Ficou escalada e depois perdeu a função. Dizê-lo é o
+                      que permite decidir: ou se lhe devolve a função na
+                      Equipa, ou se retira daqui. Esconder era o bug. */}
+                    {e.semAFuncao && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--aviso-texto)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          marginLeft: "7px",
+                        }}
+                      >
+                        já não tem esta função
                       </span>
                     )}
                   </span>

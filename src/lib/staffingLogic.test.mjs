@@ -256,3 +256,60 @@ test("a ordem é a ordem que entra — nada aqui ordena por aptidão", () => {
     ["zulmira", "ana"],
   );
 });
+
+// ---------------------------------------------------------------
+// Uma atribuição não pode desaparecer do ecrã por a pessoa ter
+// perdido a função depois de ter sido escalada (produção, 31/08/2026:
+// o Frederico aparecia nos Planos e não aparecia nas Tarefas).
+// ---------------------------------------------------------------
+
+test("quem foi escalado e perdeu a função continua visível, e marcado", () => {
+  const semFuncao = pessoa("frederico");           // já não é compatível
+  const ctx = contexto([["a", { state: "available" }]]);
+  const r = posicaoDaTarefa({
+    tarefa,
+    compativeis: [pessoa("a")],                    // o Frederico não está aqui
+    membros: [pessoa("a"), semFuncao],             // mas está na equipa
+    atribuicoes: [
+      { id: "x1", event_task_id: "t1", staff_member_id: "a" },
+      { id: "x2", event_task_id: "t1", staff_member_id: "frederico" },
+    ],
+    ...ctx,
+  });
+  assert.equal(r.escalados.length, 2, "os dois aparecem");
+  const f = r.escalados.find((e) => e.pessoa.id === "frederico");
+  assert.ok(f, "o que perdeu a função não desaparece");
+  assert.equal(f.semAFuncao, true, "e vem marcado");
+  assert.equal(f.atribuicaoId, "x2", "com o id da atribuição, para se poder retirar");
+  assert.equal(
+    r.escalados.find((e) => e.pessoa.id === "a").semAFuncao,
+    false,
+    "quem mantém a função não leva a marca",
+  );
+});
+
+test("o mínimo conta quem está mesmo escalado, não só os compatíveis", () => {
+  const r = posicaoDaTarefa({
+    tarefa,                                        // mínimo 2
+    compativeis: [pessoa("a")],
+    membros: [pessoa("a"), pessoa("frederico")],
+    atribuicoes: [
+      { id: "x1", event_task_id: "t1", staff_member_id: "a" },
+      { id: "x2", event_task_id: "t1", staff_member_id: "frederico" },
+    ],
+    ...contexto([["a", { state: "available" }]]),
+  });
+  assert.equal(r.abaixoDoMinimo, false, "2 escalados para um mínimo de 2");
+  assert.equal(r.emFalta, 0);
+});
+
+test("sem membros, cai nos compatíveis — o comportamento antigo não parte", () => {
+  const r = posicaoDaTarefa({
+    tarefa,
+    compativeis: [pessoa("a")],
+    atribuicoes: [{ id: "x1", event_task_id: "t1", staff_member_id: "a" }],
+    ...contexto([["a", { state: "available" }]]),
+  });
+  assert.equal(r.escalados.length, 1);
+  assert.equal(r.escalados[0].semAFuncao, false);
+});
