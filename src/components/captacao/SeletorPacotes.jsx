@@ -7,7 +7,7 @@ import {
 } from "./pacotesBuffet";
 
 // ============================================================
-// SeletorPacotes — a carta da casa dentro da captação.
+// SeletorPacotes — a carta dos pacotes dentro da captação.
 //
 // A referência da Nádia (09/09/2026) é uma página de preços com
 // dois passos: nº de convidados → pacote. Aqui o formulário JÁ
@@ -15,14 +15,18 @@ import {
 // se repete: lê-se esse número e marca-se o pacote "Sugerido para
 // si" — com mais de 50, a sugestão passa a ser o personalizado.
 //
-// Dois gestos, dois significados (telemóvel primeiro):
+// Gestos (telemóvel primeiro, afinados no teste de 09/09):
 //   • tocar no CARTÃO abre/fecha "o que está incluído" (consultar)
-//   • tocar em ESCOLHER seleciona (decidir) — sem seleções
-//     acidentais a meio da leitura
+//   • tocar em ESCOLHER seleciona (decidir)
+//   • escolhido um, os OUTROS recolhem-se atrás dele; volta-se
+//     atrás só pelo botão "Mudar de pacote" — o cartão escolhido
+//     mostra uma confirmação estática, nunca um botão que
+//     desseleciona sem querer
 //
 // O cartão "Mais de 50 convidados" pede o número exato no próprio
 // cartão — é o MESMO estado do campo "Nº de convidados" de cima
-// (uma verdade só), por isso escrever num escreve no outro.
+// (uma verdade só) — e confirma ali mesmo ("✓ Proposta à medida
+// para 80 convidados"), sem obrigar a olhar para a barra de baixo.
 // ============================================================
 
 export default function SeletorPacotes({
@@ -58,7 +62,7 @@ export default function SeletorPacotes({
           margin: "0 0 6px 0",
         }}
       >
-        A carta da casa · Pacote de buffet *
+        Pacote de buffet *
       </p>
       <h3
         style={{
@@ -70,43 +74,109 @@ export default function SeletorPacotes({
           lineHeight: 1.3,
         }}
       >
-        Escolha o pacote ideal para o seu evento
+        {escolhido
+          ? "O pacote do seu evento"
+          : "Escolha o pacote ideal para o seu evento"}
       </h3>
-      <p
+      {!escolhido && (
+        <p
+          style={{
+            fontSize: "12px",
+            color: "var(--gray-mid)",
+            textAlign: "center",
+            lineHeight: 1.55,
+            margin: "0 0 8px 0",
+          }}
+        >
+          {sugerido === PACOTE_PERSONALIZADO.nome
+            ? `Com ${n} convidados, o ideal é um orçamento à medida.`
+            : sugerido
+              ? `Para ${n} convidados sugerimos o ${sugerido} — mas a escolha é sua.`
+              : "Toque num pacote para ver tudo o que está incluído. Indique o nº de convidados acima e sugerimos-lhe o ideal."}
+        </p>
+      )}
+
+      <div
         style={{
-          fontSize: "12px",
-          color: "var(--gray-mid)",
-          textAlign: "center",
-          lineHeight: 1.55,
-          margin: "0 0 14px 0",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          marginTop: "6px",
         }}
       >
-        {sugerido === PACOTE_PERSONALIZADO.nome
-          ? `Com ${n} convidados, o ideal é um orçamento personalizado.`
-          : sugerido
-            ? `Para ${n} convidados sugerimos o ${sugerido} — mas a escolha é sua.`
-            : "Toque num pacote para ver tudo o que está incluído. Indique o nº de convidados acima e sugerimos-lhe o ideal."}
-      </p>
+        {/* Cada cartão vive num invólucro que recolhe em altura quando
+            outro é escolhido — o paddingTop dá espaço ao selo que
+            sobressai do bordo (overflow hidden cortá-lo-ia). */}
+        <AnimatePresence initial={false}>
+          {PACOTES_BUFFET.filter(
+            (p) => !escolhido || escolhido === p.nome,
+          ).map((p) => (
+            <motion.div
+              key={p.nome}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: "easeInOut" }}
+              style={{ overflow: "hidden" }}
+            >
+              <div style={{ padding: "9px 1px 1px" }}>
+                <CartaoPacote
+                  pacote={p}
+                  selecionado={escolhido === p.nome}
+                  sugerido={sugerido === p.nome}
+                  aberto={aberto === p.nome}
+                  onAbrir={() =>
+                    setAberto((a) => (a === p.nome ? null : p.nome))
+                  }
+                  onEscolher={() => onEscolher(p.nome)}
+                />
+              </div>
+            </motion.div>
+          ))}
+          {(!escolhido || escolhido === PACOTE_PERSONALIZADO.nome) && (
+            <motion.div
+              key={PACOTE_PERSONALIZADO.nome}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: "easeInOut" }}
+              style={{ overflow: "hidden" }}
+            >
+              <div style={{ padding: "9px 1px 1px" }}>
+                <CartaoPersonalizado
+                  selecionado={escolhido === PACOTE_PERSONALIZADO.nome}
+                  sugerido={sugerido === PACOTE_PERSONALIZADO.nome}
+                  numeroConvidados={numeroConvidados}
+                  onNumeroConvidados={onNumeroConvidados}
+                  onEscolher={() => onEscolher(PACOTE_PERSONALIZADO.nome)}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {PACOTES_BUFFET.map((p) => (
-          <CartaoPacote
-            key={p.nome}
-            pacote={p}
-            selecionado={escolhido === p.nome}
-            sugerido={sugerido === p.nome}
-            aberto={aberto === p.nome}
-            onAbrir={() => setAberto((a) => (a === p.nome ? null : p.nome))}
-            onEscolher={() => onEscolher(p.nome)}
-          />
-        ))}
-        <CartaoPersonalizado
-          selecionado={escolhido === PACOTE_PERSONALIZADO.nome}
-          sugerido={sugerido === PACOTE_PERSONALIZADO.nome}
-          numeroConvidados={numeroConvidados}
-          onNumeroConvidados={onNumeroConvidados}
-          onEscolher={() => onEscolher(PACOTE_PERSONALIZADO.nome)}
-        />
+        {escolhido && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => onEscolher(escolhido)}
+            style={{
+              margin: "4px auto 0",
+              padding: "8px 18px",
+              borderRadius: "999px",
+              border: "1.5px solid var(--gold-light)",
+              backgroundColor: "white",
+              color: "var(--gold-dark)",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            Mudar de pacote
+          </motion.button>
+        )}
       </div>
 
       {erro && (
@@ -350,16 +420,22 @@ function CartaoPacote({
         )}
       </AnimatePresence>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEscolher();
-        }}
-        style={botaoEscolher(selecionado)}
-      >
-        {selecionado ? "✓ Pacote escolhido" : `Escolher ${p.nome}`}
-      </button>
+      {selecionado ? (
+        <div style={{ ...botaoEscolher(true), cursor: "default" }}>
+          ✓ Pacote escolhido
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEscolher();
+          }}
+          style={botaoEscolher(false)}
+        >
+          Escolher {p.nome}
+        </button>
+      )}
     </div>
   );
 }
@@ -371,9 +447,15 @@ function CartaoPersonalizado({
   onNumeroConvidados,
   onEscolher,
 }) {
+  const n = Number(numeroConvidados);
+  const temNumero =
+    !!String(numeroConvidados ?? "").trim() && Number.isFinite(n) && n >= 1;
+
   return (
     <div
-      onClick={onEscolher}
+      onClick={() => {
+        if (!selecionado) onEscolher();
+      }}
       style={{
         position: "relative",
         backgroundColor: selecionado ? "#FFFDF4" : "white",
@@ -381,7 +463,7 @@ function CartaoPersonalizado({
         borderRadius: "14px",
         padding: "16px 14px 14px",
         textAlign: "center",
-        cursor: "pointer",
+        cursor: selecionado ? "default" : "pointer",
         boxShadow: selecionado
           ? "0 6px 18px rgba(201,168,76,0.25)"
           : "0 1px 3px rgba(0,0,0,0.04)",
@@ -410,7 +492,7 @@ function CartaoPersonalizado({
         }}
       >
         Um evento maior merece uma proposta à medida — diga-nos quantos são e
-        preparamos um orçamento personalizado.
+        preparamos tudo consigo.
       </p>
 
       <AnimatePresence initial={false}>
@@ -458,21 +540,41 @@ function CartaoPersonalizado({
                   backgroundColor: "white",
                 }}
               />
+              {!temNumero && (
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--gray-mid)",
+                    lineHeight: 1.5,
+                    margin: "6px 0 0 0",
+                  }}
+                >
+                  É este número que nos permite preparar a proposta.
+                </p>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEscolher();
-        }}
-        style={botaoEscolher(selecionado)}
-      >
-        {selecionado ? "✓ Orçamento personalizado" : "Pedir orçamento personalizado"}
-      </button>
+      {selecionado ? (
+        <div style={{ ...botaoEscolher(true), cursor: "default" }}>
+          {temNumero
+            ? `✓ Proposta à medida para ${n} convidados`
+            : "✓ Opção escolhida"}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEscolher();
+          }}
+          style={botaoEscolher(false)}
+        >
+          Escolher esta opção
+        </button>
+      )}
     </div>
   );
 }
@@ -502,6 +604,10 @@ function Selo({ texto }) {
   );
 }
 
+// Serve o botão "Escolher X" e, uma vez escolhido, a faixa de
+// confirmação (um div — de propósito: um botão ali desselecionava
+// com um toque distraído; mudar de ideias tem porta própria, o
+// "Mudar de pacote").
 const botaoEscolher = (selecionado) => ({
   width: "100%",
   marginTop: "12px",
@@ -516,6 +622,7 @@ const botaoEscolher = (selecionado) => ({
   color: selecionado ? "white" : "var(--gold-dark)",
   cursor: "pointer",
   transition: "all 0.15s",
+  boxSizing: "border-box",
 });
 
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);

@@ -2908,3 +2908,20 @@ marca o pacote «Sugerido para si». Decisões:
 - O seletor aparece nas MESMAS condições de antes (serviço «Buffet»
   escolhido) e nas quatro portas (pública + 3 modais internos) — um
   formulário, uma verdade.
+
+### Afinações do teste no móvel (09/09/2026, Hélio)
+
+- **«A carta da casa» saiu** — o cabeçalho é só «Pacote de buffet *».
+- **Modal ponderado e recusado**: num obrigatório em móvel, o modal
+  acrescenta um toque, esconde a barra dourada e briga com o botão
+  «voltar». Fica inline — e compacto, porque:
+- **Escolhido um pacote, os outros recolhem-se** (animação de altura)
+  e o título passa a «O pacote do seu evento». Volta-se atrás por um
+  botão próprio, **«Mudar de pacote»** — o cartão escolhido mostra uma
+  faixa de confirmação ESTÁTICA («✓ Pacote escolhido»), nunca um botão:
+  no teste, o toque distraído no botão desselecionava sem querer.
+- **«Pedir orçamento personalizado» → «Escolher esta opção»** (a frase
+  não fazia sentido como par dos «Escolher Essence/…»).
+- **Feedback local no «Mais de 50»**: ao escrever o número, a faixa do
+  próprio cartão responde («✓ Proposta à medida para 80 convidados») —
+  a barra de progresso lá de baixo não chega como confirmação.
