@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PACOTES_BUFFET,
@@ -15,19 +15,30 @@ import {
 // se repete: lê-se esse número e marca-se o pacote "Sugerido para
 // si" — com mais de 50, a sugestão passa a ser o personalizado.
 //
-// Gestos (telemóvel primeiro, afinados no teste de 09/09):
+// Gestos (telemóvel primeiro, afinados nos testes de 09/09):
+//   • os pacotes vivem num CARROSSEL horizontal (.h-scroll) com a
+//     espreitadela do cartão seguinte + pontinhos — a secção fica
+//     baixa e o "há mais" vê-se; escrever o nº de convidados faz o
+//     carrossel deslizar até ao pacote sugerido
 //   • tocar no CARTÃO abre/fecha "o que está incluído" (consultar)
 //   • tocar em ESCOLHER seleciona (decidir)
-//   • escolhido um, os OUTROS recolhem-se atrás dele; volta-se
-//     atrás só pelo botão "Mudar de pacote" — o cartão escolhido
-//     mostra uma confirmação estática, nunca um botão que
-//     desseleciona sem querer
+//   • escolhido um, o carrossel dá lugar ao cartão sozinho, a toda
+//     a largura; volta-se atrás só pelo botão "Mudar de pacote" —
+//     o cartão escolhido mostra uma confirmação estática, nunca um
+//     botão que desseleciona sem querer
 //
 // O cartão "Mais de 50 convidados" pede o número exato no próprio
 // cartão — é o MESMO estado do campo "Nº de convidados" de cima
 // (uma verdade só) — e confirma ali mesmo ("✓ Proposta à medida
 // para 80 convidados"), sem obrigar a olhar para a barra de baixo.
 // ============================================================
+
+// A ordem dos cartões no carrossel — os pontinhos e o deslizar
+// automático contam com ela.
+const NOMES_CARTOES = [
+  ...PACOTES_BUFFET.map((p) => p.nome),
+  PACOTE_PERSONALIZADO.nome,
+];
 
 export default function SeletorPacotes({
   escolhido,
@@ -38,8 +49,40 @@ export default function SeletorPacotes({
 }) {
   // Um cartão de detalhes aberto de cada vez — acordeão.
   const [aberto, setAberto] = useState(null);
+  // O cartão visível no carrossel (alimenta os pontinhos).
+  const [indice, setIndice] = useState(0);
+  const refCarrossel = useRef(null);
   const sugerido = pacoteSugerido(numeroConvidados);
   const n = Number(numeroConvidados);
+
+  const rolarPara = useCallback((i, comportamento = "smooth") => {
+    const el = refCarrossel.current;
+    const alvo = el?.children[i];
+    if (!el || !alvo) return;
+    el.scrollTo({
+      left:
+        alvo.offsetLeft - el.offsetLeft - (el.clientWidth - alvo.clientWidth) / 2,
+      behavior: comportamento,
+    });
+  }, []);
+
+  // Escrever o nº de convidados faz o carrossel deslizar até ao
+  // pacote sugerido — a sugestão aponta-se, não se descreve. Também
+  // corre ao voltar de uma escolha ("Mudar de pacote").
+  useEffect(() => {
+    if (escolhido || !sugerido) return;
+    const idx = NOMES_CARTOES.indexOf(sugerido);
+    if (idx >= 0) rolarPara(idx);
+  }, [escolhido, sugerido, rolarPara]);
+
+  const aoRolar = () => {
+    const el = refCarrossel.current;
+    const primeiro = el?.firstElementChild;
+    if (!el || !primeiro) return;
+    const passo = primeiro.clientWidth + 10; // largura do cartão + gap
+    const idx = Math.round(el.scrollLeft / passo);
+    setIndice(Math.max(0, Math.min(NOMES_CARTOES.length - 1, idx)));
+  };
 
   return (
     <div
@@ -92,70 +135,48 @@ export default function SeletorPacotes({
             ? `Com ${n} convidados, o ideal é um orçamento à medida.`
             : sugerido
               ? `Para ${n} convidados sugerimos o ${sugerido} — mas a escolha é sua.`
-              : "Toque num pacote para ver tudo o que está incluído. Indique o nº de convidados acima e sugerimos-lhe o ideal."}
+              : "Deslize para comparar os pacotes — e indique o nº de convidados acima para lhe sugerirmos o ideal."}
         </p>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          marginTop: "6px",
-        }}
-      >
-        {/* Cada cartão vive num invólucro que recolhe em altura quando
-            outro é escolhido — o paddingTop dá espaço ao selo que
-            sobressai do bordo (overflow hidden cortá-lo-ia). */}
-        <AnimatePresence initial={false}>
-          {PACOTES_BUFFET.filter(
-            (p) => !escolhido || escolhido === p.nome,
-          ).map((p) => (
-            <motion.div
-              key={p.nome}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: "easeInOut" }}
-              style={{ overflow: "hidden" }}
-            >
-              <div style={{ padding: "9px 1px 1px" }}>
-                <CartaoPacote
-                  pacote={p}
-                  selecionado={escolhido === p.nome}
-                  sugerido={sugerido === p.nome}
-                  aberto={aberto === p.nome}
-                  onAbrir={() =>
-                    setAberto((a) => (a === p.nome ? null : p.nome))
-                  }
-                  onEscolher={() => onEscolher(p.nome)}
-                />
-              </div>
-            </motion.div>
-          ))}
-          {(!escolhido || escolhido === PACOTE_PERSONALIZADO.nome) && (
-            <motion.div
-              key={PACOTE_PERSONALIZADO.nome}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: "easeInOut" }}
-              style={{ overflow: "hidden" }}
-            >
-              <div style={{ padding: "9px 1px 1px" }}>
-                <CartaoPersonalizado
-                  selecionado={escolhido === PACOTE_PERSONALIZADO.nome}
-                  sugerido={sugerido === PACOTE_PERSONALIZADO.nome}
-                  numeroConvidados={numeroConvidados}
-                  onNumeroConvidados={onNumeroConvidados}
-                  onEscolher={() => onEscolher(PACOTE_PERSONALIZADO.nome)}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {escolhido && (
+      {escolhido ? (
+        // O cartão escolhido, sozinho e a toda a largura — os outros
+        // esperam atrás do "Mudar de pacote".
+        <motion.div
+          key="escolhido"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            marginTop: "6px",
+          }}
+        >
+          {/* O paddingTop dá espaço ao selo que sobressai do bordo. */}
+          <div style={{ padding: "9px 1px 1px" }}>
+            {escolhido === PACOTE_PERSONALIZADO.nome ? (
+              <CartaoPersonalizado
+                selecionado
+                sugerido={sugerido === PACOTE_PERSONALIZADO.nome}
+                numeroConvidados={numeroConvidados}
+                onNumeroConvidados={onNumeroConvidados}
+                onEscolher={() => onEscolher(PACOTE_PERSONALIZADO.nome)}
+              />
+            ) : (
+              <CartaoPacote
+                pacote={PACOTES_BUFFET.find((p) => p.nome === escolhido)}
+                selecionado
+                sugerido={sugerido === escolhido}
+                aberto={aberto === escolhido}
+                onAbrir={() =>
+                  setAberto((a) => (a === escolhido ? null : escolhido))
+                }
+                onEscolher={() => onEscolher(escolhido)}
+              />
+            )}
+          </div>
           <motion.button
             type="button"
             initial={{ opacity: 0 }}
@@ -176,8 +197,91 @@ export default function SeletorPacotes({
           >
             Mudar de pacote
           </motion.button>
-        )}
-      </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="carrossel"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          {/* O carrossel sangra até aos bordos do painel (margens
+              negativas) para o cartão seguinte espreitar; o paddingTop
+              dá espaço ao selo. Com um cartão de detalhes aberto, os
+              outros deixam de esticar (flex-start) — só o aberto
+              cresce. */}
+          <div
+            ref={refCarrossel}
+            className="h-scroll"
+            onScroll={aoRolar}
+            style={{
+              gap: "10px",
+              margin: "6px -12px 0",
+              padding: "9px 12px 4px",
+              alignItems: aberto ? "flex-start" : "stretch",
+            }}
+          >
+            {PACOTES_BUFFET.map((p) => (
+              <div key={p.nome} style={{ width: "82%", display: "flex" }}>
+                <CartaoPacote
+                  pacote={p}
+                  selecionado={false}
+                  sugerido={sugerido === p.nome}
+                  aberto={aberto === p.nome}
+                  onAbrir={() =>
+                    setAberto((a) => (a === p.nome ? null : p.nome))
+                  }
+                  onEscolher={() => onEscolher(p.nome)}
+                />
+              </div>
+            ))}
+            <div style={{ width: "82%", display: "flex" }}>
+              <CartaoPersonalizado
+                selecionado={false}
+                sugerido={sugerido === PACOTE_PERSONALIZADO.nome}
+                numeroConvidados={numeroConvidados}
+                onNumeroConvidados={onNumeroConvidados}
+                onEscolher={() => onEscolher(PACOTE_PERSONALIZADO.nome)}
+              />
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "2px",
+              marginTop: "6px",
+            }}
+          >
+            {NOMES_CARTOES.map((nome, i) => (
+              <button
+                key={nome}
+                type="button"
+                aria-label={`Ver ${nome === PACOTE_PERSONALIZADO.nome ? "mais de 50 convidados" : nome}`}
+                onClick={() => rolarPara(i)}
+                style={{
+                  padding: "6px 4px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                }}
+              >
+                <span
+                  style={{
+                    width: i === indice ? "18px" : "7px",
+                    height: "7px",
+                    borderRadius: "999px",
+                    backgroundColor:
+                      i === indice ? "var(--gold)" : "var(--gold-light)",
+                    transition: "all 0.2s",
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {erro && (
         <p style={{ fontSize: "12px", color: "#DC2626", margin: "8px 0 0 0" }}>
@@ -209,6 +313,12 @@ function CartaoPacote({
       onClick={onAbrir}
       style={{
         position: "relative",
+        // Coluna flex + flex 1: no carrossel todos os cartões ficam
+        // com a mesma altura, e o espaçador lá em baixo alinha os
+        // botões pelo fundo.
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
         backgroundColor: selecionado ? "#FFFDF4" : "white",
         border: `1.5px solid ${selecionado ? "var(--gold)" : "var(--gold-light)"}`,
         borderRadius: "14px",
@@ -373,6 +483,8 @@ function CartaoPacote({
         )}
       </AnimatePresence>
 
+      <div style={{ flex: 1 }} />
+
       <button
         type="button"
         aria-expanded={aberto}
@@ -453,6 +565,9 @@ function CartaoPersonalizado({
       }}
       style={{
         position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
         backgroundColor: selecionado ? "#FFFDF4" : "white",
         border: `1.5px ${selecionado ? "solid var(--gold)" : "dashed var(--gold-light)"}`,
         borderRadius: "14px",
@@ -551,6 +666,8 @@ function CartaoPersonalizado({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div style={{ flex: 1 }} />
 
       {selecionado ? (
         <div style={{ ...botaoEscolher(true), cursor: "default" }}>

@@ -2931,3 +2931,13 @@ marca o pacote «Sugerido para si». Decisões:
   visivelmente continua é o convite — e o toggle é um botão a sério
   com contagem concreta: «Ver mais 6 itens e as ofertas ▾» /
   «Mostrar menos ▲».
+- **3.º teste (09/09): os pacotes deitam-se — carrossel horizontal.**
+  A pilha vertical obrigava a rolar a página para ver os quatro;
+  agora vivem num carrossel com snap (o `.h-scroll` da casa), cartão
+  a ~82% da largura para o seguinte ESPREITAR, pontinhos indicadores
+  (o ativo alonga-se), e botões alinhados pelo fundo (cartões de
+  altura igual). Escrever o nº de convidados faz o carrossel
+  DESLIZAR até ao pacote sugerido — a sugestão aponta-se, não se
+  descreve. Escolhido um, o carrossel dá lugar ao cartão sozinho a
+  toda a largura (o «Mudar de pacote» traz os outros de volta, já
+  posicionados no sugerido).
