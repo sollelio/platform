@@ -281,47 +281,31 @@ function CartaoPacote({
         {p.tagline}
       </p>
 
-      <div
+      <p
         style={{
-          width: "44px",
-          borderTop: "1px solid var(--gold-light)",
-          margin: "12px auto",
-        }}
-      />
-
-      <button
-        type="button"
-        aria-expanded={aberto}
-        onClick={(e) => {
-          e.stopPropagation();
-          onAbrir();
-        }}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          background: "none",
-          border: "none",
-          padding: "4px 8px",
-          fontSize: "12px",
-          fontWeight: "600",
-          color: "var(--gold-dark)",
-          cursor: "pointer",
+          fontSize: "11.5px",
+          color: "var(--gray-mid)",
+          margin: "10px 0",
         }}
       >
-        Ver o que está incluído
-        <span
-          aria-hidden="true"
-          style={{
-            display: "inline-block",
-            transform: aberto ? "rotate(180deg)" : "none",
-            transition: "transform 0.2s",
-            fontSize: "10px",
-          }}
-        >
-          ▼
-        </span>
-      </button>
+        {p.mesa} <span style={{ color: "var(--gold)" }}>·</span> {p.pecas}
+      </p>
+
+      {/* Os 3 primeiros itens ficam SEMPRE à vista — uma lista que
+          visivelmente continua é o convite a abrir; o link de texto
+          sozinho passava despercebido (teste no móvel, 09/09). */}
+      <ul
+        style={{
+          listStyle: "none",
+          margin: "0",
+          padding: "0",
+          textAlign: "left",
+        }}
+      >
+        {p.inclui.slice(0, 3).map((item) => (
+          <ItemIncluido key={item} texto={item} />
+        ))}
+      </ul>
 
       <AnimatePresence initial={false}>
         {aberto && (
@@ -333,15 +317,6 @@ function CartaoPacote({
             transition={{ duration: 0.25, ease: "easeInOut" }}
             style={{ overflow: "hidden" }}
           >
-            <p
-              style={{
-                fontSize: "11.5px",
-                color: "var(--gray-mid)",
-                margin: "10px 0",
-              }}
-            >
-              {p.mesa} <span style={{ color: "var(--gold)" }}>·</span> {p.pecas}
-            </p>
             <ul
               style={{
                 listStyle: "none",
@@ -350,30 +325,8 @@ function CartaoPacote({
                 textAlign: "left",
               }}
             >
-              {p.inclui.map((item) => (
-                <li
-                  key={item}
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    fontSize: "12.5px",
-                    color: "var(--charcoal)",
-                    lineHeight: 1.5,
-                    marginBottom: "6px",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      color: "var(--gold)",
-                      fontWeight: "700",
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                  {item}
-                </li>
+              {p.inclui.slice(3).map((item) => (
+                <ItemIncluido key={item} texto={item} />
               ))}
             </ul>
             <div
@@ -419,6 +372,48 @@ function CartaoPacote({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <button
+        type="button"
+        aria-expanded={aberto}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAbrir();
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "6px",
+          width: "100%",
+          marginTop: aberto ? "12px" : "8px",
+          padding: "9px",
+          borderRadius: "10px",
+          border: "1px solid var(--gold-light)",
+          backgroundColor: "#FEF9EC",
+          fontSize: "12px",
+          fontWeight: "600",
+          color: "var(--gold-dark)",
+          cursor: "pointer",
+          boxSizing: "border-box",
+          transition: "all 0.15s",
+        }}
+      >
+        {aberto
+          ? "Mostrar menos"
+          : `Ver mais ${p.inclui.length - 3} itens e as ofertas`}
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            transform: aberto ? "rotate(180deg)" : "none",
+            transition: "transform 0.2s",
+            fontSize: "10px",
+          }}
+        >
+          ▼
+        </span>
+      </button>
 
       {selecionado ? (
         <div style={{ ...botaoEscolher(true), cursor: "default" }}>
@@ -576,6 +571,33 @@ function CartaoPersonalizado({
         </button>
       )}
     </div>
+  );
+}
+
+function ItemIncluido({ texto }) {
+  return (
+    <li
+      style={{
+        display: "flex",
+        gap: "8px",
+        fontSize: "12.5px",
+        color: "var(--charcoal)",
+        lineHeight: 1.5,
+        marginBottom: "6px",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          color: "var(--gold)",
+          fontWeight: "700",
+          flexShrink: 0,
+        }}
+      >
+        ✓
+      </span>
+      {texto}
+    </li>
   );
 }
 

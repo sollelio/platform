@@ -2925,3 +2925,9 @@ marca o pacote «Sugerido para si». Decisões:
 - **Feedback local no «Mais de 50»**: ao escrever o número, a faixa do
   próprio cartão responde («✓ Proposta à medida para 80 convidados») —
   a barra de progresso lá de baixo não chega como confirmação.
+- **2.º teste (09/09): o «Ver o que está incluído» era subtil demais**
+  — muitos clientes não perceberiam que expandia. Agora os 3 primeiros
+  itens (e a linha mesa · peças) estão SEMPRE à vista — uma lista que
+  visivelmente continua é o convite — e o toggle é um botão a sério
+  com contagem concreta: «Ver mais 6 itens e as ofertas ▾» /
+  «Mostrar menos ▲».
