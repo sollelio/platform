@@ -10,6 +10,8 @@ import { irmaosDoDia } from "../../lib/disputaDia";
 import AvisoDiaDisputado from "../AvisoDiaDisputado";
 import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import { useRotas } from "../../lib/rotasAdmin";
+import SeletorPacotes from "./SeletorPacotes";
+import { pacotePorNome } from "./pacotesBuffet";
 
 // ============================================================
 // CaptacaoForm — os campos da captação, PARTILHADOS entre:
@@ -40,13 +42,10 @@ const OPCOES_SERVICOS = [
   "Balcão",
 ];
 // Pacotes de buffet — escolha ÚNICA, aparecem ao selecionar "Buffet".
-// O detalhe (lotação) faz parte da resposta guardada, para a Nádia
-// saber logo o pacote sem consultar tabela nenhuma.
-const OPCOES_BUFFET = [
-  { nome: "Premium", detalhe: "50 ou mais pessoas" },
-  { nome: "Supreme", detalhe: "até 35 pessoas" },
-  { nome: "Essence", detalhe: "até 20 pessoas" },
-];
+// A carta (nomes, preços, o que inclui) vive em pacotesBuffet.js e os
+// cartões em SeletorPacotes.jsx; o detalhe (lotação) continua a fazer
+// parte da resposta guardada, para a Nádia saber logo o pacote sem
+// consultar tabela nenhuma.
 const OPCOES_BALCAO = [
   "Welcome Drink",
   "Bar & Cocktail",
@@ -333,9 +332,10 @@ export default function CaptacaoForm({
       // espaço (ou a descrição, no caso do Outro)
       const tipoLocalFinal =
         localTipo === "Outro" ? `Outro: ${localOutro.trim()}` : localTipo;
-      // O pacote vai com a lotação por extenso ("Premium (até 20
-      // pessoas)") — resposta autoexplicativa em qualquer ecrã do admin
-      const pacoteBuffet = OPCOES_BUFFET.find((p) => p.nome === buffet);
+      // O pacote vai com a lotação por extenso ("Supreme (até 35
+      // convidados)") — resposta autoexplicativa em qualquer ecrã do
+      // admin. "Personalizado (mais de 50 convidados)" também cá passa.
+      const pacoteBuffet = pacotePorNome(buffet);
       const submission = await submeterCaptacao(
         {
           nome,
@@ -696,79 +696,16 @@ export default function CaptacaoForm({
             })}
           </div>
           {servicos.includes("Buffet") && (
-            <div
-              style={{
-                marginTop: "10px",
-                padding: "10px 12px",
-                backgroundColor: "#FBF7EF",
-                border: "1px solid var(--gold-light)",
-                borderRadius: "10px",
+            <SeletorPacotes
+              escolhido={buffet}
+              onEscolher={toggleBuffet}
+              numeroConvidados={numeroConvidados}
+              onNumeroConvidados={(v) => {
+                setNumeroConvidados(v);
+                setErros((p) => ({ ...p, convidados: undefined }));
               }}
-            >
-              <p
-                style={{
-                  fontSize: "10px",
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "var(--gold-dark)",
-                  margin: "0 0 8px 0",
-                }}
-              >
-                Pacote de buffet *
-              </p>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "6px" }}
-              >
-                {OPCOES_BUFFET.map((p) => {
-                  const ativo = buffet === p.nome;
-                  return (
-                    <button
-                      key={p.nome}
-                      type="button"
-                      onClick={() => toggleBuffet(p.nome)}
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                        width: "100%",
-                        padding: "9px 14px",
-                        borderRadius: "10px",
-                        border: `1.5px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
-                        backgroundColor: ativo ? "var(--gold)" : "white",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                        textAlign: "left",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          letterSpacing: "0.02em",
-                          color: ativo ? "white" : "var(--charcoal)",
-                        }}
-                      >
-                        {p.nome}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: ativo
-                            ? "rgba(255,255,255,0.9)"
-                            : "var(--gray-mid)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {p.detalhe}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {erros.buffet && <Erro texto={erros.buffet} />}
-            </div>
+              erro={erros.buffet}
+            />
           )}
           {servicos.includes("Balcão") && (
             <div

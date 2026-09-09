@@ -2877,3 +2877,34 @@ o frontend espera que a migração corra.
   `CASA_DESCONHECIDA` (slug mau no endereço público) e o
   `NOME_OBRIGATORIO` lá chegam, e ambos são raros — mas o desencontro
   fica escrito em vez de resolvido por invenção.
+
+## A carta da casa entra na captação (09/09/2026)
+
+A Nádia quer que os clientes CONSULTEM os pacotes e escolham um no
+pedido de orçamento. A referência dela é uma página de preços com dois
+passos (nº de convidados → pacote); a captação já pergunta o número lá
+em cima, por isso o passo 1 não se repete — o seletor lê esse campo e
+marca o pacote «Sugerido para si». Decisões:
+
+- **A carta vive em `pacotesBuffet.js`** (nomes, preços «desde»,
+  lotações, o que inclui, ofertas) e os cartões em
+  `SeletorPacotes.jsx`. Mudou a carta? Muda-se ali e o formulário
+  acompanha. Lotações NOVAS (da referência de 09/09): Essence 450€ até
+  18 · Supreme 650€ até 35 · Premium 920€ até 50 — o Essence dizia
+  «até 20 pessoas» e passou a «até 18 convidados».
+- **A 4.ª opção é «Mais de 50 convidados»** → orçamento personalizado,
+  com o número exato pedido NO cartão — é o MESMO estado do campo «Nº
+  de convidados» (uma verdade só). Guarda-se como
+  `Personalizado (mais de 50 convidados)` em `servicosBuffet`.
+- **Dois gestos no cartão**: tocar no cartão abre «o que está
+  incluído» (consultar); só o botão «Escolher» seleciona (decidir) —
+  sem seleções acidentais no telemóvel.
+- **Selos**: «Sugerido para si» (pelo nº de convidados) ganha ao «Mais
+  escolhido» (Supreme) quando calham no mesmo cartão.
+- **Nada mudou no contrato de dados** — continua um elemento em
+  `respostas.servicosBuffet` no formato «Nome (lotação)», por isso
+  admin, briefing, ponte e importação ficaram como estavam. Sem
+  migração.
+- O seletor aparece nas MESMAS condições de antes (serviço «Buffet»
+  escolhido) e nas quatro portas (pública + 3 modais internos) — um
+  formulário, uma verdade.
