@@ -3141,3 +3141,36 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   não cyberpunk. Microinterações: 180 ms ease-out, sem bounce.
 - Fronteiras intactas: chunk lazy próprio (~296 KB gz), bundle
   principal byte-igual, nada em produção, nada escrito na BD.
+
+### A navegação por domínios (10/09/2026)
+
+- **O problema**: o menu era uma lista de 17 linhas com metade da app
+  numa secção «Gestão» — não escalava nem orientava.
+- **A arquitetura** (lib/menu.js — UMA lista; um módulo novo entra no
+  domínio certo com uma linha): o trabalho DIÁRIO fica sempre à vista
+  (Caixa de Entrada com badge a coroar · Início · Agenda · Contactos);
+  o resto arruma-se em 4 domínios recolhíveis pelo modelo mental da
+  Nádia — **Comercial** (Documentos, Formulários, Mensagens, Envios,
+  Avaliações), **Operações** (Logística, Equipa, Disponibilidades),
+  **Crescimento** (Dashboard, Território), **Ferramentas** (Modelos
+  de Evento, Importar clientes). Conta e sistema (Aspecto, Sair)
+  vivem no fundo, fora da conversa dos módulos.
+- **Documentos é Comercial, não «Recursos»**: são os orçamentos e
+  contratos dos eventos — trabalho comercial, não arquivo. Contactos
+  é diário: o funil é o coração da casa.
+- **Hierarquia progressiva**: grupos fechados por omissão (a
+  estrutura lê-se num relance); o grupo da página atual abre sozinho
+  e nunca fecha enquanto lá se está; fechado, o cabeçalho carrega o
+  contexto (título em ouro + soma das contagens dos filhos). Estado
+  no localStorage. Profundidade máxima: grupo → destino.
+- **Modo compacto** («Recolher»): rail de 72px só com ícones — cada
+  domínio é UM ícone cujo flyout revela os destinos; pensado para os
+  ecrãs que querem o palco (Território, Dashboard, Agenda).
+  Preferência preservada; nunca obrigatório.
+- **Telemóvel**: a barra inferior mantém os 4 gestos de sempre +
+  «Mais»; a folha «Mais» arruma-se pelos MESMOS domínios (sempre
+  abertos — é um menu pontual), sem repetir o que já está na barra.
+- **Regra de ouro intacta**: ids e slugs não mudaram; nenhuma página
+  foi redesenhada. Testes garantem que menu e rotas nunca divergem.
+- **⌘K preparado, não construído**: todosOsDestinos() em lib/menu.js
+  é o índice de uma futura paleta de comandos.

@@ -1321,14 +1321,16 @@ export default function EventoPage() {
           setCaixaAberta(true);
         }}
         // Os itens do menu são LIGAÇÕES a sério, e uma ligação navega
-        // sozinha: se houver briefing por guardar, tem de se travar o
-        // clique com preventDefault ANTES de o browser ir — senão o
-        // voltarAoAdmin guarda a saída pendente para uma confirmação
-        // que já não chega a pintar, e o que ela escreveu perde-se em
-        // silêncio. Era exactamente isto que a confirmação existia
-        // para impedir.
+        // sozinha: aqui trava-se SEMPRE o clique (preventDefault) e é
+        // o voltarAoAdmin que decide o destino e navega. Não é só o
+        // briefing por guardar: sem o travão, o replace do NavLink
+        // navegava POR CIMA do push do voltarAoAdmin e esmagava o
+        // «volta para a ficha da cliente de onde vieste»
+        // (origemCliente) — a Nádia caía na LISTA em vez da ficha.
+        // O clique-do-meio/«abrir em novo separador» não passam por
+        // aqui (é auxclick), por isso continuam a funcionar.
         onNavegar={(tab, ev) => {
-          if (porGuardar > 0) ev?.preventDefault();
+          ev?.preventDefault();
           voltarAoAdmin(tab);
         }}
         onSair={async () => {

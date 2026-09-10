@@ -1,13 +1,29 @@
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { NavLink } from "react-router-dom";
 import LogoDourado from "../LogoDourado";
 import { useRotas } from "../../lib/rotasAdmin";
 import { alternarTema, assinarTema, temaEfectivo } from "../../lib/tema";
+import {
+  NAV_DIARIA,
+  NAV_GRUPOS,
+  NAV_MOVEL,
+  lerGruposAbertos,
+  guardarGruposAbertos,
+  lerNavCompacta,
+  guardarNavCompacta,
+} from "../../lib/menu";
 
 // ============================================================
 // Navegacao — a casca de navegação da app.
-// Desktop: sidebar lateral coroada pelo logo, tudo visível.
-// Telemóvel: barra inferior + folha "Mais".
+//
+// Desktop: sidebar com o trabalho DIÁRIO sempre à vista e o resto
+// arrumado por DOMÍNIOS recolhíveis (a arquitetura vive em
+// lib/menu.js — uma lista só, para a app crescer sem o menu voltar
+// a ser uma lista de vinte linhas). Tem um modo COMPACTO (só
+// ícones) para os ecrãs que querem o palco todo — Território,
+// Dashboard, Agenda.
+// Telemóvel: barra inferior + folha "Mais" arrumada pelos mesmos
+// domínios.
 //
 // Ícones de LINHA FINA desenhados à medida (stroke 1.5, dourado por
 // herança de cor) — nada de emoji: a marca é "Do Luxo à Mesa", e a
@@ -15,31 +31,10 @@ import { alternarTema, assinarTema, temaEfectivo } from "../../lib/tema";
 // Os ids dos separadores NUNCA mudam (regra de ouro).
 // ============================================================
 
-const NAV_PRINCIPAL = [
-  { id: "inicio", label: "Início", icone: "inicio" },
-  { id: "clientes", label: "Contactos", icone: "contactos" },
-  { id: "calendario", label: "Agenda", icone: "agenda" },
-  { id: "orcamentos", label: "Documentos", icone: "documentos" },
-];
-
-const NAV_GESTAO = [
-  { id: "operacional", label: "Logística", icone: "logistica" },
-  { id: "convites", label: "Formulários", icone: "formularios" },
-  { id: "mensagens", label: "Mensagens", icone: "mensagens" },
-  { id: "comunicados", label: "Envios", icone: "comunicados" },
-  { id: "dashboard", label: "Dashboard", icone: "dashboard" },
-  { id: "territorio", label: "Território", icone: "pin" },
-  { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
-  { id: "equipa", label: "Equipa", icone: "equipa" },
-  { id: "consultas", label: "Disponibilidades", icone: "consultas" },
-];
-
-const NAV_CONFIG = [
-  { id: "tiposEvento", label: "Modelos de Evento", icone: "modelos" },
-  { id: "importar", label: "Importar clientes", icone: "importar" },
-];
-
-const IDS_NO_MAIS = [...NAV_GESTAO, ...NAV_CONFIG].map((n) => n.id);
+const IDS_NA_BARRA = NAV_MOVEL.map((n) => n.id);
+const IDS_NO_MAIS = NAV_GRUPOS.flatMap((g) => g.itens.map((i) => i.id)).filter(
+  (id) => !IDS_NA_BARRA.includes(id),
+);
 
 // ------------------------------------------------------------
 // Separadores que a sessão não pode ver.
@@ -267,6 +262,15 @@ export function Icone({ nome, tamanho = 18 }) {
         <path {...t} d="M14 6.9L17.1 10" />
       </>
     ),
+    // A seta de um grupo — roda 90° quando o grupo abre (via CSS).
+    chevron: <path {...t} d="M9.5 6.5l5.5 5.5-5.5 5.5" />,
+    // Recolher/expandir a sidebar («» — roda 180° no modo compacto).
+    recolher: (
+      <>
+        <path {...t} d="M11.5 7l-5 5 5 5" />
+        <path {...t} d="M18 7l-5 5 5 5" />
+      </>
+    ),
   };
   return (
     <svg
@@ -336,25 +340,43 @@ function Contagem({ quantos }) {
   );
 }
 
-function ItemNav({ item, ativo, onClick, contagem }) {
+function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado = false }) {
   const rotas = useRotas();
   const estilo = {
     display: "flex",
     alignItems: "center",
+    justifyContent: compacto ? "center" : "flex-start",
     gap: "12px",
     width: "100%",
-    padding: "10px 14px",
+    padding: compacto ? "10px 0" : indentado ? "9px 14px 9px 22px" : "10px 14px",
     borderRadius: "10px",
     cursor: "pointer",
     textAlign: "left",
     boxSizing: "border-box",
     border: "none",
     textDecoration: "none",
+    position: "relative",
     backgroundColor: ativo ? "var(--superficie-quente)" : "transparent",
     color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
-    transition: "all 0.15s",
   };
-  const conteudo = (
+  const conteudo = compacto ? (
+    <>
+      <Icone nome={item.icone} tamanho={19} />
+      {contagem > 0 && (
+        <span
+          style={{
+            position: "absolute",
+            top: "4px",
+            right: "8px",
+            width: "7px",
+            height: "7px",
+            borderRadius: "999px",
+            backgroundColor: "var(--gold)",
+          }}
+        />
+      )}
+    </>
+  ) : (
     <>
       <Icone nome={item.icone} tamanho={18} />
       <span
@@ -371,25 +393,66 @@ function ItemNav({ item, ativo, onClick, contagem }) {
     </>
   );
 
-  if (ehSeparador(item.id)) {
-    return (
-      <NavLink
-        to={rotas.separador(item.id)}
-        replace
-        onClick={onClick}
-        style={estilo}
-      >
-        {conteudo}
-      </NavLink>
-    );
-  }
-
-  return (
-    <button onClick={onClick} style={{ ...estilo, background: "transparent" }}>
+  const no = ehSeparador(item.id) ? (
+    <NavLink
+      to={rotas.separador(item.id)}
+      replace
+      onClick={onClick}
+      className="nv-item"
+      style={estilo}
+      aria-label={compacto ? item.label : undefined}
+    >
+      {conteudo}
+    </NavLink>
+  ) : (
+    <button
+      onClick={onClick}
+      className="nv-item"
+      style={{ ...estilo, background: "transparent" }}
+      aria-label={compacto ? item.label : undefined}
+    >
       {conteudo}
     </button>
   );
+
+  if (!compacto) return no;
+  // No modo compacto, o nome viaja num rótulo flutuante ao hover/foco.
+  return (
+    <div className="nv-porta" style={{ position: "relative" }}>
+      {no}
+      <div className="nv-flyout" style={estFlyout}>
+        <div style={estFlyoutPainel}>
+          <span style={{ whiteSpace: "nowrap", fontSize: "12.5px" }}>
+            {item.label}
+          </span>
+          <Contagem quantos={contagem} />
+        </div>
+      </div>
+    </div>
+  );
 }
+
+// O rótulo/menu flutuante do modo compacto: ancora à direita do rail,
+// com uma ponte invisível de 8px para o rato atravessar sem o fechar.
+const estFlyout = {
+  position: "absolute",
+  left: "100%",
+  top: "50%",
+  translate: "0 -50%",
+  paddingLeft: "8px",
+  zIndex: 60,
+};
+const estFlyoutPainel = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  backgroundColor: "var(--superficie)",
+  border: "1px solid var(--borda)",
+  borderRadius: "10px",
+  padding: "8px 12px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.16)",
+  color: "var(--charcoal)",
+};
 
 // ------------------------------------------------------------
 // Badge dourado com o nº de notificações por ler. Pulsa uma vez
@@ -431,40 +494,72 @@ export function BadgeNaoLidas({ quantos, tamanho = 18 }) {
 }
 
 // Item especial da Caixa de Entrada — como um ItemNav, mas com o
-// badge das não lidas encostado à direita.
-function ItemCaixaEntrada({ naoLidas, onClick }) {
-  return (
+// badge das não lidas encostado à direita. Coroa o menu: é o correio
+// da casa, e quando há trabalho por ver é a primeira coisa que se vê
+// — sem alarme (o pulso do badge acontece duas vezes e cala-se).
+function ItemCaixaEntrada({ naoLidas, onClick, compacto = false }) {
+  const botao = (
     <button
       onClick={onClick}
+      className="nv-item"
+      aria-label={compacto ? "Caixa de Entrada" : undefined}
       style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: compacto ? "center" : "flex-start",
         gap: "12px",
         width: "100%",
-        padding: "10px 14px",
+        padding: compacto ? "10px 0" : "10px 14px",
         borderRadius: "10px",
         cursor: "pointer",
         textAlign: "left",
-        backgroundColor: naoLidas > 0 ? "var(--superficie-atenta)" : "transparent",
+        position: "relative",
+        // Sem fundo-pílula: o destaque de «página ativa» é ÚNICO no
+        // menu, e pertence ao separador atual. O correio por ver
+        // diz-se pela cor e pelo badge — chega, e não grita.
+        backgroundColor: "transparent",
         border: "none",
         color: naoLidas > 0 ? "var(--gold-dark)" : "var(--gray-mid)",
-        transition: "all 0.15s",
       }}
     >
-      <Icone nome="sino" tamanho={18} />
-      <span
-        style={{
-          fontSize: "14px",
-          fontWeight: naoLidas > 0 ? "600" : "400",
-          letterSpacing: "0.02em",
-          whiteSpace: "nowrap",
-          flex: 1,
-        }}
-      >
-        Caixa de Entrada
-      </span>
-      <BadgeNaoLidas quantos={naoLidas} />
+      <Icone nome="sino" tamanho={compacto ? 19 : 18} />
+      {!compacto && (
+        <span
+          style={{
+            fontSize: "14px",
+            fontWeight: naoLidas > 0 ? "600" : "400",
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap",
+            flex: 1,
+          }}
+        >
+          Caixa de Entrada
+        </span>
+      )}
+      {compacto ? (
+        naoLidas > 0 && (
+          <span style={{ position: "absolute", top: "2px", right: "4px" }}>
+            <BadgeNaoLidas quantos={naoLidas} tamanho={15} />
+          </span>
+        )
+      ) : (
+        <BadgeNaoLidas quantos={naoLidas} />
+      )}
     </button>
+  );
+  if (!compacto) return botao;
+  return (
+    <div className="nv-porta" style={{ position: "relative" }}>
+      {botao}
+      <div className="nv-flyout" style={estFlyout}>
+        <div style={estFlyoutPainel}>
+          <span style={{ whiteSpace: "nowrap", fontSize: "12.5px" }}>
+            Caixa de Entrada
+          </span>
+          <BadgeNaoLidas quantos={naoLidas} tamanho={16} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -486,7 +581,7 @@ function ItemCaixaEntrada({ naoLidas, onClick }) {
 // (lib/tema.js), e a sidebar e a folha «Mais» têm de ler o MESMO
 // valor sem se conhecerem.
 // ------------------------------------------------------------
-function ItemTema() {
+function ItemTema({ compacto = false }) {
   const tema = useSyncExternalStore(assinarTema, temaEfectivo);
   const escuro = tema === "escuro";
   return (
@@ -498,6 +593,7 @@ function ItemTema() {
       }}
       ativo={false}
       onClick={alternarTema}
+      compacto={compacto}
     />
   );
 }
@@ -520,7 +616,83 @@ function TituloSeccao({ children }) {
 }
 
 // ------------------------------------------------------------
-// SIDEBAR — desktop
+// UM GRUPO da sidebar (modo normal): cabeçalho clicável + corpo que
+// abre e fecha com uma dobra subtil (grid-template-rows — anima a
+// altura real sem números mágicos). O grupo da página atual está
+// SEMPRE aberto: fechar o sítio onde se está seria desorientação.
+// Fechado, o cabeçalho carrega o contexto: título em ouro quando a
+// página atual vive lá dentro, e a soma das contagens dos filhos.
+// ------------------------------------------------------------
+function GrupoNav({ grupo, aberto, contemAtivo, contagemFechado, onToggle, children }) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="nv-item"
+        aria-expanded={aberto}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          width: "100%",
+          padding: "9px 10px 9px 14px",
+          border: "none",
+          background: "transparent",
+          borderRadius: "10px",
+          cursor: contemAtivo ? "default" : "pointer",
+          boxSizing: "border-box",
+        }}
+        title={contemAtivo ? "O grupo da página atual fica aberto" : undefined}
+      >
+        <span
+          style={{
+            fontSize: "9.5px",
+            fontWeight: "700",
+            color: contemAtivo ? "var(--gold-dark)" : "var(--gold)",
+            textTransform: "uppercase",
+            letterSpacing: "0.2em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {grupo.titulo}
+        </span>
+        {!aberto && contemAtivo && (
+          <span
+            style={{
+              width: "5px",
+              height: "5px",
+              borderRadius: "999px",
+              backgroundColor: "var(--gold-dark)",
+              flexShrink: 0,
+            }}
+          />
+        )}
+        {!aberto && <Contagem quantos={contagemFechado} />}
+        <span
+          className={`nv-chevron${aberto ? " aberto" : ""}`}
+          style={{
+            marginLeft: !aberto && contagemFechado ? "0" : "auto",
+            color: "var(--gold)",
+            display: "flex",
+          }}
+        >
+          <Icone nome="chevron" tamanho={12} />
+        </span>
+      </button>
+      <div className={`nv-grupo-corpo${aberto ? " aberto" : ""}`}>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// SIDEBAR — desktop.
+// Normal (248px): diário à vista, domínios recolhíveis, conta no
+// fundo. Compacta (72px): um rail de ícones — cada grupo é UM ícone
+// cujo flyout revela os destinos; pensada para os ecrãs largos
+// (Território, Dashboard, Agenda, Logística). A preferência e o
+// estado dos grupos ficam no localStorage.
 // ------------------------------------------------------------
 export function SidebarNav({
   activeTab,
@@ -532,82 +704,270 @@ export function SidebarNav({
   // { [idDoSeparador]: número } — contagens discretas ao lado dos itens.
   contagens = {},
 }) {
+  const [abertos, setAbertos] = useState(lerGruposAbertos);
+  const [compacta, setCompacta] = useState(lerNavCompacta);
+
+  const alternarGrupo = (id, contemAtivo) => {
+    // O grupo da página atual está sempre aberto — «fechá-lo» seria
+    // um clique sem efeito visual que ainda por cima corrompia a
+    // preferência guardada (a paridade de cliques mortos decidia o
+    // estado futuro). Com a página lá dentro, o gesto não faz nada.
+    if (contemAtivo) return;
+    const novos = { ...abertos, [id]: !abertos[id] };
+    setAbertos(novos);
+    guardarGruposAbertos(novos);
+  };
+  const alternarCompacta = () => {
+    setCompacta((v) => {
+      guardarNavCompacta(!v);
+      return !v;
+    });
+  };
+
+  const grupos = NAV_GRUPOS.map((g) => ({
+    ...g,
+    itens: visiveis(g.itens, ocultar),
+  })).filter((g) => g.itens.length > 0);
+
+  const item = (it, extra = {}) => (
+    <ItemNav
+      key={it.id}
+      item={it}
+      ativo={activeTab === it.id}
+      onClick={(ev) => onNavegar(it.id, ev)}
+      contagem={contagens[it.id]}
+      compacto={compacta}
+      {...extra}
+    />
+  );
+
   return (
     <div
+      className="nv-sidebar"
       style={{
-        width: "248px",
+        width: compacta ? "72px" : "248px",
         flexShrink: 0,
         backgroundColor: "var(--superficie)",
         borderRight: "1px solid var(--borda)",
         height: "100vh",
         position: "sticky",
         top: 0,
+        // O sticky cria stacking context: sem zIndex próprio, os
+        // flyouts do rail (zIndex interno) ficavam POR BAIXO dos
+        // cabeçalhos sticky do conteúdo (CabecalhoEvento z20).
+        // 30 = acima dos sticky das páginas, abaixo dos drawers (40+).
+        zIndex: 30,
         display: "flex",
         flexDirection: "column",
-        padding: "28px 14px 18px",
+        padding: compacta ? "18px 10px 14px" : "28px 14px 18px",
         boxSizing: "border-box",
-        overflowY: "auto",
+        // No rail os flyouts saem para fora da sidebar — um scroller
+        // clipava-os (overflow-y:auto arrasta o eixo x para auto).
+        // O rail cabe sempre; o modo normal é que pode precisar de
+        // rolar em ecrãs baixos.
+        overflowY: compacta ? "visible" : "auto",
       }}
     >
-      {/* O logo coroa a sidebar — mesmo tratamento de luxo (halo,
-          raio de relógio, poeira de ouro, brilho nas letras) do hero
-          do formulário de interesse, ver LogoDourado.jsx */}
-      <div style={{ textAlign: "center", marginBottom: "26px" }}>
-        <LogoDourado size={132} />
+      <style>{CSS_NAV}</style>
+
+      {/* O logo coroa a sidebar — mesmo tratamento de luxo do hero do
+          formulário de interesse (LogoDourado.jsx). No rail, recolhe
+          para a marca pequena. */}
+      <div style={{ textAlign: "center", marginBottom: compacta ? "16px" : "26px" }}>
+        <LogoDourado size={compacta ? 44 : 132} />
       </div>
 
       {/* A Caixa de Entrada coroa o menu: é o correio da casa */}
       {onAbrirNotificacoes && (
-        <ItemCaixaEntrada naoLidas={naoLidas} onClick={onAbrirNotificacoes} />
+        <ItemCaixaEntrada
+          naoLidas={naoLidas}
+          onClick={onAbrirNotificacoes}
+          compacto={compacta}
+        />
       )}
 
-      {NAV_PRINCIPAL.map((item) => (
-        <ItemNav
-          key={item.id}
-          item={item}
-          ativo={activeTab === item.id}
-          onClick={(ev) => onNavegar(item.id, ev)}
-          contagem={contagens[item.id]}
-        />
-      ))}
+      {/* O trabalho de todos os dias — sempre à vista, sem dobras */}
+      {NAV_DIARIA.map((it) => item(it))}
 
-      <TituloSeccao>Gestão</TituloSeccao>
-      {visiveis(NAV_GESTAO, ocultar).map((item) => (
-        <ItemNav
-          key={item.id}
-          item={item}
-          ativo={activeTab === item.id}
-          onClick={(ev) => onNavegar(item.id, ev)}
-          contagem={contagens[item.id]}
-        />
-      ))}
+      {compacta ? (
+        // Rail: cada domínio é UM ícone; o flyout traz os destinos.
+        <>
+          <div
+            style={{
+              height: "1px",
+              backgroundColor: "var(--borda)",
+              margin: "10px 6px",
+            }}
+          />
+          {grupos.map((g) => {
+            const contemAtivo = g.itens.some((i) => i.id === activeTab);
+            const soma = g.itens.reduce((s, i) => s + (contagens[i.id] || 0), 0);
+            return (
+              <div key={g.id} className="nv-porta" style={{ position: "relative" }}>
+                <div
+                  className="nv-item"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={g.titulo}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "10px 0",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    position: "relative",
+                    color: contemAtivo ? "var(--gold-dark)" : "var(--gray-mid)",
+                    backgroundColor: contemAtivo
+                      ? "var(--superficie-quente)"
+                      : "transparent",
+                  }}
+                >
+                  <Icone nome={g.icone} tamanho={19} />
+                  {soma > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "4px",
+                        right: "8px",
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "999px",
+                        backgroundColor: "var(--gold)",
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="nv-flyout" style={estFlyout}>
+                  <div
+                    style={{
+                      ...estFlyoutPainel,
+                      display: "block",
+                      padding: "10px 8px",
+                      minWidth: "196px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        color: "var(--gold)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.2em",
+                        margin: "0 0 6px 14px",
+                      }}
+                    >
+                      {g.titulo}
+                    </p>
+                    {g.itens.map((it) => (
+                      <ItemNav
+                        key={it.id}
+                        item={it}
+                        ativo={activeTab === it.id}
+                        onClick={(ev) => onNavegar(it.id, ev)}
+                        contagem={contagens[it.id]}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      ) : (
+        // Normal: domínios recolhíveis; o da página atual nunca fecha.
+        <div style={{ marginTop: "14px" }}>
+          {grupos.map((g) => {
+            const contemAtivo = g.itens.some((i) => i.id === activeTab);
+            const aberto = !!abertos[g.id] || contemAtivo;
+            const soma = g.itens.reduce((s, i) => s + (contagens[i.id] || 0), 0);
+            return (
+              <GrupoNav
+                key={g.id}
+                grupo={g}
+                aberto={aberto}
+                contemAtivo={contemAtivo}
+                contagemFechado={soma}
+                onToggle={() => alternarGrupo(g.id, contemAtivo)}
+              >
+                {g.itens.map((it) => item(it, { indentado: true }))}
+              </GrupoNav>
+            );
+          })}
+        </div>
+      )}
 
+      {/* Conta e sistema — no fundo, fora da conversa dos módulos */}
       <div
         style={{
           marginTop: "auto",
           borderTop: "1px solid var(--borda)",
-          paddingTop: "10px",
+          paddingTop: "8px",
         }}
       >
-        {visiveis(NAV_CONFIG, ocultar).map((item) => (
-          <ItemNav
-            key={item.id}
-            item={item}
-            ativo={activeTab === item.id}
-            onClick={(ev) => onNavegar(item.id, ev)}
-            contagem={contagens[item.id]}
-          />
-        ))}
-        <ItemTema />
+        <button
+          onClick={alternarCompacta}
+          className="nv-item"
+          aria-label={compacta ? "Expandir menu" : "Recolher menu"}
+          title={compacta ? "Expandir menu" : "Recolher menu"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: compacta ? "center" : "flex-start",
+            gap: "12px",
+            width: "100%",
+            padding: compacta ? "9px 0" : "8px 14px",
+            border: "none",
+            background: "transparent",
+            borderRadius: "10px",
+            cursor: "pointer",
+            color: "var(--gray-mid)",
+          }}
+        >
+          <span
+            className={`nv-recolhe${compacta ? " compacta" : ""}`}
+            style={{ display: "flex" }}
+          >
+            <Icone nome="recolher" tamanho={17} />
+          </span>
+          {!compacta && (
+            <span style={{ fontSize: "12.5px", letterSpacing: "0.02em" }}>
+              Recolher
+            </span>
+          )}
+        </button>
+        <ItemTema compacto={compacta} />
         <ItemNav
           item={{ id: "__sair", label: "Sair", icone: "sair" }}
           ativo={false}
           onClick={onSair}
+          compacto={compacta}
         />
       </div>
     </div>
   );
 }
+
+// As microinterações da navegação — só o que os estilos inline não
+// dizem (hover, foco, dobras, flyouts). 140–220 ms, sem bounce.
+const CSS_NAV = `
+.nv-sidebar{transition:width .22s ease,padding .22s ease}
+.nv-item{transition:background-color .16s ease,color .16s ease}
+.nv-item:hover{background-color:var(--superficie-quente)}
+.nv-item:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.nv-grupo-corpo{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease}
+.nv-grupo-corpo.aberto{grid-template-rows:1fr}
+.nv-grupo-corpo>div{overflow:hidden;min-width:0}
+.nv-chevron{transition:transform .2s ease}
+.nv-chevron.aberto{transform:rotate(90deg)}
+.nv-flyout{opacity:0;margin-left:-4px;pointer-events:none;transition:opacity .14s ease,margin-left .14s ease}
+.nv-porta:hover .nv-flyout,.nv-porta:focus-within .nv-flyout{opacity:1;margin-left:0;pointer-events:auto}
+.nv-recolhe{transition:transform .25s ease}
+.nv-recolhe.compacta{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){
+  .nv-sidebar,.nv-item,.nv-grupo-corpo,.nv-chevron,.nv-flyout,.nv-recolhe{transition:none}
+}
+`;
 
 // ------------------------------------------------------------
 // BARRA INFERIOR — telemóvel
@@ -616,7 +976,7 @@ export function BottomNavMovel({ activeTab, onNavegar, onAbrirMais }) {
   const rotas = useRotas();
   const maisAtivo = IDS_NO_MAIS.includes(activeTab);
   const itens = [
-    ...NAV_PRINCIPAL.map((n) => ({ ...n, acao: (ev) => onNavegar(n.id, ev) })),
+    ...NAV_MOVEL.map((n) => ({ ...n, acao: (ev) => onNavegar(n.id, ev) })),
     { id: "__mais", label: "Mais", icone: "mais", acao: onAbrirMais },
   ];
   return (
@@ -707,6 +1067,9 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
           borderRadius: "18px 18px 0 0",
           padding: "10px 14px calc(18px + env(safe-area-inset-bottom))",
           boxShadow: "0 -6px 24px rgba(0,0,0,0.12)",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          boxSizing: "border-box",
         }}
       >
         <div
@@ -718,18 +1081,32 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
             margin: "0 auto 12px",
           }}
         />
-        {visiveis([...NAV_GESTAO, ...NAV_CONFIG], ocultar).map((item) => (
-          <ItemNav
-            key={item.id}
-            item={item}
-            ativo={activeTab === item.id}
-            onClick={(ev) => {
-              onNavegar(item.id, ev);
-              onFechar();
-            }}
-            contagem={contagens[item.id]}
-          />
-        ))}
+        {/* Os mesmos domínios da sidebar — na folha ficam sempre
+            abertos (é um menu pontual; dobrar aqui seria atrito), e
+            os destinos que já vivem na barra inferior não se repetem. */}
+        {NAV_GRUPOS.map((g) => {
+          const itens = visiveis(g.itens, ocultar).filter(
+            (i) => !IDS_NA_BARRA.includes(i.id),
+          );
+          if (!itens.length) return null;
+          return (
+            <div key={g.id}>
+              <TituloSeccao>{g.titulo}</TituloSeccao>
+              {itens.map((item) => (
+                <ItemNav
+                  key={item.id}
+                  item={item}
+                  ativo={activeTab === item.id}
+                  onClick={(ev) => {
+                    onNavegar(item.id, ev);
+                    onFechar();
+                  }}
+                  contagem={contagens[item.id]}
+                />
+              ))}
+            </div>
+          );
+        })}
         <div
           style={{
             borderTop: "1px solid var(--borda)",
