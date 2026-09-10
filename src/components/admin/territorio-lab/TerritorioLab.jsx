@@ -316,7 +316,13 @@ export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
   // os valores voltam a dizer «≈ estimativa» até novo refinamento.
   const [refino, setRefino] = useState(null); // {estado, chave, kmsAtual, kmsB}
   const seqRefino = useRef(0);
-  const chaveCenario = (a, b) => `${chavePonto(a)}|${chavePonto(b)}`;
+  // A chave prende o refino à posição E ao conjunto de eventos: com
+  // dados vivos, um evento que ENTRE nas operações a meio do cenário
+  // invalidaria os Maps por id (get → undefined → Infinity/NaN no
+  // painel). Chave desatualizada = voltar, honesto, à estimativa ≈.
+  const idsOperacionais = eventosOperacionais.map((e) => e.id).sort().join(",");
+  const chaveCenario = (a, b) =>
+    `${chavePonto(a)}|${chavePonto(b)}|${idsOperacionais}`;
   const refinarCenario = (posAtual, posB) => {
     const chave = chaveCenario(posAtual, posB);
     const meu = ++seqRefino.current;
@@ -516,7 +522,9 @@ export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
   // como manda o lint da casa.
   const mudarCena = (id) => {
     pararTempo();
-    setTempoLimite(id === "tempo" ? tsMax : null);
+    // null = «fim vivo»: com dados vivos, um pedido novo que chegue
+    // com a cena Tempo aberta aparece — fixar tsMax aqui escondia-o.
+    setTempoLimite(null);
     setCena(id);
     // A câmara faz parte da cena: o 3D só fala com inclinação.
     const m = mapaRef.current;
@@ -615,11 +623,17 @@ export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
     let jaViu;
     try {
       jaViu = !!sessionStorage.getItem("dlm.atlasLab.entrada");
-      if (!jaViu) sessionStorage.setItem("dlm.atlasLab.entrada", "1");
     } catch {
       jaViu = false;
     }
     if (!jaViu && !reduzMotion && temPontos) {
+      // a flag só se queima quando a entrada corre MESMO — chegar
+      // cedo demais (0 pontos ainda) não pode gastar a vez da sessão
+      try {
+        sessionStorage.setItem("dlm.atlasLab.entrada", "1");
+      } catch {
+        /* sem memória de sessão — a entrada repete, e pronto */
+      }
       arrancarEntrada();
     } else {
       terminarEntrada();
@@ -1280,7 +1294,7 @@ export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
         )}
 
         {/* Timeline */}
-        {entrada !== "a-rodar" && cena === "tempo" && lente === "procura" && (
+        {entrada !== "a-rodar" && cena === "tempo" && lente === "procura" && tsMin != null && (
           <div
             style={{
               position: "absolute",
@@ -1413,7 +1427,11 @@ export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
             metrica3d={metrica3d}
             expansao={expansao}
             desktop={desktop}
-            nKmReais={eventosGeo.filter((e) => Number(e.kmReal) > 0).length}
+            nKmReais={
+              eventosGeo.filter(
+                (e) => eOperacional(e.estado) && Number(e.kmReal) > 0,
+              ).length
+            }
           />
         )}
 

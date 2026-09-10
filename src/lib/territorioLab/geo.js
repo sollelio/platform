@@ -145,9 +145,10 @@ export const arco = (a, b, curvatura = 0.22, passos = 40) => {
 export const NUCLEO_PROVISORIO = {
   id: "atual",
   nome: "Núcleo atual",
-  // ⚠ POSIÇÃO PROVISÓRIA: a sede (Ericeira). A localização real do
-  // armazém não existe no sistema — define-a no próprio Lab antes da
-  // demonstração (fica no localStorage; nada vai à base de dados).
+  // ⚠ POSIÇÃO PROVISÓRIA: a sede (Ericeira). Só entra em jogo quando
+  // NÃO há configuração da casa (NUCLEO_REAL em nucleoConfig.js) —
+  // hoje há; isto é a rede de segurança do dia em que uma casa nova
+  // arrancar sem posição, com o gesto de bootstrap do próprio Atlas.
   lngLat: COORDS_LOCALIDADE.ericeira,
   localidade: "Ericeira (sede — provisório)",
   provisorio: true,
@@ -186,8 +187,8 @@ export const limparNucleoGuardado = () => {
   }
 };
 
-// A posição de arranque SEM contar com o localStorage: a configurada
-// do staging (nucleoConfig.js), se existir; senão a provisória.
+// A posição de arranque SEM contar com o localStorage: a CONFIGURAÇÃO
+// da casa (nucleoConfig.js), se existir; senão a provisória.
 export const nucleoPorOmissao = () =>
   NUCLEO_REAL
     ? {

@@ -328,7 +328,7 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
   );
 }
 
-// O interruptor Frases ↔ Atlas (o Atlas só existe em staging).
+// O interruptor Frases ↔ Atlas.
 function SeletorModo({ modo, onModo }) {
   const opcoes = [
     ["frases", "Frases"],

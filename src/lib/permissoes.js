@@ -139,7 +139,9 @@ export const usePermissoesDeNavegacao = (organizationId) => {
     // A resposta ainda vai a caminho (SEM_RESPOSTA é a constante do
     // módulo — a igualdade de referência chega): quem protege rotas
     // mostra espera, não afirma «não tens acesso» a quem tem.
-    aVerificar: !!organizationId && perms === SEM_RESPOSTA,
+    // «Sem resposta» inclui a casa AINDA sem id (deep-link/refresh:
+    // a identidade chega assíncrona) — enquanto não se sabe, espera-se.
+    aVerificar: perms === SEM_RESPOSTA,
     indisponivel:
       !!(perms.equipa.indisponivel || perms.consultas.indisponivel),
   };
