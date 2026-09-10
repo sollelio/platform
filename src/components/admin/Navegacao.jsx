@@ -264,6 +264,14 @@ export function Icone({ nome, tamanho = 18 }) {
         <path {...t} d="M14 6.9L17.1 10" />
       </>
     ),
+    // O euro do «a entrar» — dinheiro a caminho, sem drama.
+    moeda: (
+      <>
+        <circle {...t} cx="12" cy="12" r="8.2" />
+        <path {...t} d="M15.2 9.2a3.8 3.8 0 100 5.6" />
+        <path {...t} d="M8.4 10.9h4.4M8.4 13.1h4.4" />
+      </>
+    ),
     // A bússola do Território — direção do negócio, não um alfinete.
     bussola: (
       <>

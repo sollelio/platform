@@ -3192,3 +3192,28 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   negócio no mapa — de onde vêm os pedidos e onde crescer»). O
   Dashboard ficou no Crescimento; NAV_DESTAQUES em lib/menu.js está
   pronta para futuros destaques.)*
+
+### A Home calma (10/09/2026)
+
+- **O feedback da Nádia** («está confuso e não me ajuda») redesenhou
+  o Início: a Home responde só a «o que preciso de saber agora e para
+  onde devo ir» — orienta e encaminha, nunca duplica os módulos.
+- **A estrutura**: saudação grande + data · «+ Registar pedido» (a
+  única criação da Home — é a porta do modal que as pontes das
+  consultas usam) · acesso rápido de sempre (procurar · Deslocação ·
+  Data) · QUATRO cartões grandes com CTA claro — Próximo evento
+  (Abrir evento), Eventos esta semana (Ver agenda), Contactos em
+  conversa (Ver contactos), A entrar com o saldo real dos sinais
+  «à porta» (Ver o funil).
+- **O que saiu**: a lista «A precisar de ti» (as REGRAS continuam —
+  prazo de pagamento 48h, sinal por receber, contrato por assinar,
+  formulário por preencher, por preparar, interessada parada — mas a
+  Home só diz O MAIS URGENTE, numa linha discreta «· +N assuntos»);
+  a mini-agenda da semana (o cartão + Ver agenda cobre); os cartões
+  «O momento» (absorvidos; «garantidos €» pertence ao Dashboard); os
+  alertas de Equipa (pertencem a Operações — o componente
+  AlertasEquipa fica no repo, sem uso na Home); o «+ Nova reserva»
+  (vive na Agenda). ErrosFormulario fica: raro, crítico, sem outra
+  casa.
+- Nada inventado: todos os números vêm dos recortes já existentes
+  (futuros, fases, saldoSinalPendente).
