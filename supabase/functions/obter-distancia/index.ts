@@ -45,6 +45,11 @@ Deno.serve(async (req) => {
   if (!morada) {
     return respostaErro("Escreve uma morada para calcular a distância.", 400);
   }
+  if (morada.length > 300) {
+    // higiene de input: nenhuma morada real tem este tamanho, e uma
+    // string enorme só faria um URL gigante para o Google recusar.
+    return respostaErro("A morada é demasiado longa.", 400);
+  }
 
   const chave = Deno.env.get("GOOGLE_MAPS_KEY");
   const moradaBase = Deno.env.get("MORADA_BASE");
@@ -65,7 +70,8 @@ Deno.serve(async (req) => {
 
   let dados: any;
   try {
-    const resposta = await fetch(url);
+    // Timeout próprio: um Google pendurado não pode prender o pedido.
+    const resposta = await fetch(url, { signal: AbortSignal.timeout(10000) });
     dados = await resposta.json();
   } catch (e) {
     console.error("obter-distancia: falha de rede ao chamar o Google", e);

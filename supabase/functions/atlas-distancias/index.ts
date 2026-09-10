@@ -1,11 +1,10 @@
 // supabase/functions/atlas-distancias/index.ts
 //
-// ⚠ SÓ STAGING — serve exclusivamente o Atlas Vision Prototype.
-// Deploy APENAS no projeto TEST; NUNCA em produção (nada em produção
-// chama isto). É deliberadamente separada da `obter-distancia` (a
-// porta dos orçamentos, com origem fixa na MORADA_BASE): o núcleo
-// operacional do Atlas NÃO é a base de pricing, e esta função nem lê
-// esse secret.
+// Serve o modo Atlas do Território (produto, TEST e PROD). É
+// deliberadamente separada da `obter-distancia` (a porta dos
+// orçamentos, com origem fixa na MORADA_BASE): o núcleo operacional
+// do Atlas NÃO é a base de pricing, e esta função nem lê esse
+// secret.
 //
 // Recebe COORDENADAS ao nível da localidade (centróides curados +
 // a posição de um núcleo pousado no mapa) — nunca moradas, nunca PII
@@ -40,6 +39,7 @@ const ponto = (p: unknown): p is [number, number] =>
   p.length === 2 &&
   Number.isFinite(p[0]) &&
   Number.isFinite(p[1]) &&
+  Math.abs(p[0]) <= 180 &&
   Math.abs(p[1]) <= 90;
 
 // Google fala "lat,lng"; o Atlas fala [lng, lat] (a ordem do GeoJSON).
@@ -84,7 +84,9 @@ Deno.serve(async (req) => {
 
   let dados: any;
   try {
-    const resposta = await fetch(url);
+    // Timeout próprio: um Google pendurado não pode prender o pedido
+    // (e o spinner de quem espera) até ao limite do runtime.
+    const resposta = await fetch(url, { signal: AbortSignal.timeout(10000) });
     dados = await resposta.json();
   } catch (e) {
     console.error("atlas-distancias: falha de rede ao chamar o Google", e);

@@ -29,6 +29,11 @@ const EASE = [0.22, 1, 0.36, 1];
 
 // Chip "morada inválida" dispara o estado ERRO de propósito — não é
 // uma morada real, é o gatilho de teste que o próprio design pede.
+// SÓ nos ambientes de ensaio (a lista explícita do EnvBanner): em
+// produção seria um botão que paga um pedido ao Google para falhar.
+const AMBIENTE_DE_ENSAIO = ["development", "test"].includes(
+  import.meta.env.VITE_APP_ENV,
+);
 const MORADA_TESTE_INVALIDA = "Endereço Desconhecido 999";
 
 const formatKm = (n) => {
@@ -259,14 +264,16 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
             {nome}
           </button>
         ))}
-        <button
-          type="button"
-          disabled={carregando}
-          onClick={() => calcularParaMorada(MORADA_TESTE_INVALIDA)}
-          style={{ ...chipStyle, borderStyle: "dashed", color: "var(--gray-mid)" }}
-        >
-          morada inválida
-        </button>
+        {AMBIENTE_DE_ENSAIO && (
+          <button
+            type="button"
+            disabled={carregando}
+            onClick={() => calcularParaMorada(MORADA_TESTE_INVALIDA)}
+            style={{ ...chipStyle, borderStyle: "dashed", color: "var(--gray-mid)" }}
+          >
+            morada inválida
+          </button>
+        )}
       </div>
 
       {/* Banner de erro — âmbar, nunca vermelho, nunca bloqueia */}
