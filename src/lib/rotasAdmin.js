@@ -53,6 +53,7 @@ const SLUG_POR_ID = {
   mensagens: "mensagens",
   comunicados: "envios",
   dashboard: "dashboard",
+  territorio: "territorio",
   avaliacoes: "avaliacoes",
   tiposEvento: "modelos-evento",
   equipa: "equipa",

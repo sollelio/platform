@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
 import { SEPARADOR_POR_OMISSAO, idDoSlug, useRotas } from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
@@ -68,6 +68,12 @@ import PainelNotificacoes, {
 import { useNotificacoes, TIPOS_DO_ACOMPANHAMENTO } from "../lib/notificacoes";
 import { getReservas } from "../lib/reservas";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Território (Atlas da Casa) é o único tab LAZY — chunk próprio, fora
+// do principal (2,2 MB); ver o bloco condicional para o porquê.
+const TerritorioTab = lazy(
+  () => import("../components/admin/TerritorioTab"),
+);
 
 // Gera um título legível para um formulário (ex: "André & Andreia").
 // Delega no getResumoSubmissao (a lógica genérica com papéis), construindo
@@ -1310,6 +1316,27 @@ export default function AdminPage() {
             eventTypes={eventTypes}
             onSelectSubmission={(s) => setSelected(s)}
           />
+        )}
+
+        {/* ---- TAB TERRITÓRIO (Atlas da Casa, Lote A) ----
+            O ÚNICO separador lazy: o Atlas cresce (um dia carrega o
+            mapa) e não deve pesar no chunk principal — o precedente de
+            import dinâmico é o jspdf (planoPdf.js). O fallback é o
+            esqueleto da casa, nunca um spinner. */}
+        {activeTab === "territorio" && (
+          <Suspense
+            fallback={
+              <div
+                className="esqueleto"
+                style={{ height: "260px", borderRadius: "16px" }}
+              />
+            }
+          >
+            <TerritorioTab
+              submissions={submissions}
+              loading={eventosPorChegar}
+            />
+          </Suspense>
         )}
 
         {/* ---- TAB TIPOS DE EVENTO ---- */}

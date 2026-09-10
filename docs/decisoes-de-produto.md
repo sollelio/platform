@@ -2979,3 +2979,27 @@ fundação de recolha que vem ANTES de qualquer ecrã:
 - Migração: **109_a_procura_nao_se_apaga.sql** (colunas de perda +
   captacao_submeter com nota de contacto repetido). Corre em TEST
   primeiro; o motivo no «Sim, perdido» assume-a corrida.
+
+### Lote A construído — o separador «Território» (10/09/2026)
+
+- 15.º separador, id `territorio` (rotasAdmin + nav com o ícone «pin»),
+  o ÚNICO lazy do backoffice (chunk próprio ~31 KB; o principal não
+  cresceu). Motor puro em `lib/territorio/` (zonas.js = tabela de
+  zonamento VERSIONADA, o artefacto de que todas as frases dependem;
+  motor.js = frases com {camada, despertar, calcular}), testado com a
+  fotografia real de produção (15 testes novos; `npm test` 108 ✔).
+- Frases ativas hoje (n=19): concentração (vantagem-em-eventos 7 vs 4),
+  três frentes, funil da zona em parcelas, valor por zona, alcance
+  (79 km), estrada cobrada, próximos 90 dias, apertos de agenda
+  (janela ±2 dias da conferência), valor típico da Linha + 2 de
+  arrumação. «A dormir» com condição declarada: procura perdida,
+  tipo×zona, estrada típica, canal de origem.
+- «Avaliar novo pedido»: interessados com localidade → km on-demand
+  pela porta única + taxa pela regra + comparação com o censo.
+- Honestidade embutida: população é sempre «pedidos registados»;
+  contagens até n=20 (regime derivado 100/(n+1)); chip de base
+  amostral em todos; drawer «porquê» com fórmula, regra do limiar,
+  registos-suporte (com link ao evento), excluídos, nota de
+  sensibilidade e versão do zonamento.
+- SEM mapa, SEM MapLibre, SEM heatmap/3D/deck.gl/simulação — nada do
+  Lote B foi antecipado; o rodapé do separador di-lo.

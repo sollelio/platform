@@ -28,6 +28,7 @@ const NAV_GESTAO = [
   { id: "mensagens", label: "Mensagens", icone: "mensagens" },
   { id: "comunicados", label: "Envios", icone: "comunicados" },
   { id: "dashboard", label: "Dashboard", icone: "dashboard" },
+  { id: "territorio", label: "Território", icone: "pin" },
   { id: "avaliacoes", label: "Avaliações", icone: "avaliacoes" },
   { id: "equipa", label: "Equipa", icone: "equipa" },
   { id: "consultas", label: "Disponibilidades", icone: "consultas" },
