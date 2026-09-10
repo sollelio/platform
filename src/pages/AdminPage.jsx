@@ -1025,7 +1025,12 @@ export default function AdminPage() {
           // O Início é um PAINEL de 3 colunas: merece a largura toda
           // (com uma moldura simétrica em ecrãs gigantes). Os outros
           // ecrãs são listas/formulários: leem-se melhor contidos.
-          maxWidth: activeTab === "inicio" ? "1480px" : "960px",
+          maxWidth:
+            activeTab === "inicio"
+              ? "1480px"
+              : activeTab === "territorio"
+                ? "1560px" // o Atlas (staging) quer palco largo
+                : "960px",
           margin: "0 auto",
           padding: ehDesktop
             ? activeTab === "inicio"

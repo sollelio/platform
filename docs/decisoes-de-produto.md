@@ -3035,3 +3035,35 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   (docs/migracoes/validacao_109.sql tem o antes/depois).
 - **«Censo» saiu da UI** (aparecia em 3 «regras do limiar» do drawer)
   — a linguagem da utilizadora é sempre «pedidos registados».
+
+### Atlas Vision Prototype — laboratório de staging (10/09/2026)
+
+- **O que é**: experiência premium de mapa no separador Território —
+  modo «Atlas ✦» ao lado das frases do Lote A. É um PROTÓTIPO DE
+  VISÃO em staging, NÃO o Lote B de produção; nenhuma parte foi
+  promovida para produção nem tocou o `main`.
+- **Fronteira única**: `LAB_ATIVO` no TerritorioTab (só
+  development/test); chunk lazy próprio (~288 KB gz) — o bundle
+  principal não muda um byte. Em produção o seletor de modo nem
+  se monta.
+- **Dados**: fotografia sanitizada de 19 pedidos (10/09/2026), sem
+  nomes/contactos/moradas residenciais — o protótipo NUNCA consulta
+  a base de dados em runtime, nem escreve nela.
+- **Geocodificação sem serviços externos**: tabela local de
+  centróides de localidade (~40 entradas curadas). Precisão =
+  localidade; 3 pedidos sem localidade mapeável ficam FORA do mapa
+  e são contados no rodapé (nunca inventados).
+- **Simulação honesta**: estimador único haversine ×1,3 para os DOIS
+  núcleos (comparação justa), declarado na UI; km reais dos 4
+  orçamentos mostrados onde existem; métricas só verificáveis
+  (contagens, Σ/mediana/máx de distância, quantos mudariam) — zero
+  euros inventados, zero ROI. Cenários rápidos dizem «Experimentar»,
+  nunca «recomendado».
+- **Núcleo operacional ≠ base de pricing**: a simulação parte do
+  núcleo operacional (provisório: a sede, Ericeira — marcado como
+  tal na UI), NUNCA da MORADA_BASE dos orçamentos. A localização
+  real do armazém NÃO existe no sistema: o Hélio define-a no painel
+  Infraestrutura (arrastar → guardar; fica só em localStorage).
+- **Linguagem**: sempre «pedidos registados» / «concentração dos
+  pedidos registados» — nunca «procura do mercado»; rodapé com data
+  da fotografia, precisão e fronteira de staging sempre visível.

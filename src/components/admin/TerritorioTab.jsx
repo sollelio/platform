@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
@@ -28,6 +28,17 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 // checkpoint): mapa/MapLibre, heatmaps, 3D, deck.gl, simulação de
 // núcleos, geocodificação. Nada disso foi antecipado.
 // ============================================================
+
+// ------------------------------------------------------------
+// Atlas Vision Prototype — SÓ STAGING. A fronteira inteira é esta
+// guarda: em produção (VITE_APP_ENV fora de development/test) o modo
+// «Atlas» nem se monta nem se carrega (o chunk é lazy). Nada do
+// protótipo foi promovido para produção.
+// ------------------------------------------------------------
+const LAB_ATIVO = ["development", "test"].includes(
+  import.meta.env.VITE_APP_ENV,
+);
+const TerritorioLab = lazy(() => import("./territorio-lab/TerritorioLab"));
 
 const CAMADA_ROTULO = {
   procura: "Procura",
@@ -112,6 +123,9 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
 
   const [porque, setPorque] = useState(null); // a frase aberta no drawer
   const [mostrarDormir, setMostrarDormir] = useState(false);
+  // «frases» = o Lote A de sempre; «atlas» = o Vision Prototype (SÓ
+  // staging — ver LAB_ATIVO).
+  const [modo, setModo] = useState("frases");
 
   if (loading && submissions.length === 0) {
     return (
@@ -129,6 +143,51 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
       })
     : null;
 
+  if (modo === "atlas" && LAB_ATIVO) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: "700",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--gold-dark)",
+              margin: 0,
+            }}
+          >
+            Território
+          </p>
+          <SeletorModo modo={modo} onModo={setModo} />
+        </div>
+        <Suspense
+          fallback={
+            <div
+              className="esqueleto"
+              style={{ height: "60vh", borderRadius: "18px" }}
+            />
+          }
+        >
+          <TerritorioLab />
+        </Suspense>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -137,18 +196,29 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
       style={{ maxWidth: "680px" }}
     >
       {/* Cabeçalho */}
-      <p
+      <div
         style={{
-          fontSize: "10px",
-          fontWeight: "700",
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          color: "var(--gold-dark)",
-          margin: "0 0 4px 0",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "4px",
         }}
       >
-        Território
-      </p>
+        <p
+          style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--gold-dark)",
+            margin: 0,
+          }}
+        >
+          Território
+        </p>
+        {LAB_ATIVO && <SeletorModo modo={modo} onModo={setModo} />}
+      </div>
       <h2
         style={{
           fontSize: "22px",
@@ -260,6 +330,44 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
 
       {porque && <DrawerPorque frase={porque} onFechar={() => setPorque(null)} rotas={rotas} />}
     </motion.div>
+  );
+}
+
+// O interruptor Frases ↔ Atlas (o Atlas só existe em staging).
+function SeletorModo({ modo, onModo }) {
+  const opcoes = [
+    ["frases", "Frases"],
+    ["atlas", "Atlas ✦"],
+  ];
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        border: "1.5px solid var(--gold-light)",
+        borderRadius: "999px",
+        overflow: "hidden",
+      }}
+    >
+      {opcoes.map(([id, rotulo]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onModo(id)}
+          className="acao"
+          style={{
+            padding: "5px 14px",
+            fontSize: "11.5px",
+            fontWeight: 600,
+            border: "none",
+            backgroundColor: modo === id ? "var(--gold)" : "var(--superficie)",
+            color: modo === id ? "var(--texto-sobre-ouro)" : "var(--gray-mid)",
+            cursor: "pointer",
+          }}
+        >
+          {rotulo}
+        </button>
+      ))}
+    </div>
   );
 }
 
