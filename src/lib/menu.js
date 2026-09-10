@@ -150,18 +150,22 @@ export const guardarGruposAbertos = (abertos) => {
   }
 };
 
+// A sidebar do desktop nasce RECOLHIDA (decisão de 10/09: mais espaço
+// horizontal para o conteúdo logo à entrada). Por isso «expandida» tem
+// de ser uma escolha gravada ("0") — se fosse a ausência da chave, como
+// era, a omissão nova engoli-la-ia a cada sessão. Três estados: "1" =
+// compacta, "0" = expandida, sem chave = a omissão (compacta).
 export const lerNavCompacta = () => {
   try {
-    return globalThis.localStorage?.getItem(CHAVE_COMPACTA) === "1";
+    return globalThis.localStorage?.getItem(CHAVE_COMPACTA) !== "0";
   } catch {
-    return false;
+    return true;
   }
 };
 
 export const guardarNavCompacta = (compacta) => {
   try {
-    if (compacta) globalThis.localStorage?.setItem(CHAVE_COMPACTA, "1");
-    else globalThis.localStorage?.removeItem(CHAVE_COMPACTA);
+    globalThis.localStorage?.setItem(CHAVE_COMPACTA, compacta ? "1" : "0");
   } catch {
     /* idem */
   }

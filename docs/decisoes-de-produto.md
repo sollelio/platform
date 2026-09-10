@@ -3217,3 +3217,16 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   casa.
 - Nada inventado: todos os números vêm dos recortes já existentes
   (futuros, fases, saldoSinalPendente).
+
+### A sidebar nasce recolhida (10/09/2026)
+
+- No desktop, o menu lateral **abre no modo compacto por omissão**: só
+  os ícones, com os flyouts/tooltips de sempre e a página atual bem
+  marcada. A prioridade é a largura — o conteúdo é o protagonista logo
+  à entrada, e a aplicação parece mais limpa.
+- Expandir continua a um clique («»), e a escolha fica **gravada**:
+  quem prefere o menu aberto expande uma vez e ele mantém-se assim.
+  Para isso «expandida» passou a preferência explícita ("0" na chave
+  `dlm.backoffice.nav.compacta`) — antes era a ausência da chave, e a
+  omissão nova apagá-la-ia a cada sessão.
+- No móvel nada muda: barra inferior + folha «Mais», como sempre.

@@ -9,6 +9,8 @@ import {
   separadoresOcultosDe,
   grupoDoSeparador,
   todosOsDestinos,
+  lerNavCompacta,
+  guardarNavCompacta,
 } from "./menu.js";
 import { caminhoDoSeparador } from "./rotasAdmin.js";
 
@@ -107,6 +109,52 @@ test("esconder pelos grupos cobre TODAS as superfícies: os separadores com chav
       grupoDoSeparador(id),
       `${id} tem de pertencer a um grupo da arquitetura`,
     );
+  }
+});
+
+// ============================================================
+// A sidebar do desktop nasce recolhida (decisão de 10/09) — e é
+// por isso que «expandida» tem de ser uma escolha GRAVADA: se
+// fosse a ausência da chave, a omissão nova apagá-la-ia a cada
+// sessão. Estes testes fixam o tri-estado.
+// ============================================================
+
+test("sem preferência gravada, a sidebar nasce recolhida — e expandir fica gravado", () => {
+  const memoria = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (memoria.has(k) ? memoria.get(k) : null),
+    setItem: (k, v) => memoria.set(k, String(v)),
+    removeItem: (k) => memoria.delete(k),
+  };
+  try {
+    // 1.ª entrada de sempre: chave ausente → compacta por omissão
+    assert.equal(lerNavCompacta(), true);
+    // a pessoa expande → a escolha sobrevive à «sessão» seguinte
+    guardarNavCompacta(false);
+    assert.equal(lerNavCompacta(), false);
+    // volta a recolher → idem
+    guardarNavCompacta(true);
+    assert.equal(lerNavCompacta(), true);
+    // legado: quem já tinha "1" gravado continua compacta
+    memoria.clear();
+    memoria.set("dlm.backoffice.nav.compacta", "1");
+    assert.equal(lerNavCompacta(), true);
+  } finally {
+    delete globalThis.localStorage;
+  }
+});
+
+test("sem localStorage (ou a atirar), a omissão continua a ser recolhida", () => {
+  assert.equal(lerNavCompacta(), true); // node: sem localStorage
+  globalThis.localStorage = {
+    getItem: () => {
+      throw new Error("bloqueado");
+    },
+  };
+  try {
+    assert.equal(lerNavCompacta(), true);
+  } finally {
+    delete globalThis.localStorage;
   }
 });
 
