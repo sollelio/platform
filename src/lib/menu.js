@@ -26,6 +26,21 @@ export const NAV_DIARIA = [
   { id: "clientes", label: "Contactos", icone: "contactos" },
 ];
 
+// O(s) DESTAQUE(s) ESTRATÉGICO(s) — visíveis sempre, logo a seguir ao
+// diário, mas com OUTRA natureza: a Caixa de Entrada é urgência
+// operacional (badge cheio); isto é visão e crescimento (moldura
+// fina, chip em contorno, sem pressa). Hoje é um; a lista existe
+// para o dia em que houver outro.
+export const NAV_DESTAQUES = [
+  {
+    id: "territorio",
+    label: "Território",
+    icone: "bussola",
+    chip: "Estratégico",
+    dica: "O negócio no mapa — de onde vêm os pedidos e onde crescer.",
+  },
+];
+
 // Os DOMÍNIOS do resto da casa. Fechados por omissão: a estrutura
 // lê-se num relance (4 títulos), e a complexidade só se abre quando
 // é preciso. «Documentos» vive no Comercial de propósito — são os
@@ -57,10 +72,10 @@ export const NAV_GRUPOS = [
     id: "crescimento",
     titulo: "Crescimento",
     icone: "dashboard",
-    itens: [
-      { id: "dashboard", label: "Dashboard", icone: "dashboard" },
-      { id: "territorio", label: "Território", icone: "pin" },
-    ],
+    // (o Território saiu daqui para destaque standalone — decisão de
+    // 10/09: dentro do dropdown ficava escondido demais para um
+    // módulo estratégico; o Dashboard fica, e o domínio crescerá)
+    itens: [{ id: "dashboard", label: "Dashboard", icone: "dashboard" }],
   },
   {
     id: "ferramentas",
@@ -106,6 +121,7 @@ export const grupoDoSeparador = (id) =>
 // O índice plano de todos os destinos — a futura paleta ⌘K lê daqui.
 export const todosOsDestinos = () => [
   ...NAV_DIARIA,
+  ...NAV_DESTAQUES,
   ...NAV_GRUPOS.flatMap((g) =>
     g.itens.map((i) => ({ ...i, grupo: g.titulo })),
   ),

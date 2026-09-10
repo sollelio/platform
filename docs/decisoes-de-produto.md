@@ -3182,3 +3182,13 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   portas (Equipa/Disponibilidades) em todas as superfícies; a
   proteção de rota já existia — ecrã de negação na AdminPage + RLS —
   e não se reinventou.)*
+
+  *(10/09, ajuste: o TERRITÓRIO saiu do dropdown Crescimento e virou
+  DESTAQUE STANDALONE, sempre visível entre o diário e os domínios —
+  dentro do grupo ficava escondido demais para um módulo estratégico.
+  Natureza própria, distinta da Caixa de Entrada: a Caixa é urgência
+  operacional (badge cheio); o Território é visão (moldura fina
+  dourada, bússola, chip «Estratégico» em CONTORNO, micro-copy «O
+  negócio no mapa — de onde vêm os pedidos e onde crescer»). O
+  Dashboard ficou no Crescimento; NAV_DESTAQUES em lib/menu.js está
+  pronta para futuros destaques.)*

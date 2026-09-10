@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   NAV_DIARIA,
+  NAV_DESTAQUES,
   NAV_GRUPOS,
   NAV_MOVEL,
   SEPARADORES_COM_CHAVE,
@@ -33,9 +34,20 @@ test("todos os destinos do menu têm rota própria (nenhum cai no Início por gr
 test("nenhum separador aparece duas vezes na arquitetura", () => {
   const ids = [
     ...NAV_DIARIA.map((d) => d.id),
+    ...NAV_DESTAQUES.map((d) => d.id),
     ...NAV_GRUPOS.flatMap((g) => g.itens.map((i) => i.id)),
   ];
   assert.equal(new Set(ids).size, ids.length, `duplicados em: ${ids.join(", ")}`);
+});
+
+test("o Território é destaque standalone — fora dos grupos, com chip e dica honesta", () => {
+  const territorio = NAV_DESTAQUES.find((d) => d.id === "territorio");
+  assert.ok(territorio, "o Território vive nos destaques");
+  assert.equal(grupoDoSeparador("territorio"), null); // saiu do dropdown
+  assert.ok(territorio.chip, "chip discreto presente");
+  assert.ok(territorio.dica?.length > 10, "micro-copy de utilidade presente");
+  // e o Dashboard FICOU no Crescimento
+  assert.equal(grupoDoSeparador("dashboard"), "crescimento");
 });
 
 test("a barra do telemóvel só usa destinos que existem na arquitetura", () => {
@@ -99,7 +111,7 @@ test("esconder pelos grupos cobre TODAS as superfícies: os separadores com chav
 });
 
 test("grupoDoSeparador aponta o domínio certo (o contexto da página atual)", () => {
-  assert.equal(grupoDoSeparador("territorio"), "crescimento");
+  assert.equal(grupoDoSeparador("territorio"), null); // destaque standalone
   assert.equal(grupoDoSeparador("operacional"), "operacoes");
   assert.equal(grupoDoSeparador("orcamentos"), "comercial");
   assert.equal(grupoDoSeparador("inicio"), null); // diário: sem grupo

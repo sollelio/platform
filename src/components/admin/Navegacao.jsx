@@ -5,6 +5,7 @@ import { useRotas } from "../../lib/rotasAdmin";
 import { alternarTema, assinarTema, temaEfectivo } from "../../lib/tema";
 import {
   NAV_DIARIA,
+  NAV_DESTAQUES,
   NAV_GRUPOS,
   NAV_MOVEL,
   lerGruposAbertos,
@@ -32,9 +33,10 @@ import {
 // ============================================================
 
 const IDS_NA_BARRA = NAV_MOVEL.map((n) => n.id);
-const IDS_NO_MAIS = NAV_GRUPOS.flatMap((g) => g.itens.map((i) => i.id)).filter(
-  (id) => !IDS_NA_BARRA.includes(id),
-);
+const IDS_NO_MAIS = [
+  ...NAV_DESTAQUES.map((d) => d.id),
+  ...NAV_GRUPOS.flatMap((g) => g.itens.map((i) => i.id)),
+].filter((id) => !IDS_NA_BARRA.includes(id));
 
 // ------------------------------------------------------------
 // Separadores que a sessão não pode ver.
@@ -260,6 +262,13 @@ export function Icone({ nome, tamanho = 18 }) {
       <>
         <path {...t} d="M4 20l.9-4L16 4.9a1.6 1.6 0 012.3 0l.8.8a1.6 1.6 0 010 2.3L8 19l-4 1z" />
         <path {...t} d="M14 6.9L17.1 10" />
+      </>
+    ),
+    // A bússola do Território — direção do negócio, não um alfinete.
+    bussola: (
+      <>
+        <circle {...t} cx="12" cy="12" r="8.2" />
+        <path {...t} d="M15.3 8.7l-2.1 5.4-4.5 2 2.1-5.4z" />
       </>
     ),
     // A seta de um grupo — roda 90° quando o grupo abre (via CSS).
@@ -564,6 +573,126 @@ function ItemCaixaEntrada({ naoLidas, onClick, compacto = false }) {
 }
 
 // ------------------------------------------------------------
+// O DESTAQUE ESTRATÉGICO (hoje: Território). Outra natureza que a
+// Caixa de Entrada, de propósito: a Caixa é urgência operacional
+// (badge cheio, «responde-me»); isto é visão («explora-me») — uma
+// moldura fina de convite, um chip em CONTORNO, sem pulso nem cor a
+// gritar. Ativo, fala a língua de sempre (a pílula quente).
+// ------------------------------------------------------------
+function ChipDestaque({ texto }) {
+  return (
+    <span
+      style={{
+        marginLeft: "auto",
+        border: "1px solid var(--gold-light)",
+        color: "var(--gold-dark)",
+        borderRadius: "999px",
+        padding: "1px 7px",
+        fontSize: "8.5px",
+        fontWeight: 700,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}
+    >
+      {texto}
+    </span>
+  );
+}
+
+function ItemDestaque({ item, ativo, onClick, compacto = false }) {
+  const rotas = useRotas();
+  const estilo = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: compacto ? "center" : "flex-start",
+    gap: "10px",
+    width: "100%",
+    padding: compacto ? "9px 0" : "9px 12px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    textAlign: "left",
+    boxSizing: "border-box",
+    textDecoration: "none",
+    position: "relative",
+    // a moldura fina é o convite; ativa, junta-se a pílula quente
+    border: `1px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
+    backgroundColor: ativo ? "var(--superficie-quente)" : "transparent",
+    color: "var(--gold-dark)",
+  };
+  const no = (
+    <NavLink
+      to={rotas.separador(item.id)}
+      replace
+      onClick={onClick}
+      className="nv-item"
+      style={estilo}
+      title={compacto ? undefined : item.dica}
+      aria-label={compacto ? item.label : undefined}
+    >
+      <Icone nome={item.icone} tamanho={compacto ? 19 : 18} />
+      {!compacto && (
+        <>
+          <span
+            style={{
+              fontSize: "14px",
+              fontWeight: ativo ? "600" : "500",
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {item.label}
+          </span>
+          {item.chip && <ChipDestaque texto={item.chip} />}
+        </>
+      )}
+    </NavLink>
+  );
+  const envolto = (
+    <div style={{ margin: compacto ? "10px 0 2px" : "12px 0 2px" }}>
+      {compacto ? (
+        <div className="nv-porta" style={{ position: "relative" }}>
+          {no}
+          <div className="nv-flyout" style={estFlyout}>
+            <div style={{ ...estFlyoutPainel, display: "block", maxWidth: "230px" }}>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                }}
+              >
+                {item.label}
+                {item.chip && <ChipDestaque texto={item.chip} />}
+              </span>
+              {item.dica && (
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: "4px",
+                    fontSize: "10.5px",
+                    color: "var(--gray-mid)",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {item.dica}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        no
+      )}
+    </div>
+  );
+  return envolto;
+}
+
+// ------------------------------------------------------------
 // O interruptor do tema — um gesto, como «Sair», e mora na mesma
 // arrumação: o fundo da sidebar e da folha «Mais», onde já vivem
 // as coisas de configurar (Modelos, Importar). A casa não tem
@@ -788,6 +917,17 @@ export function SidebarNav({
 
       {/* O trabalho de todos os dias — sempre à vista, sem dobras */}
       {NAV_DIARIA.map((it) => item(it))}
+
+      {/* O destaque estratégico: sempre visível, com natureza própria */}
+      {NAV_DESTAQUES.map((d) => (
+        <ItemDestaque
+          key={d.id}
+          item={d}
+          ativo={activeTab === d.id}
+          onClick={(ev) => onNavegar(d.id, ev)}
+          compacto={compacta}
+        />
+      ))}
 
       {compacta ? (
         // Rail: cada domínio é UM ícone; o flyout traz os destinos.
@@ -1081,6 +1221,19 @@ export function SheetMais({ activeTab, onNavegar, onSair, onFechar, contagens = 
             margin: "0 auto 12px",
           }}
         />
+        {/* O destaque estratégico primeiro — a mesma natureza calma */}
+        {NAV_DESTAQUES.map((d) => (
+          <ItemDestaque
+            key={d.id}
+            item={d}
+            ativo={activeTab === d.id}
+            onClick={(ev) => {
+              onNavegar(d.id, ev);
+              onFechar();
+            }}
+          />
+        ))}
+
         {/* Os mesmos domínios da sidebar — na folha ficam sempre
             abertos (é um menu pontual; dobrar aqui seria atrito), e
             os destinos que já vivem na barra inferior não se repetem. */}
