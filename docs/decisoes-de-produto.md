@@ -3107,3 +3107,37 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   número de porta ficou de fora do repositório de propósito. As duas
   Edge Functions — obter-distancia e atlas-distancias — confirmadas
   publicadas em TEST (401 sem sessão, não 404).)*
+
+### Atlas Vision Prototype — ronda Visual/Motion/3D (10/09/2026)
+
+- **deck.gl reavaliado e RECUSADO de novo**: com 16 eventos, tudo o
+  que a experiência pede (draw-on dos arcos, brilho a percorrer,
+  extrusão progressiva, crossfades, ripple, pulso) anima-se por paint
+  properties do MapLibre num único requestAnimationFrame. A
+  dependência (+ ~300 KB) não paga nada visível a esta escala.
+- **Movimento com significado, nunca «layer off→on»**: as cenas da
+  Procura transitam (pontos↘ enquanto o calor emerge; o calor ganha
+  ALTURA com a câmara a inclinar; o relevo recolhe ao voltar); a
+  rede DESENHA-SE do núcleo para fora e um brilho lento percorre os
+  arcos (deslocação sem partículas); trocar a métrica do 3D faz
+  morph de alturas (pedidos↔€, uma semântica de cada vez).
+- **A reorganização é visível**: criar/mudar o cenário congela a rede
+  antiga → esconde os arcos → ONDA no núcleo novo → a rede nova
+  desenha-se → SÓ ENTÃO os números aparecem (painel antes→depois com
+  contadores a rolar). Durante o arrasto: divisa tracejada
+  («distribuição simulada dos eventos» — nunca «área de cobertura»)
+  e estimativa ≈ em direto; ao largar, refino por estrada.
+- **Modo imersivo** («Expandir ↗», Esc sai): o palco vira canvas
+  quase full-screen dentro do backoffice, controlos num HUD de vidro,
+  frases como painéis flutuantes — a vista normal continua intacta.
+- **História guiada** («▶ História», ~40 s, saltável a qualquer
+  toque): 10 passos coreografados SÓ sobre capacidades existentes,
+  com frases do próprio motor e números calculados ao vivo (nunca
+  texto inventado); termina a entregar o Atlas explorável com o
+  cenário de Almada aberto. Com prefers-reduced-motion vira
+  passo-a-passo manual («Seguinte →»), sem câmara animada.
+- **Escuro elevado**: camada de glow sob os arcos, halos mais
+  intensos, rampa de calor mais rica — ouro sobre negro da casa,
+  não cyberpunk. Microinterações: 180 ms ease-out, sem bounce.
+- Fronteiras intactas: chunk lazy próprio (~296 KB gz), bundle
+  principal byte-igual, nada em produção, nada escrito na BD.

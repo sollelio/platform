@@ -12,6 +12,7 @@ import {
   COORDS_LOCALIDADE,
   NUCLEO_PROVISORIO,
   nucleoPorOmissao,
+  divisaEntre,
 } from "./territorioLab/geo.js";
 import {
   FOTOGRAFIA,
@@ -148,6 +149,21 @@ test("o núcleo de arranque do staging é o armazém CONFIGURADO (Sintra), não 
   // declarada: localidade — nunca uma morada exata no repositório):
   const kmAoCentro = haversineKm(n.lngLat, COORDS_LOCALIDADE.sintra);
   assert.ok(kmAoCentro < 5, `armazém a ${kmAoCentro.toFixed(1)} km do centro de Sintra`);
+});
+
+test("a divisa entre dois núcleos é a mediatriz — equidistante dos dois", () => {
+  const a = COORDS_LOCALIDADE.sintra;
+  const b = COORDS_LOCALIDADE.almada;
+  const seg = divisaEntre(a, b);
+  assert.ok(Array.isArray(seg) && seg.length === 2);
+  for (const ponto of seg) {
+    const dA = haversineKm(ponto, a);
+    const dB = haversineKm(ponto, b);
+    // equidistância com tolerância de projeção (<3% do vão)
+    assert.ok(Math.abs(dA - dB) < Math.max(1, dA * 0.03), `|${dA.toFixed(1)}−${dB.toFixed(1)}|`);
+  }
+  // núcleos coincidentes → sem divisa (nunca NaN no mapa)
+  assert.equal(divisaEntre(a, a), null);
 });
 
 test("localidadeMaisProxima dá nome a um ponto largado no mapa", () => {

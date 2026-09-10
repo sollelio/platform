@@ -272,6 +272,29 @@ export const compararRedes = (antes, depois) => {
   return { mudaram, antes: mA, depois: mD, delta: mD.total - mA.total };
 };
 
+// A DIVISA entre dois núcleos: a mediatriz do segmento A–B (com a
+// longitude corrigida pelo cos da latitude, senão a linha entorta).
+// Serve o «campo de influência» SIMULADO durante o arrasto — é
+// geometria do estimador, não área de cobertura real, e a UI di-lo
+// («distribuição simulada dos eventos»). Devolve um segmento longo
+// (±meiaLargura graus) pronto para uma LineString.
+export const divisaEntre = (a, b, meiaLargura = 2.4) => {
+  const mLat = (a[1] + b[1]) / 2;
+  const esc = Math.cos((mLat * Math.PI) / 180);
+  const mx = (a[0] + b[0]) / 2;
+  // vetor A→B no plano corrigido; a divisa segue a perpendicular
+  const dx = (b[0] - a[0]) * esc;
+  const dy = b[1] - a[1];
+  const norma = Math.hypot(dx, dy);
+  if (norma < 1e-9) return null; // núcleos no mesmo sítio — sem divisa
+  const px = -dy / norma;
+  const py = dx / norma;
+  return [
+    [mx - (px * meiaLargura) / esc, mLat - py * meiaLargura],
+    [mx + (px * meiaLargura) / esc, mLat + py * meiaLargura],
+  ];
+};
+
 // ---- enquadramentos ----
 
 export const bboxDe = (pontos, margem = 0.08) => {
