@@ -3230,3 +3230,34 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   `dlm.backoffice.nav.compacta`) — antes era a ausência da chave, e a
   omissão nova apagá-la-ia a cada sessão.
 - No móvel nada muda: barra inferior + folha «Mais», como sempre.
+
+### A productionização do Atlas (11/09/2026)
+
+- **O Atlas deixou de ser protótipo**: o modo «Atlas» do Território
+  passa a produto, em qualquer ambiente. A fotografia congelada de
+  staging saiu do bundle (ficou fixture de testes); o Lab recebe os
+  MESMOS dados vivos das frases — as submissions da casa e as linhas
+  de Deslocação reais dos orçamentos. Só campos agregáveis atravessam
+  para o mapa (localidade, fase, estado, datas, valor) — nomes,
+  contactos e moradas de rua nunca entram.
+- **Geografia**: mantém-se a tabela curada de centróides (dezenas de
+  localidades, não milhares — GIS seria peso sem necessidade). Nunca
+  se inventa uma coordenada: localidade desconhecida = registo «fora
+  do mapa», contado e visível. Curar localidades novas é UMA linha
+  na tabela do geo.js.
+- **Núcleo operacional**: fica CONFIGURAÇÃO VERSIONADA
+  (nucleoConfig.js, coordenadas arredondadas ~100 m, sem morada) — a
+  menor solução correta com uma casa e um núcleo — e ganha SEMPRE ao
+  localStorage: um valor guardado num browser deixou de se sobrepor
+  em silêncio à configuração. O gesto de fixar à mão só existe
+  enquanto não há configuração. Multi-núcleo/multi-casa: o caminho
+  já desenhado é a tabela nucleos_operacionais (Revisão 2). NUNCA
+  confundir com a MORADA_BASE dos orçamentos.
+- **Estados vazios honestos**: com 0 pontos mapeáveis o mapa fica de
+  pé e diz porquê; Tempo, entrada cinematográfica e História só se
+  oferecem com pontos; a comparação de cenário explica-se em vez de
+  «0 dos 0».
+- **Premissa registada** (da auditoria de release): as leituras
+  globais (notificações, submissions) confiam no RLS multi-casa —
+  válido enquanto «um utilizador = uma casa». Se a premissa cair,
+  acrescentar filtro por tenant nessas queries.
