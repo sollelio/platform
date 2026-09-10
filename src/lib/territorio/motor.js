@@ -271,7 +271,7 @@ const FRASES = [
     camada: "procura",
     familia: "Funil da zona",
     justificacao:
-      "Contagens em parcelas (censo dos registos) — percentagens só quando o regime de números as permitir.",
+      "Contagens em parcelas sobre os pedidos registados — percentagens só quando o regime de números as permitir.",
     condicao: "Acorda com uma zona com ≥3 pedidos registados.",
     despertar: (c) => (c.zonasOrdenadas[0]?.n || 0) >= 3,
     calcular: (c) => {
@@ -320,7 +320,8 @@ const FRASES = [
     id: "valor-zona",
     camada: "procura",
     familia: "Valor por zona",
-    justificacao: "Soma num censo é um facto a qualquer n — a contagem vai na frase.",
+    justificacao:
+      "Uma soma sobre os pedidos registados é um facto a qualquer n — a contagem vai na frase.",
     condicao: "Acorda com ≥1 pedido com valor acordado e zona.",
     despertar: (c) => c.zonasOrdenadas.some((z) => z.lista.some((p) => p.valor !== null)),
     calcular: (c) => {
@@ -335,6 +336,9 @@ const FRASES = [
         .sort((a, b) => b.soma - a.soma);
       const top = somas[0];
       const semValor = top.n - top.comValor.length;
+      // Um perdido com valor CONTA — é procura registada — mas a nota
+      // diz que não é receita (gate de aceitação, 10/09).
+      const perdidosNoTop = top.comValor.filter((p) => p.perdido).length;
       return {
         segmentos: [
           { t: "x", v: `A zona mais valiosa até hoje é a ` },
@@ -357,7 +361,14 @@ const FRASES = [
             texto: `${z.zona} — ${euros(z.soma)} em ${z.comValor.length} pedidos${z.n - z.comValor.length ? ` (${z.n - z.comValor.length} sem valor)` : ""}`,
           })),
           excluidos: excluidosGeo(c),
-          notas: [notaSensibilidade(c.comValor.length)],
+          notas: [
+            ...(perdidosNoTop > 0
+              ? [
+                  `${perdidosNoTop} destes pedidos ${perdidosNoTop === 1 ? "foi perdido" : "foram perdidos"} — contam como procura registada, não como receita.`,
+                ]
+              : []),
+            notaSensibilidade(c.comValor.length),
+          ],
         },
       };
     },
@@ -386,7 +397,7 @@ const FRASES = [
         chip: `${comKm.length} de ${c.n} com km`,
         porque: {
           formula:
-            "O maior km congelado nas linhas de Deslocação dos orçamentos — km por estrada, relativos à base ATUAL (se a base mudar, isto é história da base antiga).",
+            "O maior km congelado nas linhas de Deslocação dos orçamentos — km por estrada, medidos da base do calculador de deslocação: a MESMA que os teus orçamentos usam (vive na configuração do servidor; se um dia mudar, isto passa a ser história da base antiga).",
           linhas: comKm.map((d) => {
             const p = c.pedidos.find((x) => x.id === d.submissionId);
             return {
@@ -406,7 +417,8 @@ const FRASES = [
     id: "estrada-rendida",
     camada: "operacoes",
     familia: "Estrada cobrada",
-    justificacao: "Soma num censo é um facto a qualquer n.",
+    justificacao:
+      "Uma soma sobre os registos é um facto a qualquer n.",
     condicao: "Acorda com ≥1 orçamento com linha de Deslocação.",
     despertar: (c, extra) => (extra.deslocacoes || []).length >= 1,
     calcular: (c, extra) => {

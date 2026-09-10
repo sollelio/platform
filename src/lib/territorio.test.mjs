@@ -208,6 +208,57 @@ test("contexto de avaliação: interessados com localidade e valor típico", () 
   assert.equal(ctx.valorTipico, 775); // mediana dos 16 valores: (770+780)/2
 });
 
+test("um pedido perdido CONTINUA a contar como procura — e sai das operações", () => {
+  // Barreiro (interessado, Margem Sul, 1.290 €, 30/10) dá-se por perdido.
+  const comPerda = PRODUCAO.map((p, i) =>
+    i === 11 ? { ...p, fase: "perdido", motivo_perda: "preco" } : p,
+  );
+  const c = construirCenso(comPerda, HOJE);
+  // O registo não desaparece de nenhuma população de PROCURA:
+  assert.equal(c.n, 19);
+  assert.equal(c.zonaveis.length, 16);
+  assert.equal(c.perdidos.length, 1);
+  const zonas = Object.fromEntries(c.zonasOrdenadas.map((z) => [z.zona, z.n]));
+  assert.equal(zonas["Margem Sul"], 4); // a zona não o perde
+  const atlas = gerarAtlas(comPerda, { hoje: HOJE });
+  // Concentração continua sobre os 16 com zona (o perdido incluído):
+  const conc = atlas.ativas.find((x) => x.id === "concentracao");
+  assert.match(conc.segmentos.map((s) => s.v).join(""), /16 pedidos registados/);
+  // Valor por zona continua a incluí-lo — com a nota «não é receita»:
+  const valor = atlas.ativas.find((x) => x.id === "valor-zona");
+  assert.match(valor.segmentos.map((s) => s.v).join(""), /Margem Sul/);
+  assert.match(valor.porque.notas.join(" "), /perdido/);
+  // Mas sai da agenda OPERACIONAL (próximos 90 dias):
+  const cal = atlas.ativas.find((x) => x.id === "calendario-90");
+  assert.doesNotMatch(
+    cal.porque.linhas.map((l) => l.texto).join("\n"),
+    /Barreiro/,
+  );
+  // Recuperar devolve-o ao funil e à agenda:
+  const recuperado = comPerda.map((p) =>
+    p.fase === "perdido" ? { ...p, fase: "interessado", motivo_perda: null } : p,
+  );
+  const cal2 = gerarAtlas(recuperado, { hoje: HOJE }).ativas.find(
+    (x) => x.id === "calendario-90",
+  );
+  assert.match(cal2.porque.linhas.map((l) => l.texto).join("\n"), /Barreiro/);
+});
+
+test("o funil da zona mostra o perdido na parcela certa", () => {
+  // Um Cascais (interessado, Linha) dá-se por perdido — a zona líder
+  // continua a ser a Linha (7, o perdido conta) e a parcela aparece.
+  const comPerda = PRODUCAO.map((p, i) =>
+    i === 14 ? { ...p, fase: "perdido", motivo_perda: "distancia" } : p,
+  );
+  const f = gerarAtlas(comPerda, { hoje: HOJE }).ativas.find(
+    (x) => x.id === "funil-zona",
+  );
+  const texto = f.segmentos.map((s) => s.v).join("");
+  assert.match(texto, /Linha de Sintra\/Cascais/);
+  assert.match(texto, /7/); // o perdido continua nos 7 da zona
+  assert.match(texto, /1 perdido/);
+});
+
 test("nenhuma frase ativa usa a palavra «procura» como população", () => {
   const atlas = gerarAtlas(PRODUCAO, { hoje: HOJE });
   for (const f of atlas.ativas) {

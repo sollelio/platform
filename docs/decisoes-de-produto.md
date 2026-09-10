@@ -3003,3 +3003,35 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   sensibilidade e versão do zonamento.
 - SEM mapa, SEM MapLibre, SEM heatmap/3D/deck.gl/simulação — nada do
   Lote B foi antecipado; o rodapé do separador di-lo.
+
+### Gate de aceitação R1 + Lote A (10/09/2026 — fechado)
+
+- **Origem das distâncias, confirmada e nomeada**: TODOS os cálculos
+  (orçamentos, consulta rápida, Atlas «Avaliar novo pedido», km
+  congelados) passam pela porta única obterDistancia → Edge
+  `obter-distancia` → secret `MORADA_BASE`. É UMA referência coerente
+  em todo o produto; a UI passou a dizê-lo («os km contam-se da mesma
+  base que os teus orçamentos») e o «porquê» do alcance nomeia-a.
+  ⚠ O VALOR do secret não é visível do repositório: cabe ao Hélio
+  confirmar no painel do Supabase (TEST e PROD) que corresponde à
+  base operacional atual. Por decisão de 03/08, essa base NÃO é o
+  armazém (25€/evento entre os dois) — continua assim até ao Lote B
+  (nucleos_operacionais).
+- **Perdido É procura** — agora protegido por 2 testes: o registo
+  perdido continua em todas as populações de procura (censo, zonas,
+  concentração, valor — com nota «não é receita»), aparece na parcela
+  certa do funil, sai só das frases OPERACIONAIS (agenda/apertos), e
+  recuperar devolve-o.
+- **Dedupe mantém-se, limitação documentada**: dois eventos DISTINTOS
+  da mesma pessoa na MESMA data são absorvidos (indistinguíveis de um
+  duplo envio); o caminho certo para esse caso raro é a ficha do
+  contacto («+ Novo evento»), e o corpo da nota de contacto repetido
+  passou a apontá-lo. Datas diferentes já criavam ocorrência nova.
+- **A 109 validada em Postgres real (PGlite)** —
+  scripts/testar-migracao-109.mjs, 13/13 ✓ sobre o esquema PÓS-105:
+  dados intactos, colunas nascem vazias, CHECK vivo, a nota
+  escreve-se nas duas portas, ocorrências preservadas, re-executável.
+  A execução no TEST verdadeiro continua a ser do Hélio
+  (docs/migracoes/validacao_109.sql tem o antes/depois).
+- **«Censo» saiu da UI** (aparecia em 3 «regras do limiar» do drawer)
+  — a linguagem da utilizadora é sempre «pedidos registados».

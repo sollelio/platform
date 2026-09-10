@@ -625,7 +625,7 @@ function CartaoAvaliarPedido({ contexto }) {
       >
         Tens {interessados.length} pedido{interessados.length === 1 ? "" : "s"}{" "}
         em conversa com localidade — vê quanto custa a estrada antes de dar o
-        preço.
+        preço. Os km contam-se da mesma base que os teus orçamentos.
       </p>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <select

@@ -27,6 +27,16 @@
 --       caminho está certo e não se toca. O único caso absorvido era
 --       mesmo-telefone+mesma-data, e agora fica contado na nota.
 --
+--       LIMITAÇÃO documentada (gate de 10/09): DOIS eventos DISTINTOS
+--       da mesma pessoa NA MESMA DATA (ex.: batizado de manhã, jantar
+--       à noite) são absorvidos como duplicado — o dedupe não os
+--       distingue de um duplo envio. O caminho certo para esse caso
+--       raro é a ficha do contacto («+ Novo evento para esta
+--       cliente»), que não passa pelo dedupe; o corpo da nota abaixo
+--       aponta-o. Aceite como está: separar «insistência» de «segundo
+--       evento no mesmo dia» exigiria perguntar à pessoa, e o caso é
+--       raríssimo neste negócio.
+--
 --   3 · Nada de novo para apagar vs perder: a distinção é de UI
 --       (RemoverEventoModal passa a propor «perder» primeiro nos
 --       pré-contrato). Apagar continua reservado a registos que nunca
@@ -151,7 +161,8 @@ begin
           'interna',
           'Contacto repetido na captação ('
             || case when auth.uid() is null then 'porta pública' else 'porta interna' end
-            || ') — mesmo telefone e mesma data do evento. Não foi criado pedido novo.'
+            || ') — mesmo telefone e mesma data do evento. Não foi criado pedido novo. '
+            || 'Se for um evento DIFERENTE no mesmo dia, cria-o pela ficha do contacto («+ Novo evento»).'
         );
       exception when others then
         null;
