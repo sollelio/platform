@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { deleteEvento, getVinculosEvento } from "../../lib/clientes";
+import { deleteEvento, getVinculosEvento, updateFase } from "../../lib/clientes";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
+import { FASES_POS_SINAL } from "../../lib/fases";
+import { MOTIVOS_PERDA } from "../../lib/perda";
 
 // ============================================================
 // RemoverEventoModal — a confirmação de remoção de um evento.
@@ -20,6 +22,14 @@ import { formatarEuros } from "./orcamentos/orcamentoConfig";
 //   • avisa que convites por preencher ficam soltos e passam a criar
 //     cliente+evento novos em vez de actualizarem este.
 // Nunca window.confirm — regra da casa.
+//
+// 109 · PERDER ≠ APAGAR. Um pedido que existiu e não aconteceu é um
+// negócio PERDIDO — estado com carimbo e motivo, que o Atlas lê como
+// procura recusada. Apagar fica reservado ao que nunca devia ter
+// existido: erro de introdução, teste, duplicado técnico. Nos eventos
+// pré-sinal (ainda não «perdido»), este diálogo propõe perder PRIMEIRO
+// — mas não força: transformar todos os apagares em perdidos também
+// contaminaria os dados (decisão do Hélio, 10/09/2026).
 //
 // Traz consigo o seu próprio ciclo: pede os vínculos ao abrir, faz a
 // remoção, traduz os erros da base. Quem chama só diz QUE evento é e
@@ -41,10 +51,17 @@ export default function RemoverEventoModal({
   formatarData,
   onFechar,
   onRemovido,
+  // 109 · Quando presente, os pré-sinal ganham a saída «marcar como
+  // perdido» dentro deste diálogo (com motivo). Chamado depois de a
+  // fase mudar — quem chama recarrega a lista, como no onRemovido.
+  onPerdido,
 }) {
   const [vinculos, setVinculos] = useState(null);
   const [erro, setErro] = useState(null);
   const [aRemover, setARemover] = useState(false);
+  const [motivoPerda, setMotivoPerda] = useState(null);
+  const [detalhePerda, setDetalhePerda] = useState("");
+  const [aPerder, setAPerder] = useState(false);
 
   // Vai ver o que este evento arrasta consigo — a Nádia decide já
   // informada, não às escuras. Uma falha a verificar NÃO bloqueia a
@@ -106,7 +123,36 @@ export default function RemoverEventoModal({
   };
 
   const bloqueadoPorPagamentos = (vinculos?.pagamentos?.length || 0) > 0;
-  const desativado = aRemover || vinculos === null || bloqueadoPorPagamentos;
+  const desativado =
+    aRemover || aPerder || vinculos === null || bloqueadoPorPagamentos;
+
+  // A saída «perder» só faz sentido num negócio que ainda não fechou
+  // nem está já perdido — e só quando quem chama a quer (onPerdido).
+  const podePerder =
+    !!onPerdido &&
+    evento.fase !== "perdido" &&
+    !FASES_POS_SINAL.includes(evento.fase);
+
+  const confirmarPerda = async () => {
+    if (!motivoPerda) return;
+    setAPerder(true);
+    setErro(null);
+    try {
+      await updateFase(evento.id, "perdido", {
+        motivoPerda,
+        motivoPerdaDetalhe: detalhePerda.trim() || null,
+      });
+      await onPerdido(evento);
+    } catch (e) {
+      console.error(e);
+      setErro(
+        e instanceof Error && e.message
+          ? e.message
+          : "Não foi possível marcar como perdido — verifica a ligação e as migrações.",
+      );
+      setAPerder(false);
+    }
+  };
 
   return (
     <div
@@ -160,6 +206,115 @@ export default function RemoverEventoModal({
           de <strong>{nomeCliente}</strong> vai ser removido. Esta acção não
           pode ser anulada.
         </p>
+
+        {podePerder && (
+          <div
+            style={{
+              backgroundColor: "var(--superficie-quente)",
+              border: "1px solid var(--gold-light)",
+              borderRadius: "10px",
+              padding: "12px 14px",
+              margin: "0 0 14px 0",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "12.5px",
+                fontWeight: "700",
+                color: "var(--charcoal)",
+                margin: "0 0 4px 0",
+              }}
+            >
+              Este pedido não vai acontecer?
+            </p>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--gray-mid)",
+                margin: "0 0 10px 0",
+                lineHeight: "1.6",
+              }}
+            >
+              Então é um negócio <strong>perdido</strong>, não um registo a
+              apagar — marca-o como perdido (com motivo) e a história da
+              procura fica contada. Apagar é só para registos que nunca
+              deviam ter existido: erro de introdução, teste, duplicado a
+              sério.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "4px",
+                marginBottom: "8px",
+              }}
+            >
+              {MOTIVOS_PERDA.map((m) => {
+                const ativo = motivoPerda === m.chave;
+                return (
+                  <button
+                    key={m.chave}
+                    type="button"
+                    onClick={() => setMotivoPerda(ativo ? null : m.chave)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "10.5px",
+                      fontWeight: "600",
+                      border: `1px solid ${ativo ? "var(--gold)" : "var(--gold-light)"}`,
+                      backgroundColor: ativo
+                        ? "var(--gold)"
+                        : "var(--superficie)",
+                      color: ativo
+                        ? "var(--texto-sobre-ouro)"
+                        : "var(--gray-mid)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {m.rotulo}
+                  </button>
+                );
+              })}
+            </div>
+            {motivoPerda === "outro" && (
+              <input
+                value={detalhePerda}
+                onChange={(e) => setDetalhePerda(e.target.value)}
+                placeholder="Qual foi o motivo?"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "7px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--gold-light)",
+                  fontSize: "12px",
+                  marginBottom: "8px",
+                  backgroundColor: "var(--superficie)",
+                  color: "var(--charcoal)",
+                }}
+              />
+            )}
+            <button
+              onClick={confirmarPerda}
+              disabled={!motivoPerda || aPerder || aRemover}
+              style={{
+                width: "100%",
+                padding: "9px",
+                borderRadius: "8px",
+                fontSize: "12.5px",
+                fontWeight: "600",
+                border: "1.5px solid var(--gold)",
+                backgroundColor: "var(--superficie)",
+                color: "var(--gold-dark)",
+                opacity: !motivoPerda && !aPerder ? 0.6 : 1,
+                cursor:
+                  !motivoPerda || aPerder ? "not-allowed" : "pointer",
+              }}
+            >
+              {aPerder ? "A marcar..." : "Marcar como perdido"}
+            </button>
+          </div>
+        )}
 
         {vinculos === null ? (
           <p

@@ -518,7 +518,15 @@ export default function InicioTab({
                   onClick={() => setConsultaAberta(false)}
                   style={{ position: "fixed", inset: 0, zIndex: 40 }}
                 />
-                <ConsultaDeslocacao onFechar={() => setConsultaAberta(false)} />
+                <ConsultaDeslocacao
+                  onFechar={() => setConsultaAberta(false)}
+                  onRegistarPedido={(morada) => {
+                    // 109 · A ponte: a consulta vira registo com a
+                    // localidade já escrita — a procura deixa de evaporar.
+                    setConsultaAberta(false);
+                    setNovoInteressado({ local: morada });
+                  }}
+                />
               </>
             )}
           </AnimatePresence>
@@ -565,7 +573,15 @@ export default function InicioTab({
                   onClick={() => setConsultaDataAberta(false)}
                   style={{ position: "fixed", inset: 0, zIndex: 40 }}
                 />
-                <ConsultaData onFechar={() => setConsultaDataAberta(false)} />
+                <ConsultaData
+                  onFechar={() => setConsultaDataAberta(false)}
+                  onRegistarPedido={(dataISO) => {
+                    // 109 · A ponte irmã: a data consultada entra já
+                    // escrita no registo do pedido.
+                    setConsultaDataAberta(false);
+                    setNovoInteressado({ dataEvento: dataISO });
+                  }}
+                />
               </>
             )}
           </AnimatePresence>
@@ -1027,6 +1043,8 @@ export default function InicioTab({
               <CaptacaoForm
                 modoInterno
                 textoBotao="Registar pedido"
+                dataInicial={novoInteressado?.dataEvento || ""}
+                localInicial={novoInteressado?.local || ""}
                 onSubmetido={() => {
                   setNovoInteressado(false);
                   if (onDadosMudaram) onDadosMudaram();

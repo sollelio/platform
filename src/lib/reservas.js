@@ -225,7 +225,14 @@ export const cancelarReserva = async (id) => {
   if (reserva.submission_id) {
     const { error } = await supabase
       .from("submissions")
-      .update({ fase: "perdido" })
+      // 109 · Perder carimba quando e porquê — aqui o motivo é o
+      // cancelamento da própria reserva.
+      .update({
+        fase: "perdido",
+        perdido_em: new Date().toISOString(),
+        motivo_perda: "outro",
+        motivo_perda_detalhe: "Reserva cancelada na agenda.",
+      })
       .eq("id", reserva.submission_id);
     // Falhar aqui TEM de falhar o cancelamento: engolir deixava a
     // reserva fora da agenda e o evento "morto" vivo em Interessados,

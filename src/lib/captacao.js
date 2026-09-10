@@ -131,6 +131,11 @@ export const submeterCaptacao = async (payload, tenantSlug = null) => {
   if (Array.isArray(payload.pretende) && payload.pretende.length > 0) {
     respostas.pretende = payload.pretende;
   }
+  // 109/R1 · O canal de origem («como nos conheceste?») — opcional,
+  // mas é o que um dia separa procura do Instagram de procura por
+  // recomendação, por zona.
+  const canal = limpar(payload.canalOrigem);
+  if (canal) respostas.canalOrigem = canal;
   const mensagem = limpar(payload.mensagem);
   if (mensagem) respostas.mensagemInicial = mensagem;
   if (imagens.length > 0) respostas.imagensReferencia = imagens;

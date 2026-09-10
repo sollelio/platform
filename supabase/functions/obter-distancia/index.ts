@@ -8,10 +8,14 @@
 //
 // Contrato:
 //   POST { morada: string }
-//   200  { km: number }  — km CRU (sem arredondar): a regra dos km
-//        inteiros vive no cliente (obterDistancia.js), e arredondar
-//        aqui a 1 decimal criava dupla arredondação (6,45 → 6,5 → 7,
-//        quando a regra sobre o valor real dá 6)
+//   200  { km: number, duracaoMin: number|null }
+//        — km CRU (sem arredondar): a regra dos km inteiros vive no
+//          cliente (obterDistancia.js), e arredondar aqui a 1 decimal
+//          criava dupla arredondação (6,45 → 6,5 → 7, quando a regra
+//          sobre o valor real dá 6);
+//        — duracaoMin (109): minutos de viagem por troço, inteiros —
+//          a Distance Matrix devolve `duration` na MESMA resposta paga
+//          e até aqui deitava-se fora. Null se o Google não a der.
 //   4xx/5xx { erro: string }  — mensagem já em PT-PT, pronta a mostrar
 
 const CORS_HEADERS = {
@@ -86,7 +90,13 @@ Deno.serve(async (req) => {
   }
 
   const km = elemento.distance.value / 1000;
-  return new Response(JSON.stringify({ km }), {
+  // 109 · A duração já vinha em cada resposta paga — deixou de se
+  // deitar fora. Minutos inteiros; null se o Google não a devolver.
+  const duracaoMin =
+    typeof elemento.duration?.value === "number"
+      ? Math.round(elemento.duration.value / 60)
+      : null;
+  return new Response(JSON.stringify({ km, duracaoMin }), {
     status: 200,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });

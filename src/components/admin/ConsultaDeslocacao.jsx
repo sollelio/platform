@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Icone } from "./Navegacao";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 import { calcularDeslocacao, TROCOS_PADRAO } from "../../lib/deslocacaoRegra";
-import { obterDistancia } from "../../lib/obterDistancia";
+import { obterDeslocacao } from "../../lib/obterDistancia";
 
 // ============================================================
 // ConsultaDeslocacao — o popover "Consulta rápida" da página Início.
@@ -47,9 +47,14 @@ const miniLabel = {
   marginBottom: "5px",
 };
 
-export default function ConsultaDeslocacao({ onFechar }) {
+// 109 · onRegistarPedido(morada): a ponte de um clique para o
+// «+ Registar pedido», com a localidade já escrita — este popover era
+// o maior ralo de procura geográfica da casa (a pessoa revela a morada
+// ao telefone e nada ficava).
+export default function ConsultaDeslocacao({ onFechar, onRegistarPedido }) {
   const [morada, setMorada] = useState("");
   const [distancia, setDistancia] = useState(""); // string do input; "" = sem valor
+  const [duracaoMin, setDuracaoMin] = useState(null); // minutos por troço (auto)
   const [origem, setOrigem] = useState(null); // null | "auto" | "manual"
   const [nTrocos, setNTrocos] = useState(TROCOS_PADRAO);
   const [carregando, setCarregando] = useState(false);
@@ -70,12 +75,14 @@ export default function ConsultaDeslocacao({ onFechar }) {
     setCarregando(true);
     setErro(null);
     try {
-      const km = await obterDistancia(morada);
-      setDistancia(String(km));
+      const r = await obterDeslocacao(morada);
+      setDistancia(String(r.km));
+      setDuracaoMin(r.duracaoMin);
       setOrigem("auto");
     } catch (e) {
       setErro(e.message);
       setDistancia("");
+      setDuracaoMin(null);
       setOrigem(null);
     }
     setCarregando(false);
@@ -83,6 +90,7 @@ export default function ConsultaDeslocacao({ onFechar }) {
 
   const aoEditarDistancia = (valor) => {
     setDistancia(valor);
+    setDuracaoMin(null); // km à mão = a duração do Google já não bate
     setOrigem(valor === "" ? null : "manual");
     setErro(null); // editar à mão é exatamente o que o banner pedia — não insiste
   };
@@ -322,8 +330,32 @@ export default function ConsultaDeslocacao({ onFechar }) {
               ? `Dentro do raio de ${calc.kmIncluidos} km`
               : `${formatKm(calc.kmForaDoRaio)} km fora do raio · ${nTrocos} troços`
             : "Escreve a morada ou os km"}
+          {calc.temDistancia && duracaoMin != null && origem === "auto"
+            ? ` · ≈ ${duracaoMin} min por troço`
+            : ""}
         </p>
       </div>
+
+      {onRegistarPedido && morada.trim() && (
+        <button
+          type="button"
+          onClick={() => onRegistarPedido(morada.trim())}
+          style={{
+            width: "100%",
+            marginTop: "14px",
+            padding: "9px",
+            borderRadius: "8px",
+            fontSize: "12.5px",
+            fontWeight: "600",
+            border: "1.5px solid var(--gold)",
+            backgroundColor: "var(--superficie)",
+            color: "var(--gold-dark)",
+            cursor: "pointer",
+          }}
+        >
+          Registar este pedido →
+        </button>
+      )}
 
       <p
         style={{
@@ -334,7 +366,7 @@ export default function ConsultaDeslocacao({ onFechar }) {
           margin: "12px 0 0",
         }}
       >
-        Não guarda nada — é só uma consulta.
+        A consulta não guarda nada — o pedido só conta se o registares.
       </p>
     </motion.div>
   );

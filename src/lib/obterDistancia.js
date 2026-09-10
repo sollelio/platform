@@ -21,7 +21,7 @@ import { supabase } from "./supabase";
 // digitação, e deve poder tentar-se de novo.
 // ============================================================
 
-const cache = new Map(); // morada normalizada -> km
+const cache = new Map(); // morada normalizada -> { km, duracaoMin|null }
 
 const normalizar = (s) =>
   (s || "")
@@ -43,8 +43,13 @@ const extrairMensagemErro = async (error) => {
   return "O serviço de distâncias está indisponível de momento.";
 };
 
-// Devolve os km até à morada, ou rejeita com uma mensagem PT-PT amigável.
-export const obterDistancia = async (morada) => {
+// Devolve { km, duracaoMin } até à morada, ou rejeita com uma mensagem
+// PT-PT amigável. `duracaoMin` (minutos de viagem POR TROÇO, inteiros)
+// chega da mesma resposta paga da Distance Matrix — até ao R1 (109) era
+// simplesmente descartada na Edge Function. Pode vir null enquanto a
+// Edge Function antiga estiver no ar (o deploy é do Hélio): quem
+// consome trata null como «sem duração», nunca como zero.
+export const obterDeslocacao = async (morada) => {
   const chaveCache = normalizar(morada);
   if (!chaveCache) {
     throw new Error("Escreve uma morada para calcular a distância.");
@@ -59,11 +64,16 @@ export const obterDistancia = async (morada) => {
     throw new Error("O serviço de distâncias está indisponível de momento.");
   }
 
-  const km = Math.round(data.km);
-  cache.set(chaveCache, km);
-  return km;
+  const resultado = {
+    km: Math.round(data.km),
+    duracaoMin:
+      typeof data.duracaoMin === "number" ? Math.round(data.duracaoMin) : null,
+  };
+  cache.set(chaveCache, resultado);
+  return resultado;
 };
 
-// As localidades mais comuns da zona — chips de sugestão do painel do
-// orçamento (resolvidas agora pela API real, já não por uma tabela fixa).
-export const LOCALIDADES_MOCK = ["Faro", "Loulé", "Albufeira", "Lagos", "Portimão"];
+// O contrato histórico — km inteiros e mais nada. Continua a ser a
+// porta de quem só quer o número; partilha a cache com a de cima.
+export const obterDistancia = async (morada) =>
+  (await obterDeslocacao(morada)).km;

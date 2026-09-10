@@ -528,6 +528,13 @@ export default function ClienteVista({
           await carregar();
           if (onDadosMudaram) onDadosMudaram();
         }}
+        onPerdido={async () => {
+          // 109 · Perder em vez de apagar: o modal marcou a fase (com
+          // motivo); aqui só se recarrega, como no remover.
+          setEventoParaRemover(null);
+          await carregar();
+          if (onDadosMudaram) onDadosMudaram();
+        }}
       />
     </div>
   );

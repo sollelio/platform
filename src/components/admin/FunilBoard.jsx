@@ -25,6 +25,7 @@ import {
   AVANCO_LABEL,
 } from "./faseConfig";
 import CaptacaoForm from "../captacao/CaptacaoForm";
+import { MOTIVOS_PERDA } from "../../lib/perda";
 
 // ============================================================
 // FunilBoard — a esteira visual do funil comercial, dentro de Clientes.
@@ -485,7 +486,10 @@ export default function FunilBoard({
     if (pedidoRecuperacaoRef.current !== ev.id) return;
     const pagamentos = plano?.pagamentos || [];
     if (pagamentos.length === 0) {
-      await mudarFase(ev, "interessado", { status: "Recebido" });
+      await mudarFase(ev, "interessado", {
+        status: "Recebido",
+        limparPerda: true,
+      });
       return;
     }
     const totalPago = pagamentos.reduce(
@@ -964,13 +968,20 @@ export default function FunilBoard({
                   onAvancar={() => avancarComGuardaDia(ev, PROXIMA_FASE[faseDe(ev)])}
                   onPedirPerda={() => setConfirmandoPerda(ev.id)}
                   onCancelarPerda={() => setConfirmandoPerda(null)}
-                  onConfirmarPerda={() => mudarFase(ev, "perdido")}
+                  onConfirmarPerda={(motivo, detalhe) =>
+                    mudarFase(ev, "perdido", {
+                      motivoPerda: motivo,
+                      motivoPerdaDetalhe: detalhe,
+                    })
+                  }
                   aEscolherRecuperacao={
                     recuperando?.id === ev.id ? recuperando : null
                   }
                   onRecuperar={() => pedirRecuperacao(ev)}
                   onRecuperarPara={(fase, opcoes) =>
-                    mudarFase(ev, fase, opcoes)
+                    // 109 · Recuperar limpa a perda (carimbo + motivo)
+                    // no mesmo update.
+                    mudarFase(ev, fase, { ...opcoes, limparPerda: true })
                   }
                   onCancelarRecuperacao={() => setRecuperando(null)}
                   aConfirmarAvancoSemValor={
@@ -1397,6 +1408,16 @@ function CardEvento({
 }) {
   const proxima = PROXIMA_FASE[fase];
   const ehPerdido = fase === "perdido";
+  // 109 · Perder pede um motivo (o Atlas lê a procura recusada por
+  // zona). Estado local do cartão; limpa-se nos próprios gestos de
+  // confirmar/cancelar (nunca num efeito — regra do lint da casa),
+  // para a próxima perda não herdar a escolha da anterior.
+  const [motivoPerda, setMotivoPerda] = useState(null);
+  const [detalhePerda, setDetalhePerda] = useState("");
+  const limparEscolhaPerda = () => {
+    setMotivoPerda(null);
+    setDetalhePerda("");
+  };
   const temValor =
     evento.valor_acordado !== null && evento.valor_acordado !== undefined;
   // Para DECIDIR o caminho do sinal, "ter valor" é > 0 — o mesmo gate
@@ -1518,7 +1539,10 @@ function CardEvento({
           onFechar={onFecharDisputa}
         />
       ) : aConfirmarPerda ? (
-        <div>
+        // 109 · A perda pede o porquê ANTES do gesto: é este motivo que
+        // um dia diz «perdemos 3 pedidos na Margem Sul por distância».
+        // O wrap com stopPropagation segue a lição dos painéis irmãos.
+        <div onClick={(e) => e.stopPropagation()}>
           <p
             style={{
               fontSize: "12px",
@@ -1526,15 +1550,67 @@ function CardEvento({
               margin: "0 0 8px 0",
             }}
           >
-            Marcar como perdido?
+            Marcar como perdido — porquê?
           </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "4px",
+              marginBottom: "8px",
+            }}
+          >
+            {MOTIVOS_PERDA.map((m) => {
+              const ativo = motivoPerda === m.chave;
+              return (
+                <button
+                  key={m.chave}
+                  type="button"
+                  onClick={() => setMotivoPerda(ativo ? null : m.chave)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "999px",
+                    fontSize: "10.5px",
+                    fontWeight: "600",
+                    // O par do perigo cheio fica literal como no botão
+                    // ao lado (branco sobre #DC2626 lê nos dois modos).
+                    border: `1px solid ${ativo ? "#DC2626" : "var(--neutro-borda)"}`,
+                    backgroundColor: ativo ? "#DC2626" : "var(--superficie)",
+                    color: ativo ? "white" : "var(--gray-mid)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {m.rotulo}
+                </button>
+              );
+            })}
+          </div>
+          {motivoPerda === "outro" && (
+            <input
+              value={detalhePerda}
+              onChange={(e) => setDetalhePerda(e.target.value)}
+              placeholder="Qual foi o motivo?"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "6px 10px",
+                borderRadius: "8px",
+                border: "1px solid var(--neutro-borda)",
+                fontSize: "12px",
+                marginBottom: "8px",
+                backgroundColor: "var(--superficie)",
+                color: "var(--charcoal)",
+              }}
+            />
+          )}
           <div style={{ display: "flex", gap: "6px" }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onConfirmarPerda();
+                onConfirmarPerda(motivoPerda, detalhePerda.trim() || null);
+                limparEscolhaPerda();
               }}
-              disabled={aAtualizar}
+              disabled={aAtualizar || !motivoPerda}
               style={{
                 flex: 1,
                 padding: "7px 8px",
@@ -1548,7 +1624,12 @@ function CardEvento({
                 // lê-se nos dois modos) e segue no relatório.
                 backgroundColor: "#DC2626",
                 color: "white",
-                cursor: aAtualizar ? "wait" : "pointer",
+                opacity: !motivoPerda && !aAtualizar ? 0.55 : 1,
+                cursor: aAtualizar
+                  ? "wait"
+                  : !motivoPerda
+                    ? "not-allowed"
+                    : "pointer",
               }}
             >
               {aAtualizar ? "..." : "Sim, perdido"}
@@ -1557,6 +1638,7 @@ function CardEvento({
               onClick={(e) => {
                 e.stopPropagation();
                 onCancelarPerda();
+                limparEscolhaPerda();
               }}
               style={{
                 flex: 1,

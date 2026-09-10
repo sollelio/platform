@@ -12,6 +12,7 @@ import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import { useRotas } from "../../lib/rotasAdmin";
 import SeletorPacotes from "./SeletorPacotes";
 import { pacotePorNome } from "./pacotesBuffet";
+import { LOCALIDADES_ZONA } from "../../lib/localidades";
 
 // ============================================================
 // CaptacaoForm — os campos da captação, PARTILHADOS entre:
@@ -58,6 +59,10 @@ export default function CaptacaoForm({
   onSubmetido,
   textoBotao = "Enviar pedido",
   dataInicial = "",
+  // R1 (109): as pontes dos popovers do Início trazem a morada/data já
+  // escrita na consulta — a procura que se revelava ao telefone deixa
+  // de evaporar (era «Não guarda nada — é só uma consulta»).
+  localInicial = "",
   modoInterno = false,
   // Barra dourada (página pública /interesse): esconde o botão
   // interno e reporta o progresso dos obrigatórios ao exterior
@@ -95,7 +100,8 @@ export default function CaptacaoForm({
   const [tipoOutro, setTipoOutro] = useState("");
   const [dataEvento, setDataEvento] = useState(dataInicial || "");
   const [numeroConvidados, setNumeroConvidados] = useState("");
-  const [local, setLocal] = useState(""); // texto livre (ex: Cascais)
+  const [local, setLocal] = useState(localInicial || ""); // texto livre (ex: Cascais)
+  const [canalOrigem, setCanalOrigem] = useState(""); // como nos conheceu (opcional)
   const [localTipo, setLocalTipo] = useState(""); // tipo de espaço
   const [localOutro, setLocalOutro] = useState("");
   const [servicos, setServicos] = useState([]);
@@ -354,6 +360,7 @@ export default function CaptacaoForm({
               : [],
           servicosBalcao:
             localTipo && servicos.includes("Balcão") ? balcao : [],
+          canalOrigem,
           mensagem,
           ficheiros,
         },
@@ -546,6 +553,25 @@ export default function CaptacaoForm({
         />
       </Campo>
 
+      {/* R1 (109): o canal de origem — opcional de propósito (fricção
+          zero na porta pública), mas é o que um dia separa a procura
+          do Instagram da procura por recomendação, por zona. */}
+      <Campo label="Como nos conheceste?">
+        <select
+          style={inputStyle()}
+          value={canalOrigem}
+          onChange={(e) => setCanalOrigem(e.target.value)}
+        >
+          <option value="">Escolher... (opcional)</option>
+          <option value="Instagram">Instagram</option>
+          <option value="Facebook">Facebook</option>
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Recomendação">Recomendação de alguém</option>
+          <option value="Pesquisa Google">Pesquisa no Google</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </Campo>
+
       <Campo label="Tipo de evento *" erro={erros.tipo}>
         {tipos.length > 0 ? (
           <select
@@ -629,13 +655,23 @@ export default function CaptacaoForm({
         />
       )}
 
-      <Campo label="Local do evento">
+      {/* R1 (109): «Localidade», com sugestões — o texto livre desta
+          caixa é o que o Atlas lê por zona, e vinha cheio de nomes de
+          salão e gralhas. O datalist encaminha para a grafia certa sem
+          bloquear ninguém (continua texto livre). */}
+      <Campo label="Localidade do evento">
         <input
           style={inputStyle()}
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           placeholder="ex: Cascais"
+          list="dlm-localidades"
         />
+        <datalist id="dlm-localidades">
+          {LOCALIDADES_ZONA.map((l) => (
+            <option key={l} value={l} />
+          ))}
+        </datalist>
       </Campo>
 
       <Campo

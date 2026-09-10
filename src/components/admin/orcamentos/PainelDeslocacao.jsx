@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { Icone } from "../Navegacao";
 import { inputStyle, miniLabel, formatarEuros } from "./orcamentoConfig";
 import { calcularDeslocacao, TROCOS_PADRAO } from "../../../lib/deslocacaoRegra";
-import { obterDistancia, LOCALIDADES_MOCK } from "../../../lib/obterDistancia";
+import { obterDeslocacao } from "../../../lib/obterDistancia";
+// 109 · Os chips deixaram de listar o Algarve (resquício do handoff) —
+// as sugestões vêm agora da lista real da zona, num sítio só.
+import { LOCALIDADES_SUGERIDAS } from "../../../lib/localidades";
 
 // ============================================================
 // PainelDeslocacao — o painel "Cálculo de deslocação" que aparece
@@ -62,6 +65,9 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
     );
   }); // string do input; "" = sem valor
   const [origem, setOrigem] = useState(persistido?.origem || null); // null | "auto" | "manual"
+  // 109 · Minutos de viagem por troço (só quando a distância veio da
+  // API) — persiste na linha junto com os km, para o Atlas ler depois.
+  const [duracaoMin, setDuracaoMin] = useState(persistido?.duracaoMin ?? null);
   const [nTrocos, setNTrocos] = useState(persistido?.nTrocos || TROCOS_PADRAO);
   const [isento, setIsento] = useState(persistido?.isento || false);
   const [carregando, setCarregando] = useState(false);
@@ -91,6 +97,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
     const deslocacao = {
       morada,
       distanciaKm: distanciaNum ?? null,
+      duracaoMin,
       origem,
       nTrocos,
       isento,
@@ -102,7 +109,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
     if (primeira) return;
     onAtualizarRef.current?.({ valor: calc.custoFinal, deslocacao });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [morada, distancia, origem, nTrocos, isento]);
+  }, [morada, distancia, duracaoMin, origem, nTrocos, isento]);
 
   const calcularParaMorada = async (nome) => {
     if (!nome || !nome.trim() || carregando) return;
@@ -110,12 +117,14 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
     setCarregando(true);
     setErro(null);
     try {
-      const km = await obterDistancia(nome);
-      setDistancia(String(km));
+      const r = await obterDeslocacao(nome);
+      setDistancia(String(r.km));
+      setDuracaoMin(r.duracaoMin);
       setOrigem("auto");
     } catch (e) {
       setErro(e.message);
       setDistancia("");
+      setDuracaoMin(null);
       setOrigem(null);
     }
     setCarregando(false);
@@ -123,6 +132,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
 
   const aoEditarDistancia = (valor) => {
     setDistancia(valor);
+    setDuracaoMin(null); // km à mão = a duração do Google já não bate
     setOrigem(valor === "" ? null : "manual");
     setErro(null); // editar à mão é exatamente o que o banner pedia — não insiste
   };
@@ -238,7 +248,7 @@ export default function PainelDeslocacao({ linha, moradaPrefill, onAtualizar }) 
         <span style={{ fontSize: "11px", color: "var(--gray-mid)" }}>
           sugestões:
         </span>
-        {LOCALIDADES_MOCK.map((nome) => (
+        {LOCALIDADES_SUGERIDAS.map((nome) => (
           <button
             key={nome}
             type="button"

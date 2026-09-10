@@ -384,12 +384,27 @@ const mensagemCheckFaseStatus = (error) => {
 // atómico de que a recuperação de um perdido precisa (voltar a
 // Interessados limpando o estado, sem janela onde o CHECK da 040
 // visse um par inválido).
+//
+// 109 · O perdido ganhou carimbo e motivo (o funil da procura do
+// Atlas): perder escreve perdido_em + motivo_perda no MESMO update;
+// recuperar limpa-os com `opcoes.limparPerda` — passado só nos gestos
+// de recuperação, de propósito: as mudanças de fase normais não tocam
+// nas colunas novas (e não dependem da 109 ter corrido).
 export const updateFase = async (submissionId, fase, opcoes = {}) => {
   if (!FASES_VALIDAS.includes(fase)) {
     throw new Error(`Fase inválida: ${fase}`);
   }
   const update = { fase };
   if (opcoes.status) update.status = opcoes.status;
+  if (fase === "perdido") {
+    update.perdido_em = new Date().toISOString();
+    update.motivo_perda = opcoes.motivoPerda || null;
+    update.motivo_perda_detalhe = opcoes.motivoPerdaDetalhe || null;
+  } else if (opcoes.limparPerda) {
+    update.perdido_em = null;
+    update.motivo_perda = null;
+    update.motivo_perda_detalhe = null;
+  }
   const { data, error } = await supabase
     .from("submissions")
     .update(update)

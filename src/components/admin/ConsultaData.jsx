@@ -97,7 +97,10 @@ const hojeISO = () => {
   return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
 };
 
-export default function ConsultaData({ onFechar }) {
+// 109 · onRegistarPedido(dataISO): a ponte de um clique para o
+// «+ Registar pedido», com a data já escrita — a consulta continua a
+// não guardar nada; o que conta a procura é o registo.
+export default function ConsultaData({ onFechar, onRegistarPedido }) {
   const navigate = useNavigate();
   const [data, setData] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -240,6 +243,27 @@ export default function ConsultaData({ onFechar }) {
         <Resposta resultado={resultado} navigate={navigate} />
       )}
 
+      {onRegistarPedido && (data || resultado) && (
+        <button
+          type="button"
+          onClick={() => onRegistarPedido(resultado?.dataISO || data)}
+          style={{
+            width: "100%",
+            marginTop: "12px",
+            padding: "9px",
+            borderRadius: "8px",
+            fontSize: "12.5px",
+            fontWeight: "600",
+            border: "1.5px solid var(--gold)",
+            backgroundColor: "var(--superficie)",
+            color: "var(--gold-dark)",
+            cursor: "pointer",
+          }}
+        >
+          Registar este pedido →
+        </button>
+      )}
+
       <p
         style={{
           fontSize: "10.5px",
@@ -249,7 +273,7 @@ export default function ConsultaData({ onFechar }) {
           margin: "12px 0 0",
         }}
       >
-        Não guarda nada — é só uma consulta.
+        A consulta não guarda nada — o pedido só conta se o registares.
       </p>
     </motion.div>
   );

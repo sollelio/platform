@@ -2941,3 +2941,41 @@ marca o pacote «Sugerido para si». Decisões:
   descreve. Escolhido um, o carrossel dá lugar ao cartão sozinho a
   toda a largura (o «Mudar de pacote» traz os outros de volta, já
   posicionados no sugerido).
+
+## R1 · A procura não se apaga (10/09/2026 — aprovação do Atlas, Rev. 2)
+
+O Atlas da Casa foi aprovado com três correções do Hélio, e o R1 é a
+fundação de recolha que vem ANTES de qualquer ecrã:
+
+- **Identidade ≠ ocorrência de procura.** O dedupe continua a juntar a
+  MESMA pessoa (telefone), mas: data diferente já criava pedido novo
+  (certo, não se mexeu); mesmo telefone+mesma data+evento vivo continua
+  a não duplicar — mas agora deixa NOTA interna no evento («contacto
+  repetido») via `captacao_submeter` da 109. Insistência é procura.
+- **Perder ≠ apagar.** «Perdido» é estado de negócio, com carimbo
+  (`perdido_em`) e motivo (`motivo_perda`: distância·preço·data
+  ocupada·sem resposta·outro, + detalhe) pedidos no gesto («Sim,
+  perdido» do funil). Apagar fica para o que nunca devia ter existido
+  (erro, teste, duplicado técnico) — o RemoverEventoModal propõe
+  perder PRIMEIRO nos pré-sinal, sem forçar (transformar todos os
+  apagares em perdidos também contaminava). Recuperar limpa a perda.
+- **As consultas deixaram de evaporar procura**: os popovers do Início
+  (Deslocação e Data) ganharam «Registar este pedido →» que abre o
+  modal de captação com a morada/data já escrita; o rodapé passou de
+  «Não guarda nada — é só uma consulta» para «...o pedido só conta se
+  o registares».
+- **Duração da estrada**: a Edge Function devolve `duracaoMin` (vinha
+  na MESMA resposta paga do Google e deitava-se fora); a linha
+  Deslocação persiste-a com os km. ⚠ Carece de deploy da Edge pelo
+  Hélio; até lá vem null e nada parte.
+- **Canal de origem** («Como nos conheceste?», opcional) na captação →
+  `respostas.canalOrigem`. **Localidade** com datalist de sugestões da
+  zona (lib/localidades.js) e label «Localidade do evento» — seca as
+  gralhas na origem. Os chips do painel de deslocação deixaram de ser
+  do Algarve.
+- **Honestidade epistemológica** (regra para o Lote A): os dados são o
+  que foi REGISTADO, nunca «a procura» — as frases dirão sempre
+  «pedidos registados»; n=19 é censo dos registos, não do negócio.
+- Migração: **109_a_procura_nao_se_apaga.sql** (colunas de perda +
+  captacao_submeter com nota de contacto repetido). Corre em TEST
+  primeiro; o motivo no «Sim, perdido» assume-a corrida.
