@@ -7,7 +7,13 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import MapaAtlas from "./MapaAtlas";
-import { FOTOGRAFIA, KM_REAIS, META_FOTOGRAFIA } from "../../../lib/territorioLab/fotografia";
+import {
+  FOTOGRAFIA,
+  KM_REAIS,
+  META_FOTOGRAFIA,
+  estadoDoRegisto,
+  eOperacional,
+} from "../../../lib/territorioLab/fotografia";
 import {
   pontoDaLocalidade,
   atribuirRede,
@@ -16,12 +22,14 @@ import {
   localidadeMaisProxima,
   lerNucleoGuardado,
   guardarNucleo,
-  NUCLEO_PROVISORIO,
+  limparNucleoGuardado,
+  nucleoInicial,
+  nucleoPorOmissao,
   COORDS_LOCALIDADE,
   FATOR_ESTRADA,
 } from "../../../lib/territorioLab/geo";
+import { kmPorEstrada, chavePonto } from "../../../lib/territorioLab/estrada";
 import { gerarAtlas, dataCurta } from "../../../lib/territorio/motor";
-import { FASES_POS_SINAL } from "../../../lib/fases";
 import { temaEfectivo, assinarTema } from "../../../lib/tema";
 import { formatarEuros } from "../orcamentos/orcamentoConfig";
 
@@ -87,14 +95,12 @@ export default function TerritorioLab() {
         fora += 1;
         continue;
       }
-      const realizado = r.status === "Concluído";
-      const garantido = FASES_POS_SINAL.includes(r.fase) && !realizado;
       geo.push({
         id: r.id,
         lngLat: p.lngLat,
         localidade: p.chave,
         rotulo: capitalizar(p.chave),
-        estado: r.fase === "perdido" ? "perdido" : realizado ? "realizado" : garantido ? "garantido" : "conversa",
+        estado: estadoDoRegisto(r),
         valor: r.valor_acordado == null ? null : Number(r.valor_acordado),
         dataEvento: r.data_evento,
         criadoEmTs: new Date(r.created_at).getTime(),
@@ -124,8 +130,11 @@ export default function TerritorioLab() {
   }, []);
 
   // ---------- núcleos ----------
-  const [nucleoAtual, setNucleoAtual] = useState(
-    () => lerNucleoGuardado() || NUCLEO_PROVISORIO,
+  // Arranque: guardado neste browser > configurado no staging
+  // (nucleoConfig.js) > provisório (a sede), marcado como tal.
+  const [nucleoAtual, setNucleoAtual] = useState(() => nucleoInicial());
+  const [nucleoGuardadoExiste, setNucleoGuardadoExiste] = useState(
+    () => !!lerNucleoGuardado(),
   );
   const [definindoNucleo, setDefinindoNucleo] = useState(false);
   const [nucleoB, setNucleoB] = useState(null); // {lngLat, nome} | null
@@ -184,25 +193,101 @@ export default function TerritorioLab() {
     return lista;
   }, [nucleoAtual, nucleoB, expansao, definindoNucleo]);
 
+  // A REDE fala de EVENTOS (realizados + garantidos): deslocações que
+  // a equipa fez ou vai fazer. Pedidos em conversa/perdidos ficam na
+  // lente Procura — no mapa da rede aparecem esbatidos, sem arco.
+  const eventosOperacionais = useMemo(
+    () => eventosGeo.filter((e) => eOperacional(e.estado)),
+    [eventosGeo],
+  );
+
   const redeAtual = useMemo(
-    () => atribuirRede(eventosGeo, [{ id: "atual", lngLat: nucleoAtual.lngLat }]),
-    [eventosGeo, nucleoAtual],
+    () =>
+      atribuirRede(eventosOperacionais, [
+        { id: "atual", lngLat: nucleoAtual.lngLat },
+      ]),
+    [eventosOperacionais, nucleoAtual],
   );
   const rede = useMemo(
     () =>
       expansao && nucleoB
-        ? atribuirRede(eventosGeo, [
+        ? atribuirRede(eventosOperacionais, [
             { id: "atual", lngLat: nucleoAtual.lngLat },
             { id: "b", lngLat: nucleoB.lngLat },
           ])
         : redeAtual,
-    [eventosGeo, nucleoAtual, nucleoB, expansao, redeAtual],
+    [eventosOperacionais, nucleoAtual, nucleoB, expansao, redeAtual],
   );
   const comparacao = useMemo(
     () => (expansao && nucleoB ? compararRedes(redeAtual, rede) : null),
     [expansao, nucleoB, redeAtual, rede],
   );
   const metricasAtuais = useMemo(() => metricasRede(redeAtual), [redeAtual]);
+
+  // ---------- refinamento por estrada (dois níveis de rigor) ----------
+  // Ao arrastar, o estimador ×1,3 responde a cada frame; quando o
+  // cenário ESTABILIZA (largar, escolher cenário), pede-se o cálculo
+  // por estrada (estrada.js → Edge `atlas-distancias`) — nunca por
+  // frame. A chave prende o resultado à posição: mal o núcleo mexa,
+  // os valores voltam a dizer «≈ estimativa» até novo refinamento.
+  const [refino, setRefino] = useState(null); // {estado, chave, kmsAtual, kmsB}
+  const seqRefino = useRef(0);
+  const chaveCenario = (a, b) => `${chavePonto(a)}|${chavePonto(b)}`;
+  const refinarCenario = (posAtual, posB) => {
+    const chave = chaveCenario(posAtual, posB);
+    const meu = ++seqRefino.current;
+    setRefino({ estado: "a-calcular", chave });
+    const destinos = eventosOperacionais.map((e) => e.lngLat);
+    Promise.all([
+      kmPorEstrada(posAtual, destinos),
+      kmPorEstrada(posB, destinos),
+    ])
+      .then(([tA, tB]) => {
+        if (seqRefino.current !== meu) return;
+        setRefino({
+          estado: "pronto",
+          chave,
+          kmsAtual: new Map(eventosOperacionais.map((e, i) => [e.id, tA[i].km])),
+          kmsB: new Map(eventosOperacionais.map((e, i) => [e.id, tB[i].km])),
+        });
+      })
+      .catch(() => {
+        if (seqRefino.current === meu)
+          setRefino({ estado: "indisponivel", chave });
+      });
+  };
+  const limparRefino = () => {
+    seqRefino.current += 1;
+    setRefino(null);
+  };
+
+  // O refino só vale para a posição EXATA a que foi pedido.
+  const refinoAtivo =
+    expansao && nucleoB && refino &&
+    refino.chave === chaveCenario(nucleoAtual.lngLat, nucleoB.lngLat)
+      ? refino
+      : null;
+  const estrada = useMemo(() => {
+    if (!refinoAtivo || refinoAtivo.estado !== "pronto") return null;
+    // A MESMA regra de atribuição da rede, com os km por estrada no
+    // lugar do estimador — o mapa e o painel contam a mesma história.
+    const antes = atribuirRede(
+      eventosOperacionais,
+      [{ id: "atual", lngLat: nucleoAtual.lngLat }],
+      (n, e) => refinoAtivo.kmsAtual.get(e.id),
+    );
+    const depois = atribuirRede(
+      eventosOperacionais,
+      [
+        { id: "atual", lngLat: nucleoAtual.lngLat },
+        { id: "b", lngLat: nucleoB.lngLat },
+      ],
+      (n, e) =>
+        (n.id === "b" ? refinoAtivo.kmsB : refinoAtivo.kmsAtual).get(e.id),
+    );
+    return { comparacao: compararRedes(antes, depois), depois };
+  }, [refinoAtivo, eventosOperacionais, nucleoAtual, nucleoB]);
+  const redeMapa = estrada ? estrada.depois : rede;
 
   // ---------- destaque a partir das frases ----------
   const destaqueIds = useMemo(() => {
@@ -384,16 +469,19 @@ export default function TerritorioLab() {
   const fecharExpansao = () => {
     setExpansao(false);
     setNucleoB(null);
+    limparRefino();
   };
   const colocarNucleoB = (lngLat) => {
     const perto = localidadeMaisProxima(lngLat);
     setNucleoB({ lngLat, nome: `≈ ${perto.nome}` });
+    refinarCenario(nucleoAtual.lngLat, lngLat); // cenário estável → estrada
   };
   const cenarioRapido = (chave) => {
     setNucleoB({
       lngLat: COORDS_LOCALIDADE[chave],
       nome: capitalizar(chave),
     });
+    refinarCenario(nucleoAtual.lngLat, COORDS_LOCALIDADE[chave]);
     const pontos = [
       ...eventosGeo.map((e) => e.lngLat),
       nucleoAtual.lngLat,
@@ -413,6 +501,8 @@ export default function TerritorioLab() {
         lngLat,
         nome: final ? `≈ ${perto.nome}` : n?.nome || "…",
       }));
+      // durante o arrasto responde o estimador; ao LARGAR, refina-se
+      if (final) refinarCenario(nucleoAtual.lngLat, lngLat);
     } else if (id === "atual") {
       setNucleoAtual((n) => ({ ...n, lngLat }));
       if (final) {
@@ -422,6 +512,7 @@ export default function TerritorioLab() {
           localidade: `≈ ${perto.nome}`,
           provisorio: true, // só deixa de ser provisório ao Guardar
         });
+        if (expansao && nucleoB) refinarCenario(lngLat, nucleoB.lngLat);
       }
     }
   };
@@ -438,6 +529,15 @@ export default function TerritorioLab() {
       localidade: `≈ ${perto.nome}`,
       provisorio: false,
     });
+    setNucleoGuardadoExiste(true);
+    setDefinindoNucleo(false);
+  };
+  // Volta à posição de origem (configurada no staging, ou provisória)
+  // — apaga só o que ESTE browser guardou; simulações nunca tocam nisto.
+  const reporNucleo = () => {
+    limparNucleoGuardado();
+    setNucleoAtual(nucleoPorOmissao());
+    setNucleoGuardadoExiste(false);
     setDefinindoNucleo(false);
   };
 
@@ -525,7 +625,7 @@ export default function TerritorioLab() {
           tema={tema}
           eventos={eventosGeo}
           nucleos={nucleos}
-          rede={rede}
+          rede={redeMapa}
           cena={cenaEfetiva}
           metrica3d={metrica3d}
           tempoLimite={tempoLimite}
@@ -758,7 +858,9 @@ export default function TerritorioLab() {
                 {Number(popup.valor) > 0 ? ` · ${formatarEuros(popup.valor)}` : ""}
                 {Number(popup.kmReal) > 0
                   ? ` · ${popup.kmReal} km reais (orçamento)`
-                  : ` · ≈${popup.km} km estimados`}
+                  : Number(popup.km) > 0
+                    ? ` · ≈${popup.km} km estimados`
+                    : ""}
               </p>
               <button
                 type="button"
@@ -823,16 +925,33 @@ export default function TerritorioLab() {
                 </>
               ) : (
                 <ComparacaoCenario
-                  comparacao={comparacao}
+                  comparacao={estrada ? estrada.comparacao : comparacao}
+                  modoEstrada={!!estrada}
+                  refinoEstado={refinoAtivo?.estado ?? null}
                   nucleoB={nucleoB}
-                  onLimpar={() => setNucleoB(null)}
+                  onLimpar={() => {
+                    setNucleoB(null);
+                    limparRefino();
+                  }}
                 />
               )}
-              <p style={{ ...estMicro, marginTop: "10px" }}>
-                Distâncias estimadas em linha reta ×{FATOR_ESTRADA} — o MESMO
-                estimador para os dois núcleos (comparação justa). Nada disto
-                fica gravado: é um cenário de exploração.
-              </p>
+              {estrada ? (
+                <p style={{ ...estMicro, marginTop: "10px" }}>
+                  Distâncias por ESTRADA (função da casa), entre centróides
+                  de localidade — não porta-a-porta. Ao arrastar vês a
+                  estimativa ≈×{FATOR_ESTRADA}; ao largar, refina-se. Nada
+                  disto fica gravado: é um cenário de exploração.
+                </p>
+              ) : (
+                <p style={{ ...estMicro, marginTop: "10px" }}>
+                  Distâncias estimadas em linha reta ×{FATOR_ESTRADA} — o
+                  MESMO estimador para os dois núcleos (comparação justa).
+                  {nucleoB && refinoAtivo?.estado === "indisponivel"
+                    ? " O cálculo por estrada está indisponível (a função atlas-distancias ainda não está publicada em TEST)."
+                    : ""}{" "}
+                  Nada disto fica gravado: é um cenário de exploração.
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -874,12 +993,17 @@ export default function TerritorioLab() {
             )}
             <p style={estTexto}>
               {nucleoAtual.localidade || "—"} · serve {metricasAtuais.n}{" "}
-              pedidos mapeados · mediana ≈{metricasAtuais.mediana} km · máx ≈
-              {metricasAtuais.maior} km
+              eventos (realizados + garantidos) · mediana ≈
+              {metricasAtuais.mediana} km · máx ≈{metricasAtuais.maior} km
             </p>
             <p style={{ ...estMicro, margin: "6px 0 10px" }}>
               O núcleo operacional é onde a operação parte — NÃO é a base de
-              pricing dos orçamentos (essa não muda aqui).
+              pricing dos orçamentos (essa não muda aqui).{" "}
+              {nucleoGuardadoExiste
+                ? "Posição guardada NESTE browser (as simulações nunca a alteram)."
+                : nucleoAtual.configurado
+                  ? "Posição fixa do staging (nucleoConfig) — igual em qualquer browser."
+                  : ""}
             </p>
             {definindoNucleo ? (
               <div style={{ display: "flex", gap: "6px" }}>
@@ -895,13 +1019,25 @@ export default function TerritorioLab() {
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setDefinindoNucleo(true)}
-                style={{ ...pill(false), width: "100%" }}
-              >
-                Arrastar para o local real…
-              </button>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button
+                  type="button"
+                  onClick={() => setDefinindoNucleo(true)}
+                  style={{ ...pill(false), flex: 1 }}
+                >
+                  Arrastar para o local real…
+                </button>
+                {nucleoGuardadoExiste && (
+                  <button
+                    type="button"
+                    onClick={reporNucleo}
+                    title="Volta à posição de origem do staging"
+                    style={{ ...pill(false), flexShrink: 0 }}
+                  >
+                    Repor
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -961,10 +1097,13 @@ export default function TerritorioLab() {
 
       <p style={{ ...estMicro, marginTop: "10px" }}>
         Protótipo de visão (staging) — fotografia sanitizada de{" "}
-        {dataCurta(META_FOTOGRAFIA.data)}, sem nomes nem contactos; geocodificação
-        por tabela local de localidades (nenhum serviço externo); nada é
-        escrito na base de dados. Não representa toda a procura do mercado —
-        apenas os pedidos registados.
+        {dataCurta(META_FOTOGRAFIA.data)}, sem nomes nem contactos;
+        geocodificação por tabela local de localidades (nenhum serviço
+        externo). Procura = PEDIDOS REGISTADOS; a rede e a simulação =
+        EVENTOS (realizados + garantidos). O refinamento por estrada do
+        cenário usa a função da casa, só com coordenadas de localidade;
+        nada é escrito na base de dados. Não representa toda a procura do
+        mercado — apenas os pedidos registados.
       </p>
     </div>
   );
@@ -1114,7 +1253,12 @@ function Legenda({ tema, lente, cena, metrica3d, expansao, desktop }) {
   if (cena === "tempo") return null; // a barra do tempo É a legenda
   const linhas = [];
   if (expansao) {
-    linhas.push(["◆ ouro", "núcleo atual"], ["◆ prata", "núcleo simulado"], ["— arcos", "cada pedido liga ao núcleo mais próximo"]);
+    linhas.push(
+      ["◆ ouro", "núcleo atual"],
+      ["◆ prata", "núcleo simulado"],
+      ["— arcos", "cada EVENTO (realizado + garantido) liga ao núcleo mais próximo"],
+      ["○ esbatido", "pedidos em conversa — sem deslocação da equipa"],
+    );
   } else if (lente === "procura" && cena === "calor") {
     linhas.push(["calor", "concentração dos PEDIDOS REGISTADOS — não é o mercado"]);
   } else if (lente === "procura" && cena === "relevo") {
@@ -1123,7 +1267,10 @@ function Legenda({ tema, lente, cena, metrica3d, expansao, desktop }) {
       metrica3d === "valor" ? "altura = € acordados por localidade" : "altura = pedidos registados por localidade",
     ]);
   } else if (lente === "operacoes" || lente === "infraestrutura") {
-    linhas.push(["— arcos", "núcleo → evento (≈ linha reta ×1,3; 4 têm km reais de orçamento)"]);
+    linhas.push(
+      ["— arcos", "núcleo → EVENTO realizado/garantido (≈ linha reta ×1,3; 4 têm km reais)"],
+      ["○ esbatido", "pedidos em conversa — não são deslocações da equipa"],
+    );
   } else {
     linhas.push(
       ["● cheio", "realizado/garantido"],
@@ -1172,10 +1319,38 @@ function LinhaMetrica({ r, v, forte }) {
   );
 }
 
-function ComparacaoCenario({ comparacao, nucleoB, onLimpar }) {
+function ComparacaoCenario({
+  comparacao,
+  modoEstrada = false,
+  refinoEstado = null,
+  nucleoB,
+  onLimpar,
+}) {
   const { antes, depois, mudaram, delta } = comparacao;
+  // Dois níveis de rigor, ditos com todas as letras: «≈» é a
+  // estimativa instantânea (arrasto); sem «≈» é o cálculo por estrada.
+  const km = (v) => (modoEstrada ? `${v} km` : `≈${v} km`);
+  const selo = modoEstrada
+    ? "por estrada"
+    : refinoEstado === "a-calcular"
+      ? "≈ estimativa · a calcular estrada…"
+      : "≈ estimativa";
   return (
     <div>
+      <p
+        style={{
+          ...estMicro,
+          display: "inline-block",
+          border: "1px solid var(--gold-light)",
+          borderRadius: "999px",
+          padding: "1px 9px",
+          marginBottom: "8px",
+          color: modoEstrada ? "var(--gold-dark)" : "var(--gray-mid)",
+          fontWeight: 600,
+        }}
+      >
+        {selo}
+      </p>
       <div
         style={{
           display: "grid",
@@ -1187,16 +1362,16 @@ function ComparacaoCenario({ comparacao, nucleoB, onLimpar }) {
         <div style={{ borderRight: "1px solid var(--borda)", paddingRight: "10px" }}>
           <p style={{ ...estOverline, fontSize: "9px" }}>Atual</p>
           <LinhaMetrica r="núcleos" v="1" />
-          <LinhaMetrica r="Σ distância" v={`≈${antes.total} km`} />
-          <LinhaMetrica r="mediana" v={`≈${antes.mediana} km`} />
-          <LinhaMetrica r="máxima" v={`≈${antes.maior} km`} />
+          <LinhaMetrica r="Σ distância" v={km(antes.total)} />
+          <LinhaMetrica r="mediana" v={km(antes.mediana)} />
+          <LinhaMetrica r="máxima" v={km(antes.maior)} />
         </div>
         <div>
           <p style={{ ...estOverline, fontSize: "9px" }}>Simulação</p>
           <LinhaMetrica r="núcleos" v="2" />
-          <LinhaMetrica r="Σ distância" v={`≈${depois.total} km`} forte />
-          <LinhaMetrica r="mediana" v={`≈${depois.mediana} km`} forte />
-          <LinhaMetrica r="máxima" v={`≈${depois.maior} km`} forte />
+          <LinhaMetrica r="Σ distância" v={km(depois.total)} forte />
+          <LinhaMetrica r="mediana" v={km(depois.mediana)} forte />
+          <LinhaMetrica r="máxima" v={km(depois.maior)} forte />
         </div>
       </div>
       <p
@@ -1209,12 +1384,13 @@ function ComparacaoCenario({ comparacao, nucleoB, onLimpar }) {
       >
         Com um núcleo em <strong>{nucleoB.nome}</strong>,{" "}
         <strong style={{ color: "var(--gold-dark)" }}>{mudaram}</strong> dos{" "}
-        {antes.n} pedidos mapeados passariam a ser servidos mais perto —{" "}
+        {antes.n} eventos (realizados + garantidos) passariam a ser servidos
+        mais perto —{" "}
         <strong style={{ color: "var(--gold-dark)" }}>
           {delta <= 0 ? "−" : "+"}
           {Math.abs(delta)} km
         </strong>{" "}
-        na distância agregada.
+        na distância agregada{modoEstrada ? " por estrada" : ""}.
       </p>
       <p style={{ ...estMicro, marginBottom: "8px" }}>
         Podes ARRASTAR o losango prateado — a rede reorganiza-se em direto.

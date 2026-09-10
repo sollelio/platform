@@ -3067,3 +3067,36 @@ fundação de recolha que vem ANTES de qualquer ecrã:
 - **Linguagem**: sempre «pedidos registados» / «concentração dos
   pedidos registados» — nunca «procura do mercado»; rodapé com data
   da fotografia, precisão e fronteira de staging sempre visível.
+
+### Atlas Vision Prototype — polimento de credibilidade (10/09/2026)
+
+- **Dois níveis de rigor na simulação**: durante o ARRASTO responde o
+  estimador instantâneo (linha reta ×1,3 — fluidez intacta) com selo
+  «≈ estimativa»; quando o cenário ESTABILIZA (largar o núcleo,
+  escolher cenário), calcula-se a distância por ESTRADA via Edge
+  Function própria `atlas-distancias` (SÓ STAGING; mesma infra Google
+  Distance Matrix da casa, lote de até 25 destinos por chamada, cache
+  por par, nunca por frame) e o painel passa a «por estrada», sem ≈.
+  Continua a ser por CENTRÓIDE de localidade — não porta-a-porta — e
+  a UI di-lo. Se a função não estiver publicada, o Atlas fica,
+  honesto, na estimativa (nota visível). A `obter-distancia` dos
+  orçamentos NÃO foi tocada; a MORADA_BASE nunca entra no Atlas.
+- **Núcleo operacional estável em staging**: nova ordem de arranque —
+  guardado neste browser (localStorage) > `nucleoConfig.js` (posição
+  fixa do staging, versionada, igual em qualquer browser) >
+  provisório (sede, marcado). Botão «Repor» limpa o override local.
+  Simulações nunca tocam nisto. O NUCLEO_REAL continua null: a
+  localização verdadeira do armazém ainda não existe no sistema.
+- **Procura ≠ Operações, agora também no mapa**: a rede e a simulação
+  falam de EVENTOS (realizados + garantidos — 10 dos 16 mapeados);
+  pedidos em conversa/perdidos são PROCURA: sem arco, esbatidos na
+  cena da rede, legendados («não são deslocações da equipa»).
+  Derivação única em fotografia.js (estadoDoRegisto/eOperacional),
+  protegida por teste.
+- **Bug real de staging encontrado e corrigido**: o worker do MapLibre
+  resolve-se como ficheiro irmão do módulo — existia em dev, mas o
+  build NÃO o emitia e o mapa ficava EM BRANCO no build de produção
+  (verificado em vite preview). Corrigido com `?worker&url` +
+  `setWorkerUrl` (o worker sai autocontido no build, ~124 KB gz).
+  Build verificado em modo produção: tiles, entrada, arrasto, refino,
+  escuro, refresh, móvel.

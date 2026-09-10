@@ -13,6 +13,8 @@
 // sistema tem; o resto estima-se — ver geo.js).
 // ============================================================
 
+import { FASES_POS_SINAL } from "../fases.js";
+
 export const META_FOTOGRAFIA = {
   data: "2026-09-10",
   origem: "produção (query manual do Hélio — sem PII)",
@@ -55,6 +57,26 @@ export const FOTOGRAFIA = [
   R(18, "Amadora", "Salão", "interessado", "Recebido", "2026-09-16", 30, null, "2026-08-31"),
   R(19, "Amora", "Ao domicílio", "interessado", "Recebido", "2026-12-05", 30, "1330.00", "2026-08-31"),
 ];
+
+// ---- a semântica das populações (Procura ≠ Operações) ----
+//
+// PROCURA fala de PEDIDOS REGISTADOS: todos, incluindo os em conversa
+// e os perdidos — é de onde a procura vem, não do que a equipa fez.
+// OPERAÇÕES fala de EVENTOS: só os realizados (Concluído) e os
+// garantidos (fase pós-sinal) — deslocações que a equipa fez ou vai
+// fazer. Um pedido em conversa ou perdido NUNCA vira visualmente um
+// evento executado. A derivação vive AQUI, num sítio só, para o
+// componente e os testes lerem a mesma regra.
+
+export const estadoDoRegisto = (r) => {
+  if (r.fase === "perdido") return "perdido";
+  if (r.status === "Concluído") return "realizado";
+  if (FASES_POS_SINAL.includes(r.fase)) return "garantido";
+  return "conversa";
+};
+
+export const eOperacional = (estado) =>
+  estado === "realizado" || estado === "garantido";
 
 // km por estrada CONGELADOS nos orçamentos (desde a base de pricing
 // dos orçamentos — não confundir com o núcleo operacional; ver

@@ -5,8 +5,18 @@ import {
   useRef,
 } from "react";
 import * as maplibregl from "maplibre-gl";
+// O worker do MapLibre resolve-se por omissão como um ficheiro
+// IRMÃO do módulo (new URL("./maplibre-gl-worker.mjs", import.meta.url))
+// — existe em dev, mas o build NÃO o emite e o mapa fica em branco em
+// staging (canvas vazio, 'load' nunca dispara). O `?worker&url` do
+// Vite embrulha o worker AUTOCONTIDO (o `?url` simples não chega: o
+// ficheiro importa "./maplibre-gl-shared.mjs", que o build também não
+// emitiria) e o setWorkerUrl aponta-lhe explicitamente, dev e build.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { arco, bboxDe, VISTA_PORTUGAL } from "../../../lib/territorioLab/geo";
+
+maplibregl.setWorkerUrl(workerUrl);
 
 // ============================================================
 // MapaAtlas — o palco WebGL do Atlas Vision Prototype (staging).
@@ -115,28 +125,34 @@ const MapaAtlas = forwardRef(function MapaAtlas(
 
   // ---------- dados → GeoJSON ----------
   const dadosEventos = () => {
-    const { eventos: evs, rede: r, tempoLimite: t, destaqueIds: d } =
+    const { eventos: evs, rede: r, tempoLimite: t, destaqueIds: d, cena: c } =
       propsRef.current;
     const porId = new Map(r.map((x) => [x.id, x]));
     return fc(
       evs
         .filter((e) => (t == null ? true : e.criadoEmTs <= t))
-        .map((e) => ({
-          type: "Feature",
-          id: e.id,
-          geometry: { type: "Point", coordinates: e.lngLat },
-          properties: {
+        .map((e) => {
+          // Na cena da REDE, quem não está na rede (pedidos em
+          // conversa/perdidos — não são eventos da operação) esbate:
+          // ficam no território, mas nunca parecem deslocações.
+          const foraDaRede = c === "rede" && !porId.has(e.id);
+          return {
+            type: "Feature",
             id: e.id,
-            localidade: e.rotulo,
-            estado: e.estado,
-            valor: e.valor ?? 0,
-            data: e.dataEvento || "",
-            nucleo: porId.get(e.id)?.nucleoId || "atual",
-            km: porId.get(e.id)?.kmEstimado ?? 0,
-            kmReal: e.kmReal ?? 0,
-            dim: d && !d.has(e.id) ? 1 : 0,
-          },
-        })),
+            geometry: { type: "Point", coordinates: e.lngLat },
+            properties: {
+              id: e.id,
+              localidade: e.rotulo,
+              estado: e.estado,
+              valor: e.valor ?? 0,
+              data: e.dataEvento || "",
+              nucleo: porId.get(e.id)?.nucleoId || "atual",
+              km: porId.get(e.id)?.kmEstimado ?? 0,
+              kmReal: e.kmReal ?? 0,
+              dim: d ? (d.has(e.id) ? 0 : 1) : foraDaRede ? 1 : 0,
+            },
+          };
+        }),
     );
   };
 
@@ -501,8 +517,11 @@ const MapaAtlas = forwardRef(function MapaAtlas(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventos, rede, nucleos, tempoLimite, destaqueIds, metrica3d]);
   useEffect(() => {
-    if (prontoRef.current) aplicarCena();
-     
+    if (prontoRef.current) {
+      aplicarCena();
+      atualizarDados(); // o esbatimento fora-da-rede depende da cena
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cena]);
   useEffect(() => {
     if (prontoRef.current) sincronizarNucleos();

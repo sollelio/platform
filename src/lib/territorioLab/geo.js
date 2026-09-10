@@ -22,6 +22,7 @@
 // ============================================================
 
 import { normalizarLocalidade } from "../territorio/zonas.js";
+import { NUCLEO_REAL } from "./nucleoConfig.js";
 
 export const FATOR_ESTRADA = 1.3;
 
@@ -173,6 +174,33 @@ export const guardarNucleo = (lngLat, localidade) => {
   }
 };
 
+export const limparNucleoGuardado = () => {
+  try {
+    globalThis.localStorage?.removeItem(CHAVE_LS);
+  } catch {
+    /* nada a limpar */
+  }
+};
+
+// A posição de arranque SEM contar com o localStorage: a configurada
+// do staging (nucleoConfig.js), se existir; senão a provisória.
+export const nucleoPorOmissao = () =>
+  NUCLEO_REAL
+    ? {
+        id: "atual",
+        nome: "Núcleo atual",
+        lngLat: NUCLEO_REAL.lngLat,
+        localidade: NUCLEO_REAL.localidade,
+        provisorio: false,
+        configurado: true,
+      }
+    : NUCLEO_PROVISORIO;
+
+// A posição com que o Lab arranca: o que este browser guardou ganha
+// (é o gesto explícito de quem o guardou); depois a configuração
+// estável do staging; por fim o provisório, marcado como tal.
+export const nucleoInicial = () => lerNucleoGuardado() || nucleoPorOmissao();
+
 // A localidade curada mais próxima de um ponto (para dar nome a um
 // núcleo largado no mapa: «≈ perto de Almada»).
 export const localidadeMaisProxima = (lngLat) => {
@@ -194,13 +222,20 @@ export const localidadeMaisProxima = (lngLat) => {
 
 // ---- a rede: atribuição e métricas ----
 
-// Cada evento vai para o núcleo mais próximo (pelo MESMO estimador).
-export const atribuirRede = (eventos, nucleos) =>
+// Cada evento vai para o núcleo mais próximo. A `distancia` é
+// injetável para a rede poder ser calculada com o estimador rápido
+// (por omissão) OU com km por estrada já refinados — a MESMA regra de
+// atribuição para os dois modos, só a métrica muda.
+export const atribuirRede = (
+  eventos,
+  nucleos,
+  distancia = (n, e) => estimarKm(n.lngLat, e.lngLat),
+) =>
   eventos.map((e) => {
     let melhor = null;
     let melhorKm = Infinity;
     for (const n of nucleos) {
-      const km = estimarKm(n.lngLat, e.lngLat);
+      const km = distancia(n, e);
       if (km < melhorKm) {
         melhorKm = km;
         melhor = n.id;

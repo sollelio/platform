@@ -11,8 +11,14 @@ import {
   localidadeMaisProxima,
   COORDS_LOCALIDADE,
   NUCLEO_PROVISORIO,
+  nucleoPorOmissao,
 } from "./territorioLab/geo.js";
-import { FOTOGRAFIA, KM_REAIS } from "./territorioLab/fotografia.js";
+import {
+  FOTOGRAFIA,
+  KM_REAIS,
+  estadoDoRegisto,
+  eOperacional,
+} from "./territorioLab/fotografia.js";
 
 // ============================================================
 // O Vision Prototype é staging, mas a geometria é código a sério:
@@ -70,32 +76,73 @@ test("o arco é uma curva de A a B (pontas exatas, barriga no meio)", () => {
   );
 });
 
-test("a rede atribui cada evento ao núcleo mais próximo — e um 2.º núcleo em Almada rouba a Margem Sul", () => {
-  const eventos = FOTOGRAFIA.map((r) => {
-    const p = pontoDaLocalidade(r.local_evento || r.respostas?.localEvento || "");
-    return p ? { id: r.id, lngLat: p.lngLat, localidade: p.chave } : null;
-  }).filter(Boolean);
-  assert.equal(eventos.length, 16);
+// A mesma derivação do componente: mapeados = com ponto curado;
+// operacionais = eventos (realizado/garantido), a população da REDE.
+const mapeados = FOTOGRAFIA.map((r) => {
+  const p = pontoDaLocalidade(r.local_evento || r.respostas?.localEvento || "");
+  return p
+    ? { id: r.id, lngLat: p.lngLat, localidade: p.chave, estado: estadoDoRegisto(r) }
+    : null;
+}).filter(Boolean);
+const operacionais = mapeados.filter((e) => eOperacional(e.estado));
 
-  const soSede = atribuirRede(eventos, [NUCLEO_PROVISORIO]);
+test("Procura ≠ Operações: pedidos em conversa NUNCA entram na rede como eventos", () => {
+  assert.equal(mapeados.length, 16); // pedidos registados no mapa
+  assert.equal(operacionais.length, 10); // eventos: realizados + garantidos
+  // Barreiro e Amora são pedidos em conversa — procura, não operação:
+  const idsOp = new Set(operacionais.map((e) => e.localidade));
+  assert.ok(!idsOp.has("barreiro"), "barreiro (conversa) fora da rede");
+  assert.ok(!idsOp.has("amora"), "amora (conversa) fora da rede");
+  // …mas continuam nos pedidos mapeados (a lente Procura vê-os):
+  const idsMap = new Set(mapeados.map((e) => e.localidade));
+  assert.ok(idsMap.has("barreiro") && idsMap.has("amora"));
+  // e um registo perdido contaria como procura, nunca como evento:
+  assert.equal(estadoDoRegisto({ fase: "perdido", status: "Concluído" }), "perdido");
+  assert.ok(!eOperacional("perdido"));
+  assert.ok(!eOperacional("conversa"));
+});
+
+test("a rede atribui cada EVENTO ao núcleo mais próximo — e um 2.º núcleo em Almada rouba a Margem Sul", () => {
+  const soSede = atribuirRede(operacionais, [NUCLEO_PROVISORIO]);
   const mSede = metricasRede(soSede);
-  assert.equal(mSede.n, 16);
-  assert.equal(mSede.porNucleo.atual, 16);
+  assert.equal(mSede.n, 10);
+  assert.equal(mSede.porNucleo.atual, 10);
   assert.ok(mSede.maior >= mSede.mediana && mSede.mediana > 0);
 
-  const comAlmada = atribuirRede(eventos, [
+  const comAlmada = atribuirRede(operacionais, [
     NUCLEO_PROVISORIO,
     { id: "b", nome: "Simulado", lngLat: COORDS_LOCALIDADE.almada },
   ]);
   const comp = compararRedes(soSede, comAlmada);
-  // A Margem Sul inteira (alhos vedros, sesimbra, barreiro, amora) e
+  // A Margem Sul operacional (alhos vedros, sesimbra) e a coroa de
   // Lisboa ficam mais perto de Almada do que da Ericeira:
   assert.ok(comp.mudaram >= 5, `mudaram ${comp.mudaram}`);
   assert.ok(comp.delta < 0, "a distância agregada DESCE com o núcleo em Almada");
   const doB = comAlmada.filter((e) => e.nucleoId === "b").map((e) => e.localidade);
-  for (const l of ["alhos vedros", "sesimbra", "barreiro", "amora"]) {
+  for (const l of ["alhos vedros", "sesimbra"]) {
     assert.ok(doB.includes(l), `${l} devia ir para Almada`);
   }
+});
+
+test("a atribuição aceita uma métrica injetada — o caminho do refinamento por estrada", () => {
+  // Km «por estrada» fabricados que CONTRARIAM o estimador: tudo
+  // fica mais perto do simulado. A regra de atribuição é a mesma;
+  // só a métrica muda — exatamente o contrato do refino.
+  const kmsB = new Map(operacionais.map((e) => [e.id, 1]));
+  const kmsA = new Map(operacionais.map((e) => [e.id, 999]));
+  const rede = atribuirRede(
+    operacionais,
+    [NUCLEO_PROVISORIO, { id: "b", lngLat: COORDS_LOCALIDADE.almada }],
+    (n, e) => (n.id === "b" ? kmsB : kmsA).get(e.id),
+  );
+  assert.ok(rede.every((e) => e.nucleoId === "b"));
+  assert.equal(metricasRede(rede).total, operacionais.length);
+});
+
+test("sem configuração nem localStorage, o núcleo de arranque é o provisório (e di-lo)", () => {
+  const n = nucleoPorOmissao();
+  assert.equal(n.provisorio, true);
+  assert.match(n.localidade, /provisório/);
 });
 
 test("localidadeMaisProxima dá nome a um ponto largado no mapa", () => {
