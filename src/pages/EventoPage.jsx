@@ -13,6 +13,7 @@ import { TITULO_BACKOFFICE } from "../lib/casa";
 import {
   permissoesDasAtribuicoes,
   permissoesDasTarefas,
+  usePermissoesDeNavegacao,
 } from "../lib/permissoes";
 import { useCasa } from "../components/CasaProvider";
 import { useRotas } from "../lib/rotasAdmin";
@@ -547,6 +548,10 @@ export default function EventoPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const casa = useCasa();
+  // A navegação global esconde as mesmas portas aqui e na AdminPage:
+  // é a MESMA fonte (lib/permissoes.js). Sem isto, quem não podia ler
+  // a Equipa via a porta na sidebar a partir de qualquer evento.
+  const { separadoresOcultos } = usePermissoesDeNavegacao(casa?.id);
   // A mesma pergunta que o RLS faz. Serve só para não abrir uma aba que
   // daria um ecrã vazio — a segurança é a política, não isto.
   const [permTarefas, setPermTarefas] = useState({
@@ -1072,7 +1077,11 @@ export default function EventoPage() {
       <div style={{ display: "flex", backgroundColor: "var(--cream)", minHeight: "100vh" }}>
         <SidebarNav
           activeTab="clientes"
-          onNavegar={(tab) => navigate(rotas.separador(tab))}
+          ocultar={separadoresOcultos}
+          onNavegar={(tab, ev) => {
+            ev?.preventDefault();
+            navigate(rotas.separador(tab));
+          }}
           onSair={async () => {
             await supabase.auth.signOut();
             navigate("/admin/login", { replace: true });
@@ -1315,6 +1324,7 @@ export default function EventoPage() {
     <div style={{ display: "flex", backgroundColor: "var(--cream)" }}>
       <SidebarNav
         activeTab="clientes"
+        ocultar={separadoresOcultos}
         naoLidas={notificacoes.naoLidas}
         onAbrirNotificacoes={() => {
           setCaixaDestaque(null);

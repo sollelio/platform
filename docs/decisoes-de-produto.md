@@ -3174,3 +3174,11 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   foi redesenhada. Testes garantem que menu e rotas nunca divergem.
 - **⌘K preparado, não construído**: todosOsDestinos() em lib/menu.js
   é o índice de uma futura paleta de comandos.
+
+  *(10/09, mini-ronda: as permissões da navegação saíram da AdminPage
+  para lib/permissoes.js — usePermissoesDeNavegacao, com cache de
+  sucessos por casa — e a REGRA pura (separadoresOcultosDe) vive em
+  lib/menu.js, testada. A EventoPage passou a esconder as mesmas
+  portas (Equipa/Disponibilidades) em todas as superfícies; a
+  proteção de rota já existia — ecrã de negação na AdminPage + RLS —
+  e não se reinventou.)*

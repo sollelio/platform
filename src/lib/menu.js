@@ -85,6 +85,20 @@ export const NAV_MOVEL = [
   { id: "orcamentos", label: "Documentos", icone: "documentos" },
 ];
 
+// ---------- a regra de esconder por permissão (pura, testável) ----------
+// Estes separadores só existem para quem tem a chave (has_permission
+// na base — a MESMA pergunta do RLS; esconder aqui não é segurança,
+// é não mostrar uma porta que daria um ecrã de acesso negado).
+// Enquanto a resposta não chega, ficam escondidos: mostrar e retirar
+// seria pior do que aparecer tarde. O hook que faz as perguntas vive
+// em lib/permissoes.js (usePermissoesDeNavegacao) — a REGRA vive
+// aqui, ao lado da arquitetura que a aplica.
+export const SEPARADORES_COM_CHAVE = ["equipa", "consultas"];
+export const separadoresOcultosDe = (permEquipa, permConsultas) => [
+  ...(permEquipa?.podeLer ? [] : ["equipa"]),
+  ...(permConsultas?.podeLer ? [] : ["consultas"]),
+];
+
 // grupo a que um separador pertence (null = diário/da barra)
 export const grupoDoSeparador = (id) =>
   NAV_GRUPOS.find((g) => g.itens.some((i) => i.id === id))?.id || null;

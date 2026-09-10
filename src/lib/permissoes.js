@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { separadoresOcultosDe } from "./menu";
 
 // ============================================================
 // AS PERMISSÕES DA CASA (Ponto 1).
@@ -65,6 +67,63 @@ export const permissoesDasConsultas = async (organizationId) => {
     podeLer: ler === true || gerir === true,
     podeGerir: gerir === true,
     indisponivel: ler === null && gerir === null,
+  };
+};
+
+// ============================================================
+// AS PERMISSÕES QUE A NAVEGAÇÃO GLOBAL PRECISA — numa fonte só.
+//
+// Viviam como dois useState+useEffect DENTRO da AdminPage, e a
+// EventoPage (que monta a mesma sidebar) não as tinha: quem não pode
+// ler a Equipa via a porta na mesma a partir de qualquer evento.
+// Agora qualquer página que renderize a navegação faz UMA chamada a
+// este hook e aplica exatamente as mesmas regras.
+//
+// Cache de módulo por casa, só de SUCESSOS (a regra da casa, como na
+// obterDistancia): navegar Admin↔Evento não repete os RPCs, mas uma
+// tosse de rede (indisponivel) volta a perguntar — um falso «sem
+// acesso» em cache esconderia o menu a quem tem direito a ele.
+// ============================================================
+
+const PERMS_POR_OMISSAO = { podeLer: false, podeGerir: false };
+const SEM_RESPOSTA = { equipa: PERMS_POR_OMISSAO, consultas: PERMS_POR_OMISSAO };
+const cacheNavegacao = new Map(); // organizationId -> {equipa, consultas}
+
+export const usePermissoesDeNavegacao = (organizationId) => {
+  const [perms, setPerms] = useState(
+    () => cacheNavegacao.get(organizationId) || SEM_RESPOSTA,
+  );
+  // A casa mudou → o estado ajusta-se DURANTE o render (o padrão
+  // documentado do React para estado derivado; a regra da casa desde
+  // o refactor do `visitadas`): o cache responde já, sem efeito.
+  const [orgAnterior, setOrgAnterior] = useState(organizationId);
+  if (organizationId !== orgAnterior) {
+    setOrgAnterior(organizationId);
+    setPerms(cacheNavegacao.get(organizationId) || SEM_RESPOSTA);
+  }
+  useEffect(() => {
+    if (!organizationId || cacheNavegacao.has(organizationId))
+      return undefined;
+    let vivo = true;
+    Promise.all([
+      permissoesDaEquipa(organizationId),
+      permissoesDasConsultas(organizationId),
+    ]).then(([equipa, consultas]) => {
+      if (!vivo) return;
+      const resposta = { equipa, consultas };
+      if (!equipa.indisponivel && !consultas.indisponivel)
+        cacheNavegacao.set(organizationId, resposta);
+      setPerms(resposta);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [organizationId]);
+
+  return {
+    permEquipa: perms.equipa,
+    permConsultas: perms.consultas,
+    separadoresOcultos: separadoresOcultosDe(perms.equipa, perms.consultas),
   };
 };
 

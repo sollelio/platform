@@ -4,10 +4,7 @@ import { SEPARADOR_POR_OMISSAO, idDoSlug, useRotas } from "../lib/rotasAdmin";
 import { supabase } from "../lib/supabase";
 import { traduzirErroDaCasa } from "../lib/errosDaCasa";
 import { useCasa } from "../components/CasaProvider";
-import {
-  permissoesDaEquipa,
-  permissoesDasConsultas,
-} from "../lib/permissoes";
+import { usePermissoesDeNavegacao } from "../lib/permissoes";
 import {
   createInvite,
   ehFormularioOrfao,
@@ -95,44 +92,13 @@ export default function AdminPage() {
   const casa = useCasa();
 
   // ── A EQUIPA (MVP operacional) ────────────────────────────────
-  // O módulo só aparece a quem tem a chave. A pergunta é a mesma que o
-  // RLS faz; aqui serve só para não mostrar uma porta que daria um
-  // ecrã vazio. Enquanto a resposta não chega, a entrada fica
-  // escondida — mostrar e retirar seria pior do que aparecer tarde.
-  const [permEquipa, setPermEquipa] = useState({
-    podeLer: false,
-    podeGerir: false,
-  });
-  useEffect(() => {
-    let vivo = true;
-    if (!casa?.id) return;
-    permissoesDaEquipa(casa.id).then((p) => {
-      if (vivo) setPermEquipa(p);
-    });
-    return () => {
-      vivo = false;
-    };
-  }, [casa?.id]);
-  // As consultas de disponibilidade têm chave própria: quem lê a equipa
-  // não passa a poder perguntar disponibilidade a ninguém por isso.
-  const [permConsultas, setPermConsultas] = useState({
-    podeLer: false,
-    podeGerir: false,
-  });
-  useEffect(() => {
-    let vivo = true;
-    if (!casa?.id) return;
-    permissoesDasConsultas(casa.id).then((p) => {
-      if (vivo) setPermConsultas(p);
-    });
-    return () => {
-      vivo = false;
-    };
-  }, [casa?.id]);
-  const separadoresOcultos = [
-    ...(permEquipa.podeLer ? [] : ["equipa"]),
-    ...(permConsultas.podeLer ? [] : ["consultas"]),
-  ];
+  // As permissões da navegação vivem numa fonte partilhada
+  // (lib/permissoes.js, usePermissoesDeNavegacao): a mesma pergunta,
+  // as mesmas regras, em QUALQUER página que monte a sidebar — a
+  // EventoPage incluída. A pergunta é a mesma que o RLS faz; aqui
+  // serve só para não mostrar uma porta que daria um ecrã vazio.
+  const { permEquipa, permConsultas, separadoresOcultos } =
+    usePermissoesDeNavegacao(casa?.id);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   // ------------------------------------------------------------
