@@ -139,10 +139,15 @@ test("a atribuição aceita uma métrica injetada — o caminho do refinamento p
   assert.equal(metricasRede(rede).total, operacionais.length);
 });
 
-test("sem configuração nem localStorage, o núcleo de arranque é o provisório (e di-lo)", () => {
+test("o núcleo de arranque do staging é o armazém CONFIGURADO (Sintra), não o provisório", () => {
   const n = nucleoPorOmissao();
-  assert.equal(n.provisorio, true);
-  assert.match(n.localidade, /provisório/);
+  assert.equal(n.configurado, true);
+  assert.equal(n.provisorio, false);
+  assert.match(n.localidade, /Armazém/);
+  // A posição configurada tem de estar na zona de Sintra (precisão
+  // declarada: localidade — nunca uma morada exata no repositório):
+  const kmAoCentro = haversineKm(n.lngLat, COORDS_LOCALIDADE.sintra);
+  assert.ok(kmAoCentro < 5, `armazém a ${kmAoCentro.toFixed(1)} km do centro de Sintra`);
 });
 
 test("localidadeMaisProxima dá nome a um ponto largado no mapa", () => {

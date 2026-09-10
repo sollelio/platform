@@ -3100,3 +3100,10 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   `setWorkerUrl` (o worker sai autocontido no build, ~124 KB gz).
   Build verificado em modo produção: tiles, entrada, arrasto, refino,
   escuro, refresh, móvel.
+
+  *(10/09, mais tarde: o Hélio forneceu a localização real — o
+  NUCLEO_REAL passou a apontar para a zona do armazém em Sintra
+  (Vale Flores), com coordenadas arredondadas a ~100 m; a morada com
+  número de porta ficou de fora do repositório de propósito. As duas
+  Edge Functions — obter-distancia e atlas-distancias — confirmadas
+  publicadas em TEST (401 sem sessão, não 404).)*

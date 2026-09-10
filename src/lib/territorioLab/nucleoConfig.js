@@ -8,18 +8,17 @@
 // próprio Lab (versionado, entra no deploy do develop) e nunca é
 // lido fora do Atlas — a produção não importa este módulo.
 //
-// ⚠ A localização REAL do armazém ainda não existe no sistema.
-// Quando existir, preenche-se assim (coordenadas [lng, lat] ao nível
-// da localidade — nunca uma morada exata):
-//
-//   export const NUCLEO_REAL = {
-//     lngLat: [-9.417, 38.963],
-//     localidade: "Armazém — Ericeira",
-//   };
-//
-// Enquanto for null, o Lab arranca no provisório (a sede, Ericeira)
-// e di-lo com todas as letras. NUNCA usar a MORADA_BASE dos
+// Coordenadas [lng, lat] arredondadas (~100 m) — de propósito: a
+// morada com número de porta NÃO entra no repositório; a precisão
+// declarada do Atlas é a localidade. NUNCA usar a MORADA_BASE dos
 // orçamentos aqui — são coisas diferentes (decisão de 03/08/2026).
+//
+// Posição fornecida pelo Hélio a 10/09/2026: o armazém fica na zona
+// de Vale Flores, Sintra (Av. Paul Harris, 2710-72x — só a zona é
+// que fica registada aqui).
 // ============================================================
 
-export const NUCLEO_REAL = null;
+export const NUCLEO_REAL = {
+  lngLat: [-9.38, 38.791],
+  localidade: "Armazém (Sintra · Vale Flores)",
+};
