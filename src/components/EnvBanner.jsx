@@ -28,18 +28,30 @@ export default function EnvBanner() {
         }}
       />
 
-      {/* Banner no topo, ao centro */}
-      <motion.div
+      {/* Banner no topo, ao centro. O centro vem do invólucro flex de
+          largura total, NUNCA de translateX(-50%) no próprio motion.div:
+          o framer-motion compõe o transform inteiro a partir do y da
+          animação e APAGA o translate do CSS ao terminar — o selo
+          ficava empurrado para a direita e cortado no bordo (sonda de
+          09/09/2026: left 212 num ecrã de 390). */}
+      <div
         className="no-print"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 9999,
+        }}
+      >
+      <motion.div
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
         style={{
-          position: "fixed",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
           backgroundColor: "#DC2626",
           color: "white",
           padding: "5px 18px",
@@ -68,6 +80,7 @@ export default function EnvBanner() {
         />
         Ambiente de Teste
       </motion.div>
+      </div>
     </>
   );
 }

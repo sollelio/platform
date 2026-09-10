@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- interactive-widget=resizes-visual: o teclado do Android deixa
+         de redimensionar o viewport de layout — sem isto, os elementos
+         position:fixed (a barra dourada do /interesse, a faixa de
+         ambiente) deslizavam para fora do ecrã e voltavam a CADA
+         abrir/fechar do teclado, campo após campo (queixa de
+         09/09/2026). O iOS ignora o atributo e já se comporta assim. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual"
+    />
 
     <!-- O tema do backoffice ANTES de tudo o resto. Isto é uma SPA:
          se o atributo esperasse pelo React, cada carregamento em modo
