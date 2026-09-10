@@ -55,11 +55,18 @@ const listaPt = (arr) =>
     ? arr.join("")
     : `${arr.slice(0, -1).join(", ")} e ${arr[arr.length - 1]}`;
 
-const dataCurta = (iso) => {
+export const dataCurta = (iso) => {
   if (!iso) return "sem data";
   const [a, m, d] = iso.split("-");
-  return `${d}/${m}/${a.slice(2)}`;
+  // dd/mm/aaaa — o formato dos outros ecrãs da casa (orcamentoConfig).
+  return `${d}/${m}/${a}`;
 };
+
+// O dia em ISO LOCAL — nunca toISOString: em Lisboa no verão, entre a
+// meia-noite e a 1h, o corte UTC ainda é ONTEM (a regra já escrita na
+// ConsultaData). O motor continua puro: o «hoje» entra por argumento.
+const diaISO = (data) =>
+  `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
 
 // ---- o censo dos pedidos registados ----
 
@@ -163,7 +170,7 @@ export const agruparApertos = (pedidos, hoje) => {
       zonas: [
         ...new Set(c.lista.map((p) => p.zona || "por localizar")),
       ],
-      futuro: c.lista[0].dataEvento >= hoje.toISOString().slice(0, 10),
+      futuro: c.lista[0].dataEvento >= diaISO(hoje),
     }));
 };
 
@@ -442,19 +449,15 @@ const FRASES = [
     justificacao: "Contagem de agenda — a frase de uso semanal (logística).",
     condicao: "Acorda com ≥1 evento vivo nos próximos 90 dias.",
     despertar: (c) => {
-      const hojeISO = c.hoje.toISOString().slice(0, 10);
-      const lim = new Date(c.hoje.getTime() + 90 * 24 * 3600 * 1000)
-        .toISOString()
-        .slice(0, 10);
+      const hojeISO = diaISO(c.hoje);
+      const lim = diaISO(new Date(c.hoje.getTime() + 90 * 24 * 3600 * 1000));
       return c.pedidos.some(
         (p) => !p.perdido && p.dataEvento && p.dataEvento >= hojeISO && p.dataEvento <= lim,
       );
     },
     calcular: (c) => {
-      const hojeISO = c.hoje.toISOString().slice(0, 10);
-      const lim = new Date(c.hoje.getTime() + 90 * 24 * 3600 * 1000)
-        .toISOString()
-        .slice(0, 10);
+      const hojeISO = diaISO(c.hoje);
+      const lim = diaISO(new Date(c.hoje.getTime() + 90 * 24 * 3600 * 1000));
       const futuros = c.pedidos
         .filter(
           (p) =>
@@ -628,8 +631,12 @@ const FRASES = [
     camada: "procura",
     familia: "Tipo × zona",
     justificacao: "Vantagem em eventos na zona modal do tipo (nunca quota fixa).",
-    condicao: "Acorda quando um tipo de evento tiver ≥6 pedidos com zona.",
-    despertar: () => false, // precisa dos nomes de tipo — desperta no Lote A+ quando o censo os tiver
+    // A verdade e nada mais: o censo ainda não lê o tipo de evento —
+    // prometer «acorda com ≥6» seria mentir (o despertar é falso por
+    // construção; apanhado na revisão de 10/09).
+    condicao:
+      "Fica para uma fase seguinte — o Atlas ainda não lê o tipo de evento; quando ler, acordará com um tipo com ≥6 pedidos com zona.",
+    despertar: () => false,
     calcular: () => null,
   },
   {
@@ -666,7 +673,7 @@ const FRASES = [
   {
     id: "canal-origem",
     camada: "procura",
-    familia: "De onde vêns",
+    familia: "De onde vens",
     justificacao: "Instrumentação: o campo «como nos conheceste» é novo (R1).",
     condicao: "Acorda com ≥10 pedidos com «como nos conheceste» preenchido.",
     despertar: (c) => c.pedidos.filter((p) => p.canal).length >= 10,
@@ -791,10 +798,13 @@ export const contextoAvaliacao = (censo, deslocacoes = []) => {
     .map((d) => Math.round(d.distanciaKm));
   const valores = censo.comValor.map((p) => p.valor).sort((a, b) => a - b);
   const meio = Math.floor(valores.length / 2);
-  const valorTipico = valores.length
-    ? valores.length % 2
-      ? valores[meio]
-      : (valores[meio - 1] + valores[meio]) / 2
-    : null;
+  // Mediana protegida (a mesma família das frases): com <5 valores não
+  // há «típico» — a UI omite a comparação em vez de a fabricar.
+  const valorTipico =
+    valores.length >= 5
+      ? valores.length % 2
+        ? valores[meio]
+        : (valores[meio - 1] + valores[meio]) / 2
+      : null;
   return { interessados, kmsConhecidos, valorTipico };
 };

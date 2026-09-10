@@ -140,7 +140,10 @@ export default function RemoverEventoModal({
     try {
       await updateFase(evento.id, "perdido", {
         motivoPerda,
-        motivoPerdaDetalhe: detalhePerda.trim() || null,
+        // O detalhe pertence ao «Outro» — trocar de motivo não pode
+        // arrastar um texto invisível (revisão de 10/09).
+        motivoPerdaDetalhe:
+          motivoPerda === "outro" ? detalhePerda.trim() || null : null,
       });
       await onPerdido(evento);
     } catch (e) {
@@ -255,7 +258,10 @@ export default function RemoverEventoModal({
                   <button
                     key={m.chave}
                     type="button"
-                    onClick={() => setMotivoPerda(ativo ? null : m.chave)}
+                    onClick={() => {
+                      setMotivoPerda(ativo ? null : m.chave);
+                      if (ativo || m.chave !== "outro") setDetalhePerda("");
+                    }}
                     style={{
                       padding: "4px 10px",
                       borderRadius: "999px",

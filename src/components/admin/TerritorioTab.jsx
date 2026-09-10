@@ -3,7 +3,12 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useRotas } from "../../lib/rotasAdmin";
-import { gerarAtlas, contextoAvaliacao, POPULACAO } from "../../lib/territorio/motor";
+import {
+  gerarAtlas,
+  contextoAvaliacao,
+  POPULACAO,
+  dataCurta,
+} from "../../lib/territorio/motor";
 import { VERSAO_ZONAMENTO } from "../../lib/territorio/zonas";
 import { obterDeslocacao } from "../../lib/obterDistancia";
 import { calcularDeslocacao, TROCOS_PADRAO } from "../../lib/deslocacaoRegra";
@@ -643,7 +648,7 @@ function CartaoAvaliarPedido({ contexto }) {
           <option value="">Escolher pedido...</option>
           {interessados.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.localidadeTexto} · {p.dataEvento || "sem data"}
+              {p.localidadeTexto} · {dataCurta(p.dataEvento)}
             </option>
           ))}
         </select>

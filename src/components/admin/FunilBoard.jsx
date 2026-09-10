@@ -1566,7 +1566,12 @@ function CardEvento({
                 <button
                   key={m.chave}
                   type="button"
-                  onClick={() => setMotivoPerda(ativo ? null : m.chave)}
+                  onClick={() => {
+                    setMotivoPerda(ativo ? null : m.chave);
+                    // O detalhe pertence ao «Outro» — sair dele apaga-o
+                    // (senão gravava-se invisível com o motivo errado).
+                    if (ativo || m.chave !== "outro") setDetalhePerda("");
+                  }}
                   style={{
                     padding: "4px 10px",
                     borderRadius: "999px",
@@ -1607,7 +1612,10 @@ function CardEvento({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onConfirmarPerda(motivoPerda, detalhePerda.trim() || null);
+                onConfirmarPerda(
+                  motivoPerda,
+                  motivoPerda === "outro" ? detalhePerda.trim() || null : null,
+                );
                 limparEscolhaPerda();
               }}
               disabled={aAtualizar || !motivoPerda}
@@ -1900,6 +1908,9 @@ function CardEvento({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              // Abrir a pergunta começa sempre limpa — sem herdar a
+              // escolha de uma abertura anterior deste cartão.
+              limparEscolhaPerda();
               onPedirPerda();
             }}
             title="Marcar como perdido"

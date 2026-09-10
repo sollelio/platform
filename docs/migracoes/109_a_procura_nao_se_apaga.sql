@@ -138,15 +138,20 @@ begin
       -- fica contada numa nota interna do evento existente. Best-
       -- -effort de propósito: falhar a nota NUNCA falha a captação —
       -- a regra da casa é «falhar nunca falha o acto».
+      --
+      -- SEM coluna de autor: a 105 apagou-a («drop column autor») e
+      -- pô-la aqui de volta faria o insert rebentar em silêncio dentro
+      -- deste best-effort (apanhado na revisão adversarial de 10/09).
+      -- O criado_por preenche-se pelo default auth.uid() — null na
+      -- porta pública, que é a verdade; a porta vai dita no corpo.
       begin
-        insert into public.notas_evento (submission_id, tipo, corpo, autor)
+        insert into public.notas_evento (submission_id, tipo, corpo)
         values (
           v_hit_evento,
           'interna',
           'Contacto repetido na captação ('
             || case when auth.uid() is null then 'porta pública' else 'porta interna' end
-            || ') — mesmo telefone e mesma data do evento. Não foi criado pedido novo.',
-          'sistema'
+            || ') — mesmo telefone e mesma data do evento. Não foi criado pedido novo.'
         );
       exception when others then
         null;

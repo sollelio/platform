@@ -9,6 +9,7 @@ import ErrosFormulario from "./ErrosFormulario";
 import AlertasEquipa from "./AlertasEquipa";
 import ConsultaDeslocacao from "./ConsultaDeslocacao";
 import ConsultaData from "./ConsultaData";
+import { classificarLocalidade } from "../../lib/territorio/zonas";
 import { useNomeDoUtilizador } from "../../lib/autoria";
 import { Icone } from "./Navegacao";
 
@@ -523,8 +524,16 @@ export default function InicioTab({
                   onRegistarPedido={(morada) => {
                     // 109 · A ponte: a consulta vira registo com a
                     // localidade já escrita — a procura deixa de evaporar.
+                    // MAS o campo de destino é a LOCALIDADE (o que o
+                    // Atlas lê por zona): uma morada de rua não entra lá
+                    // (é PII e sujava o censo — revisão de 10/09). Só se
+                    // pré-preenche o que o zonamento reconhece; o resto
+                    // fica para a Nádia escrever da lista.
                     setConsultaAberta(false);
-                    setNovoInteressado({ local: morada });
+                    const c = classificarLocalidade(morada);
+                    setNovoInteressado(
+                      c.estado === "zonada" ? { local: c.original } : true,
+                    );
                   }}
                 />
               </>
