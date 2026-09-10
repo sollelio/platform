@@ -19,7 +19,7 @@ import { arco, bboxDe, VISTA_PORTUGAL } from "../../../lib/territorioLab/geo";
 maplibregl.setWorkerUrl(workerUrl);
 
 // ============================================================
-// MapaAtlas — o palco WebGL do Atlas Vision Prototype (staging).
+// MapaAtlas — o palco WebGL do Atlas.
 //
 // UM sistema de rendering (MapLibre GL, sem deck.gl — decisão
 // reavaliada nesta ronda: com 16 eventos, tudo o que a experiência
@@ -263,6 +263,13 @@ const MapaAtlas = forwardRef(function MapaAtlas(
     for (const a of pendentes) if (!a.loop) a.onDone?.();
   };
   const animar = (nome, { dur, ease = suave, loop = false, onFrame, onDone }) => {
+    // Depois do unmount (mapa removido), nada se anima — mas quem
+    // espera uma promessa (animarP) tem de a ver resolvida, senão a
+    // coreografia a meio fica pendurada para sempre.
+    if (!mapaRef.current) {
+      onDone?.();
+      return;
+    }
     if (propsRef.current.reduzMotion && !loop) {
       try {
         onFrame(1);
@@ -365,7 +372,7 @@ const MapaAtlas = forwardRef(function MapaAtlas(
     // «nascimento»: no Tempo, quem chegou há pouco (na janela da
     // cabeça de leitura) acende maior — vê-se a frente a avançar.
     const ts = evs.map((e) => e.criadoEmTs);
-    const janela = (Math.max(...ts) - Math.min(...ts)) * 0.08;
+    const janela = ts.length ? (Math.max(...ts) - Math.min(...ts)) * 0.08 : 0;
     return fc(
       evs
         .filter((e) => (t == null ? true : e.criadoEmTs <= t))
@@ -1188,7 +1195,7 @@ const MapaAtlas = forwardRef(function MapaAtlas(
     <div
       ref={caixaRef}
       style={{ position: "absolute", inset: 0 }}
-      aria-label="Mapa do território (staging)"
+      aria-label="Mapa do território"
     />
   );
 });

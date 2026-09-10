@@ -995,7 +995,7 @@ export default function AdminPage() {
             activeTab === "inicio"
               ? "1480px"
               : activeTab === "territorio"
-                ? "1560px" // o Atlas (staging) quer palco largo
+                ? "1560px" // o Atlas quer palco largo
                 : "960px",
           margin: "0 auto",
           padding: ehDesktop

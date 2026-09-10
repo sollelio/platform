@@ -1,19 +1,15 @@
 // ============================================================
-// territorioLab/fotografia.js — a FOTOGRAFIA de staging do Atlas
-// Vision Prototype.
+// territorioLab/fotografia.js — FIXTURE DE TESTES do Atlas.
 //
-// É uma cópia SANITIZADA dos pedidos registados reais (query corrida
-// pelo Hélio na produção a 10/09/2026): só os campos agregáveis —
-// localidade, tipo de espaço, fase, estado, datas, convidados, valor.
-// SEM nomes, SEM contactos, SEM moradas de rua. O protótipo NUNCA
-// consulta a produção em runtime: lê daqui.
-//
-// Os km reais são os 4 congelados nas linhas de Deslocação dos
-// orçamentos dessa fotografia (a única distância "verdadeira" que o
-// sistema tem; o resto estima-se — ver geo.js).
+// Foi a fotografia de staging do Vision Prototype: uma cópia
+// SANITIZADA dos pedidos registados reais (query corrida pelo Hélio
+// na produção a 10/09/2026) — só os campos agregáveis, SEM nomes,
+// SEM contactos, SEM moradas de rua. Com a productionização o Atlas
+// passou a receber os registos vivos por props; este ficheiro ficou
+// como fixture de territorioLab.test.mjs (tem a FORMA real dos
+// dados, gralhas de localidade incluídas) e NÃO é importado por
+// nenhum componente — não entra no bundle.
 // ============================================================
-
-import { FASES_POS_SINAL } from "../fases.js";
 
 export const META_FOTOGRAFIA = {
   data: "2026-09-10",
@@ -58,25 +54,8 @@ export const FOTOGRAFIA = [
   R(19, "Amora", "Ao domicílio", "interessado", "Recebido", "2026-12-05", 30, "1330.00", "2026-08-31"),
 ];
 
-// ---- a semântica das populações (Procura ≠ Operações) ----
-//
-// PROCURA fala de PEDIDOS REGISTADOS: todos, incluindo os em conversa
-// e os perdidos — é de onde a procura vem, não do que a equipa fez.
-// OPERAÇÕES fala de EVENTOS: só os realizados (Concluído) e os
-// garantidos (fase pós-sinal) — deslocações que a equipa fez ou vai
-// fazer. Um pedido em conversa ou perdido NUNCA vira visualmente um
-// evento executado. A derivação vive AQUI, num sítio só, para o
-// componente e os testes lerem a mesma regra.
-
-export const estadoDoRegisto = (r) => {
-  if (r.fase === "perdido") return "perdido";
-  if (r.status === "Concluído") return "realizado";
-  if (FASES_POS_SINAL.includes(r.fase)) return "garantido";
-  return "conversa";
-};
-
-export const eOperacional = (estado) =>
-  estado === "realizado" || estado === "garantido";
+// (A semântica das populações — estadoDoRegisto/eOperacional — vive
+// em registos.js, um módulo sem dados que o componente também usa.)
 
 // km por estrada CONGELADOS nos orçamentos (desde a base de pricing
 // dos orçamentos — não confundir com o núcleo operacional; ver

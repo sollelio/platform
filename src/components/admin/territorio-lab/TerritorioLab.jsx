@@ -8,12 +8,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import MapaAtlas from "./MapaAtlas";
 import {
-  FOTOGRAFIA,
-  KM_REAIS,
-  META_FOTOGRAFIA,
   estadoDoRegisto,
   eOperacional,
-} from "../../../lib/territorioLab/fotografia";
+} from "../../../lib/territorioLab/registos";
 import {
   pontoDaLocalidade,
   atribuirRede,
@@ -35,18 +32,21 @@ import { temaEfectivo, assinarTema } from "../../../lib/tema";
 import { formatarEuros } from "../orcamentos/orcamentoConfig";
 
 // ============================================================
-// TerritorioLab — o «Atlas Vision Prototype» (SÓ STAGING).
+// TerritorioLab — o modo Atlas do Território (produto vivo).
 //
-// Uma experiência de visão de futuro sobre o Atlas da Casa: a
-// fotografia real dos pedidos registados, no mapa, com três lentes
-// (Procura · Operações · Infraestrutura), cenas (pontos, calor,
-// relevo 3D, tempo), entrada cinematográfica, e o grande momento —
-// «e se operássemos também daqui?» com um núcleo simulado arrastável.
+// Os PEDIDOS REGISTADOS da casa, no mapa, com três lentes (Procura ·
+// Operações · Infraestrutura), cenas (pontos, calor, relevo 3D,
+// tempo), entrada cinematográfica, e o grande momento — «e se
+// operássemos também daqui?» com um núcleo simulado arrastável.
 //
-// Fronteira: montado apenas quando VITE_APP_ENV ∈ {development, test}
-// (a guarda vive no TerritorioTab). Nada disto vai para produção;
-// nada escreve na base de dados (o núcleo definido fica no
-// localStorage do browser).
+// Os dados chegam VIVOS por props (registos = as submissions que o
+// AdminPage já carregou; deslocacoes = as linhas de Deslocação reais
+// dos orçamentos, que o TerritorioTab já busca) — nasceu protótipo
+// de staging com uma fotografia congelada, e a productionização de
+// 10/09/2026 trocou-a pela fonte real. Só os campos agregáveis são
+// lidos (localidade, fase, estado, datas, valor) — nomes, contactos
+// e moradas de rua NUNCA entram no mapa. Nada escreve na base de
+// dados: as simulações são exploração.
 // ============================================================
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -141,7 +141,7 @@ const capitalizar = (s) =>
     .map((p) => (p.length > 2 ? p.charAt(0).toUpperCase() + p.slice(1) : p))
     .join(" ");
 
-export default function TerritorioLab() {
+export default function TerritorioLab({ registos = [], deslocacoes = [] }) {
   const tema = useSyncExternalStore(assinarTema, temaEfectivo);
   // vivo (não lido uma só vez): mudar a preferência do SO com o Lab
   // aberto muda o comportamento, como o CSS já fazia via media query
@@ -154,11 +154,17 @@ export default function TerritorioLab() {
     () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
   );
 
-  // ---------- dados (a fotografia, geocodificada por localidade) ----------
+  // ---------- dados (os registos vivos, geocodificados por localidade) ----------
+  // Só os campos agregáveis atravessam esta fronteira: localidade →
+  // centróide curado, estado, datas, valor. Nome/contacto/morada de
+  // rua ficam do lado de lá — nunca entram no que o mapa desenha.
   const { eventosGeo, foraDoMapa, tsMin, tsMax } = useMemo(() => {
+    const kmPorId = new Map(
+      deslocacoes.map((d) => [d.submissionId, d.distanciaKm]),
+    );
     const geo = [];
     let fora = 0;
-    for (const r of FOTOGRAFIA) {
+    for (const r of registos) {
       const texto = r.local_evento || r.respostas?.localEvento || "";
       const p = pontoDaLocalidade(texto);
       if (!p) {
@@ -174,34 +180,34 @@ export default function TerritorioLab() {
         valor: r.valor_acordado == null ? null : Number(r.valor_acordado),
         dataEvento: r.data_evento,
         criadoEmTs: new Date(r.created_at).getTime(),
-        kmReal: KM_REAIS[r.id]?.km ?? null,
+        kmReal: kmPorId.get(r.id) ?? null,
       });
     }
     const ts = geo.map((e) => e.criadoEmTs);
     return {
       eventosGeo: geo,
       foraDoMapa: fora,
-      tsMin: Math.min(...ts),
-      tsMax: Math.max(...ts),
+      // null-safe: com 0 pontos no mapa (estado legítimo com dados
+      // vivos), Math.min(...[]) daria Infinity e envenenava o tempo.
+      tsMin: ts.length ? Math.min(...ts) : null,
+      tsMax: ts.length ? Math.max(...ts) : null,
     };
-  }, []);
+  }, [registos, deslocacoes]);
 
-  // ---------- frases (o motor do Lote A, intacto) ----------
-  const frases = useMemo(() => {
-    const deslocacoes = Object.entries(KM_REAIS).map(([id, k]) => ({
-      submissionId: id,
-      distanciaKm: k.km,
-      duracaoMin: null,
-      nTrocos: 2,
-      isento: k.oferecida,
-      valor: k.oferecida ? 0 : Math.max(0, (k.km - 5) * 1),
-    }));
-    return gerarAtlas(FOTOGRAFIA, { deslocacoes, hoje: new Date() });
-  }, []);
+  // ---------- frases (o motor do Lote A, sobre os MESMOS dados vivos) ----------
+  const frases = useMemo(
+    () => gerarAtlas(registos, { deslocacoes, hoje: new Date() }),
+    [registos, deslocacoes],
+  );
+
+  // Com 0 pontos geocodificáveis (casa a começar, ou localidades
+  // ainda por curar), o mapa continua de pé — mas tempo, entrada
+  // cinematográfica e história precisam de pontos para existir.
+  const temPontos = eventosGeo.length > 0;
 
   // ---------- núcleos ----------
-  // Arranque: guardado neste browser > configurado no staging
-  // (nucleoConfig.js) > provisório (a sede), marcado como tal.
+  // Arranque: a configuração da casa ganha sempre; o guardado no
+  // browser só conta sem configuração (bootstrap) — ver nucleoInicial.
   const [nucleoAtual, setNucleoAtual] = useState(() => nucleoInicial());
   const [nucleoGuardadoExiste, setNucleoGuardadoExiste] = useState(
     () => !!lerNucleoGuardado(),
@@ -545,7 +551,7 @@ export default function TerritorioLab() {
     mapaRef.current?.enquadrar(pontos, { padding: padPalco, duration: 900 });
   };
   const arrancarEntrada = () => {
-    if (reduzMotion) {
+    if (reduzMotion || !temPontos) {
       terminarEntrada();
       return;
     }
@@ -604,9 +610,16 @@ export default function TerritorioLab() {
   };
 
   const aoMapaPronto = () => {
-    const jaViu = sessionStorage.getItem("dlm.atlasLab.entrada");
-    if (!jaViu && !reduzMotion) {
-      sessionStorage.setItem("dlm.atlasLab.entrada", "1");
+    // try/catch: storage bloqueado não pode rebentar o handler `load`
+    // do mapa — sem memória de sessão, a entrada repete-se, e pronto.
+    let jaViu;
+    try {
+      jaViu = !!sessionStorage.getItem("dlm.atlasLab.entrada");
+      if (!jaViu) sessionStorage.setItem("dlm.atlasLab.entrada", "1");
+    } catch {
+      jaViu = false;
+    }
+    if (!jaViu && !reduzMotion && temPontos) {
       arrancarEntrada();
     } else {
       terminarEntrada();
@@ -709,7 +722,7 @@ export default function TerritorioLab() {
     setNucleoGuardadoExiste(true);
     setDefinindoNucleo(false);
   };
-  // Volta à posição de origem (configurada no staging, ou provisória)
+  // Volta à posição de origem (a configurada da casa, ou a provisória)
   // — apaga só o que ESTE browser guardou; simulações nunca tocam nisto.
   const reporNucleo = () => {
     limparNucleoGuardado();
@@ -813,7 +826,12 @@ export default function TerritorioLab() {
       },
       {
         dur: 4600,
-        legenda: "Julho de 2026: chegam os primeiros pedidos.",
+        legenda: `${capitalizar(
+          new Date(tsMin).toLocaleDateString("pt-PT", {
+            month: "long",
+            year: "numeric",
+          }),
+        )}: chegam os primeiros pedidos.`,
         acao: () => {
           voo({ pitch: 0, bearing: 0, duration: 800 });
           interno(820, () =>
@@ -824,7 +842,7 @@ export default function TerritorioLab() {
       },
       {
         dur: 5600,
-        legenda: `Em dois meses: ${FOTOGRAFIA.length} pedidos registados — ${eventosGeo.length} no mapa, em ${nLocalidades} localidades.`,
+        legenda: `Até hoje: ${registos.length} ${registos.length === 1 ? "pedido registado" : "pedidos registados"} — ${eventosGeo.length} no mapa, em ${nLocalidades} ${nLocalidades === 1 ? "localidade" : "localidades"}.`,
         acao: () =>
           animarTempo(tsMin + (tsMax - tsMin) * 0.3, tsMax, 4600),
       },
@@ -980,15 +998,17 @@ export default function TerritorioLab() {
       >
         {expansao ? "✕ Fechar cenário" : "✦ Explorar expansão"}
       </button>
-      <button
-        type="button"
-        onClick={iniciarHistoria}
-        className="acao al-pill"
-        title="Uma volta guiada de ~40 s pelo território — saltável"
-        style={pill(false)}
-      >
-        ▶ História
-      </button>
+      {temPontos && (
+        <button
+          type="button"
+          onClick={iniciarHistoria}
+          className="acao al-pill"
+          title="Uma volta guiada de ~40 s pelo território — saltável"
+          style={pill(false)}
+        >
+          ▶ História
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setImersivo((v) => !v)}
@@ -1017,22 +1037,7 @@ export default function TerritorioLab() {
           }}
         >
           <div>
-            <p style={estOverline}>
-              Atlas · pré-visão{" "}
-              <span
-                style={{
-                  border: "1px solid var(--aviso-borda)",
-                  backgroundColor: "var(--aviso-fundo)",
-                  color: "var(--aviso-texto)",
-                  borderRadius: "999px",
-                  padding: "1px 8px",
-                  marginLeft: "6px",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                staging
-              </span>
-            </p>
+            <p style={estOverline}>Atlas</p>
             <h2 style={{ fontSize: "22px", color: "var(--charcoal)", margin: 0 }}>
               O negócio no território
             </h2>
@@ -1041,6 +1046,27 @@ export default function TerritorioLab() {
             {controlos}
           </div>
         </div>
+      )}
+
+      {/* Estado vazio honesto: o mapa fica de pé (núcleo, lentes),
+          mas diz-se porque não há pontos — nunca se inventa nada. */}
+      {!temPontos && (
+        <p
+          style={{
+            fontSize: "12px",
+            color: "var(--gray-mid)",
+            backgroundColor: "var(--superficie)",
+            border: "1px solid var(--neutro-borda)",
+            borderRadius: "10px",
+            padding: "9px 12px",
+            margin: "0 0 10px 0",
+            lineHeight: 1.55,
+          }}
+        >
+          {registos.length === 0
+            ? "Ainda sem pedidos registados — o Atlas acende-se com os primeiros."
+            : `${registos.length} ${registos.length === 1 ? "pedido registado" : "pedidos registados"}, nenhum com localidade mapeável ainda — os pontos aparecem quando houver localidades conhecidas.`}
+        </p>
       )}
 
       {/* O palco */}
@@ -1192,8 +1218,9 @@ export default function TerritorioLab() {
                 lineHeight: 1.5,
               }}
             >
-              Fotografia real de {dataCurta(META_FOTOGRAFIA.data)} ·{" "}
-              {eventosGeo.length} no mapa · {foraDoMapa} fora (sem localidade
+              {registos.length}{" "}
+              {registos.length === 1 ? "pedido registado" : "pedidos registados"}{" "}
+              · {eventosGeo.length} no mapa · {foraDoMapa} fora (sem localidade
               ou vaga) · posição ao nível da LOCALIDADE — nunca uma morada.
             </p>
           </div>
@@ -1211,7 +1238,9 @@ export default function TerritorioLab() {
               gap: "6px",
             }}
           >
-            {CENAS_POR_LENTE.procura.map((c) => (
+            {CENAS_POR_LENTE.procura
+              .filter((c) => temPontos || c.id !== "tempo")
+              .map((c) => (
               <button
                 key={c.id}
                 type="button"
@@ -1384,6 +1413,7 @@ export default function TerritorioLab() {
             metrica3d={metrica3d}
             expansao={expansao}
             desktop={desktop}
+            nKmReais={eventosGeo.filter((e) => Number(e.kmReal) > 0).length}
           />
         )}
 
@@ -1515,7 +1545,7 @@ export default function TerritorioLab() {
                   Distâncias estimadas em linha reta ×{FATOR_ESTRADA} — o
                   MESMO estimador para os dois núcleos (comparação justa).
                   {nucleoB && refinoAtivo?.estado === "indisponivel"
-                    ? " O cálculo por estrada está indisponível (a função atlas-distancias ainda não está publicada em TEST)."
+                    ? " O cálculo por estrada está temporariamente indisponível — os valores ficam em estimativa."
                     : ""}{" "}
                   Nada disto fica gravado: é um cenário de exploração.
                 </p>
@@ -1554,9 +1584,8 @@ export default function TerritorioLab() {
                   lineHeight: 1.55,
                 }}
               >
-                Posição PROVISÓRIA (a sede, Ericeira) — a localização real do
-                armazém não existe no sistema. Define-a aqui antes da
-                demonstração.
+                Posição PROVISÓRIA — a localização do armazém ainda não está
+                configurada. Arrasta o núcleo para o sítio certo e guarda.
               </p>
             )}
             <p style={estTexto}>
@@ -1567,51 +1596,55 @@ export default function TerritorioLab() {
             <p style={{ ...estMicro, margin: "6px 0 10px" }}>
               O núcleo operacional é onde a operação parte — NÃO é a base de
               pricing dos orçamentos (essa não muda aqui).{" "}
-              {nucleoGuardadoExiste
-                ? "Posição guardada NESTE browser (as simulações nunca a alteram)."
-                : nucleoAtual.configurado
-                  ? "Posição fixa do staging (nucleoConfig) — igual em qualquer browser."
+              {nucleoAtual.configurado
+                ? "Posição configurada da casa — igual em qualquer browser."
+                : nucleoGuardadoExiste
+                  ? "Posição guardada NESTE browser (as simulações nunca a alteram)."
                   : ""}
             </p>
-            {definindoNucleo ? (
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button type="button" onClick={guardarNucleoAtual} style={{ ...pill(true), flex: 1 }}>
-                  Guardar posição
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDefinindoNucleo(false)}
-                  style={{ ...pill(false), flex: 1 }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button
-                  type="button"
-                  onClick={() => setDefinindoNucleo(true)}
-                  style={{ ...pill(false), flex: 1 }}
-                >
-                  Arrastar para o local real…
-                </button>
-                {nucleoGuardadoExiste && (
+            {/* O gesto de fixar à mão só existe enquanto NÃO há posição
+                configurada da casa (bootstrap); com configuração, ela é
+                a verdade e ganha em qualquer browser. */}
+            {!nucleoAtual.configurado &&
+              (definindoNucleo ? (
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button type="button" onClick={guardarNucleoAtual} style={{ ...pill(true), flex: 1 }}>
+                    Guardar posição
+                  </button>
                   <button
                     type="button"
-                    onClick={reporNucleo}
-                    title="Volta à posição de origem do staging"
-                    style={{ ...pill(false), flexShrink: 0 }}
+                    onClick={() => setDefinindoNucleo(false)}
+                    style={{ ...pill(false), flex: 1 }}
                   >
-                    Repor
+                    Cancelar
                   </button>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setDefinindoNucleo(true)}
+                    style={{ ...pill(false), flex: 1 }}
+                  >
+                    Arrastar para o local real…
+                  </button>
+                  {nucleoGuardadoExiste && (
+                    <button
+                      type="button"
+                      onClick={reporNucleo}
+                      title="Volta à posição de origem"
+                      style={{ ...pill(false), flexShrink: 0 }}
+                    >
+                      Repor
+                    </button>
+                  )}
+                </div>
+              ))}
           </div>
         )}
 
         {/* Rever a entrada */}
-        {entrada === "feita" && !expansao && !historia && (
+        {entrada === "feita" && !expansao && !historia && temPontos && (
           <button
             type="button"
             onClick={() => arrancarEntrada()}
@@ -1665,8 +1698,7 @@ export default function TerritorioLab() {
 
       {!imersivo && (
       <p style={{ ...estMicro, marginTop: "10px" }}>
-        Protótipo de visão (staging) — fotografia sanitizada de{" "}
-        {dataCurta(META_FOTOGRAFIA.data)}, sem nomes nem contactos;
+        Dados vivos da casa — sem nomes nem contactos no mapa;
         geocodificação por tabela local de localidades (nenhum serviço
         externo). Procura = PEDIDOS REGISTADOS; a rede e a simulação =
         EVENTOS (realizados + garantidos). O refinamento por estrada do
@@ -1820,7 +1852,7 @@ function TempoResumo({ eventos, t }) {
   );
 }
 
-function Legenda({ tema, lente, cena, metrica3d, expansao, desktop }) {
+function Legenda({ tema, lente, cena, metrica3d, expansao, desktop, nKmReais = 0 }) {
   if (cena === "tempo") return null; // a barra do tempo É a legenda
   const linhas = [];
   if (expansao) {
@@ -1839,7 +1871,14 @@ function Legenda({ tema, lente, cena, metrica3d, expansao, desktop }) {
     ]);
   } else if (lente === "operacoes" || lente === "infraestrutura") {
     linhas.push(
-      ["— arcos", "núcleo → EVENTO realizado/garantido (≈ linha reta ×1,3; 2 têm km reais de orçamento)"],
+      [
+        "— arcos",
+        `núcleo → EVENTO realizado/garantido (≈ linha reta ×1,3${
+          nKmReais > 0
+            ? `; ${nKmReais} ${nKmReais === 1 ? "tem" : "têm"} km reais de orçamento`
+            : ""
+        })`,
+      ],
       ["○ esbatido", "pedidos em conversa — não são deslocações da equipa"],
     );
   } else {
@@ -2002,9 +2041,18 @@ function ComparacaoCenario({
           margin: "0 0 8px 0",
         }}
       >
-        <strong style={{ color: "var(--gold-dark)" }}>{mudaram}</strong> dos{" "}
-        {antes.n} eventos (realizados + garantidos) passariam a ser servidos
-        mais perto{modoEstrada ? " — distâncias por estrada" : ""}.
+        {antes.n === 0 ? (
+          <>
+            Ainda sem eventos realizados ou garantidos para simular — o
+            cenário ganha vida com os primeiros.
+          </>
+        ) : (
+          <>
+            <strong style={{ color: "var(--gold-dark)" }}>{mudaram}</strong>{" "}
+            dos {antes.n} eventos (realizados + garantidos) passariam a ser
+            servidos mais perto{modoEstrada ? " — distâncias por estrada" : ""}.
+          </>
+        )}
       </p>
       <div
         style={{

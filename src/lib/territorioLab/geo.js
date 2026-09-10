@@ -1,24 +1,28 @@
 // ============================================================
-// territorioLab/geo.js — a geometria do Atlas Vision Prototype.
+// territorioLab/geo.js — a geometria do Atlas.
 //
 // GEOCODIFICAÇÃO: tabela CURADA de centróides de localidade, embutida
 // — nenhum serviço externo é consultado, nenhuma morada sai daqui.
 // Precisão declarada: LOCALIDADE (nunca rooftop; as posições são o
 // centro da terra, não a casa de ninguém). Pedidos sem localidade ou
-// com localidade vaga ficam FORA do mapa e são contados à parte.
+// com localidade vaga ficam FORA do mapa e são contados à parte —
+// NUNCA se inventa uma coordenada. Localidade nova que ainda não
+// esteja na tabela = registo «fora do mapa» até alguém a curar aqui
+// (o processo certo à escala atual: dezenas de localidades, não
+// milhares — uma plataforma GIS seria peso sem necessidade).
 //
 // DISTÂNCIAS: a única distância "verdadeira" no sistema são os km
-// congelados nos orçamentos (KM_REAIS, desde a base de PRICING). Para
-// a simulação de núcleos usa-se SEMPRE o mesmo estimador para todos
+// congelados nas linhas de Deslocação dos orçamentos. Para a
+// simulação de núcleos usa-se SEMPRE o mesmo estimador para todos
 // os núcleos — linha reta (haversine) × 1,3 de fator de estrada —
-// para a comparação ser justa. A aproximação é declarada na UI.
+// para a comparação ser justa; o refinamento por estrada vem da
+// função atlas-distancias (só coordenadas de localidade, nunca
+// moradas). A aproximação é declarada na UI.
 //
 // NÚCLEO OPERACIONAL ≠ base de pricing (decisão de 03/08/2026: a
-// MORADA_BASE dos orçamentos NÃO é o armazém). A localização real do
-// armazém NÃO existe no sistema — o protótipo arranca com a SEDE
-// (Ericeira) como posição PROVISÓRIA, claramente marcada, e o próprio
-// Lab tem o gesto para o Hélio/Nádia definirem a real (fica no
-// localStorage do browser; nada é gravado na base de dados).
+// MORADA_BASE dos orçamentos NÃO é o armazém). A posição real vive
+// versionada em nucleoConfig.js (ver a decisão lá); o localStorage
+// só serve de bootstrap quando não há configuração.
 // ============================================================
 
 import { normalizarLocalidade } from "../territorio/zonas.js";
@@ -196,10 +200,14 @@ export const nucleoPorOmissao = () =>
       }
     : NUCLEO_PROVISORIO;
 
-// A posição com que o Lab arranca: o que este browser guardou ganha
-// (é o gesto explícito de quem o guardou); depois a configuração
-// estável do staging; por fim o provisório, marcado como tal.
-export const nucleoInicial = () => lerNucleoGuardado() || nucleoPorOmissao();
+// A posição com que o Atlas arranca. A CONFIGURAÇÃO da casa ganha
+// SEMPRE (a mesma verdade em qualquer browser — em produção, um valor
+// guardado há meses num browser não pode sobrepor-se em silêncio à
+// configuração atualizada); o localStorage só conta enquanto NÃO há
+// configuração — é o gesto de bootstrap de quem fixou a posição à mão
+// antes de ela existir no código. Por fim o provisório, marcado.
+export const nucleoInicial = () =>
+  NUCLEO_REAL ? nucleoPorOmissao() : lerNucleoGuardado() || nucleoPorOmissao();
 
 // A localidade curada mais próxima de um ponto (para dar nome a um
 // núcleo largado no mapa: «≈ perto de Almada»).

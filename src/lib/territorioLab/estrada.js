@@ -1,6 +1,6 @@
 // ============================================================
 // territorioLab/estrada.js — o refinamento por ESTRADA do Atlas
-// (SÓ STAGING; é o único ponto do Lab que faz uma chamada de rede).
+// (o único ponto do Lab que faz uma chamada de rede).
 //
 // Dois níveis de rigor, de propósito:
 //   · durante o ARRASTO, a simulação usa o estimador instantâneo
@@ -15,11 +15,13 @@
 // Nenhuma morada nem PII passa por aqui: só coordenadas.
 //
 // Cache por PAR (origem→destino), arredondado a ~100 m: os destinos
-// são fixos (as localidades da fotografia), por isso o núcleo atual
+// mudam devagar (centróides de localidade), por isso o núcleo atual
 // paga uma chamada por sessão e cada posição nova do simulado paga
 // uma. Só os SUCESSOS ficam em cache (a mesma regra da
-// obterDistancia). Se a função ainda não estiver publicada em TEST,
-// tudo aqui rejeita — e o Atlas fica, honesto, na estimativa.
+// obterDistancia) — e a cache é PARTILHÁVEL sem risco: km por
+// estrada entre dois pontos é geografia, igual para toda a gente.
+// Se a função não responder, tudo aqui rejeita — e o Atlas fica,
+// honesto, na estimativa.
 // ============================================================
 
 import { supabase } from "../supabase";

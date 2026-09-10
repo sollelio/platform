@@ -14,16 +14,15 @@ import {
   nucleoPorOmissao,
   divisaEntre,
 } from "./territorioLab/geo.js";
-import {
-  FOTOGRAFIA,
-  KM_REAIS,
-  estadoDoRegisto,
-  eOperacional,
-} from "./territorioLab/fotografia.js";
+import { FOTOGRAFIA, KM_REAIS } from "./territorioLab/fotografia.js";
+import { estadoDoRegisto, eOperacional } from "./territorioLab/registos.js";
 
 // ============================================================
-// O Vision Prototype é staging, mas a geometria é código a sério:
-// se a atribuição ou as métricas mentirem, a demonstração mente.
+// A geometria e a semântica do Atlas são código a sério: se a
+// atribuição ou as métricas mentirem, o mapa mente. A FOTOGRAFIA é
+// hoje SÓ fixture de teste (o Atlas em produção recebe os registos
+// vivos) — serve aqui porque tem a forma real dos dados, gralhas de
+// localidade incluídas.
 // ============================================================
 
 test("a fotografia é a query real, sanitizada (19 registos, sem PII)", () => {

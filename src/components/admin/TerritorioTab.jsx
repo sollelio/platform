@@ -15,29 +15,25 @@ import { calcularDeslocacao, TROCOS_PADRAO } from "../../lib/deslocacaoRegra";
 import { formatarEuros } from "./orcamentos/orcamentoConfig";
 
 // ============================================================
-// TerritorioTab — o Atlas da Casa, Lote A (Revisão 2, aprovada
-// 10/09/2026): SÓ FRASES, sem mapa, sem migração, sem libs novas.
+// TerritorioTab — o Atlas da Casa, em dois modos sobre os MESMOS
+// dados vivos: «Frases» (as conclusões determinísticas do Lote A)
+// e «Atlas» (o mapa — chunk lazy, ver abaixo).
 //
-// A interface fala por frases-conclusão determinísticas sobre os
-// PEDIDOS REGISTADOS (honestidade epistemológica: o que não foi
-// registado não está aqui, e o texto di-lo). O motor é puro
-// (lib/territorio/motor.js, testado com a fotografia real); este
-// ficheiro só veste as frases e o drawer «porquê».
-//
-// Explicitamente FORA deste lote (ficam no roadmap, atrás do
-// checkpoint): mapa/MapLibre, heatmaps, 3D, deck.gl, simulação de
-// núcleos, geocodificação. Nada disso foi antecipado.
+// As frases falam sobre os PEDIDOS REGISTADOS (honestidade
+// epistemológica: o que não foi registado não está aqui, e o texto
+// di-lo). O motor é puro (lib/territorio/motor.js); este ficheiro
+// veste as frases, busca as deslocações reais dos orçamentos e
+// entrega ambas as coisas ao modo Atlas.
 // ============================================================
 
 // ------------------------------------------------------------
-// Atlas Vision Prototype — SÓ STAGING. A fronteira inteira é esta
-// guarda: em produção (VITE_APP_ENV fora de development/test) o modo
-// «Atlas» nem se monta nem se carrega (o chunk é lazy). Nada do
-// protótipo foi promovido para produção.
+// O modo «Atlas» — o mapa vivo do território. Nasceu protótipo de
+// staging atrás de um gate de ambiente; a productionização de
+// 10/09/2026 removeu o gate: faz parte do produto, em qualquer
+// ambiente. Continua num chunk lazy — quem não abre o Atlas não
+// paga o MapLibre — e recebe os MESMOS dados vivos das frases
+// (submissions + deslocações reais dos orçamentos).
 // ------------------------------------------------------------
-const LAB_ATIVO = ["development", "test"].includes(
-  import.meta.env.VITE_APP_ENV,
-);
 const TerritorioLab = lazy(() => import("./territorio-lab/TerritorioLab"));
 
 const CAMADA_ROTULO = {
@@ -123,8 +119,7 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
 
   const [porque, setPorque] = useState(null); // a frase aberta no drawer
   const [mostrarDormir, setMostrarDormir] = useState(false);
-  // «frases» = o Lote A de sempre; «atlas» = o Vision Prototype (SÓ
-  // staging — ver LAB_ATIVO).
+  // «frases» = as conclusões do Lote A; «atlas» = o mapa vivo.
   const [modo, setModo] = useState("frases");
 
   if (loading && submissions.length === 0) {
@@ -143,7 +138,7 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
       })
     : null;
 
-  if (modo === "atlas" && LAB_ATIVO) {
+  if (modo === "atlas") {
     return (
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -182,7 +177,7 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
             />
           }
         >
-          <TerritorioLab />
+          <TerritorioLab registos={submissions} deslocacoes={deslocacoes} />
         </Suspense>
       </motion.div>
     );
@@ -217,7 +212,7 @@ export default function TerritorioTab({ submissions = [], loading = false }) {
         >
           Território
         </p>
-        {LAB_ATIVO && <SeletorModo modo={modo} onModo={setModo} />}
+        <SeletorModo modo={modo} onModo={setModo} />
       </div>
       <h2
         style={{
