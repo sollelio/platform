@@ -89,6 +89,18 @@ const PERMS_POR_OMISSAO = { podeLer: false, podeGerir: false };
 const SEM_RESPOSTA = { equipa: PERMS_POR_OMISSAO, consultas: PERMS_POR_OMISSAO };
 const cacheNavegacao = new Map(); // organizationId -> {equipa, consultas}
 
+// A cache é por CASA, mas a resposta é de um UTILIZADOR: trocar de
+// sessão sem reload (login/logout são SPA) não pode herdar o menu de
+// outrem. O mesmo padrão da autoria: comparar o uuid ignora o
+// TOKEN_REFRESHED de hora a hora, que traria o MESMO utilizador.
+let utilizadorDaCache = null;
+supabase.auth.onAuthStateChange((_evento, sessao) => {
+  const quem = sessao?.user?.id || null;
+  if (quem === utilizadorDaCache) return;
+  utilizadorDaCache = quem;
+  cacheNavegacao.clear();
+});
+
 export const usePermissoesDeNavegacao = (organizationId) => {
   const [perms, setPerms] = useState(
     () => cacheNavegacao.get(organizationId) || SEM_RESPOSTA,
@@ -124,6 +136,12 @@ export const usePermissoesDeNavegacao = (organizationId) => {
     permEquipa: perms.equipa,
     permConsultas: perms.consultas,
     separadoresOcultos: separadoresOcultosDe(perms.equipa, perms.consultas),
+    // A resposta ainda vai a caminho (SEM_RESPOSTA é a constante do
+    // módulo — a igualdade de referência chega): quem protege rotas
+    // mostra espera, não afirma «não tens acesso» a quem tem.
+    aVerificar: !!organizationId && perms === SEM_RESPOSTA,
+    indisponivel:
+      !!(perms.equipa.indisponivel || perms.consultas.indisponivel),
   };
 };
 

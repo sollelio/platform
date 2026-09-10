@@ -272,6 +272,7 @@ export default function FunilBoard({
     setAvisoErro(mensagem);
     avisoTimerRef.current = setTimeout(() => setAvisoErro(null), ms);
   };
+  useEffect(() => () => clearTimeout(avisoTimerRef.current), []);
 
   // Corre ao montar E sempre que o drawer altera um evento (bump do
   // refrescarEm no AdminPage) — o cartão muda de coluna sem reload.

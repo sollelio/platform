@@ -918,6 +918,9 @@ function EsqueletoInicio() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.45; }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .in-esqueleto { animation: none !important; }
+        }
       `}</style>
       <div
         style={{
@@ -939,6 +942,7 @@ function EsqueletoInicio() {
             }}
           >
             <span
+              className="in-esqueleto"
               style={{
                 display: "block",
                 width: "44px",
@@ -950,6 +954,7 @@ function EsqueletoInicio() {
               }}
             />
             <span
+              className="in-esqueleto"
               style={{
                 display: "block",
                 width: "55%",
@@ -961,6 +966,7 @@ function EsqueletoInicio() {
               }}
             />
             <span
+              className="in-esqueleto"
               style={{
                 display: "block",
                 width: "75%",

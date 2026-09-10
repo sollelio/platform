@@ -484,8 +484,12 @@ export function BadgeNaoLidas({ quantos, tamanho = 18 }) {
           0% { box-shadow: 0 0 0 0 rgba(var(--ouro-rgb), 0.5); }
           100% { box-shadow: 0 0 0 8px rgba(var(--ouro-rgb), 0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .nv-badge { animation: none !important; }
+        }
       `}</style>
       <span
+        className="nv-badge"
         style={{
           display: "inline-flex",
           alignItems: "center",

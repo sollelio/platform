@@ -97,8 +97,13 @@ export default function AdminPage() {
   // as mesmas regras, em QUALQUER página que monte a sidebar — a
   // EventoPage incluída. A pergunta é a mesma que o RLS faz; aqui
   // serve só para não mostrar uma porta que daria um ecrã vazio.
-  const { permEquipa, permConsultas, separadoresOcultos } =
-    usePermissoesDeNavegacao(casa?.id);
+  const {
+    permEquipa,
+    permConsultas,
+    separadoresOcultos,
+    aVerificar: permsAVerificar,
+    indisponivel: permsIndisponiveis,
+  } = usePermissoesDeNavegacao(casa?.id);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   // ------------------------------------------------------------
@@ -1330,9 +1335,16 @@ export default function AdminPage() {
               organizationId={casa?.id}
               podeGerir={permEquipa.podeGerir}
             />
+          ) : permsAVerificar ? (
+            <div
+              className="esqueleto"
+              style={{ height: "180px", borderRadius: "16px" }}
+            />
           ) : (
             <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
-              Não tens acesso à Equipa nesta casa.
+              {permsIndisponiveis
+                ? "Não deu para verificar o acesso à Equipa — recarrega a página para tentar de novo."
+                : "Não tens acesso à Equipa nesta casa."}
             </p>
           ))}
         {activeTab === "consultas" &&
@@ -1341,9 +1353,16 @@ export default function AdminPage() {
               organizationId={casa?.id}
               podeGerir={permConsultas.podeGerir}
             />
+          ) : permsAVerificar ? (
+            <div
+              className="esqueleto"
+              style={{ height: "180px", borderRadius: "16px" }}
+            />
           ) : (
             <p style={{ color: "var(--gray-mid)", fontSize: "13px" }}>
-              Não tens acesso às Disponibilidades nesta casa.
+              {permsIndisponiveis
+                ? "Não deu para verificar o acesso às Disponibilidades — recarrega a página para tentar de novo."
+                : "Não tens acesso às Disponibilidades nesta casa."}
             </p>
           ))}
         {activeTab === "tiposEvento" && (
