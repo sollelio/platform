@@ -93,9 +93,14 @@ function CaptacaoConteudo() {
   };
 
   // Mudar de capítulo repõe o olhar no topo do formulário — sem
-  // animação para quem pediu menos movimento.
+  // animação para quem pediu menos movimento. Compara-se com o
+  // capítulo ANTERIOR (não com 0): o guard ingénuo engolia o regresso
+  // 3→0 do «Editar: Sobre ti» na revisão.
+  const capAnterior = useRef(null);
   useEffect(() => {
-    if (progresso.capitulo === 0) return;
+    const antes = capAnterior.current;
+    capAnterior.current = progresso.capitulo;
+    if (antes === null || antes === progresso.capitulo) return;
     const suave = !window.matchMedia?.("(prefers-reduced-motion: reduce)")
       .matches;
     window.scrollTo({ top: 0, behavior: suave ? "smooth" : "auto" });
@@ -182,6 +187,7 @@ function CaptacaoConteudo() {
       {/* Grelha: no desktop, um rail de capítulos acompanha o cartão */}
       <style>{`
         .cap-rail{display:none}
+        .cap-futuro{display:flex}
         @media (min-width: 980px){
           .cap-grelha{display:grid;grid-template-columns:190px minmax(0,560px);gap:40px;align-items:start}
           .cap-rail{display:block;position:sticky;top:48px;padding-top:150px}

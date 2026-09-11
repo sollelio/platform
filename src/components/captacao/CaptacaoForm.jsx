@@ -314,22 +314,23 @@ export default function CaptacaoForm({
     const novos = Array.from(e.target.files || []).filter((f) =>
       f.type.startsWith("image/"),
     );
-    setFicheiros((prev) => {
-      // só se criam URLs para o que CABE — criar e cortar vazava
-      const espaco = Math.max(0, MAX_IMAGENS_REFERENCIA - prev.length);
-      const aceites = novos
-        .slice(0, espaco)
-        .map((file) => ({ file, url: URL.createObjectURL(file) }));
-      return [...prev, ...aceites];
-    });
+    // URLs criados FORA do updater (o StrictMode corre updaters duas
+    // vezes em dev — um efeito lateral lá dentro duplicava e vazava);
+    // e só para o que CABE — criar e cortar também vazava.
+    const espaco = Math.max(0, MAX_IMAGENS_REFERENCIA - ficheiros.length);
+    const aceites = novos
+      .slice(0, espaco)
+      .map((file) => ({ file, url: URL.createObjectURL(file) }));
+    if (aceites.length)
+      setFicheiros((prev) => [...prev, ...aceites].slice(0, MAX_IMAGENS_REFERENCIA));
     e.target.value = ""; // permite escolher o mesmo ficheiro outra vez
   };
 
-  const removerImagem = (idx) =>
-    setFicheiros((prev) => {
-      if (prev[idx]) URL.revokeObjectURL(prev[idx].url);
-      return prev.filter((_, i) => i !== idx);
-    });
+  const removerImagem = (idx) => {
+    // revogar FORA do updater, pela mesma razão do escolherImagens
+    if (ficheiros[idx]) URL.revokeObjectURL(ficheiros[idx].url);
+    setFicheiros((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const calcularErros = () => {
     const e = {};
@@ -378,17 +379,30 @@ export default function CaptacaoForm({
   // ---------- os capítulos (só na porta pública) ----------
   // Cada capítulo valida SÓ as suas chaves ao continuar — a pessoa
   // nunca vê erros de um capítulo onde ainda não esteve.
+  // «convidados» NÃO tranca o capítulo 2 de propósito: a isenção do
+  // «só cenário fotografável» decide-se no capítulo 3 — trancar aqui
+  // obrigava essa pessoa a inventar um número. O campo continua
+  // marcado e contado no progresso; quem o saltar sem direito à
+  // isenção é devolvido cá pelo envio final (submeterComSalto).
   const CHAVES_POR_CAPITULO = [
     ["nome", "contacto", "whatsapp"],
-    ["tipo", "data", "convidados"],
+    ["tipo", "data"],
     ["espaco", "localOutro", "servicos", "buffet", "balcao"],
   ];
+  const CAPITULO_DAS_CHAVES_TARDIAS = { convidados: 1 };
   const errosDoCapitulo = (n, e) =>
     Object.fromEntries(
       Object.entries(e).filter(([k]) => CHAVES_POR_CAPITULO[n]?.includes(k)),
     );
-  const capituloDoErro = (e) =>
-    CHAVES_POR_CAPITULO.findIndex((chaves) => chaves.some((k) => e[k]));
+  const capituloDoErro = (e) => {
+    const porGrupo = CHAVES_POR_CAPITULO.findIndex((chaves) =>
+      chaves.some((k) => e[k]),
+    );
+    if (porGrupo >= 0) return porGrupo;
+    for (const [chave, cap] of Object.entries(CAPITULO_DAS_CHAVES_TARDIAS))
+      if (e[chave]) return cap;
+    return -1;
+  };
 
   const avancarCapitulo = () => {
     const eCap = errosDoCapitulo(capitulo, calcularErros());
@@ -1280,9 +1294,10 @@ function CapituloFeito({ titulo, resumo, onEditar }) {
 function CapituloFuturo({ n, titulo }) {
   return (
     <div
+      // o display vive na folha da página (.cap-futuro): flex por
+      // omissão, none no desktop — inline aqui vencia o media query
       className="cap-futuro"
       style={{
-        display: "flex",
         alignItems: "baseline",
         gap: "10px",
         padding: "13px 0 3px",
