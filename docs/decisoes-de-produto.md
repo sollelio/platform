@@ -3261,3 +3261,15 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   globais (notificações, submissions) confiam no RLS multi-casa —
   válido enquanto «um utilizador = uma casa». Se a premissa cair,
   acrescentar filtro por tenant nessas queries.
+
+#### Adenda à Home: os atalhos ganham nome (11/09/2026)
+
+- A fila procurar · Deslocação · Data parecia «controlos soltos» acima
+  dos cartões. Virou secção: overline **«Atalhos rápidos»**, nomes por
+  verbo (**Calcular deslocação**, **Verificar data**) e uma linha de
+  microcopy por controlo («Procurar um cliente ou evento que já
+  existe.» · «Distância e valor, antes de dar o preço.» · «O dia está
+  livre ou tomado?»). A diferença procurar-o-que-existe vs
+  consultar-para-decidir lê-se na proximidade: as duas consultas andam
+  juntas, a pesquisa à parte. Sem tutorial — três legendas de uma
+  linha; fluxos e pontes intactos.

@@ -18,7 +18,7 @@ import { Icone } from "./Navegacao";
 //
 // A Home responde a UMA pergunta — «o que preciso de saber agora e
 // para onde devo ir?» — e mais nada: saudação, o acesso rápido de
-// sempre (procurar · Deslocação · Data · registar pedido) e QUATRO
+// sempre (procurar · calcular deslocação · verificar data) e QUATRO
 // cartões grandes que encaminham para os módulos (abrir evento, ver
 // agenda, ver contactos, ver o funil). A Home orienta; quem resume é
 // o Dashboard, quem lista é cada módulo.
@@ -79,6 +79,16 @@ const hojePorExtenso = () => {
 };
 
 // As microinterações da Home — hover calmo, sem bounce.
+// A legenda de um atalho: uma linha, cinzenta, curta — utilidade
+// percebida sem virar tutorial.
+const ESTILO_LEGENDA_ATALHO = {
+  fontSize: "11px",
+  color: "var(--gray-mid)",
+  lineHeight: 1.45,
+  margin: "6px 2px 0",
+  maxWidth: "190px",
+};
+
 const CSS_INICIO = `
 .in-cartao{transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
 .in-cartao:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.08)}
@@ -331,18 +341,34 @@ export default function InicioTab({
         </button>
       </div>
 
-      {/* Acesso rápido: procurar · Deslocação · Data (os fluxos reais) */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "10px",
-          flexWrap: "wrap",
-          maxWidth: "640px",
-          margin: "0 0 34px 0",
-        }}
-      >
-        <div style={{ position: "relative", flex: "1 1 260px", minWidth: 0 }}>
+      {/* Atalhos rápidos — os fluxos reais de sempre, agora com nome e
+          legenda: PROCURAR o que já existe vs CONSULTAR para decidir.
+          A diferença lê-se na proximidade (as duas consultas andam
+          juntas) e numa linha de microcopy por controlo — secção, não
+          tutorial. */}
+      <div style={{ maxWidth: "720px", margin: "0 0 34px 0" }}>
+        <p
+          style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--gold-dark)",
+            margin: "0 0 10px 0",
+          }}
+        >
+          Atalhos rápidos
+        </p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "18px",
+            flexWrap: "wrap",
+          }}
+        >
+        <div style={{ flex: "1 1 250px", minWidth: 0 }}>
+        <div style={{ position: "relative" }}>
           <input
             type="text"
             value={busca}
@@ -457,10 +483,17 @@ export default function InicioTab({
             </>
           )}
         </div>
+        <p style={ESTILO_LEGENDA_ATALHO}>
+          Procurar um cliente ou evento que já existe.
+        </p>
+        </div>
 
-        {/* Pílula "Deslocação" — a consulta rápida de sempre (popover
-            descartável: só monta enquanto aberto, reabre em branco). */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
+        {/* As duas CONSULTAS andam juntas (gap menor = par): decidir na
+            hora, sem abrir módulo nenhum. Popovers descartáveis: só
+            montam enquanto abertos, reabrem em branco. */}
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ flexShrink: 0 }}>
+        <div style={{ position: "relative" }}>
           <button
             type="button"
             onClick={() => {
@@ -487,7 +520,7 @@ export default function InicioTab({
             }}
           >
             <Icone nome="pin" tamanho={14} />
-            Deslocação
+            Calcular deslocação
           </button>
           <AnimatePresence>
             {consultaAberta && (
@@ -514,11 +547,16 @@ export default function InicioTab({
             )}
           </AnimatePresence>
         </div>
+        <p style={ESTILO_LEGENDA_ATALHO}>
+          Distância e valor, antes de dar o preço.
+        </p>
+        </div>
 
-        {/* Pílula "Data" — livre / em negociação / preferência / tomado,
-            pela definição única da dlm_dia_estado. Abrir uma fecha a
-            outra (dois popovers no mesmo canto não coexistem). */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
+        {/* "Verificar data" — livre / em negociação / preferência /
+            tomado, pela definição única da dlm_dia_estado. Abrir uma
+            fecha a outra (dois popovers no mesmo canto não coexistem). */}
+        <div style={{ flexShrink: 0 }}>
+        <div style={{ position: "relative" }}>
           <button
             type="button"
             onClick={() => {
@@ -545,7 +583,7 @@ export default function InicioTab({
             }}
           >
             <Icone nome="agenda" tamanho={14} />
-            Data
+            Verificar data
           </button>
           <AnimatePresence>
             {consultaDataAberta && (
@@ -566,6 +604,12 @@ export default function InicioTab({
               </>
             )}
           </AnimatePresence>
+        </div>
+        <p style={ESTILO_LEGENDA_ATALHO}>
+          O dia está livre ou tomado?
+        </p>
+        </div>
+        </div>
         </div>
       </div>
 
