@@ -3273,3 +3273,32 @@ fundação de recolha que vem ANTES de qualquer ecrã:
   consultar-para-decidir lê-se na proximidade: as duas consultas andam
   juntas, a pesquisa à parte. Sem tutorial — três legendas de uma
   linha; fluxos e pontes intactos.
+
+### A captação por capítulos (11/09/2026)
+
+- O /interesse deixou de ser «um formulário enorme pela frente»:
+  quatro capítulos (Sobre ti · O evento · Espaço e inspiração ·
+  Rever e enviar), UM aberto de cada vez. Os feitos recolhem para
+  linhas-resumo com «Editar»; os por vir ficam como títulos serenos.
+  NÃO é o wizard lateral descartado a 09/09: sem rotas, sem
+  transições de ecrã — uma página só, revelação progressiva, o
+  contexto sempre à vista.
+- A validação é por capítulo (nunca se vêem erros de onde ainda não
+  se esteve); enviar da revisão valida tudo e SALTA para o capítulo
+  do erro. A barra dourada deixou de contar o que falta («Faltam X
+  detalhes») e passou a dizer a PRÓXIMA AÇÃO: «Continuar: o evento →»
+  … «Rever o pedido →» … «Enviar pedido» — o enchimento a ouro
+  continua a ser o progresso honesto dos obrigatórios.
+- Desktop ganhou um rail de capítulos (índice com ✓, sem cliques — a
+  navegação é no formulário); no cartão, os capítulos futuros
+  escondem-se quando o rail existe (repetir era eco). Logo 116 (era
+  200) SÓ nesta página — decisão local, o resto da app não muda.
+- A revisão é a única fonte do resumo (os recolhidos saem quando ela
+  abre); miniaturas das imagens incluídas; uma linha de confiança
+  antes do envio. A pílula «opcionais em baixo» e o fio de scroll
+  morreram — os capítulos tornam-nos redundantes.
+- O modo INTERNO (modais da Nádia) fica PLANO como sempre — a
+  transcrição de leads não ganha nada com capítulos.
+- De caminho: os objectURLs das imagens passaram a nascer na escolha
+  e a revogar-se ao remover/desmontar (criá-los no render vazava um
+  URL por tecla — dívida antiga).

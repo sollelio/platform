@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { motion, useScroll, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
 import { assinaturaTitular, haCasa } from "../lib/casa";
@@ -14,7 +14,17 @@ import { casaPorSlug } from "../lib/identidadeCasa";
 // Ao submeter, nasce a pessoa (clientes) + o evento (fase interessado)
 // e o interessado aparece no funil do admin.
 //
-// Redesign "hero + barra dourada" (v9):
+// Redesign «capítulos» (v10, 11/09/2026): a experiência guiada por
+// revelação progressiva vive no CaptacaoForm (porCapitulos) — um
+// capítulo aberto de cada vez, os feitos recolhem para linhas-resumo.
+// Esta página dá-lhe o palco: hero mais leve (logo 116, era 200 — só
+// AQUI, o resto da app não muda), rail de capítulos no desktop, e a
+// barra dourada passa a dizer a PRÓXIMA AÇÃO («Continuar: o evento →»
+// … «Enviar pedido») em vez de «Faltam X detalhes». A pílula dos
+// opcionais e o fio de scroll saíram — os capítulos tornam ambos
+// redundantes (a revisão mostra tudo antes de enviar).
+//
+// (v9, para memória:)
 //   • Halo de champanhe: só a área atrás do logo ganha um tom mais
 //     profundo da paleta (#E8D5A3 translúcido, ancorado ao logo) que
 //     se dissolve no cream sem borda — luz de vela sobre linho, não
@@ -64,48 +74,32 @@ function CaptacaoConteudo() {
     total: 6,
     completo: false,
     enviando: false,
+    capitulo: 0,
+    rotuloAcao: null,
   });
-  // Perto do fundo da página? (controla a pílula dos opcionais)
-  const [pertoDoFundo, setPertoDoFundo] = useState(false);
-  // O CaptacaoForm regista aqui a sua função de envio, para a barra
-  // externa poder disparar a submissão (uma verdade, dois botões não)
+  // O CaptacaoForm regista aqui a sua AÇÃO (continuar/enviar), para a
+  // barra externa a disparar (uma verdade, dois botões não)
   const submeterRef = useRef(null);
-  // Fio de progresso do scroll (topo do ecrã)
-  const { scrollYProgress } = useScroll();
 
-  useEffect(() => {
-    const verificar = () => {
-      const distancia =
-        document.documentElement.scrollHeight -
-        window.innerHeight -
-        window.scrollY;
-      setPertoDoFundo(distancia < 140);
-    };
-    verificar();
-    window.addEventListener("scroll", verificar, { passive: true });
-    window.addEventListener("resize", verificar);
-    return () => {
-      window.removeEventListener("scroll", verificar);
-      window.removeEventListener("resize", verificar);
-    };
-  }, []);
-
-  const faltam = progresso.total - progresso.feitos;
   const pct = Math.round((progresso.feitos / progresso.total) * 100);
   const barraCheia = progresso.completo;
+  // O envio só acontece na revisão — é aí que a barra pulsa.
+  const naRevisao = progresso.capitulo === 3;
 
   const aoTocarNaBarra = () => {
-    // Mesmo incompleto, deixa submeter: o validar() do formulário
+    // Mesmo com campos em falta, deixa tocar: a validação do capítulo
     // acende os erros inline e guia a pessoa até ao que falta
     if (submeterRef.current) submeterRef.current();
   };
 
-  const irParaOsOpcionais = () => {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: "smooth",
-    });
-  };
+  // Mudar de capítulo repõe o olhar no topo do formulário — sem
+  // animação para quem pediu menos movimento.
+  useEffect(() => {
+    if (progresso.capitulo === 0) return;
+    const suave = !window.matchMedia?.("(prefers-reduced-motion: reduce)")
+      .matches;
+    window.scrollTo({ top: 0, behavior: suave ? "smooth" : "auto" });
+  }, [progresso.capitulo]);
 
   // ---------- O endereço que não é de ninguém (100) ----------
   // Aqui a moldura nua não chega: esta página não INFORMA, RECOLHE. Um
@@ -185,38 +179,83 @@ function CaptacaoConteudo() {
         padding: "30px 16px 130px",
       }}
     >
-      {/* Fio condutor: linha dourada finíssima que acompanha o scroll */}
-      {!enviado && (
-        <motion.div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "2.5px",
-            backgroundColor: "var(--gold)",
-            transformOrigin: "0 0",
-            scaleX: scrollYProgress,
-            zIndex: 60,
-          }}
-        />
-      )}
+      {/* Grelha: no desktop, um rail de capítulos acompanha o cartão */}
+      <style>{`
+        .cap-rail{display:none}
+        @media (min-width: 980px){
+          .cap-grelha{display:grid;grid-template-columns:190px minmax(0,560px);gap:40px;align-items:start}
+          .cap-rail{display:block;position:sticky;top:48px;padding-top:150px}
+          /* no desktop o rail já lista o que vem — repetir no cartão era eco */
+          .cap-futuro{display:none}
+        }
+      `}</style>
+      <div className="cap-grelha" style={{ width: "100%", maxWidth: "820px", justifyContent: "center" }}>
+        {/* O índice dos capítulos (desktop): orientação sem cliques —
+            a navegação faz-se no próprio formulário */}
+        {!enviado && (
+          <nav className="cap-rail" aria-label="Capítulos do pedido">
+            {["Sobre ti", "O evento", "Espaço e inspiração", "Rever e enviar"].map(
+              (t, i) => {
+                const feito = i < progresso.capitulo;
+                const atual = i === progresso.capitulo;
+                return (
+                  <div
+                    key={t}
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "10px",
+                      padding: "9px 0",
+                      opacity: atual ? 1 : feito ? 0.85 : 0.45,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: "15px",
+                        color: feito || atual ? "var(--gold-dark)" : "var(--gray-mid)",
+                        width: "14px",
+                      }}
+                    >
+                      {feito ? "✓" : i + 1}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "11.5px",
+                        fontWeight: atual ? "700" : "500",
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: atual ? "var(--charcoal)" : "var(--gray-mid)",
+                      }}
+                    >
+                      {t}
+                    </span>
+                  </div>
+                );
+              },
+            )}
+          </nav>
+        )}
+        {enviado && <div className="cap-rail" aria-hidden="true" />}
 
-      <div style={{ width: "100%", maxWidth: "440px" }}>
+      <div style={{ width: "100%", maxWidth: "560px", margin: "0 auto", minWidth: 0 }}>
         {/* Hero: halo de champanhe — não é forma, é luz. O tom mais
             profundo atrás do logo dá corpo ao ouro e às pérolas. */}
         <div
           style={{
             textAlign: "center",
-            padding: "16px 0 4px",
-            marginBottom: "20px",
+            padding: "6px 0 0",
+            marginBottom: "16px",
           }}
         >
           {/* O halo vive ancorado ao logo (inline-block relativo):
               o pico de champanhe fica exatamente atrás das pérolas e
               do "by luxury events", e centra-se via x/y do framer —
               nunca por transform manual, que o motion sobrescreve */}
-          <LogoDourado size={200} />
+          {/* 116 (era 200) SÓ nesta experiência: a marca continua a
+              abrir a página, mas quem chega vê logo o primeiro passo
+              — decisão local, o resto da app não muda. */}
+          <LogoDourado size={116} />
           {!enviado && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -227,7 +266,7 @@ function CaptacaoConteudo() {
                 alignItems: "center",
                 gap: "14px",
                 maxWidth: "360px",
-                margin: "20px auto 0",
+                margin: "12px auto 0",
                 position: "relative",
               }}
             >
@@ -338,6 +377,7 @@ function CaptacaoConteudo() {
             <CaptacaoForm
               tenantSlug={slug}
               onSubmetido={() => setEnviado(true)}
+              porCapitulos
               ocultarBotao
               onProgresso={setProgresso}
               registarSubmeter={(fn) => {
@@ -360,45 +400,7 @@ function CaptacaoConteudo() {
           {assinaturaTitular(casa)}
         </p>
       </div>
-
-      {/* Guarda dos opcionais: com tudo obrigatório preenchido mas o
-          fundo ainda por ver, uma pílula convida a descer antes de
-          enviar — desaparece sozinha ao chegar lá */}
-      <AnimatePresence>
-        {!enviado &&
-          barraCheia &&
-          !pertoDoFundo &&
-          !progresso.enviando && (
-            <motion.button
-              key="guarda-opcionais"
-              onClick={irParaOsOpcionais}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.45, ease: EASE_LUXO }}
-              style={{
-                position: "fixed",
-                bottom: "calc(88px + env(safe-area-inset-bottom))",
-                left: "50%",
-                transform: "translateX(-50%)",
-                padding: "8px 16px",
-                borderRadius: "999px",
-                border: "1px solid var(--gold-light)",
-                backgroundColor: "white",
-                color: "var(--gold-dark)",
-                fontSize: "12px",
-                fontWeight: "600",
-                letterSpacing: "0.02em",
-                cursor: "pointer",
-                boxShadow: "0 4px 14px rgba(201,168,76,0.25)",
-                zIndex: 55,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Ainda há detalhes opcionais em baixo ↓
-            </motion.button>
-          )}
-      </AnimatePresence>
+      </div>
 
       {/* Barra dourada: o envio nunca se esconde — enche-se de ouro
           à medida que os detalhes obrigatórios ficam completos */}
@@ -428,12 +430,12 @@ function CaptacaoConteudo() {
               onClick={aoTocarNaBarra}
               disabled={progresso.enviando}
               animate={
-                barraCheia && !progresso.enviando
+                barraCheia && naRevisao && !progresso.enviando
                   ? { scale: [1, 1.015, 1] }
                   : { scale: 1 }
               }
               transition={
-                barraCheia && !progresso.enviando
+                barraCheia && naRevisao && !progresso.enviando
                   ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
                   : { duration: 0.3 }
               }
@@ -447,9 +449,10 @@ function CaptacaoConteudo() {
                 overflow: "hidden",
                 backgroundColor: "#EFE7D3",
                 cursor: progresso.enviando ? "wait" : "pointer",
-                boxShadow: barraCheia
-                  ? "0 6px 22px rgba(201,168,76,0.45)"
-                  : "0 2px 10px rgba(201,168,76,0.18)",
+                boxShadow:
+                  barraCheia && naRevisao
+                    ? "0 6px 22px rgba(201,168,76,0.45)"
+                    : "0 2px 10px rgba(201,168,76,0.18)",
                 transition: "box-shadow 0.6s ease",
               }}
             >
@@ -477,9 +480,8 @@ function CaptacaoConteudo() {
               >
                 {progresso.enviando
                   ? "A enviar..."
-                  : barraCheia
-                    ? "Enviar pedido"
-                    : `Faltam ${faltam} ${faltam === 1 ? "detalhe" : "detalhes"} ✧`}
+                  : progresso.rotuloAcao ||
+                    (barraCheia ? "Enviar pedido" : "Continuar →")}
               </span>
             </motion.button>
           </motion.div>
