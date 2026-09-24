@@ -151,6 +151,15 @@ export const submeterCaptacao = async (payload, tenantSlug = null) => {
   //    clienteReutilizado } — e não a linha inteira: a submissão tem
   //    56 colunas, incluindo morada e contactos, e o anon não tem
   //    nada que ver isso de volta.
+  // 110 · A atribuição DECLARADA: por onde se preencheu (e se veio pelo
+  // atalho do backoffice). É só uma declaração — QUEM preencheu, o
+  // servidor tira-o da sessão, e sem sessão ignora isto por inteiro.
+  const atribuicao = {
+    superficie: ["public_form", "admin_form"].includes(payload.superficie)
+      ? payload.superficie
+      : null,
+    entrada: payload.entrada === "internal_entry_point" ? payload.entrada : null,
+  };
   const rpc = await supabase.rpc("captacao_submeter", {
     p_payload: {
       nome,
@@ -160,11 +169,30 @@ export const submeterCaptacao = async (payload, tenantSlug = null) => {
       numeroConvidados: convidados,
       eventTypeId: payload.eventTypeId || null,
       respostas,
+      atribuicao,
     },
     p_tenant_slug: tenantSlug,
   });
   if (rpc.error) throw rpc.error;
   return rpc.data;
+};
+
+// 110 · Quem está no /interesse é da casa? Só para o aviso discreto
+// «a preencher em nome de um cliente» — a confiança nunca mora aqui: a
+// atribuição decide-a o servidor pela sessão. `tenant_do_pedido`
+// confirma o slug contra a membership (NULL se não for de quem pede).
+// Sem sessão nem se pergunta; qualquer falha responde «não».
+export const souMembroDaCasa = async (slug) => {
+  if (!slug) return false;
+  try {
+    const { data: sessao } = await supabase.auth.getSession();
+    if (!sessao?.session) return false;
+    const { data, error } = await supabase.rpc("tenant_do_pedido", { p_slug: slug });
+    if (error) throw error;
+    return !!data;
+  } catch {
+    return false;
+  }
 };
 
 // Lê os tipos de evento para o select do formulário público.

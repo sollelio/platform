@@ -10,6 +10,7 @@ import { irmaosDoDia } from "../../lib/disputaDia";
 import AvisoDiaDisputado from "../AvisoDiaDisputado";
 import { traduzirErroDaCasa } from "../../lib/errosDaCasa";
 import { useRotas } from "../../lib/rotasAdmin";
+import { analytics } from "../../lib/analytics";
 import SeletorPacotes from "./SeletorPacotes";
 import { pacotePorNome } from "./pacotesBuffet";
 import { LOCALIDADES_ZONA } from "../../lib/localidades";
@@ -69,6 +70,12 @@ export default function CaptacaoForm({
   ocultarBotao = false,
   onProgresso,
   registarSubmeter,
+  // Analytics (só a porta pública): o funil do /interesse
+  // (lib/analytics/funilFormulario.js) e a entrada declarada — o atalho
+  // «Preencher formulário público» do backoffice. Os modais internos
+  // não passam nenhum dos dois.
+  funil = null,
+  entrada = null,
 }) {
   const rotas = useRotas();
   // ------------------------------------------------------------
@@ -128,6 +135,15 @@ export default function CaptacaoForm({
   // precisar de limpeza síncrona no efeito.
   const [disputaDia, setDisputaDia] = useState(null);
   const inputImagens = useRef(null);
+  // As chaves (nunca os valores) da última validação falhada — para o
+  // funil dizer QUE campos pararam o envio.
+  const ultimosErrosRef = useRef([]);
+
+  // VIEW: o formulário foi desenhado (o funil tem a sua guarda contra o
+  // StrictMode e os re-renders).
+  useEffect(() => {
+    funil?.visto();
+  }, [funil]);
   // Espelho para o cleanup de desmontagem (um cleanup com deps []
   // capturaria a lista inicial e deixava URLs vivos por revogar).
   const ficheirosRef = useRef(ficheiros);
@@ -346,12 +362,17 @@ export default function CaptacaoForm({
         e.balcao = "Escolhe o tipo de balcão.";
     }
     setErros(e);
+    ultimosErrosRef.current = Object.keys(e);
     return Object.keys(e).length === 0;
   };
 
   const submeter = async () => {
     setErroGeral(null);
-    if (!validar()) return;
+    funil?.tentativaDeEnvio();
+    if (!validar()) {
+      funil?.validacaoFalhou(ultimosErrosRef.current);
+      return;
+    }
     setEnviando(true);
     try {
       const tipoReal =
@@ -386,9 +407,26 @@ export default function CaptacaoForm({
           canalOrigem,
           mensagem,
           ficheiros: ficheiros.map((f) => f.file),
+          // 110 · onde (o quem é o servidor que sabe)
+          superficie: modoInterno ? "admin_form" : "public_form",
+          entrada,
         },
         casaDoPedido,
       );
+      // O servidor confirmou: só AGORA o envio conta. O request_created
+      // espelha a atribuição GRAVADA (a resposta da 110) — sem ela
+      // (base ainda sem a 110) não se inventa nada.
+      funil?.enviado({ deduplicado: !!submission.duplicado });
+      if (!submission.duplicado && submission.atribuicao) {
+        analytics.track("request_created", {
+          request_id: submission.id,
+          submission_surface: submission.atribuicao.superficie,
+          submitted_by_type: submission.atribuicao.autorTipo,
+          attribution_method: submission.atribuicao.metodo,
+          returning_contact: !!submission.clienteReutilizado,
+          tenant_slug: casaDoPedido || undefined,
+        });
+      }
       if (
         modoInterno &&
         (submission.duplicado || submission.clienteReutilizado)
@@ -535,8 +573,17 @@ export default function CaptacaoForm({
     );
   }
 
+  // START: a primeira interacção a sério com um campo (escrever,
+  // escolher, tocar numa opção) — nunca a simples visita. O funil só
+  // deixa sair uma vez.
+  const aoInteragir = funil
+    ? (e) => {
+        if (e.target?.closest?.("input, select, textarea, button, label")) funil.iniciado();
+      }
+    : undefined;
+
   return (
-    <div>
+    <div onChangeCapture={aoInteragir} onClickCapture={aoInteragir}>
       <Campo label="Nome *" erro={erros.nome}>
         <input
           style={inputStyle(erros.nome)}

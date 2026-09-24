@@ -11,6 +11,7 @@ import ConsultaData from "./ConsultaData";
 import { classificarLocalidade } from "../../lib/territorio/zonas";
 import { useNomeDoUtilizador } from "../../lib/autoria";
 import { Icone } from "./Navegacao";
+import LigacaoFormularioPublico from "./LigacaoFormularioPublico";
 
 // ============================================================
 // InicioTab — a porta de entrada da app (redesenho de 10/09/2026,
@@ -802,7 +803,8 @@ export default function InicioTab({
                 margin: "0 0 16px 0",
               }}
             >
-              Transcreve o que a pessoa te disse na conversa.
+              Transcreve o que a pessoa te disse na conversa. Ou, com a
+              pessoa ao teu lado, <LigacaoFormularioPublico />
             </p>
             {/* O formulário de captação é peça PÚBLICA embutida no admin —
                 o .papel reancora os tokens ao claro (regressão de 16/08:

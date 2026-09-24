@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import CaptacaoForm from "../components/captacao/CaptacaoForm";
 import LogoDourado from "../components/LogoDourado";
 import { assinaturaTitular, haCasa } from "../lib/casa";
 import CasaProvider, { useCasa } from "../components/CasaProvider";
 import { casaPorSlug } from "../lib/identidadeCasa";
+import { souMembroDaCasa } from "../lib/captacao";
+import { analytics } from "../lib/analytics";
+import { criarFunilFormulario } from "../lib/analytics/funilFormulario";
 
 // ============================================================
 // CaptacaoPage — a página pública /interesse: a porta do funil.
@@ -57,6 +60,27 @@ function CaptacaoConteudo() {
   const { slug } = useParams();
   const casa = useCasa();
   const [enviado, setEnviado] = useState(false);
+  // Analytics: UM funil por visita ao formulário (as guardas vivem
+  // nele — o StrictMode e os re-renders não duplicam eventos).
+  const [funil] = useState(() => criarFunilFormulario(analytics.track, { tenantSlug: slug }));
+  // O atalho do backoffice declara-se no endereço (?entrada=interna).
+  // É só uma DECLARAÇÃO: o servidor ignora-a sem sessão, e quem
+  // preencheu vem sempre da sessão, nunca daqui.
+  const [parametros] = useSearchParams();
+  const entrada = parametros.get("entrada") === "interna" ? "internal_entry_point" : null;
+  // Alguém da casa, com sessão, está a usar a porta pública? Então vê
+  // um aviso discreto. A confiança é a membership (tenant_do_pedido),
+  // nunca o parâmetro do endereço.
+  const [daCasa, setDaCasa] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    souMembroDaCasa(slug).then((sim) => {
+      if (vivo) setDaCasa(sim);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [slug]);
   // Progresso dos campos obrigatórios, reportado pelo CaptacaoForm
   // (6 = os 5 base + o nº de convidados, obrigatório na porta pública)
   const [progresso, setProgresso] = useState({
@@ -89,6 +113,11 @@ function CaptacaoConteudo() {
       window.removeEventListener("resize", verificar);
     };
   }, []);
+
+  // REQUIRED_COMPLETED: os obrigatórios ficaram completos pela 1.ª vez.
+  useEffect(() => {
+    if (progresso.completo) funil.obrigatoriosCompletos(progresso.total);
+  }, [progresso.completo, progresso.total, funil]);
 
   const faltam = progresso.total - progresso.feitos;
   const pct = Math.round((progresso.feitos / progresso.total) * 100);
@@ -277,6 +306,25 @@ function CaptacaoConteudo() {
           )}
         </div>
 
+        {/* Só para quem é da casa e tem sessão: a porta é a mesma da
+            cliente, e o pedido fica atribuído a quem o preenche. O
+            público nunca vê isto (souMembroDaCasa responde «não» sem
+            sessão ou sem membership). */}
+        {daCasa && !enviado && (
+          <p
+            data-aviso-interno
+            style={{
+              textAlign: "center",
+              fontSize: "11px",
+              color: "var(--gray-mid)",
+              letterSpacing: "0.04em",
+              margin: "-6px 0 14px 0",
+            }}
+          >
+            A preencher em nome de um cliente · fica registado como teu
+          </p>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -341,6 +389,8 @@ function CaptacaoConteudo() {
           ) : (
             <CaptacaoForm
               tenantSlug={slug}
+              funil={funil}
+              entrada={entrada}
               onSubmetido={() => setEnviado(true)}
               ocultarBotao
               onProgresso={setProgresso}

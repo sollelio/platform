@@ -22,6 +22,7 @@ import ComunicadoPage from "./pages/ComunicadoPage";
 import EventoPage from "./pages/EventoPage";
 import CaptacaoPage from "./pages/CaptacaoPage";
 import EnvBanner from "./components/EnvBanner";
+import RastreioDeRota from "./components/RastreioDeRota";
 import CasaProvider from "./components/CasaProvider";
 import PortaDaCasa, { EnderecoSemCasa } from "./components/PortaDaCasa";
 import { casaDoBackoffice } from "./lib/identidadeCasa";
@@ -131,6 +132,9 @@ function App() {
           depender de cada componente se lembrar dela. */}
       <MotionConfig reducedMotion="user">
         <TemaDoBackoffice />
+        {/* Analytics de produto: só orienta o arranque e a gravação
+            (lib/analytics) — sem chave configurada não faz nada. */}
+        <RastreioDeRota />
         {/* Faixa de ambiente (só em desenvolvimento e em TEST) */}
         {isTest && <EnvBanner />}
         <Routes>

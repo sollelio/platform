@@ -108,6 +108,11 @@ atrapalhar, o caminho é decisão registada, nunca excepção calada.
 
 ## Frontend
 
+- **A analytics passa SEMPRE por `lib/analytics` — nenhum ecrã chama o
+  SDK.** Evento novo = entrada no catálogo (`eventos.js` + 
+  `docs/analytics/event-catalog.md`); o que não está declarado não sai.
+  Nunca PII (nomes, contactos, moradas, texto livre) e nunca nas páginas
+  por token. Um facto de negócio mora na base — o PostHog só o espelha.
 - **`lib/` nunca importa de `components/`.** Módulos sem hook recebem
   casa e contexto por argumento; a única excepção admitida é um hook
   (useNotificacoes), que pode ler contexto. É o que mantém a camada de

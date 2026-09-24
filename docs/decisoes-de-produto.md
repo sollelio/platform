@@ -3367,3 +3367,38 @@ desproporcionada nos eventos pequenos. Num orçamento de 150€, eram
   Enquanto está intocado, uma nota interna no gerador (nunca na folha
   nem no portal) explica porque a folha mostra mais do que os campos.
   A regra vive em lib/orcamentoLegado.js.
+
+### Analytics de produto — a fundação e quem pediu (24/09/2026)
+
+Primeira fatia de uma iniciativa de meses: medir o uso real para decidir
+com evidência. Esta fatia é só a **fundação + a atribuição da submissão
+de pedidos**. Documentação canónica: docs/analytics/README.md e
+docs/analytics/event-catalog.md.
+
+- **Verdade de negócio na base, comportamento no PostHog.** De onde veio
+  um pedido e quem o preencheu é dado de negócio: mora em `submissions`
+  (migração 110), e o PostHog só o espelha. Sem tabela genérica de logs.
+  Sentry é outra fatia.
+- **ONDE ≠ QUEM.** `/interesse` não quer dizer «foi a cliente». Três
+  colunas: superfície, tipo de autor e método de atribuição; o uuid é o
+  `criado_por` da 105 (não se duplica). QUEM vem sempre da sessão, dentro
+  da função — nunca do browser.
+- **O anónimo é `unknown`, não `prospect`.** Um /interesse sem sessão pode
+  ser a cliente ou a Nádia com a sessão fechada; não se adivinha por nome,
+  telefone, IP ou dispositivo. A taxa de self-service é por isso um
+  intervalo até haver prova (ver README).
+- **Atalho «Preencher formulário público»** no «Novo pedido» (Início e
+  Funil): a mesma porta da cliente, com a sessão — fica atribuído a quem
+  preenche. No /interesse, quem é da casa vê um aviso discreto.
+- **Sem backfill** (o histórico fica NULL = anterior à atribuição) e a
+  atribuição é **imutável** depois de gravada.
+- **PostHog, projecto UE, atrás de lib/analytics** — nenhum ecrã chama o
+  SDK. Lista de permissão de propriedades por evento, endereços em molde,
+  autocapture sem texto nem atributos, replay com TODO o texto e inputs
+  mascarados (comprimento fixo), imagens bloqueadas, sem consola nem rede.
+  Nada nas páginas por token (portal, contribuir, comunicado,
+  disponibilidade, convite).
+- **Funil do /interesse** com `form_version = flat_2026_09`: visto,
+  começado (1.ª interacção, nunca a visita), obrigatórios completos,
+  tentativa, validação falhada (nomes dos campos), enviado (só com
+  confirmação do servidor).

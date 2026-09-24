@@ -26,6 +26,7 @@ import {
 } from "./faseConfig";
 import CaptacaoForm from "../captacao/CaptacaoForm";
 import { MOTIVOS_PERDA } from "../../lib/perda";
+import LigacaoFormularioPublico from "./LigacaoFormularioPublico";
 
 // ============================================================
 // FunilBoard — a esteira visual do funil comercial, dentro de Clientes.
@@ -1143,7 +1144,8 @@ export default function FunilBoard({
                 margin: "0 0 16px 0",
               }}
             >
-              Transcreve o que a pessoa te disse na conversa.
+              Transcreve o que a pessoa te disse na conversa. Ou, com a
+              pessoa ao teu lado, <LigacaoFormularioPublico />
             </p>
             {/* O formulário de captação é peça PÚBLICA embutida no admin —
                 as cores dele são as da vitrina (campos brancos) e não
