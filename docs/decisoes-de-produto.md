@@ -3322,3 +3322,21 @@ módulos de todos os dias não se distinguiam do resto.
   A precedência vive num sítio só (corDoItem/pesoDoItem): ativo → ouro;
   inativo primário → tinta escura 600; inativo → cinza 400.
 - Largura, espaçamentos e a barra/folha do telemóvel não mexem.
+
+### O /interesse volta a ser plano (24/09/2026)
+
+Feedback direto: a captação por capítulos (11/09) fazia o pedido
+parecer mais complexo do que é, e isso criava atrito.
+
+- A porta pública volta à experiência plana de b0a7fbb: um formulário
+  contínuo com todos os campos à vista, coluna de 440px, logo 200, o
+  fio dourado do scroll, a barra «Faltam X detalhes ✧» → «Enviar
+  pedido» e a pílula dos opcionais. Sem rail, sem capítulos, sem
+  revisão.
+- Só se restaurou a PÁGINA (CaptacaoPage.jsx). Não se mexeu nos dados
+  nem no backend: campos, obrigatórios, validação, payload, upload,
+  envio, dedupe, aviso de dia disputado e conclusão continuam a ser os
+  do CaptacaoForm atual (que mantém a correção dos objectURLs).
+- O modo por capítulos fica no CaptacaoForm, desligado (porCapitulos),
+  até a experiência plana estar validada — voltar atrás é uma linha.
+  A limpeza desse código é outra decisão.
