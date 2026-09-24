@@ -7,9 +7,14 @@ import { uploadImagemReferencia } from "../../../lib/captacao";
 import { guardarValorAcordado } from "../../../lib/clientes";
 import PainelDeslocacao from "./PainelDeslocacao";
 import {
+  assinaturaComercial,
+  logisticaEmVigor,
+  totalDoOrcamento,
+  valoresDaFolha,
+} from "../../../lib/orcamentoLegado";
+import {
   CATALOGO_SERVICOS,
   CONDICOES_ORCAMENTO,
-  LOGISTICA_ENTRE_MORADAS,
   NOTA_RODAPE_ORCAMENTO,
   VALIDADE_ORCAMENTO_DIAS,
   formatarEuros,
@@ -37,47 +42,6 @@ const resolverDescricao = (template, lugares) => {
 // o componente é remontado pelo AdminPage (via key) quando o contexto
 // muda, por isso não precisa de useEffect. Tudo continua editável.
 // ============================================================
-
-// ------------------------------------------------------------
-// A logística entre moradas (25€/evento) dilui-se pelas linhas do
-// orçamento: o cliente nunca a vê — nem linha própria, nem nota — só os
-// serviços ligeiramente mais cheios. O Pacote Buffet nunca absorve
-// (decisão da casa, custe o que custar) e a Deslocação também não: é o
-// número que choca, e engordá-lo iria contra a razão da própria regra.
-// ------------------------------------------------------------
-const totalDaLinha = (l) =>
-  Math.round(parsearValor(l.valor) * parsearValor(l.qtd) * 100) / 100;
-
-const ehElegivel = (l) =>
-  l.servicoId !== "pacote_buffet" &&
-  l.servicoId !== "deslocacao" &&
-  totalDaLinha(l) > 0;
-
-// Reparte a logística proporcionalmente aos totais das linhas elegíveis
-// (a linha de 800€ absorve mais do que a de 100€), em euros inteiros por
-// linha; o resto do arredondamento cai na elegível de maior valor, para
-// a soma das parcelas ser EXACTAMENTE o total da logística. Devolve
-// { total, parcelas } — parcelas ALINHADAS POR ÍNDICE com `linhas`, 0
-// nas não-elegíveis — ou null sem elegíveis (e aí os 25€ ficam mesmo de
-// fora: o aviso no editor di-lo à Nádia; o buffet nunca os absorve).
-const repartirLogistica = (linhas) => {
-  const totais = linhas.map((l) => (ehElegivel(l) ? totalDaLinha(l) : 0));
-  const soma = totais.reduce((a, b) => a + b, 0);
-  if (soma <= 0) return null;
-  // floor garante parcelas ≤ à proporção exacta: o resto nunca é negativo.
-  const parcelas = totais.map((t) =>
-    Math.floor((LOGISTICA_ENTRE_MORADAS * t) / soma),
-  );
-  const resto = LOGISTICA_ENTRE_MORADAS - parcelas.reduce((a, b) => a + b, 0);
-  if (resto > 0) {
-    let maior = 0;
-    totais.forEach((t, i) => {
-      if (t > totais[maior]) maior = i;
-    });
-    parcelas[maior] += resto;
-  }
-  return { total: LOGISTICA_ENTRE_MORADAS, parcelas };
-};
 
 let seqLinha = 0;
 const novaLinha = (base = {}) => ({
@@ -160,48 +124,39 @@ export default function GerarOrcamento({
 
   const hoje = new Date().toISOString().slice(0, 10);
 
-  // A repartição da logística deriva SEMPRE das linhas — recalcula a
-  // cada edição; null quando nenhuma linha pode absorver.
-  const logistica = useMemo(() => repartirLogistica(linhas), [linhas]);
-
-  // __logistica viaja nos dados do documento como outro campo qualquer:
-  // o useRascunho entrega-o ao DocumentoProvider (→ documentos.dados →
-  // o instantâneo que o dlm_portal_publicar congela → o portal). Os
-  // valores das linhas ficam CRUS — a diluição só se soma a quem mostra.
-  // O valor guardado é persistência, nunca fonte de verdade: por isso o
-  // efeito só escreve quando a derivação muda de facto (a comparação por
-  // JSON evita o laço escrita → re-render → escrita).
+  // A logística entre moradas (25€ diluídos) foi RETIRADA a 24/09/2026:
+  // um orçamento novo nunca a calcula nem cria `__logistica`. Um
+  // rascunho ANTIGO que a traz gravada mostra-a tal como está (nunca se
+  // recalcula das linhas) enquanto só é aberto — e nada se escreve só
+  // por abrir. À primeira edição COMERCIAL das linhas (a assinatura de
+  // serviço/qtd/valor deixa de ser a da abertura) passa de vez ao
+  // modelo novo: a chave antiga descarta-se e grava-se sem ela. Ver
+  // lib/orcamentoLegado.js. (As versões publicadas são instantâneos
+  // congelados — o portal e o SQL continuam a lê-las como sempre.)
   const [logisticaGuardada, setLogisticaGuardada] = useRascunho(
     `${rid}:__logistica`,
     null,
   );
+  const assinaturaAtual = assinaturaComercial(linhas, parsearValor);
+  const [assinaturaInicial] = useState(assinaturaAtual);
+  const logistica = logisticaEmVigor({
+    guardada: logisticaGuardada,
+    assinaturaInicial,
+    assinaturaAtual,
+  });
+  // Só escreve quando há MESMO o que descartar: um rascunho legado que
+  // acabou de ser editado. Orçamentos novos nunca passam aqui.
   useEffect(() => {
-    if (JSON.stringify(logisticaGuardada) !== JSON.stringify(logistica)) {
-      setLogisticaGuardada(logistica);
+    if (logisticaGuardada != null && assinaturaAtual !== assinaturaInicial) {
+      setLogisticaGuardada(null);
     }
-  }, [logistica, logisticaGuardada, setLogisticaGuardada]);
-
-  // Há valor em jogo mas nenhuma linha pode absorver a logística (tudo
-  // vive no buffet/deslocação): os 25€ ficam de fora e a Nádia tem de o
-  // saber — avisa-se, nunca se bloqueia.
-  const logisticaDeFora = useMemo(
-    () => !logistica && linhas.some((l) => totalDaLinha(l) > 0),
-    [logistica, linhas],
-  );
+  }, [logisticaGuardada, assinaturaAtual, assinaturaInicial, setLogisticaGuardada]);
 
   // Arredondado a cêntimos: evita totais tipo 649.99999999999994 (que
-  // apareceriam no botão de guardar e ficariam gravados na BD).
-  // Com linhas elegíveis, o total é a soma crua + os 25€ da logística —
-  // é ESTE número que a folha imprime e que «guardar como valor
-  // acordado» grava (alimenta o funil e o contrato).
-  const total = useMemo(() => {
-    const soma = linhas.reduce((acc, l) => {
-      const v = parsearValor(l.valor);
-      const q = parsearValor(l.qtd);
-      return acc + v * q;
-    }, 0);
-    return Math.round((soma + (logistica ? logistica.total : 0)) * 100) / 100;
-  }, [linhas, logistica]);
+  // apareceriam no botão de guardar e ficariam gravados na BD). É ESTE
+  // número que a folha imprime e que «guardar como valor acordado»
+  // grava (alimenta o funil e o contrato).
+  const total = totalDoOrcamento(linhas, logistica, parsearValor);
 
   // Se o total mudar depois de guardado, volta a pedir para guardar
   useEffect(() => {
@@ -469,7 +424,6 @@ export default function GerarOrcamento({
               indice={idx + 1}
               podeRemover={linhas.length > 1}
               moradaPrefill={prefill?.localCompleto}
-              parcelaLogistica={logistica ? logistica.parcelas[idx] : 0}
               onEscolherServico={(sid) => escolherServico(l.uid, sid)}
               onAtualizar={(campos) => atualizarLinha(l.uid, campos)}
               onAtualizarLugares={(n) => atualizarLugares(l.uid, n)}
@@ -517,9 +471,13 @@ export default function GerarOrcamento({
             >
               Total: {formatarEuros(total)}
             </p>
-            {/* Só a Nádia lê isto — a folha impressa não fala de logística. */}
+            {/* Só a Nádia lê isto (fora da .area-impressao, nunca no
+                instantâneo): explica porque a folha mostra mais do que
+                os campos num rascunho legado ainda intocado. Sai com a
+                primeira edição comercial, e não volta. */}
             {logistica && (
               <p
+                data-nota-logistica-legada
                 style={{
                   fontSize: "11px",
                   color: "var(--gray-mid)",
@@ -527,25 +485,9 @@ export default function GerarOrcamento({
                   lineHeight: 1.5,
                 }}
               >
-                inclui {LOGISTICA_ENTRE_MORADAS}€ de logística entre moradas,
-                diluídos nos serviços
-              </p>
-            )}
-            {logisticaDeFora && (
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--gold-dark)",
-                  backgroundColor: "var(--superficie-selo)",
-                  border: "1px solid var(--ouro-suave)",
-                  borderRadius: "10px",
-                  padding: "10px 12px",
-                  margin: "0 0 12px 0",
-                  lineHeight: 1.5,
-                }}
-              >
-                ⚠ Não há serviço para absorver os {LOGISTICA_ENTRE_MORADAS}€
-                da logística — ficam de fora.
+                Orçamento antigo: inclui 25 € de logística da regra anterior.
+                Este valor deixa de ser aplicado quando alterares os preços ou
+                serviços.
               </p>
             )}
             <p
@@ -699,7 +641,6 @@ function LinhaServicoEditor({
   indice,
   podeRemover,
   moradaPrefill,
-  parcelaLogistica = 0,
   onEscolherServico,
   onAtualizar,
   onAtualizarLugares,
@@ -911,20 +852,6 @@ function LinhaServicoEditor({
         </div>
       </div>
 
-      {/* A parte da logística que esta linha absorve — só a Nádia a vê;
-          na folha o valor sai já engordado, sem nota nenhuma. */}
-      {parcelaLogistica > 0 && (
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--gray-mid)",
-            fontStyle: "italic",
-            margin: "8px 0 0 0",
-          }}
-        >
-          inclui +{parcelaLogistica}€ de logística
-        </p>
-      )}
     </div>
   );
 }
@@ -944,46 +871,13 @@ function OrcamentoDocumento({
   dataEmissao,
 }) {
   const casa = useCasa();
-  // O que a folha MOSTRA por linha: o unitário com a parcela de
-  // logística já dentro — nem sombra de «logística» no papel. Com
-  // qtd > 1 o unitário ajustado (parcela/qtd) arredonda a cêntimos e o
-  // residual desse arredondamento muda-se para outra linha elegível de
-  // qtd 1, para a soma das linhas bater com o Total impresso (o caso
-  // real da casa é qtd = 1 — os lugares vivem na descrição).
-  const valoresFolha = useMemo(() => {
-    const vals = linhas.map((l) =>
-      l.valor === "" ? null : Math.round(parsearValor(l.valor) * 100) / 100,
-    );
-    if (!logistica) return vals;
-    let residual = 0; // em euros: o que o arredondamento do unitário deixou cair
-    linhas.forEach((l, i) => {
-      const parcela = logistica.parcelas[i] || 0;
-      if (parcela === 0) return;
-      const v = parsearValor(l.valor);
-      const q = parsearValor(l.qtd) || 1;
-      if (q <= 1) {
-        vals[i] = Math.round((v + parcela) * 100) / 100;
-      } else {
-        const unit = Math.round(((v * q + parcela) / q) * 100) / 100;
-        vals[i] = unit;
-        residual += v * q + parcela - unit * q;
-      }
-    });
-    const residualCents = Math.round(residual * 100);
-    if (residualCents !== 0) {
-      let alvo = -1;
-      linhas.forEach((l, i) => {
-        const q = parsearValor(l.qtd) || 1;
-        if (ehElegivel(l) && q === 1 && (alvo === -1 || vals[i] > vals[alvo]))
-          alvo = i;
-      });
-      // Sem linha qtd=1 para o acolher, os cêntimos ficam por mostrar —
-      // combinação que na prática da casa não existe.
-      if (alvo !== -1)
-        vals[alvo] = Math.round(vals[alvo] * 100 + residualCents) / 100;
-    }
-    return vals;
-  }, [linhas, logistica]);
+  // O que a folha MOSTRA por linha: o valor cru — ou, num rascunho
+  // legado ainda intocado, o unitário com a parcela antiga dentro, tal
+  // como a folha dele sempre o mostrou (lib/orcamentoLegado.js).
+  const valoresFolha = useMemo(
+    () => valoresDaFolha(linhas, logistica, parsearValor),
+    [linhas, logistica],
+  );
 
   return (
     <div

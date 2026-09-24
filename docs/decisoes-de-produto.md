@@ -3340,3 +3340,30 @@ parecer mais complexo do que é, e isso criava atrito.
 - Validada a experiência plana, o modo por capítulos saiu do
   CaptacaoForm (24/09). Quem o quiser rever tem-no no histórico
   (e3076f9 + d736801).
+
+### A logística entre moradas sai do orçamento (24/09/2026)
+
+**Substitui «A logística entre moradas, diluída (03/08/2026)».**
+
+Feedback da operação: os 25€ fixos por evento pesavam de forma
+desproporcionada nos eventos pequenos. Num orçamento de 150€, eram
++17% escondidos no único serviço.
+
+- A logística entre moradas e a repartição dela pelas linhas
+  acabaram. Um orçamento novo mostra os preços crus, o total é a soma
+  das linhas, e `__logistica` nunca é criada.
+- A **Deslocação** fica exactamente como estava: morada, distância,
+  5 km incluídos, troços, €/km, a linha visível e «Oferecer a
+  deslocação». São duas coisas diferentes: a deslocação é o custo real
+  até ao evento, e os 25€ eram o troço armazém ↔ morada-base.
+- As versões **publicadas** são registos financeiros e não mudam. O
+  portal e o SQL (083/085) continuam a ler a `__logistica` que lá
+  estiver congelada: preços, total e sinal ficam como o cliente os viu.
+- Um **rascunho antigo** que já traz `__logistica` mostra-a tal como
+  está enquanto só é aberto: nem se recalcula, nem se regrava. À
+  primeira edição comercial das linhas (juntar/remover linha, serviço,
+  quantidade, valor) passa de vez ao modelo novo. A chave antiga
+  descarta-se e o total perde os 25€. Mudanças só de texto não contam.
+  Enquanto está intocado, uma nota interna no gerador (nunca na folha
+  nem no portal) explica porque a folha mostra mais do que os campos.
+  A regra vive em lib/orcamentoLegado.js.
