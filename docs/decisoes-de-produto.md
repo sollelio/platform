@@ -3337,6 +3337,6 @@ parecer mais complexo do que é, e isso criava atrito.
   nem no backend: campos, obrigatórios, validação, payload, upload,
   envio, dedupe, aviso de dia disputado e conclusão continuam a ser os
   do CaptacaoForm atual (que mantém a correção dos objectURLs).
-- O modo por capítulos fica no CaptacaoForm, desligado (porCapitulos),
-  até a experiência plana estar validada — voltar atrás é uma linha.
-  A limpeza desse código é outra decisão.
+- Validada a experiência plana, o modo por capítulos saiu do
+  CaptacaoForm (24/09). Quem o quiser rever tem-no no histórico
+  (e3076f9 + d736801).

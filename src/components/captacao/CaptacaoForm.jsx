@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import {
   submeterCaptacao,
   getTiposParaCaptacao,
@@ -70,10 +69,6 @@ export default function CaptacaoForm({
   ocultarBotao = false,
   onProgresso,
   registarSubmeter,
-  // Porta pública: a experiência por CAPÍTULOS (revelação progressiva
-  // — um aberto de cada vez, os feitos recolhem para linhas-resumo).
-  // O interno fica PLANO: a Nádia transcreve leads à velocidade dela.
-  porCapitulos = false,
 }) {
   const rotas = useRotas();
   // ------------------------------------------------------------
@@ -133,8 +128,6 @@ export default function CaptacaoForm({
   // precisar de limpeza síncrona no efeito.
   const [disputaDia, setDisputaDia] = useState(null);
   const inputImagens = useRef(null);
-  // O capítulo aberto (0..3) — só usado com porCapitulos.
-  const [capitulo, setCapitulo] = useState(0);
   // Espelho para o cleanup de desmontagem (um cleanup com deps []
   // capturaria a lista inicial e deixava URLs vivos por revogar).
   const ficheirosRef = useRef(ficheiros);
@@ -215,18 +208,6 @@ export default function CaptacaoForm({
     servicos[0] === "Cenário fotografável";
   const convidadosObrigatorios = !modoInterno && !pedidoSoCenario;
 
-  // O rótulo da barra é a PRÓXIMA AÇÃO — progresso comunicado pelo
-  // que vem a seguir, não pelo que falta. (Vive antes do efeito do
-  // progresso, que o leva nas deps.)
-  const rotuloAcao = !porCapitulos
-    ? null
-    : [
-        "Continuar: o evento →",
-        "Continuar: espaço e inspiração →",
-        "Rever o pedido →",
-        "Enviar pedido",
-      ][capitulo];
-
   // Progresso dos campos obrigatórios — alimenta a barra dourada da
   // página pública. O total é dinâmico: serviços (e balcão) só contam
   // depois de escolhido o espaço, tal como no validar().
@@ -256,8 +237,6 @@ export default function CaptacaoForm({
       total: requisitos.length,
       completo: feitos === requisitos.length,
       enviando,
-      capitulo,
-      rotuloAcao,
     });
   }, [
     nome,
@@ -274,8 +253,6 @@ export default function CaptacaoForm({
     balcao,
     enviando,
     onProgresso,
-    capitulo,
-    rotuloAcao,
   ]);
 
   const toggleServico = (opt) => {
@@ -332,7 +309,7 @@ export default function CaptacaoForm({
     setFicheiros((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const calcularErros = () => {
+  const validar = () => {
     const e = {};
     if (!nome.trim()) e.nome = "Indica o nome.";
     if (!contacto.trim()) {
@@ -368,50 +345,8 @@ export default function CaptacaoForm({
       if (servicos.includes("Balcão") && balcao.length === 0)
         e.balcao = "Escolhe o tipo de balcão.";
     }
-    return e;
-  };
-  const validar = () => {
-    const e = calcularErros();
     setErros(e);
     return Object.keys(e).length === 0;
-  };
-
-  // ---------- os capítulos (só na porta pública) ----------
-  // Cada capítulo valida SÓ as suas chaves ao continuar — a pessoa
-  // nunca vê erros de um capítulo onde ainda não esteve.
-  // «convidados» NÃO tranca o capítulo 2 de propósito: a isenção do
-  // «só cenário fotografável» decide-se no capítulo 3 — trancar aqui
-  // obrigava essa pessoa a inventar um número. O campo continua
-  // marcado e contado no progresso; quem o saltar sem direito à
-  // isenção é devolvido cá pelo envio final (submeterComSalto).
-  const CHAVES_POR_CAPITULO = [
-    ["nome", "contacto", "whatsapp"],
-    ["tipo", "data"],
-    ["espaco", "localOutro", "servicos", "buffet", "balcao"],
-  ];
-  const CAPITULO_DAS_CHAVES_TARDIAS = { convidados: 1 };
-  const errosDoCapitulo = (n, e) =>
-    Object.fromEntries(
-      Object.entries(e).filter(([k]) => CHAVES_POR_CAPITULO[n]?.includes(k)),
-    );
-  const capituloDoErro = (e) => {
-    const porGrupo = CHAVES_POR_CAPITULO.findIndex((chaves) =>
-      chaves.some((k) => e[k]),
-    );
-    if (porGrupo >= 0) return porGrupo;
-    for (const [chave, cap] of Object.entries(CAPITULO_DAS_CHAVES_TARDIAS))
-      if (e[chave]) return cap;
-    return -1;
-  };
-
-  const avancarCapitulo = () => {
-    const eCap = errosDoCapitulo(capitulo, calcularErros());
-    if (Object.keys(eCap).length) {
-      setErros(eCap);
-      return;
-    }
-    setErros({});
-    setCapitulo((c) => Math.min(c + 1, 3));
   };
 
   const submeter = async () => {
@@ -529,33 +464,14 @@ export default function CaptacaoForm({
     setEnviando(false);
   };
 
-  // Enviar a partir da revisão: valida TUDO — um erro num capítulo
-  // anterior salta para lá em vez de acender vermelho fora do ecrã.
-  const submeterComSalto = async () => {
-    const eTodos = calcularErros();
-    if (Object.keys(eTodos).length) {
-      setErros(eTodos);
-      const c = capituloDoErro(eTodos);
-      if (c >= 0) setCapitulo(c);
-      return;
-    }
-    await submeter();
-  };
-
-  // A ação da barra dourada: continuar capítulo a capítulo; no último,
-  // enviar. (No modo plano continua a ser o submeter de sempre.)
-  const acaoDaBarra = () => {
-    if (!porCapitulos) return submeter();
-    if (capitulo < 3) return avancarCapitulo();
-    return submeterComSalto();
-  };
-
-  // Regista a ação para o botão externo (barra dourada).
+  // Regista a função de envio para o botão externo (barra dourada).
   // Corre em cada render de propósito: garante que a barra chama
-  // sempre a versão mais recente (sem closures velhas). Vive DEPOIS
-  // das declarações — ler antes era acesso a const por declarar.
+  // sempre a versão mais recente do submeter (sem closures velhas).
+  // Vive DEPOIS da declaração do submeter — ler antes era acesso a
+  // const por declarar (react-hooks/immutability); a ordem entre
+  // efeitos não muda nada aqui, o registo é só guardar a referência.
   useEffect(() => {
-    if (registarSubmeter) registarSubmeter(acaoDaBarra);
+    if (registarSubmeter) registarSubmeter(submeter);
   });
 
   if (avisoDedupe) {
@@ -619,11 +535,8 @@ export default function CaptacaoForm({
     );
   }
 
-  // ---------- as secções (funções chamadas inline — NUNCA componentes
-  // internos: um componente interno remontava a cada render e roubava
-  // o foco dos inputs a cada tecla) ----------
-  const secSobreTi = () => (
-    <>
+  return (
+    <div>
       <Campo label="Nome *" erro={erros.nome}>
         <input
           style={inputStyle(erros.nome)}
@@ -681,11 +594,7 @@ export default function CaptacaoForm({
           <option value="Outro">Outro</option>
         </select>
       </Campo>
-    </>
-  );
 
-  const secEvento = () => (
-    <>
       <Campo label="Tipo de evento *" erro={erros.tipo}>
         {tipos.length > 0 ? (
           <select
@@ -787,11 +696,7 @@ export default function CaptacaoForm({
           ))}
         </datalist>
       </Campo>
-    </>
-  );
 
-  const secEspaco = () => (
-    <>
       <Campo
         label="Espaço onde vai ser realizado *"
         erro={erros.espaco || erros.localOutro}
@@ -983,406 +888,37 @@ export default function CaptacaoForm({
           placeholder="ex: Ambiente bonito e acolhedor para um pedido de noivado, cor champanhe..."
         />
       </Campo>
-    </>
-  );
 
-  const blocoErroGeral = erroGeral ? (
-    <p style={{ fontSize: "13px", color: "#DC2626", margin: "0 0 12px 0" }}>
-      {erroGeral}
-    </p>
-  ) : null;
-
-  // ---------- modo PLANO (interno e qualquer porta sem capítulos) ----------
-  if (!porCapitulos) {
-    return (
-      <div>
-        {secSobreTi()}
-        {secEvento()}
-        {secEspaco()}
-        {blocoErroGeral}
-        {!ocultarBotao && (
-          <button
-            onClick={submeter}
-            disabled={enviando}
-            style={{
-              width: "100%",
-              padding: "13px",
-              borderRadius: "10px",
-              fontSize: "14px",
-              fontWeight: "600",
-              border: "none",
-              backgroundColor: enviando ? "var(--gold-light)" : "var(--gold)",
-              color: "white",
-              cursor: enviando ? "wait" : "pointer",
-              boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
-            }}
-          >
-            {enviando ? "A enviar..." : textoBotao}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // ---------- a experiência por CAPÍTULOS (porta pública) ----------
-  const tipoEscolhido = tipos.find((t) => t.id === eventTypeId);
-  const nomeTipo =
-    (eventTypeId && eventTypeId !== "__outro__" && tipoEscolhido?.nome) ||
-    tipoOutro.trim() ||
-    "";
-  const resumoData = dataEvento
-    ? new Date(`${dataEvento}T12:00:00`).toLocaleDateString("pt-PT", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : "";
-  const resumoServicos = servicos
-    .map((sv) =>
-      sv === "Buffet" && buffet ? `Buffet ${buffet}` : sv === "Balcão" && balcao[0] ? `Balcão · ${balcao[0]}` : sv,
-    )
-    .join(", ");
-  const resumos = [
-    [nome.trim(), contacto.trim()].filter(Boolean).join(" · "),
-    [
-      nomeTipo,
-      resumoData,
-      numeroConvidados.trim() && `${numeroConvidados} convidados`,
-      local.trim(),
-    ]
-      .filter(Boolean)
-      .join(" · "),
-    [
-      localTipo === "Outro" ? localOutro.trim() : localTipo,
-      resumoServicos,
-      ficheiros.length
-        ? `${ficheiros.length} ${ficheiros.length === 1 ? "imagem" : "imagens"}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" · "),
-  ];
-  const CAPITULOS = [
-    {
-      titulo: "Sobre ti",
-      intro: "Só o essencial para te conseguirmos responder.",
-      corpo: secSobreTi,
-    },
-    {
-      titulo: "O evento",
-      intro: "O dia, o sítio e o tamanho da festa.",
-      corpo: secEvento,
-    },
-    {
-      titulo: "Espaço e inspiração",
-      intro: "Como imaginas o espaço — e tudo o que nos quiseres mostrar.",
-      corpo: secEspaco,
-    },
-    {
-      titulo: "Rever e enviar",
-      intro: "Confere com calma — podes voltar a qualquer parte.",
-      corpo: null,
-    },
-  ];
-  const editarCapitulo = (i) => {
-    setErros({});
-    setCapitulo(i);
-  };
-
-  return (
-    <div>
-      {CAPITULOS.map((c, i) => {
-        // Na revisão, a própria revisão é o resumo — repetir os
-        // capítulos recolhidos por cima era dizer tudo duas vezes.
-        if (i < capitulo && capitulo === 3) return null;
-        if (i < capitulo)
-          return (
-            <CapituloFeito
-              key={c.titulo}
-              titulo={c.titulo}
-              resumo={resumos[i]}
-              onEditar={() => editarCapitulo(i)}
-            />
-          );
-        if (i > capitulo)
-          return <CapituloFuturo key={c.titulo} n={i} titulo={c.titulo} />;
-        return (
-          <div key={c.titulo}>
-            <p
-              style={{
-                fontSize: "10px",
-                fontWeight: "700",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--gold-dark)",
-                margin: "0 0 4px 0",
-              }}
-            >
-              Passo {i + 1} de 4
-            </p>
-            <h2
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "21px",
-                fontWeight: "500",
-                color: "var(--charcoal)",
-                margin: "0 0 4px 0",
-              }}
-            >
-              {c.titulo}
-            </h2>
-            <p
-              style={{
-                fontSize: "12.5px",
-                color: "var(--gray-mid)",
-                lineHeight: 1.6,
-                margin: "0 0 18px 0",
-              }}
-            >
-              {c.intro}
-            </p>
-            <motion.div
-              key={`corpo-${i}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {c.corpo ? (
-                c.corpo()
-              ) : (
-                <>
-                  {[0, 1, 2].map((n) => (
-                    <LinhaRevisao
-                      key={n}
-                      titulo={CAPITULOS[n].titulo}
-                      valor={resumos[n] || "—"}
-                      onEditar={() => editarCapitulo(n)}
-                    />
-                  ))}
-                  {mensagem.trim() && (
-                    <LinhaRevisao titulo="Mais detalhes" valor={mensagem.trim()} />
-                  )}
-                  {ficheiros.length > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        flexWrap: "wrap",
-                        padding: "10px 0 4px",
-                      }}
-                    >
-                      {ficheiros.map((f, i2) => (
-                        <img
-                          key={i2}
-                          src={f.url}
-                          alt={`Referência ${i2 + 1}`}
-                          style={{
-                            width: "44px",
-                            height: "44px",
-                            objectFit: "cover",
-                            borderRadius: "8px",
-                            border: "1px solid var(--gold-light)",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <p
-                    style={{
-                      fontSize: "11.5px",
-                      color: "var(--gray-mid)",
-                      lineHeight: 1.6,
-                      margin: "14px 0 4px",
-                    }}
-                  >
-                    Ao enviar, o pedido chega-nos direto — respondemos-te em
-                    breve pelo contacto que deixaste.
-                  </p>
-                  {blocoErroGeral}
-                </>
-              )}
-            </motion.div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---- capítulos: as peças fechadas ----
-
-// Capítulo já preenchido: recolhe para uma linha-resumo com «Editar»
-// — o que ficou para trás continua à vista, nunca escondido.
-function CapituloFeito({ titulo, resumo, onEditar }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "10px",
-        padding: "11px 0",
-        borderBottom: "1px solid var(--borda-leve, #F0EAD9)",
-        marginBottom: "4px",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: "18px",
-          height: "18px",
-          borderRadius: "50%",
-          backgroundColor: "var(--gold)",
-          color: "white",
-          fontSize: "10px",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: "1px",
-        }}
-      >
-        ✓
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: "10px",
-            fontWeight: "700",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--gold-dark)",
-            margin: "0 0 2px 0",
-          }}
-        >
-          {titulo}
-        </p>
-        <p
-          style={{
-            fontSize: "12.5px",
-            color: "var(--charcoal)",
-            margin: 0,
-            lineHeight: 1.5,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {resumo || "—"}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onEditar}
-        style={{
-          border: "none",
-          background: "none",
-          color: "var(--gold-dark)",
-          fontSize: "12px",
-          fontWeight: "600",
-          cursor: "pointer",
-          padding: "2px 0",
-          flexShrink: 0,
-        }}
-      >
-        Editar
-      </button>
-    </div>
-  );
-}
-
-// Capítulo por vir: um título sereno — sabe-se o que aí vem, sem peso.
-function CapituloFuturo({ n, titulo }) {
-  return (
-    <div
-      // o display vive na folha da página (.cap-futuro): flex por
-      // omissão, none no desktop — inline aqui vencia o media query
-      className="cap-futuro"
-      style={{
-        alignItems: "baseline",
-        gap: "10px",
-        padding: "13px 0 3px",
-        borderTop: "1px solid var(--borda-leve, #F0EAD9)",
-        marginTop: "16px",
-        opacity: 0.55,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: "15px",
-          color: "var(--gold-dark)",
-        }}
-      >
-        {n + 1}
-      </span>
-      <span
-        style={{
-          fontSize: "11px",
-          fontWeight: "600",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--gray-mid)",
-        }}
-      >
-        {titulo}
-      </span>
-    </div>
-  );
-}
-
-// Uma linha da revisão final: título pequeno, valor legível, Editar.
-function LinhaRevisao({ titulo, valor, onEditar }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "10px",
-        padding: "10px 0",
-        borderBottom: "1px solid var(--borda-leve, #F0EAD9)",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: "10px",
-            fontWeight: "700",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--gold-dark)",
-            margin: "0 0 3px 0",
-          }}
-        >
-          {titulo}
-        </p>
+      {erroGeral && (
         <p
           style={{
             fontSize: "13px",
-            color: "var(--charcoal)",
-            margin: 0,
-            lineHeight: 1.55,
-            overflowWrap: "anywhere",
+            color: "#DC2626",
+            margin: "0 0 12px 0",
           }}
         >
-          {valor}
+          {erroGeral}
         </p>
-      </div>
-      {onEditar && (
+      )}
+
+      {!ocultarBotao && (
         <button
-          type="button"
-          onClick={onEditar}
+          onClick={submeter}
+          disabled={enviando}
           style={{
-            border: "none",
-            background: "none",
-            color: "var(--gold-dark)",
-            fontSize: "12px",
+            width: "100%",
+            padding: "13px",
+            borderRadius: "10px",
+            fontSize: "14px",
             fontWeight: "600",
-            cursor: "pointer",
-            padding: "2px 0",
-            flexShrink: 0,
+            border: "none",
+            backgroundColor: enviando ? "var(--gold-light)" : "var(--gold)",
+            color: "white",
+            cursor: enviando ? "wait" : "pointer",
+            boxShadow: "0 4px 12px rgba(201,168,76,0.3)",
           }}
         >
-          Editar
+          {enviando ? "A enviar..." : textoBotao}
         </button>
       )}
     </div>
