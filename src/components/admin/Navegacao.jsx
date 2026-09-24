@@ -364,9 +364,18 @@ const NAV_TEXTO = "15px";
 const NAV_ICONE = 19;
 const NAV_ICONE_RAIL = 20;
 
-// `primario` = os módulos de todos os dias (NAV_DIARIA): inativos,
-// falam em tinta escura e semibold, para se acharem num relance. Não
-// é um «ativo» — o ativo continua a ser o ouro com a pílula quente.
+// `primario` = os quatro módulos de todos os dias (Caixa de Entrada +
+// NAV_DIARIA): inativos, falam em tinta escura e semibold, para se
+// acharem num relance. A precedência vive AQUI, num sítio só:
+//   1. ativo            → ouro (com a pílula quente, no estilo do item)
+//   2. inativo primário → tinta escura, 600
+//   3. inativo          → cinza, 400
+// Nenhum outro estado (correio por ler, contagens) mexe na cor — esses
+// dizem-se pelo badge.
+const corDoItem = ({ ativo, primario }) =>
+  ativo ? "var(--gold-dark)" : primario ? "var(--charcoal)" : "var(--gray-mid)";
+const pesoDoItem = ({ ativo, primario }) => (ativo || primario ? "600" : "400");
+
 function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado = false, primario = false }) {
   const rotas = useRotas();
   const estilo = {
@@ -384,11 +393,7 @@ function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado =
     textDecoration: "none",
     position: "relative",
     backgroundColor: ativo ? "var(--superficie-quente)" : "transparent",
-    color: ativo
-      ? "var(--gold-dark)"
-      : primario
-        ? "var(--charcoal)"
-        : "var(--gray-mid)",
+    color: corDoItem({ ativo, primario }),
   };
   const conteudo = compacto ? (
     <>
@@ -413,7 +418,7 @@ function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado =
       <span
         style={{
           fontSize: NAV_TEXTO,
-          fontWeight: ativo || primario ? "600" : "400",
+          fontWeight: pesoDoItem({ ativo, primario }),
           letterSpacing: "0.02em",
           whiteSpace: "nowrap",
         }}
@@ -554,9 +559,10 @@ function ItemCaixaEntrada({ naoLidas, onClick, compacto = false }) {
         // diz-se pela cor e pelo badge — chega, e não grita.
         backgroundColor: "transparent",
         border: "none",
-        // Módulo primário: sem nada por ler fala em tinta escura, como
-        // o diário; com correio, o ouro de sempre.
-        color: naoLidas > 0 ? "var(--gold-dark)" : "var(--charcoal)",
+        // Módulo primário e nunca «ativo» (é uma gaveta, não um
+        // separador): tinta escura sempre. O correio por ver diz-se
+        // SÓ pelo badge — a cor do rótulo não muda com ele.
+        color: corDoItem({ ativo: false, primario: true }),
       }}
     >
       <Icone nome="sino" tamanho={compacto ? NAV_ICONE_RAIL : NAV_ICONE} />
@@ -564,7 +570,7 @@ function ItemCaixaEntrada({ naoLidas, onClick, compacto = false }) {
         <span
           style={{
             fontSize: NAV_TEXTO,
-            fontWeight: "600",
+            fontWeight: pesoDoItem({ ativo: false, primario: true }),
             letterSpacing: "0.02em",
             whiteSpace: "nowrap",
             flex: 1,

@@ -3316,6 +3316,9 @@ módulos de todos os dias não se distinguiam do resto.
   tinta escura (--charcoal) e semibold 600, ícone incluído. O resto
   (Território, grupos, Recolher/Aspecto/Sair) fica como estava.
 - O ativo não mudou: ouro + pílula quente. É isso que o distingue do
-  primário inativo (os dois são 600). Com correio por ler, a Caixa
-  mantém o ouro de sempre.
+  primário inativo (os dois são 600).
+- Correção (24/09): o correio por ler NÃO dá ouro à Caixa de Entrada —
+  inativa, é tinta escura sempre; as não lidas dizem-se só pelo badge.
+  A precedência vive num sítio só (corDoItem/pesoDoItem): ativo → ouro;
+  inativo primário → tinta escura 600; inativo → cinza 400.
 - Largura, espaçamentos e a barra/folha do telemóvel não mexem.
