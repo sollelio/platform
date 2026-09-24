@@ -526,6 +526,8 @@ Legenda da última coluna: **[a]** copy visível · **[b]** identificador de có
 
 Base: Supabase/Postgres. Todo o SQL do repositório vive em `docs/migracoes/` (não há ficheiros `.sql` fora dessa pasta).
 
+> **[rev. 24/09/2026]** Deixou de ser verdade: a cadeia executável canónica é `supabase/migrations/` (baseline de produção de 21/08 + migrações timestamped, incluindo as cópias canónicas da 109 e da 110). `docs/migracoes/` passou a histórico/validação — ver `docs/migracoes/README.md`.
+
 > **[rev. 18/08/2026]** A cadeia numerada vai agora de `020_rpcs_formularios_publicos.sql` a **`108_a_casa_vem_do_endereco.sql`**: **88 ficheiros numerados**, mais cinco fora da cadeia (`form_errors.sql`, `limpeza_dados_teste.sql`, `semear-comunicado-condicoes.sql` e os dois de inventário só-leitura `inventario_pre_lote2.sql` / `inventario_fecho_duplicados.sql`) — **93 no total**. **Há dois saltos**: não existe `099` (o número foi gasto num prompt de frontend, `docs/prompt-099-identidade.md`) nem `104`. Há um `103b` a seguir ao `103`.
 >
 > **As tabelas 4.1 a 4.32 abaixo NÃO listam a coluna `tenant_id`**, que a 090 acrescentou a dez delas e a 091 à décima primeira. Ver 4.0.

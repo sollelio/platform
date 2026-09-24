@@ -53,6 +53,12 @@ atrapalhar, o caminho é decisão registada, nunca excepção calada.
 
 ## Dados, escritas e migrações
 
+- **Uma migração só é real quando existe em `supabase/migrations/`.** É a
+  única cadeia executável (baseline + timestamped); `docs/migracoes/` é
+  histórico e validação. Migração nova nasce lá; aplicar à mão num
+  ambiente obriga a reconciliar o ledger (`supabase migration repair`) —
+  foi uma 109/110 só em `docs/migracoes/` que deixou o TEST para trás.
+
 - **Dado ausente é melhor que dado inventado.** Nenhum backfill
   preenche um valor plausível: a falta assinala-se (`reconstituido`,
   data NULL, `feito_sem_data`) e só se reconstitui o que um facto

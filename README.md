@@ -119,6 +119,8 @@ prosa é onde vive o *porquê*, e o porquê é o que impede alguém de
 ## Duas regras de trabalho
 
 1. **O git é do Hélio.** Não se commita nem se faz push sem ele pedir.
-2. **As migrações corre-as o Hélio**, no SQL editor do Supabase. O
-   repositório escreve o SQL; não o aplica, e **não sabe** o que está
-   aplicado (ver `ESTADO_APP.md`, secção 7).
+2. **As migrações aplica-as o Hélio** (ou com autorização expressa dele),
+   e a cadeia canónica é **`supabase/migrations/`** — uma migração só é
+   real quando existe lá. `docs/migracoes/` é histórico + validação (ver
+   `docs/migracoes/README.md`). Aplicar à mão num ambiente obriga a
+   reconciliar o ledger (`supabase migration repair`).

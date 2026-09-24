@@ -11,7 +11,9 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const base = fileURLToPath(new URL("../docs/migracoes/", import.meta.url));
+// A cadeia CANÓNICA é supabase/migrations/ (docs/migracoes/README.md): os
+// testes correm os ficheiros timestamped, que são os que se aplicam.
+const base = fileURLToPath(new URL("../supabase/migrations/", import.meta.url));
 const db = new PGlite();
 
 let falhas = 0;
@@ -154,7 +156,7 @@ const antes = (
 ).rows[0];
 
 // ---------- 3. Correr a 109 ----------
-await db.exec(readFileSync(base + "109_a_procura_nao_se_apaga.sql", "utf8"));
+await db.exec(readFileSync(base + "20260910163011_legacy_109_demand_loss_and_repeat_contact_trace.sql", "utf8"));
 ok(true, "a 109 corre sem erros sobre o esquema pós-105");
 
 const depois = (
@@ -286,7 +288,7 @@ ok(
 );
 
 // ---------- 7. Re-executável ----------
-await db.exec(readFileSync(base + "109_a_procura_nao_se_apaga.sql", "utf8"));
+await db.exec(readFileSync(base + "20260910163011_legacy_109_demand_loss_and_repeat_contact_trace.sql", "utf8"));
 ok(true, "correr a 109 duas vezes não rebenta (add if not exists / or replace)");
 
 console.log(
