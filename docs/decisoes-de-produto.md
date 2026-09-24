@@ -3302,3 +3302,20 @@ fundação de recolha que vem ANTES de qualquer ecrã:
 - De caminho: os objectURLs das imagens passaram a nascer na escolha
   e a revogar-se ao remover/desmontar (criá-los no render vazava um
   URL por tecla — dívida antiga).
+
+### Os quatro primários da sidebar (24/09/2026)
+
+Feedback direto da UI em produção: a sidebar lia-se pequena e os
+módulos de todos os dias não se distinguiam do resto.
+
+- Um degrau acima na escala dos itens: rótulo 14→15px, ícone 18→19
+  (rail 19→20). Fica em três constantes em Navegacao.jsx (NAV_TEXTO,
+  NAV_ICONE, NAV_ICONE_RAIL), partilhadas pelo ItemNav, pela Caixa de
+  Entrada e pelo destaque — a hierarquia relativa não mexe.
+- Caixa de Entrada, Início, Agenda e Contactos, inativos, falam em
+  tinta escura (--charcoal) e semibold 600, ícone incluído. O resto
+  (Território, grupos, Recolher/Aspecto/Sair) fica como estava.
+- O ativo não mudou: ouro + pílula quente. É isso que o distingue do
+  primário inativo (os dois são 600). Com correio por ler, a Caixa
+  mantém o ouro de sempre.
+- Largura, espaçamentos e a barra/folha do telemóvel não mexem.

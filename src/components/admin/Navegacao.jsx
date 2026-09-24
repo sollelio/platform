@@ -357,7 +357,17 @@ function Contagem({ quantos }) {
   );
 }
 
-function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado = false }) {
+// A escala dos itens do menu — um sítio só para o tamanho do rótulo e
+// do ícone, partilhado pelo ItemNav, pela Caixa de Entrada e pelo
+// destaque (subiram um degrau a 24/09: liam-se pequenos demais).
+const NAV_TEXTO = "15px";
+const NAV_ICONE = 19;
+const NAV_ICONE_RAIL = 20;
+
+// `primario` = os módulos de todos os dias (NAV_DIARIA): inativos,
+// falam em tinta escura e semibold, para se acharem num relance. Não
+// é um «ativo» — o ativo continua a ser o ouro com a pílula quente.
+function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado = false, primario = false }) {
   const rotas = useRotas();
   const estilo = {
     display: "flex",
@@ -374,11 +384,15 @@ function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado =
     textDecoration: "none",
     position: "relative",
     backgroundColor: ativo ? "var(--superficie-quente)" : "transparent",
-    color: ativo ? "var(--gold-dark)" : "var(--gray-mid)",
+    color: ativo
+      ? "var(--gold-dark)"
+      : primario
+        ? "var(--charcoal)"
+        : "var(--gray-mid)",
   };
   const conteudo = compacto ? (
     <>
-      <Icone nome={item.icone} tamanho={19} />
+      <Icone nome={item.icone} tamanho={NAV_ICONE_RAIL} />
       {contagem > 0 && (
         <span
           style={{
@@ -395,11 +409,11 @@ function ItemNav({ item, ativo, onClick, contagem, compacto = false, indentado =
     </>
   ) : (
     <>
-      <Icone nome={item.icone} tamanho={18} />
+      <Icone nome={item.icone} tamanho={NAV_ICONE} />
       <span
         style={{
-          fontSize: "14px",
-          fontWeight: ativo ? "600" : "400",
+          fontSize: NAV_TEXTO,
+          fontWeight: ativo || primario ? "600" : "400",
           letterSpacing: "0.02em",
           whiteSpace: "nowrap",
         }}
@@ -540,15 +554,17 @@ function ItemCaixaEntrada({ naoLidas, onClick, compacto = false }) {
         // diz-se pela cor e pelo badge — chega, e não grita.
         backgroundColor: "transparent",
         border: "none",
-        color: naoLidas > 0 ? "var(--gold-dark)" : "var(--gray-mid)",
+        // Módulo primário: sem nada por ler fala em tinta escura, como
+        // o diário; com correio, o ouro de sempre.
+        color: naoLidas > 0 ? "var(--gold-dark)" : "var(--charcoal)",
       }}
     >
-      <Icone nome="sino" tamanho={compacto ? 19 : 18} />
+      <Icone nome="sino" tamanho={compacto ? NAV_ICONE_RAIL : NAV_ICONE} />
       {!compacto && (
         <span
           style={{
-            fontSize: "14px",
-            fontWeight: naoLidas > 0 ? "600" : "400",
+            fontSize: NAV_TEXTO,
+            fontWeight: "600",
             letterSpacing: "0.02em",
             whiteSpace: "nowrap",
             flex: 1,
@@ -643,12 +659,12 @@ function ItemDestaque({ item, ativo, onClick, compacto = false }) {
       title={compacto ? undefined : item.dica}
       aria-label={compacto ? item.label : undefined}
     >
-      <Icone nome={item.icone} tamanho={compacto ? 19 : 18} />
+      <Icone nome={item.icone} tamanho={compacto ? NAV_ICONE_RAIL : NAV_ICONE} />
       {!compacto && (
         <>
           <span
             style={{
-              fontSize: "14px",
+              fontSize: NAV_TEXTO,
               fontWeight: ativo ? "600" : "500",
               letterSpacing: "0.02em",
               whiteSpace: "nowrap",
@@ -928,7 +944,7 @@ export function SidebarNav({
       )}
 
       {/* O trabalho de todos os dias — sempre à vista, sem dobras */}
-      {NAV_DIARIA.map((it) => item(it))}
+      {NAV_DIARIA.map((it) => item(it, { primario: true }))}
 
       {/* O destaque estratégico: sempre visível, com natureza própria */}
       {NAV_DESTAQUES.map((d) => (
@@ -975,7 +991,7 @@ export function SidebarNav({
                       : "transparent",
                   }}
                 >
-                  <Icone nome={g.icone} tamanho={19} />
+                  <Icone nome={g.icone} tamanho={NAV_ICONE_RAIL} />
                   {soma > 0 && (
                     <span
                       style={{
